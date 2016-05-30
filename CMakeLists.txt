@@ -40,11 +40,18 @@ ExternalProject_Add(eggs-variant
   INSTALL_COMMAND "")
 add_dependencies(deps eggs-variant)
 
+find_package(Boost 1.56 REQUIRED)
+
 #  Tests
 #  =====================================================================
 
-set(immu_include_dirs ${PROJECT_SOURCE_DIR} ${EGGS_VARIANT_INCLUDE_DIR})
-set(immu_test_include_dirs ${immu_include_dirs} ${DOCTEST_INCLUDE_DIR})
+set(immu_include_dirs
+  ${PROJECT_SOURCE_DIR}
+  ${Boost_INCLUDE_DIR}
+  ${EGGS_VARIANT_INCLUDE_DIR})
+set(immu_test_include_dirs
+  ${immu_include_dirs}
+  ${DOCTEST_INCLUDE_DIR})
 
 enable_testing()
 

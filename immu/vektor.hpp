@@ -4,8 +4,7 @@
 #include <cstdlib>
 #include <memory>
 #include <eggs/variant.hpp>
-#include <iostream>
-#include <iterator>
+#include <boost/iterator/iterator_facade.hpp>
 
 namespace immu {
 
@@ -110,11 +109,114 @@ class vektor
     }
 
 public:
+    using value_type = T;
+    using reference_type = const T&;
+
+    struct iterator :
+        boost::iterator_facade<iterator,
+                               value_type,
+                               boost::random_access_traversal_tag,
+                               reference_type>
+    {
+        iterator() = default;
+
+    private:
+        friend class vektor;
+        friend class boost::iterator_core_access;
+
+        struct end_t {};
+
+        using leaf_iterator = typename leaf_t::const_iterator;
+        const vektor* v_;
+        std::size_t   i_;
+        std::size_t   base_;
+        leaf_iterator curr_;
+
+        iterator(const vektor* v)
+            : v_    { v }
+            , i_    { 0 }
+            , base_ { 0 }
+            , curr_ { v->array_for_(0).begin() }
+        {
+        }
+
+        iterator(const vektor* v, end_t)
+            : v_    { v }
+            , i_    { v->size_ }
+            , base_ { i_ - (i_ & branching_mask) }
+            , curr_ { v->array_for_(i_ - 1).begin() + (i_ - base_) }
+        {}
+
+        void increment()
+        {
+            assert(i_ < v_->size_);
+            ++i_;
+            if (i_ - base_ < branching) {
+                ++curr_;
+            } else {
+                base_ += branching;
+                curr_ = v_->array_for_(i_).begin();
+            }
+        }
+
+        void decrement()
+        {
+            assert(i_ > 0);
+            --i_;
+            if (i_ >= base_) {
+                --curr_;
+            } else {
+                base_ -= branching;
+                curr_ = std::prev(v_->array_for_(i_).end());
+            }
+        }
+
+        void advance(std::ptrdiff_t n)
+        {
+            assert(n <= 0 || i_ + static_cast<std::size_t>(n) <= v_->size_);
+            assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
+
+            i_ += n;
+            if (i_ <= base_ && i_ - base_ < branching) {
+                curr_ += n;
+            } else {
+                base_ = i_ - (i_ & branching_mask);
+                curr_ = v_->array_for_(i_).begin() + (i_ - base_);
+            }
+        }
+
+        bool equal(const iterator& other) const
+        {
+            return i_ == other.i_;
+        }
+
+        std::ptrdiff_t distance_to(const iterator& other) const
+        {
+            return other.i_ > i_
+                ?   static_cast<ptrdiff_t>(other.i_ - i_)
+                : - static_cast<ptrdiff_t>(i_ - other.i_);
+        }
+
+        const T& dereference() const
+        {
+            return *curr_;
+        }
+    };
+
+    using const_iterator   = iterator;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+
     vektor() : vektor{empty_} {}
     vektor(const vektor&) = default;
     vektor(vektor&&) = default;
     vektor& operator=(const vektor&) = default;
     vektor& operator=(vektor&&) = default;
+
+    iterator begin() const { return {this}; }
+    iterator end()   const { return {this, typename iterator::end_t{}}; }
+
+    reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+    reverse_iterator rend()   const { return reverse_iterator{begin()}; }
 
     std::size_t size() const { return size_; }
     bool empty() const { return size_ == 0; }
