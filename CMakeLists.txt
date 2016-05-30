@@ -7,11 +7,15 @@ cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 #  Options
 #  =====================================================================
 
-set(DOCTEST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
+set(DOCTEST_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
+set(EGGS_VARIANT_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/eggs-variant-prefix/src/eggs-variant/include")
 
 #  Deps
 #  =====================================================================
@@ -28,11 +32,18 @@ ExternalProject_Add(doctest
   INSTALL_COMMAND "")
 add_dependencies(deps doctest)
 
+ExternalProject_Add(eggs-variant
+  GIT_REPOSITORY git@github.com:eggs-cpp/variant.git
+  EXCLUDE_FROM_ALL 1
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+add_dependencies(deps eggs-variant)
 
 #  Tests
 #  =====================================================================
 
-set(immu_include_dirs ${PROJECT_SOURCE_DIR})
+set(immu_include_dirs ${PROJECT_SOURCE_DIR} ${EGGS_VARIANT_INCLUDE_DIR})
 set(immu_test_include_dirs ${immu_include_dirs} ${DOCTEST_INCLUDE_DIR})
 
 enable_testing()
