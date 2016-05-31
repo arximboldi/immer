@@ -24,13 +24,23 @@ using vektor_leaf  = std::array<T, branching>;
 template <typename T>
 using vektor_inner = std::array<vektor_node_ptr<T>, branching>;
 
+using eggs::variants::get;
+
 template <typename T>
 struct vektor_node : eggs::variant<vektor_leaf<T>,
-                                   vektor_inner<T> >
+                                   vektor_inner<T>>
 {
     using base_t = eggs::variant<vektor_leaf<T>,
-                                 vektor_inner<T> >;
+                                 vektor_inner<T>>;
     using base_t::base_t;
+
+    vektor_inner<T>& inner() & { return get<vektor_inner<T>>(*this); }
+    const vektor_inner<T>& inner() const& { return get<vektor_inner<T>>(*this); }
+    vektor_inner<T>&& inner() && { return get<vektor_inner<T>>(std::move(*this)); }
+
+    vektor_leaf<T>& leaf() & { return get<vektor_leaf<T>>(*this); }
+    const vektor_leaf<T>& leaf() const& { return get<vektor_leaf<T>>(*this); }
+    vektor_leaf<T>&& leaf() && { return get<vektor_leaf<T>>(std::move(*this)); }
 };
 
 } // namespace detail
@@ -61,17 +71,16 @@ class vektor
 
     const leaf_t& array_for_(std::size_t index) const
     {
-        using eggs::variants::get;
         assert(index < size_);
 
         if (index >= tail_offset_())
-            return get<leaf_t>(*tail_);
+            return tail_->leaf();
 
         auto node = root_.get();
         for (auto level = shift_; level; level -= branching_log) {
-            node = get<inner_t>(*node) [(index >> level) & branching_mask].get();
+            node = node->inner() [(index >> level) & branching_mask].get();
         }
-        return get<leaf_t>(*node);
+        return node->leaf();
     }
 
     node_ptr make_path_(unsigned level, node_ptr node) const
@@ -86,10 +95,9 @@ class vektor
                         const node_t& parent_,
                         node_ptr tail) const
     {
-        using eggs::variants::get;
-        const auto& parent   = get<inner_t>(parent_);
+        const auto& parent   = parent_.inner();
         auto new_parent_node = make_node_(parent);
-        auto& new_parent     = get<inner_t>(*new_parent_node);
+        auto& new_parent     = new_parent_node->inner();
         auto idx             = ((size_ - 1) >> level) & branching_mask;
         auto next_node =
             level == branching_log ? std::move(tail) :
@@ -229,13 +237,11 @@ public:
 
     vektor push_back(T value) const
     {
-        using eggs::variants::get;
-
         auto tail_size = size_ - tail_offset_();
         if (tail_size < branching) {
-            const auto& old_tail = get<leaf_t>(*tail_);
+            const auto& old_tail = tail_->leaf();
             auto  new_tail_node  = make_node_(leaf_t{});
-            auto& new_tail       = get<leaf_t>(*new_tail_node);
+            auto& new_tail       = new_tail_node->leaf();
             std::copy(old_tail.begin(),
                       old_tail.begin() + tail_size,
                       new_tail.begin());
