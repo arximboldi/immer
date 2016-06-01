@@ -40,6 +40,38 @@ TEST_CASE("push back one element")
     }
 }
 
+TEST_CASE("update")
+{
+    const auto n = 42;
+    auto v = vektor<unsigned>{};
+    for (auto i = 0u; i < n; ++i)
+        v = v.push_back(i);
+
+    SUBCASE("assoc")
+    {
+        const auto u = v.assoc(3u, 13u);
+        CHECK(u.size() == v.size());
+        CHECK(u[2u] == 2u);
+        CHECK(u[3u] == 13u);
+        CHECK(u[4u] == 4u);
+        CHECK(u[40u] == 40u);
+        CHECK(v[3u] == 3u);
+    }
+
+    SUBCASE("update")
+    {
+        const auto u = v.update(10u, [] (auto x) { return x + 10; });
+        CHECK(u.size() == v.size());
+        CHECK(u[10u] == 20u);
+        CHECK(v[40u] == 40u);
+
+        const auto w = v.update(40u, [] (auto x) { return x - 10; });
+        CHECK(w.size() == v.size());
+        CHECK(w[40u] == 30u);
+        CHECK(v[40u] == 40u);
+    }
+}
+
 TEST_CASE("iterator")
 {
     const auto n = 666u;

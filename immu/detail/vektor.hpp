@@ -148,6 +148,57 @@ struct impl
         const auto& arr = array_for(index);
         return arr [index & branching_mask];
     }
+
+    template <typename FnT>
+    impl update(std::size_t idx, FnT&& fn) const
+    {
+        if (idx >= tail_offset()) {
+            const auto& old_tail = tail->leaf();
+            auto new_tail_node  = make_node(leaf_t{old_tail});
+            auto& item = new_tail_node->leaf() [idx & branching_mask];
+            auto new_value = std::forward<FnT>(fn) (std::move(item));
+            item = std::move(new_value);
+            return impl{ size,
+                    shift,
+                    root,
+                    std::move(new_tail_node) };
+        } else {
+            return impl{size,
+                    shift,
+                    do_update(shift,
+                              *root,
+                              idx,
+                              std::forward<FnT>(fn)),
+                    tail};
+        }
+    }
+
+    template <typename FnT>
+    node_ptr_t do_update(unsigned level,
+                         const node_t& node,
+                         std::size_t idx,
+                         FnT&& fn) const
+    {
+        if (level == 0) {
+            auto new_node  = make_node(leaf_t{node.leaf()});
+            auto& item     = new_node->leaf() [idx & branching_mask];
+            auto new_value = std::forward<FnT>(fn) (std::move(item));
+            item = std::move(new_value);
+            return new_node;
+        } else {
+            auto new_node = make_node(inner_t{node.inner()});
+            auto& item    = new_node->inner()[(idx >> level) & branching_mask];
+            item = do_update(level - branching_log, *item, idx, std::forward<FnT>(fn));
+            return new_node;
+        }
+    }
+
+    impl assoc(std::size_t idx, T value) const
+    {
+        return update(idx, [&] (auto&&) {
+                return std::move(value);
+            });
+    }
 };
 
 template <typename T> const auto    empty_inner = make_node<T>(inner_node<T>{});

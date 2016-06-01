@@ -38,6 +38,13 @@ public:
     vektor push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
+    vektor assoc(std::size_t idx, value_type value) const
+    { return { impl_.assoc(idx, std::move(value)) }; }
+
+    template <typename FnT>
+    vektor update(std::size_t idx, FnT&& fn) const
+    { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
+
 private:
     vektor(detail::vektor::impl<T> impl) : impl_(std::move(impl)) {}
     detail::vektor::impl<T> impl_ = detail::vektor::empty<T>;
