@@ -19,6 +19,11 @@ set(EGGS_VARIANT_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/eggs-variant-prefix/src/eggs-variant/include")
 set(NONIUS_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
+set(LIBRRB_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/librrb-prefix/include")
+set(LIBRRB_LIBS
+  "${CMAKE_BINARY_DIR}/librrb-prefix/lib/librrb.a"
+  "${CMAKE_BINARY_DIR}/libgc-prefix/lib/libgc.a")
 
 #  Deps
 #  =====================================================================
@@ -49,6 +54,37 @@ immu_external_dep_nobuild(nonius
   GIT_REPOSITORY git@github.com:rmartinho/nonius.git
   GIT_TAG devel)
 
+immu_external_dep_nobuild(libatomic_ops
+  GIT_REPOSITORY git://github.com/ivmai/libatomic_ops.git
+  UPDATE_COMMAND "")
+
+immu_external_dep(libgc
+  DEPENDS libatomic_ops
+  GIT_REPOSITORY git://github.com/ivmai/bdwgc.git
+  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3
+  BUILD_COMMAND make
+  INSTALL_COMMAND make install)
+ExternalProject_Add_Step(libgc autoreconf
+  DEPENDEES download update patch
+  DEPENDERS configure
+  COMMAND autoreconf -vif <SOURCE_DIR>)
+ExternalProject_Add_Step(libgc ln-libatomic_ops
+  DEPENDEES download update patch
+  DEPENDERS configure
+  COMMAND ln -sf ${CMAKE_BINARY_DIR}/libatomic_ops-prefix/src/libatomic_ops <SOURCE_DIR>/libatomic_ops)
+
+immu_external_dep(librrb
+  DEPENDS libgc
+  GIT_REPOSITORY git@github.com:hyPiRion/c-rrb.git
+  BUILD_IN_SOURCE 1
+  UPDATE_COMMAND ""
+  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3\ -I${CMAKE_BINARY_DIR}/libgc-prefix/include LDFLAGS=-L${CMAKE_BINARY_DIR}/libgc-prefix/lib
+  BUILD_COMMAND make
+  INSTALL_COMMAND make install)
+ExternalProject_Add_Step(librrb autoreconf
+  DEPENDEES download update patch
+  DEPENDERS configure
+  COMMAND autoreconf -vif <SOURCE_DIR>)
 
 find_package(Boost 1.56 REQUIRED)
 find_package(Threads)
@@ -74,8 +110,10 @@ set(immu_test_include_dirs
   ${DOCTEST_INCLUDE_DIR})
 set(immu_benchmark_include_dirs
   ${immu_include_dirs}
-  ${NONIUS_INCLUDE_DIR})
+  ${NONIUS_INCLUDE_DIR}
+  ${LIBRRB_INCLUDE_DIR})
 set(immu_benchmark_libs
+  ${LIBRRB_LIBS}
   ${CMAKE_THREAD_LIBS_INIT})
 
 enable_testing()
