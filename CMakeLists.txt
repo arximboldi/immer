@@ -17,6 +17,8 @@ set(DOCTEST_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
 set(EGGS_VARIANT_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/eggs-variant-prefix/src/eggs-variant/include")
+set(NONIUS_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
 
 #  Deps
 #  =====================================================================
@@ -25,23 +27,31 @@ include(ExternalProject)
 add_custom_target(deps
   COMMENT "Download and prepare dependencies")
 
-ExternalProject_Add(doctest
-  GIT_REPOSITORY git@github.com:onqtam/doctest.git
-  EXCLUDE_FROM_ALL 1
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND "")
-add_dependencies(deps doctest)
+function(immu_external_dep name)
+  ExternalProject_Add(${name} EXCLUDE_FROM_ALL 1 "${ARGN}")
+  add_dependencies(deps ${name})
+endfunction()
 
-ExternalProject_Add(eggs-variant
-  GIT_REPOSITORY git@github.com:eggs-cpp/variant.git
-  EXCLUDE_FROM_ALL 1
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND "")
-add_dependencies(deps eggs-variant)
+function(immu_external_dep_nobuild name)
+  immu_external_dep(${name} "${ARGN}"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND "")
+endfunction()
+
+immu_external_dep_nobuild(doctest
+  GIT_REPOSITORY git@github.com:onqtam/doctest.git)
+
+immu_external_dep_nobuild(eggs-variant
+  GIT_REPOSITORY git@github.com:eggs-cpp/variant.git)
+
+immu_external_dep_nobuild(nonius
+  GIT_REPOSITORY git@github.com:rmartinho/nonius.git
+  GIT_TAG devel)
+
 
 find_package(Boost 1.56 REQUIRED)
+find_package(Threads)
 
 find_program(CCACHE ccache)
 if (CCACHE)
@@ -62,6 +72,11 @@ set(immu_include_dirs
 set(immu_test_include_dirs
   ${immu_include_dirs}
   ${DOCTEST_INCLUDE_DIR})
+set(immu_benchmark_include_dirs
+  ${immu_include_dirs}
+  ${NONIUS_INCLUDE_DIR})
+set(immu_benchmark_libs
+  ${CMAKE_THREAD_LIBS_INIT})
 
 enable_testing()
 
@@ -69,10 +84,6 @@ add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   COMMENT "Buld and run all the tests and examples.")
-
-add_custom_target(tests
-  COMMENT "Build all the unit tests.")
-add_dependencies(check tests)
 
 function(immu_target_name_for out file)
   get_filename_component(_extension ${_file} EXT)
@@ -82,12 +93,34 @@ function(immu_target_name_for out file)
   set(${out} "${_name}" PARENT_SCOPE)
 endfunction()
 
-file(GLOB_RECURSE UNIT_TESTS "test/*.cpp")
-foreach(_file IN LISTS UNIT_TESTS)
+add_custom_target(tests
+  COMMENT "Build all the unit tests.")
+add_dependencies(check tests)
+
+file(GLOB_RECURSE immu_unit_tests "test/*.cpp")
+foreach(_file IN LISTS immu_unit_tests)
   immu_target_name_for(_target "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(tests ${_target})
   target_compile_definitions(${_target} PUBLIC DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
   target_include_directories(${_target} PUBLIC ${immu_test_include_dirs})
   add_test(${_target} ${_target})
+endforeach()
+
+#  Benchmarks
+#  =====================================================================
+
+add_custom_target(benchmarks
+  COMMENT "Build all benchmarks.")
+add_dependencies(check benchmarks)
+
+file(GLOB_RECURSE immu_benchmarks "benchmark/*.cpp")
+foreach(_file IN LISTS immu_benchmarks)
+  immu_target_name_for(_target "${_file}")
+  add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
+  add_dependencies(benchmarks ${_target})
+  target_link_libraries(${_target} PUBLIC ${immu_benchmark_libs})
+  target_compile_definitions(${_target} PUBLIC NONIUS_RUNNER)
+  target_include_directories(${_target} PUBLIC ${immu_benchmark_include_dirs})
+  add_test(${_target} ${_target} -v -t ${_target} -r html -o ${_target}.html)
 endforeach()
