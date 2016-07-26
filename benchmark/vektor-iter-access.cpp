@@ -2,6 +2,7 @@
 #include <nonius/nonius_single.h++>
 
 #include <immu/vektor.hpp>
+#include <immu/dvektor.hpp>
 #include <vector>
 #include <list>
 
@@ -45,6 +46,20 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 NONIUS_BENCHMARK("immu::vektor", [] (nonius::chronometer meter)
 {
     auto v = immu::vektor<unsigned>{};
+    for (auto i = 0u; i < benchmark_size; ++i)
+        v = v.push_back(i);
+    meter.measure([&] {
+        auto r = 0u;
+        for (auto i = 0u; i < benchmark_size; ++i)
+            r += v[i];
+        volatile auto rr = r;
+        return rr;
+    });
+})
+
+NONIUS_BENCHMARK("immu::dvektor", [] (nonius::chronometer meter)
+{
+    auto v = immu::dvektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
     meter.measure([&] {
