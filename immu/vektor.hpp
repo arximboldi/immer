@@ -23,8 +23,8 @@ public:
 
     vektor() = default;
 
-    iterator begin() const { return {&impl_}; }
-    iterator end()   const { return {&impl_, typename iterator::end_t{}}; }
+    iterator begin() const { return {impl_}; }
+    iterator end()   const { return {impl_, typename iterator::end_t{}}; }
 
     reverse_iterator rbegin() const { return reverse_iterator{end()}; }
     reverse_iterator rend()   const { return reverse_iterator{begin()}; }

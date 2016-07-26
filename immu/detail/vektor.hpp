@@ -221,19 +221,19 @@ struct iterator : boost::iterator_facade<
 
     iterator() = default;
 
-    iterator(const impl<T>* v)
-        : v_    { v }
+    iterator(const impl<T>& v)
+        : v_    { &v }
         , i_    { 0 }
         , base_ { 0 }
-        , curr_ { v->array_for(0).begin() }
+        , curr_ { v.array_for(0).begin() }
     {
     }
 
-    iterator(const impl<T>* v, end_t)
-        : v_    { v }
-        , i_    { v->size }
+    iterator(const impl<T>& v, end_t)
+        : v_    { &v }
+        , i_    { v.size }
         , base_ { i_ - (i_ & branching_mask) }
-        , curr_ { v->array_for(i_ - 1).begin() + (i_ - base_) }
+        , curr_ { v.array_for(i_ - 1).begin() + (i_ - base_) }
     {}
 
 private:
