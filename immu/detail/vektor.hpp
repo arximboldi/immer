@@ -292,8 +292,8 @@ private:
     std::ptrdiff_t distance_to(const iterator& other) const
     {
         return other.i_ > i_
-            ?   static_cast<ptrdiff_t>(other.i_ - i_)
-            : - static_cast<ptrdiff_t>(i_ - other.i_);
+            ?   static_cast<std::ptrdiff_t>(other.i_ - i_)
+            : - static_cast<std::ptrdiff_t>(i_ - other.i_);
     }
 
     const T& dereference() const
