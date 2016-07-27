@@ -1,52 +1,14 @@
 
 #pragma once
 
-#include <eggs/variant.hpp>
+#include <immu/detail/node.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 #include <memory>
+#include <cassert>
 
 namespace immu {
 namespace detail {
 namespace vektor {
-
-constexpr auto branching_log  = 5;
-constexpr auto branching      = 1 << branching_log;
-constexpr auto branching_mask = branching - 1;
-
-template <typename T>
-struct node;
-
-template <typename T>
-using node_ptr = std::shared_ptr<node<T> >;
-
-template <typename T>
-using leaf_node  = std::array<T, branching>;
-
-template <typename T>
-using inner_node = std::array<node_ptr<T>, branching>;
-
-using eggs::variants::get;
-
-template <typename T>
-struct node : eggs::variant<leaf_node<T>, inner_node<T>>
-{
-    using base_t = eggs::variant<leaf_node<T>, inner_node<T>>;
-    using base_t::base_t;
-
-    inner_node<T>& inner() & { return get<inner_node<T>>(*this); }
-    const inner_node<T>& inner() const& { return get<inner_node<T>>(*this); }
-    inner_node<T>&& inner() && { return get<inner_node<T>>(std::move(*this)); }
-
-    leaf_node<T>& leaf() & { return get<leaf_node<T>>(*this); }
-    const leaf_node<T>& leaf() const& { return get<leaf_node<T>>(*this); }
-    leaf_node<T>&& leaf() && { return get<leaf_node<T>>(std::move(*this)); }
-};
-
-template <typename T, typename ...Ts>
-auto make_node(Ts&& ...xs)
-{
-    return std::make_shared<node<T>>(std::forward<Ts>(xs)...);
-}
 
 template <typename T>
 struct impl
@@ -69,7 +31,7 @@ struct impl
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return vektor::make_node<T>(std::forward<Ts>(xs)...);
+        return detail::make_node<T>(std::forward<Ts>(xs)...);
     }
 
     const leaf_t& array_for(std::size_t index) const
