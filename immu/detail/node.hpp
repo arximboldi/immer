@@ -8,9 +8,9 @@
 namespace immu {
 namespace detail {
 
-constexpr auto branching_log  = 5;
-constexpr auto branching      = 1 << branching_log;
-constexpr auto branching_mask = branching - 1;
+constexpr auto branching_log  = 5u;
+constexpr auto branching      = 1u << branching_log;
+constexpr std::size_t branching_mask = branching - 1;
 
 template <typename T>
 struct node;
