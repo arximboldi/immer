@@ -3,8 +3,6 @@
 
 #include <immu/detail/vektor.hpp>
 
-#include <eggs/variant.hpp>
-
 namespace immu {
 
 template <typename T>

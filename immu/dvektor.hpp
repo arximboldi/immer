@@ -3,8 +3,6 @@
 
 #include <immu/detail/dvektor.hpp>
 
-#include <eggs/variant.hpp>
-
 namespace immu {
 
 template <typename T>

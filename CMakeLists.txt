@@ -47,9 +47,6 @@ endfunction()
 immu_external_dep_nobuild(doctest
   GIT_REPOSITORY git@github.com:onqtam/doctest.git)
 
-immu_external_dep_nobuild(eggs-variant
-  GIT_REPOSITORY git@github.com:eggs-cpp/variant.git)
-
 immu_external_dep_nobuild(nonius
   GIT_REPOSITORY git@github.com:rmartinho/nonius.git
   GIT_TAG devel)
