@@ -166,6 +166,31 @@ struct ref
         stabilize(old_index);
         goto_fresh_pos_writable_from_clean(old_index, new_index, xr);
     }
+
+    void goto_next_block_start(std::size_t index, std::size_t xr)
+    {
+        auto display_idx = fast_log2(xr) / branching_log;
+        auto shift = display_idx * branching_log;
+        if (display_idx > 0) {
+            display[display_idx - 1] = display[display_idx]->inner()
+                [(index >> shift) & branching_mask];
+            while (--display_idx)
+                display[display_idx - 1] = display[display_idx]->inner()[0];
+        }
+    }
+
+    void goto_pos(std::size_t index, std::size_t xr)
+    {
+        auto display_idx = fast_log2(xr) / branching_log;
+        auto shift = display_idx * branching_log;
+        if (display_idx) {
+            do {
+                display[display_idx - 1] = display[display_idx]->inner()
+                    [(index >> shift) & branching_mask];
+                shift -= branching_log;
+            } while (--display_idx);
+        }
+    }
 };
 
 template <typename T>
@@ -280,38 +305,74 @@ struct iterator : boost::iterator_facade<
     iterator() = default;
 
     iterator(const impl<T>& v)
-        : v_{ &v }
+        : p_{ v.p }
         , i_{ 0 }
-    {}
+        , base_{ 0 }
+    {
+        if (v.dirty)
+            p_.stabilize(v.focus);
+        p_.goto_pos(0, 0 ^ v.focus);
+        curr_ = p_.display[0]->leaf().begin();
+    }
 
     iterator(const impl<T>& v, end_t)
-        : v_{ &v }
+        : p_{ v.p }
         , i_{ v.size }
-    {}
+        , base_{ (v.size-1) & ~branching_mask }
+    {
+        if (v.dirty)
+            p_.stabilize(v.focus);
+        p_.goto_pos(base_, base_ ^ v.focus);
+        curr_ = p_.display[0]->leaf().begin() + (i_ - base_);
+    }
 
 private:
     friend class boost::iterator_core_access;
+    using leaf_iterator = typename leaf_node<T>::const_iterator;
 
-    const impl<T>* v_;
-    std::size_t    i_;
+    ref<T> p_;
+    std::size_t i_;
+    std::size_t base_;
+    leaf_iterator curr_;
 
     void increment()
     {
-        assert(i_ < v_->size);
         ++i_;
+        if (i_ - base_ < branching) {
+            ++curr_;
+        } else {
+            auto new_base = base_ + branching;
+            p_.goto_next_block_start(new_base, base_ ^ new_base);
+            base_ = new_base;
+            curr_ = p_.display[0]->leaf().begin();
+        }
     }
 
     void decrement()
     {
         assert(i_ > 0);
         --i_;
+        if (i_ >= base_) {
+            --curr_;
+        } else {
+            auto new_base = base_ - branching;
+            p_.goto_pos(new_base, base_ ^ new_base);
+            base_ = new_base;
+            curr_ = std::prev(p_.display[0]->leaf().end());
+        }
     }
 
     void advance(std::ptrdiff_t n)
     {
-        assert(n <= 0 || i_ + static_cast<std::size_t>(n) <= v_->size);
-        assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
         i_ += n;
+        if (i_ <= base_ && i_ - base_ < branching) {
+            curr_ += n;
+        } else {
+            auto new_base = i_ & ~branching_mask;
+            p_.goto_pos(new_base, base_ ^ new_base);
+            base_ = new_base;
+            curr_ = p_.display[0]->leaf().begin() + (i_ - base_);
+        }
     }
 
     bool equal(const iterator& other) const
@@ -328,7 +389,7 @@ private:
 
     const T& dereference() const
     {
-        return v_->get(i_);
+        return *curr_;
     }
 };
 
