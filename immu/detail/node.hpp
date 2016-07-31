@@ -3,6 +3,9 @@
 
 #include <immu/detail/free_list.hpp>
 
+#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
+
 #include <array>
 #include <memory>
 #include <cassert>
@@ -18,7 +21,7 @@ template <typename T>
 struct node;
 
 template <typename T>
-using node_ptr = std::shared_ptr<node<T> >;
+using node_ptr = boost::intrusive_ptr<node<T> >;
 
 template <typename T>
 using leaf_node  = std::array<T, branching>;
@@ -26,8 +29,8 @@ using leaf_node  = std::array<T, branching>;
 template <typename T>
 using inner_node = std::array<node_ptr<T>, branching>;
 
-template <typename T>
-struct node_base
+template <typename T, typename Deriv=void>
+struct node_base : boost::intrusive_ref_counter<Deriv>
 {
     enum
     {
@@ -94,15 +97,16 @@ struct node_base
 };
 
 template <typename T>
-struct node : node_base<T>, with_thread_local_free_list<sizeof(node_base<T>)>
+struct node : node_base<T, node<T>>
+            , with_thread_local_free_list<sizeof(node_base<T, node<T>>)>
 {
-    using node_base<T>::node_base;
+    using node_base<T, node<T>>::node_base;
 };
 
 template <typename T, typename ...Ts>
-auto make_node(Ts&& ...xs)
+auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T>>
 {
-    return std::make_shared<node<T>>(std::forward<Ts>(xs)...);
+    return new node<T>(std::forward<Ts>(xs)...);
 }
 
 } /* namespace detail */
