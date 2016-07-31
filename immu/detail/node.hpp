@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <immu/detail/free_list.hpp>
+
 #include <array>
 #include <memory>
 #include <cassert>
@@ -25,7 +27,7 @@ template <typename T>
 using inner_node = std::array<node_ptr<T>, branching>;
 
 template <typename T>
-struct node
+struct node_base
 {
     enum
     {
@@ -42,7 +44,7 @@ struct node
         ~data_t() {}
     } data;
 
-    ~node()
+    ~node_base()
     {
         switch (kind) {
         case leaf_kind:
@@ -54,12 +56,12 @@ struct node
         }
     }
 
-    node(leaf_node<T> n)
+    node_base(leaf_node<T> n)
         : kind{leaf_kind}
         , data{std::move(n)}
     {}
 
-    node(inner_node<T> n)
+    node_base(inner_node<T> n)
         : kind{inner_kind}
         , data{std::move(n)}
     {}
@@ -89,6 +91,12 @@ struct node
         assert(kind == leaf_kind);
         return std::move(data.leaf);
     }
+};
+
+template <typename T>
+struct node : node_base<T>, with_free_list<sizeof(node_base<T>)>
+{
+    using node_base<T>::node_base;
 };
 
 template <typename T, typename ...Ts>
