@@ -94,7 +94,7 @@ struct node_base
 };
 
 template <typename T>
-struct node : node_base<T>, with_free_list<sizeof(node_base<T>)>
+struct node : node_base<T>, with_thread_local_free_list<sizeof(node_base<T>)>
 {
     using node_base<T>::node_base;
 };
