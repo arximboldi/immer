@@ -149,6 +149,19 @@ add_custom_target(benchmarks
   COMMENT "Build all benchmarks.")
 add_dependencies(check benchmarks)
 
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set(immu_benchmark_report_dir "report-${GIT_COMMIT_HASH}")
+
+add_custom_target(make-benchmark-report-dir ALL
+  COMMAND ${CMAKE_COMMAND}
+  -E make_directory ${immu_benchmark_report_dir})
+add_dependencies(benchmarks make-benchmark-report-dir)
+
 file(GLOB_RECURSE immu_benchmarks "benchmark/*.cpp")
 foreach(_file IN LISTS immu_benchmarks)
   immu_target_name_for(_target "${_file}")
@@ -157,5 +170,8 @@ foreach(_file IN LISTS immu_benchmarks)
   target_link_libraries(${_target} PUBLIC ${immu_benchmark_libs})
   target_compile_definitions(${_target} PUBLIC NONIUS_RUNNER)
   target_include_directories(${_target} PUBLIC ${immu_benchmark_include_dirs})
-  add_test(${_target} ${_target} -v -t ${_target} -r html -o ${_target}.html)
+  add_test(${_target} ${_target} -v
+    -t ${_target}
+    -r html
+    -o ${immu_benchmark_report_dir}/${_target}.html)
 endforeach()
