@@ -33,6 +33,9 @@ using inner_node = std::array<node_ptr<T>, branching>;
 template <typename T, typename Deriv=void>
 struct node_base
 {
+    using leaf_node_t  = leaf_node<T>;
+    using inner_node_t = inner_node<T>;
+
     mutable std::atomic<int> ref_count;
 
     friend void intrusive_ptr_add_ref(const Deriv* x)
@@ -56,10 +59,10 @@ struct node_base
 
     union data_t
     {
-        leaf_node<T>  leaf;
-        inner_node<T> inner;
-        data_t(leaf_node<T> n)  : leaf(std::move(n)) {}
-        data_t(inner_node<T> n) : inner(std::move(n)) {}
+        leaf_node_t  leaf;
+        inner_node_t inner;
+        data_t(leaf_node_t n)  : leaf(std::move(n)) {}
+        data_t(inner_node_t n) : inner(std::move(n)) {}
         ~data_t() {}
     } data;
 
@@ -67,10 +70,10 @@ struct node_base
     {
         switch (kind) {
         case leaf_kind:
-            data.leaf.~leaf_node<T>();
+            data.leaf.~leaf_node_t();
             break;
         case inner_kind:
-            data.inner.~inner_node<T>();
+            data.inner.~inner_node_t();
             break;
         }
     }
@@ -85,28 +88,28 @@ struct node_base
         , data{std::move(n)}
     {}
 
-    inner_node<T>& inner() & {
+    inner_node_t& inner() & {
         assert(kind == inner_kind);
         return data.inner;
     }
-    const inner_node<T>& inner() const& {
+    const inner_node_t& inner() const& {
         assert(kind == inner_kind);
         return data.inner;
     }
-    inner_node<T>&& inner() && {
+    inner_node_t&& inner() && {
         assert(kind == inner_kind);
         return std::move(data.inner);
     }
 
-    leaf_node<T>& leaf() & {
+    leaf_node_t& leaf() & {
         assert(kind == leaf_kind);
         return data.leaf;
     }
-    const leaf_node<T>& leaf() const& {
+    const leaf_node_t& leaf() const& {
         assert(kind == leaf_kind);
         return data.leaf;
     }
-    leaf_node<T>&& leaf() && {
+    leaf_node_t&& leaf() && {
         assert(kind == leaf_kind);
         return std::move(data.leaf);
     }
