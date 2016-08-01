@@ -3,6 +3,8 @@
 
 #include <immu/vektor.hpp>
 #include <immu/dvektor.hpp>
+#include <immu/ivektor.hpp>
+
 #include <vector>
 #include <list>
 #include <numeric>
@@ -50,6 +52,14 @@ NONIUS_BENCHMARK("immu::vektor", []
 NONIUS_BENCHMARK("immu::dvektor", []
 {
     auto v = immu::dvektor<unsigned>{};
+    for (auto i = 0u; i < benchmark_size; ++i)
+        v = v.push_back(i);
+    return v;
+})
+
+NONIUS_BENCHMARK("immu::ivektor", []
+{
+    auto v = immu::ivektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
     return v;

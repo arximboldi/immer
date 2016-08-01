@@ -3,6 +3,8 @@
 
 #include <immu/vektor.hpp>
 #include <immu/dvektor.hpp>
+#include <immu/ivektor.hpp>
+
 #include <vector>
 #include <list>
 
@@ -74,6 +76,21 @@ NONIUS_BENCHMARK("immu::dvektor", [] (nonius::chronometer meter)
 {
     auto g = make_generator(benchmark_size);
     auto v = immu::dvektor<unsigned>{};
+    for (auto i = 0u; i < benchmark_size; ++i)
+        v = v.push_back(i);
+
+    meter.measure([&] {
+        auto r = v;
+        for (auto i = 0u; i < benchmark_size; ++i)
+            r = v.assoc(g[i], i);
+        return r;
+    });
+})
+
+NONIUS_BENCHMARK("immu::ivektor", [] (nonius::chronometer meter)
+{
+    auto g = make_generator(benchmark_size);
+    auto v = immu::ivektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
 
