@@ -1,4 +1,7 @@
 
+
+#include <immu/detail/ref_count_base.hpp>
+
 #include <nonius/nonius_single.h++>
 #include <boost/intrusive_ptr.hpp>
 
@@ -12,23 +15,8 @@
 
 constexpr auto benchmark_size = 32u;
 
-struct object_t
-{
-    mutable std::atomic<int> ref_count { 0 };
-
-    friend void intrusive_ptr_add_ref(const object_t* x)
-    {
-        x->ref_count.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    friend void intrusive_ptr_release(const object_t* x)
-    {
-        if (x->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
-            std::atomic_thread_fence(std::memory_order_acquire);
-            delete x;
-        }
-    }
-};
+struct object_t : immu::detail::ref_count_base<object_t>
+{};
 
 auto make_data()
 {

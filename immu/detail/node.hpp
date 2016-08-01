@@ -2,13 +2,13 @@
 #pragma once
 
 #include <immu/detail/free_list.hpp>
+#include <immu/detail/ref_count_base.hpp>
 
 #include <boost/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <array>
 #include <memory>
-#include <atomic>
 #include <cassert>
 
 namespace immu {
@@ -31,25 +31,10 @@ template <typename T>
 using inner_node = std::array<node_ptr<T>, branching>;
 
 template <typename T, typename Deriv=void>
-struct node_base
+struct node_base : ref_count_base<Deriv>
 {
     using leaf_node_t  = leaf_node<T>;
     using inner_node_t = inner_node<T>;
-
-    mutable std::atomic<int> ref_count;
-
-    friend void intrusive_ptr_add_ref(const Deriv* x)
-    {
-        x->ref_count.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    friend void intrusive_ptr_release(const Deriv* x)
-    {
-        if (x->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
-            std::atomic_thread_fence(std::memory_order_acquire);
-            delete x;
-        }
-    }
 
     enum
     {
