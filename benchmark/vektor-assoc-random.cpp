@@ -8,18 +8,21 @@
 #include <vector>
 #include <list>
 
+#if IMMU_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
+#endif
 
-constexpr auto benchmark_size = 1000u;
+NONIUS_PARAM("size", std::size_t{1000})
 
 auto make_generator(std::size_t runs)
 {
+    assert(runs > 0);
     auto engine = std::default_random_engine{42};
-    auto dist = std::uniform_int_distribution<unsigned>{0, benchmark_size};
+    auto dist = std::uniform_int_distribution<std::size_t>{0, runs-1};
     auto r = std::vector<std::size_t>(runs);
     std::generate_n(r.begin(), runs, std::bind(dist, engine));
     return r;
@@ -27,10 +30,12 @@ auto make_generator(std::size_t runs)
 
 NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
 {
+    auto benchmark_size = meter.param<std::size_t>("size");
+
     auto g = make_generator(benchmark_size);
-    auto v = std::vector<unsigned>{};
-    for (auto i = 0u; i < benchmark_size; ++i)
-        v.push_back(i);
+    auto v = std::vector<unsigned>(benchmark_size);
+    std::iota(v.begin(), v.end(), 0u);
+
     auto all = std::vector<std::vector<unsigned>>(meter.runs(), v);
 
     meter.measure([&] (int iter) {
@@ -43,6 +48,8 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
 
 NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
+    auto benchmark_size = meter.param<std::size_t>("size");
+
     auto g = make_generator(benchmark_size);
     auto v = rrb_create();
     for (auto i = 0u; i < benchmark_size; ++i)
@@ -54,50 +61,56 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
             r = rrb_update(r, g[i], reinterpret_cast<void*>(i));
         return r;
     });
-    return v;
 })
 
-NONIUS_BENCHMARK("immu::vektor", [] (nonius::chronometer meter)
+NONIUS_BENCHMARK("immu::vektor", [] (nonius::parameters params)
 {
+    auto benchmark_size = params.get<std::size_t>("size");
+
     auto g = make_generator(benchmark_size);
     auto v = immu::vektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
 
-    meter.measure([&] {
+    return [=] {
         auto r = v;
         for (auto i = 0u; i < benchmark_size; ++i)
             r = v.assoc(g[i], i);
         return r;
-    });
+    };
 })
 
-NONIUS_BENCHMARK("immu::dvektor", [] (nonius::chronometer meter)
+NONIUS_BENCHMARK("immu::dvektor", [] (nonius::parameters params)
 {
+    auto benchmark_size = params.get<std::size_t>("size");
+
     auto g = make_generator(benchmark_size);
     auto v = immu::dvektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
 
-    meter.measure([&] {
+    return [=] {
         auto r = v;
         for (auto i = 0u; i < benchmark_size; ++i)
             r = v.assoc(g[i], i);
         return r;
-    });
+    };
 })
 
-NONIUS_BENCHMARK("immu::ivektor", [] (nonius::chronometer meter)
+NONIUS_BENCHMARK("immu::ivektor", [] (nonius::parameters params)
 {
+    auto benchmark_size = std::min(params.get<std::size_t>("size"), std::size_t{10000});
+    if (benchmark_size > 10000) benchmark_size = 1;
+
     auto g = make_generator(benchmark_size);
     auto v = immu::ivektor<unsigned>{};
     for (auto i = 0u; i < benchmark_size; ++i)
         v = v.push_back(i);
 
-    meter.measure([&] {
+    return [=] {
         auto r = v;
         for (auto i = 0u; i < benchmark_size; ++i)
             r = v.assoc(g[i], i);
         return r;
-    });
+    };
 })
