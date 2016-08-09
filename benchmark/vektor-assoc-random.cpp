@@ -46,6 +46,7 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
     });
 })
 
+#if IMMU_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
     auto benchmark_size = meter.param<std::size_t>("size");
@@ -62,6 +63,7 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
         return r;
     });
 })
+#endif
 
 NONIUS_BENCHMARK("immu::vektor", [] (nonius::parameters params)
 {

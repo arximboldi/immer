@@ -8,11 +8,13 @@
 #include <random>
 #include <functional>
 
+#if IMMU_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
+#endif
 
 NONIUS_PARAM("size", std::size_t{1000})
 
@@ -42,6 +44,7 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
     };
 })
 
+#if IMMU_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 {
     auto benchmark_size = params.get<std::size_t>("size");
@@ -58,6 +61,7 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
         return r;
     };
 })
+#endif
 
 NONIUS_BENCHMARK("immu::vektor", [] (nonius::parameters params)
 {
