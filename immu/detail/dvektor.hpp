@@ -122,10 +122,10 @@ struct ref
                 shift += branching_log;
             }
             for (auto i = display_idx - 1; i > 0; --i) {
+                shift -= branching_log;
                 display[i] = null_slot_and_copy_inner(
                     display[i + 1],
                     (new_index >> shift) & branching_mask);
-                shift -= branching_log;
             }
             display[0] = null_slot_and_copy_leaf(
                 display[1],

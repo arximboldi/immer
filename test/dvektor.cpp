@@ -94,6 +94,30 @@ TEST_CASE("update")
     }
 }
 
+#if IMMU_SLOW_TEST
+TEST_CASE("big")
+{
+    const auto n = 1000000;
+    auto v = dvektor<unsigned>{};
+    for (auto i = 0u; i < n; ++i)
+        v = v.push_back(i);
+
+    SUBCASE("read")
+    {
+        for (auto i = 0u; i < n; ++i)
+            CHECK(v[i] == i);
+    }
+
+    SUBCASE("assoc")
+    {
+        for (auto i = 0u; i < n; ++i) {
+            v = v.assoc(i, i+1);
+            CHECK(v[i] == i+1);
+        }
+    }
+}
+#endif
+
 TEST_CASE("iterator")
 {
     const auto n = 666u;
