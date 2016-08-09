@@ -13,6 +13,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #  Options
 #  =====================================================================
 
+option(CHECK_BENCHMARKS "run benchmarks on make check")
+option(CHECK_BENCHMARKS_MORE "run benchmarks for more inputs")
+option(CHECK_BENCHMARKS_MORE_MORE "run benchmarks for more inputs")
+
 set(DOCTEST_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
 set(EGGS_VARIANT_INCLUDE_DIR
@@ -147,7 +151,6 @@ endforeach()
 
 add_custom_target(benchmarks
   COMMENT "Build all benchmarks.")
-add_dependencies(check benchmarks)
 
 execute_process(
   COMMAND git log -1 --format=%h
@@ -155,7 +158,21 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set(immu_benchmark_report_dir "report-${GIT_COMMIT_HASH}")
+set(immu_benchmark_report_dir "../reports/report-${GIT_COMMIT_HASH}")
+
+if (CHECK_BENCHMARKS_MORE_MORE)
+  set(immu_benchmark_param "N:*:1:10:7")
+  set(immu_benchmark_report_dir "${immu_benchmark_report_dir}-more2")
+elseif(CHECK_BENCHMARKS_MORE)
+  set(immu_benchmark_param "N:*:10:10:4")
+  set(immu_benchmark_report_dir "${immu_benchmark_report_dir}-more1")
+elseif(CHECK_BENCHMARKS)
+  set(immu_benchmark_param "N:1000")
+endif()
+
+if(immu_benchmark_param)
+  add_dependencies(check benchmarks)
+endif()
 
 add_custom_target(make-benchmark-report-dir ALL
   COMMAND ${CMAKE_COMMAND}
@@ -170,8 +187,15 @@ foreach(_file IN LISTS immu_benchmarks)
   target_link_libraries(${_target} PUBLIC ${immu_benchmark_libs})
   target_compile_definitions(${_target} PUBLIC NONIUS_RUNNER IMMU_BENCHMARK_LIBRRB=1)
   target_include_directories(${_target} PUBLIC ${immu_benchmark_include_dirs})
-  add_test(${_target} ${_target} -v
-    -t ${_target}
-    -r html
-    -o ${immu_benchmark_report_dir}/${_target}.html)
+
+  if (immu_benchmark_param)
+    if (NOT "${_target}" MATCHES "^benchmark-extra*")
+      add_test(${_target} ${_target} -v
+        -t ${_target}
+        -r html
+        -s 20
+        -p ${immu_benchmark_param}
+        -o ${immu_benchmark_report_dir}/${_target}.html)
+    endif()
+  endif()
 endforeach()
