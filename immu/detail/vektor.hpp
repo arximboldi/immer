@@ -10,13 +10,13 @@ namespace immu {
 namespace detail {
 namespace vektor {
 
-template <typename T>
+template <typename T, int B>
 struct impl
 {
-    using inner_t    = inner_node<T>;
-    using leaf_t     = leaf_node<T>;
-    using node_t     = node<T>;
-    using node_ptr_t = node_ptr<T>;
+    using inner_t    = inner_node<T, B>;
+    using leaf_t     = leaf_node<T, B>;
+    using node_t     = node<T, B>;
+    using node_ptr_t = node_ptr<T, B>;
 
     std::size_t size;
     unsigned    shift;
@@ -25,13 +25,13 @@ struct impl
 
     auto tail_offset() const
     {
-        return size < 32 ? 0 : ((size - 1) >> branching_log) << branching_log;
+        return size < branches<B> ? 0 : ((size - 1) >> B) << B;
     }
 
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return detail::make_node<T>(std::forward<Ts>(xs)...);
+        return detail::make_node<T, B>(std::forward<Ts>(xs)...);
     }
 
     const leaf_t& array_for(std::size_t index) const
@@ -42,8 +42,8 @@ struct impl
             return tail->leaf();
         else {
             auto node = root.get();
-            for (auto level = shift; level; level -= branching_log) {
-                node = node->inner() [(index >> level) & branching_mask].get();
+            for (auto level = shift; level; level -= B) {
+                node = node->inner() [(index >> level) & mask<B>].get();
             }
             return node->leaf();
         }
@@ -53,7 +53,7 @@ struct impl
     {
         return level == 0
             ? node
-            : make_node(inner_t{{ make_path(level - branching_log,
+            : make_node(inner_t{{ make_path(level - B,
                                             std::move(node)) }});
     }
 
@@ -64,13 +64,13 @@ struct impl
         const auto& parent   = parent_.inner();
         auto new_parent_node = make_node(parent);
         auto& new_parent     = new_parent_node->inner();
-        auto idx             = ((size - 1) >> level) & branching_mask;
+        auto idx             = ((size - 1) >> level) & mask<B>;
         auto next_node =
-            level == branching_log ? std::move(tail) :
-            parent[idx]            ? push_tail(level - branching_log,
+            level == B ? std::move(tail) :
+            parent[idx]            ? push_tail(level - B,
                                                *parent[idx],
                                                std::move(tail)) :
-            /* otherwise */          make_path(level - branching_log,
+            /* otherwise */          make_path(level - B,
                                                std::move(tail));
         new_parent[idx] = next_node;
         return new_parent_node;
@@ -79,7 +79,7 @@ struct impl
     impl push_back(T value) const
     {
         auto tail_size = size - tail_offset();
-        if (tail_size < branching) {
+        if (tail_size < branches<B>) {
             const auto& old_tail = tail->leaf();
             auto  new_tail_node  = make_node(leaf_t{});
             auto& new_tail       = new_tail_node->leaf();
@@ -93,9 +93,9 @@ struct impl
                     std::move(new_tail_node) };
         } else {
             auto new_tail_node = make_node(leaf_t {{ std::move(value) }});
-            return ((size >> branching_log) > (1u << shift))
+            return ((size >> B) > (1u << shift))
                 ? impl{ size + 1,
-                    shift + branching_log,
+                    shift + B,
                     make_node(inner_t{{ root, make_path(shift, tail) }}),
                     new_tail_node }
             : impl{ size + 1,
@@ -108,7 +108,7 @@ struct impl
     const T& get(std::size_t index) const
     {
         const auto& arr = array_for(index);
-        return arr [index & branching_mask];
+        return arr [index & mask<B>];
     }
 
     template <typename FnT>
@@ -117,7 +117,7 @@ struct impl
         if (idx >= tail_offset()) {
             const auto& old_tail = tail->leaf();
             auto new_tail_node  = make_node(leaf_t{old_tail});
-            auto& item = new_tail_node->leaf() [idx & branching_mask];
+            auto& item = new_tail_node->leaf() [idx & mask<B>];
             auto new_value = std::forward<FnT>(fn) (std::move(item));
             item = std::move(new_value);
             return impl{ size,
@@ -143,14 +143,14 @@ struct impl
     {
         if (level == 0) {
             auto new_node  = make_node(leaf_t{node.leaf()});
-            auto& item     = new_node->leaf() [idx & branching_mask];
+            auto& item     = new_node->leaf() [idx & mask<B>];
             auto new_value = std::forward<FnT>(fn) (std::move(item));
             item = std::move(new_value);
             return new_node;
         } else {
             auto new_node = make_node(inner_t{node.inner()});
-            auto& item    = new_node->inner()[(idx >> level) & branching_mask];
-            item = do_update(level - branching_log, *item, idx, std::forward<FnT>(fn));
+            auto& item    = new_node->inner()[(idx >> level) & mask<B>];
+            item = do_update(level - B, *item, idx, std::forward<FnT>(fn));
             return new_node;
         }
     }
@@ -163,18 +163,18 @@ struct impl
     }
 };
 
-template <typename T> const auto    empty_inner = make_node<T>(inner_node<T>{});
-template <typename T> const auto    empty_leaf  = make_node<T>(leaf_node<T>{});
-template <typename T> const impl<T> empty       = {
+template <typename T, int B> const auto    empty_inner = make_node<T, B>(inner_node<T, B>{});
+template <typename T, int B> const auto    empty_leaf  = make_node<T, B>(leaf_node<T, B>{});
+template <typename T, int B> const impl<T, B> empty       = {
     0,
-    branching_log,
-    empty_inner<T>,
-    empty_leaf<T>
+    B,
+    empty_inner<T, B>,
+    empty_leaf<T, B>
 };
 
-template <typename T>
+template <typename T, int B>
 struct iterator : boost::iterator_facade<
-    iterator<T>,
+    iterator<T, B>,
     T,
     boost::random_access_traversal_tag,
     const T&>
@@ -183,7 +183,7 @@ struct iterator : boost::iterator_facade<
 
     iterator() = default;
 
-    iterator(const impl<T>& v)
+    iterator(const impl<T, B>& v)
         : v_    { &v }
         , i_    { 0 }
         , base_ { 0 }
@@ -191,31 +191,31 @@ struct iterator : boost::iterator_facade<
     {
     }
 
-    iterator(const impl<T>& v, end_t)
+    iterator(const impl<T, B>& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , base_ { i_ - (i_ & branching_mask) }
+        , base_ { i_ - (i_ & mask<B>) }
         , curr_ { v.array_for(i_ - 1).begin() + (i_ - base_) }
     {}
 
 private:
     friend class boost::iterator_core_access;
 
-    using leaf_iterator = typename leaf_node<T>::const_iterator;
+    using leaf_iterator = typename leaf_node<T, B>::const_iterator;
 
-    const impl<T>* v_;
-    std::size_t    i_;
-    std::size_t    base_;
-    leaf_iterator  curr_;
+    const impl<T, B>* v_;
+    std::size_t       i_;
+    std::size_t       base_;
+    leaf_iterator     curr_;
 
     void increment()
     {
         assert(i_ < v_->size);
         ++i_;
-        if (i_ - base_ < branching) {
+        if (i_ - base_ < branches<B>) {
             ++curr_;
         } else {
-            base_ += branching;
+            base_ += branches<B>;
             curr_ = v_->array_for(i_).begin();
         }
     }
@@ -227,7 +227,7 @@ private:
         if (i_ >= base_) {
             --curr_;
         } else {
-            base_ -= branching;
+            base_ -= branches<B>;
             curr_ = std::prev(v_->array_for(i_).end());
         }
     }
@@ -238,10 +238,10 @@ private:
         assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
 
         i_ += n;
-        if (i_ <= base_ && i_ - base_ < branching) {
+        if (i_ <= base_ && i_ - base_ < branches<B>) {
             curr_ += n;
         } else {
-            base_ = i_ - (i_ & branching_mask);
+            base_ = i_ - (i_ & mask<B>);
             curr_ = v_->array_for(i_).begin() + (i_ - base_);
         }
     }

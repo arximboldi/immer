@@ -63,36 +63,32 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 })
 #endif
 
-NONIUS_BENCHMARK("immu::vektor", [] (nonius::parameters params)
+template <typename Vektor,
+          std::size_t Limit=std::numeric_limits<std::size_t>::max()>
+auto generic()
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    return [] (nonius::parameters params)
+    {
+        auto benchmark_size = params.get<std::size_t>("size");
+        if (benchmark_size > Limit) benchmark_size = 0;
 
-    auto v = immu::vektor<unsigned>{};
-    for (auto i = 0u; i < benchmark_size; ++i)
-        v = v.push_back(i);
-    auto g = make_generator(benchmark_size);
-
-    return [=] {
-        volatile auto r = 0u;
+        auto v = Vektor{};
         for (auto i = 0u; i < benchmark_size; ++i)
-            r += v[g[i]];
-        return r;
+            v = v.push_back(i);
+        auto g = make_generator(benchmark_size);
+
+        return [=] {
+            volatile auto r = 0u;
+            for (auto i = 0u; i < benchmark_size; ++i)
+                r += v[g[i]];
+            return r;
+        };
     };
-})
+};
 
-NONIUS_BENCHMARK("immu::dvektor", [] (nonius::parameters params)
-{
-    auto benchmark_size = params.get<std::size_t>("size");
-
-    auto v = immu::dvektor<unsigned>{};
-    for (auto i = 0u; i < benchmark_size; ++i)
-        v = v.push_back(i);
-    auto g = make_generator(benchmark_size);
-
-    return [=] {
-        volatile auto r = 0u;
-        for (auto i = 0u; i < benchmark_size; ++i)
-            r += v[g[i]];
-        return r;
-    };
-})
+NONIUS_BENCHMARK("immu::vektor/4B",   generic<immu::vektor<unsigned,4>>())
+NONIUS_BENCHMARK("immu::vektor/5B",   generic<immu::vektor<unsigned,5>>())
+NONIUS_BENCHMARK("immu::vektor/6B",   generic<immu::vektor<unsigned,6>>())
+NONIUS_BENCHMARK("immu::dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
+NONIUS_BENCHMARK("immu::dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
+NONIUS_BENCHMARK("immu::dvektor/6B",  generic<immu::dvektor<unsigned,6>>())

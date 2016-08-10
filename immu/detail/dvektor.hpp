@@ -14,13 +14,13 @@ auto fast_log2(std::size_t x)
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
 }
 
-template <typename T>
+template <typename T, int B>
 struct ref
 {
-    using inner_t    = inner_node<T>;
-    using leaf_t     = leaf_node<T>;
-    using node_t     = node<T>;
-    using node_ptr_t = node_ptr<T>;
+    using inner_t    = inner_node<T, B>;
+    using leaf_t     = leaf_node<T, B>;
+    using node_t     = node<T, B>;
+    using node_ptr_t = node_ptr<T, B>;
 
     unsigned depth;
     std::array<node_ptr_t, 6> display;
@@ -28,19 +28,19 @@ struct ref
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return detail::make_node<T>(std::forward<Ts>(xs)...);
+        return detail::make_node<T, B>(std::forward<Ts>(xs)...);
     }
 
     const T& get_elem(std::size_t index, std::size_t xr) const
     {
-        auto display_idx = fast_log2(xr) / branching_log;
+        auto display_idx = fast_log2(xr) / B;
         auto node        = display[display_idx].get();
-        auto shift       = display_idx * branching_log;
+        auto shift       = display_idx * B;
         while (display_idx--) {
-            node = node->inner() [(index >> shift) & branching_mask].get();
-            shift -= branching_log;
+            node = node->inner() [(index >> shift) & mask<B>].get();
+            shift -= B;
         }
-        return node->leaf() [index & branching_mask];
+        return node->leaf() [index & mask<B>];
     }
 
     node_ptr_t null_slot_and_copy_inner(node_ptr_t& node, std::size_t idx)
@@ -71,13 +71,13 @@ struct ref
 
     void stabilize(std::size_t index)
     {
-        auto shift = branching_log;
+        auto shift = B;
         for (auto i = 1u; i < depth; ++i)
         {
             display[i] = copy_of_inner(display[i]);
-            display[i]->inner() [(index >> shift) & branching_mask]
+            display[i]->inner() [(index >> shift) & mask<B>]
                 = display[i - 1];
-            shift += branching_log;
+            shift += B;
         }
     }
 
@@ -92,16 +92,16 @@ struct ref
         } else {
             assert(false);
             display[d] = copy_of_inner(display[d]);
-            auto shift = branching_log * d;
+            auto shift = B * d;
             while (--d) {
                 display[d] = null_slot_and_copy_inner(
                     display[d + 1],
-                    (index >> shift) & branching_mask);
-                shift -= branching_log;
+                    (index >> shift) & mask<B>);
+                shift -= B;
             }
             display[0] = null_slot_and_copy_leaf(
                 display[1],
-                (index >> branching_log) & branching_mask);
+                (index >> B) & mask<B>);
         }
     }
 
@@ -110,26 +110,26 @@ struct ref
                                       std::size_t xr)
     {
         assert(depth);
-        if (xr < (1 << branching_log)) {
+        if (xr < (1 << B)) {
             display[0] = copy_of_leaf(display[0]);
         } else {
-            auto display_idx = fast_log2(xr) / branching_log;
-            auto shift       = branching_log;
+            auto display_idx = fast_log2(xr) / B;
+            auto shift       = B;
             for (auto i = 1u; i <= display_idx; ++i) {
                 display[i] = copy_of_inner(display[i]);
-                display[i]->inner() [(old_index >> shift) & branching_mask]
+                display[i]->inner() [(old_index >> shift) & mask<B>]
                     = display[i - 1];
-                shift += branching_log;
+                shift += B;
             }
             for (auto i = display_idx - 1; i > 0; --i) {
-                shift -= branching_log;
+                shift -= B;
                 display[i] = null_slot_and_copy_inner(
                     display[i + 1],
-                    (new_index >> shift) & branching_mask);
+                    (new_index >> shift) & mask<B>);
             }
             display[0] = null_slot_and_copy_leaf(
                 display[1],
-                (new_index >> branching_log) & branching_mask);
+                (new_index >> B) & mask<B>);
         }
     }
 
@@ -137,19 +137,19 @@ struct ref
                                             std::size_t new_index,
                                             std::size_t xr)
     {
-        auto display_idx = fast_log2(xr) / branching_log;
+        auto display_idx = fast_log2(xr) / B;
         if (display_idx > 0) {
-            auto shift       = display_idx * branching_log;
+            auto shift       = display_idx * B;
             if (display_idx == depth) {
                 display[display_idx] = make_node(inner_t{});
                 display[display_idx]->inner()
-                    [(old_index >> shift) & branching_mask] =
+                    [(old_index >> shift) & mask<B>] =
                     display[display_idx - 1];
                 ++depth;
             }
             while (--display_idx) {
                 auto node = display[display_idx + 1]->inner()
-                    [(new_index >> shift) & branching_mask];
+                    [(new_index >> shift) & mask<B>];
                 display[display_idx] = node
                     ? std::move(node)
                     : make_node(inner_t{});
@@ -169,11 +169,11 @@ struct ref
 
     void goto_next_block_start(std::size_t index, std::size_t xr)
     {
-        auto display_idx = fast_log2(xr) / branching_log;
-        auto shift = display_idx * branching_log;
+        auto display_idx = fast_log2(xr) / B;
+        auto shift = display_idx * B;
         if (display_idx > 0) {
             display[display_idx - 1] = display[display_idx]->inner()
-                [(index >> shift) & branching_mask];
+                [(index >> shift) & mask<B>];
             while (--display_idx)
                 display[display_idx - 1] = display[display_idx]->inner()[0];
         }
@@ -181,26 +181,26 @@ struct ref
 
     void goto_pos(std::size_t index, std::size_t xr)
     {
-        auto display_idx = fast_log2(xr) / branching_log;
-        auto shift = display_idx * branching_log;
+        auto display_idx = fast_log2(xr) / B;
+        auto shift = display_idx * B;
         if (display_idx) {
             do {
                 display[display_idx - 1] = display[display_idx]->inner()
-                    [(index >> shift) & branching_mask];
-                shift -= branching_log;
+                    [(index >> shift) & mask<B>];
+                shift -= B;
             } while (--display_idx);
         }
     }
 };
 
-template <typename T>
+template <typename T, int B>
 struct impl
 {
-    using inner_t    = inner_node<T>;
-    using leaf_t     = leaf_node<T>;
-    using node_t     = node<T>;
-    using node_ptr_t = node_ptr<T>;
-    using ref_t      = ref<T>;
+    using inner_t    = inner_node<T, B>;
+    using leaf_t     = leaf_node<T, B>;
+    using node_t     = node<T, B>;
+    using node_ptr_t = node_ptr<T, B>;
+    using ref_t      = ref<T, B>;
 
     std::size_t size;
     std::size_t focus;
@@ -210,7 +210,7 @@ struct impl
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return detail::make_node<T>(std::forward<Ts>(xs)...);
+        return detail::make_node<T, B>(std::forward<Ts>(xs)...);
     }
 
     void goto_pos_writable(std::size_t old_index,
@@ -240,8 +240,8 @@ struct impl
     impl push_back(T value) const
     {
         if (size) {
-            auto block_index = size & ~branching_mask;
-            auto lo = size & branching_mask;
+            auto block_index = size & ~mask<B>;
+            auto lo = size & mask<B>;
             if (size != block_index) {
                 auto s = impl{ size + 1, block_index, dirty, p };
                 s.goto_pos_writable(focus, block_index, focus ^ block_index);
@@ -271,7 +271,7 @@ struct impl
     {
         auto s = impl{ size, idx, dirty, p };
         s.goto_pos_writable(focus, idx, focus ^ idx);
-        auto& v = s.p.display[0]->leaf() [idx & branching_mask];
+        auto& v = s.p.display[0]->leaf() [idx & mask<B>];
         v = fn(std::move(v));
         return s;
     }
@@ -284,18 +284,18 @@ struct impl
     }
 };
 
-template <typename T> const auto    empty_inner = make_node<T>(inner_node<T>{});
-template <typename T> const auto    empty_leaf  = make_node<T>(leaf_node<T>{});
-template <typename T> const impl<T> empty       = {
+template <typename T, int B> const auto    empty_inner = make_node<T, B>(inner_node<T, B>{});
+template <typename T, int B> const auto    empty_leaf  = make_node<T, B>(leaf_node<T, B>{});
+template <typename T, int B> const impl<T, B> empty       = {
     0,
     0,
     false,
-    ref<T> {1, {}}
+    ref<T, B> {1, {}}
 };
 
-template <typename T>
+template <typename T, int B>
 struct iterator : boost::iterator_facade<
-    iterator<T>,
+    iterator<T, B>,
     T,
     boost::random_access_traversal_tag,
     const T&>
@@ -304,7 +304,7 @@ struct iterator : boost::iterator_facade<
 
     iterator() = default;
 
-    iterator(const impl<T>& v)
+    iterator(const impl<T, B>& v)
         : p_{ v.p }
         , i_{ 0 }
         , base_{ 0 }
@@ -315,10 +315,10 @@ struct iterator : boost::iterator_facade<
         curr_ = p_.display[0]->leaf().begin();
     }
 
-    iterator(const impl<T>& v, end_t)
+    iterator(const impl<T, B>& v, end_t)
         : p_{ v.p }
         , i_{ v.size }
-        , base_{ (v.size-1) & ~branching_mask }
+        , base_{ (v.size-1) & ~mask<B> }
     {
         if (v.dirty)
             p_.stabilize(v.focus);
@@ -328,9 +328,9 @@ struct iterator : boost::iterator_facade<
 
 private:
     friend class boost::iterator_core_access;
-    using leaf_iterator = typename leaf_node<T>::const_iterator;
+    using leaf_iterator = typename leaf_node<T, B>::const_iterator;
 
-    ref<T> p_;
+    ref<T, B> p_;
     std::size_t i_;
     std::size_t base_;
     leaf_iterator curr_;
@@ -338,10 +338,10 @@ private:
     void increment()
     {
         ++i_;
-        if (i_ - base_ < branching) {
+        if (i_ - base_ < branches<B>) {
             ++curr_;
         } else {
-            auto new_base = base_ + branching;
+            auto new_base = base_ + branches<B>;
             p_.goto_next_block_start(new_base, base_ ^ new_base);
             base_ = new_base;
             curr_ = p_.display[0]->leaf().begin();
@@ -355,7 +355,7 @@ private:
         if (i_ >= base_) {
             --curr_;
         } else {
-            auto new_base = base_ - branching;
+            auto new_base = base_ - branches<B>;
             p_.goto_pos(new_base, base_ ^ new_base);
             base_ = new_base;
             curr_ = std::prev(p_.display[0]->leaf().end());
@@ -365,10 +365,10 @@ private:
     void advance(std::ptrdiff_t n)
     {
         i_ += n;
-        if (i_ <= base_ && i_ - base_ < branching) {
+        if (i_ <= base_ && i_ - base_ < branches<B>) {
             curr_ += n;
         } else {
-            auto new_base = i_ & ~branching_mask;
+            auto new_base = i_ & ~mask<B>;
             p_.goto_pos(new_base, base_ ^ new_base);
             base_ = new_base;
             curr_ = p_.display[0]->leaf().begin() + (i_ - base_);

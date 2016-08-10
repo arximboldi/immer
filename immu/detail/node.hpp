@@ -14,27 +14,29 @@
 namespace immu {
 namespace detail {
 
-constexpr auto branching_log  = 5u;
-constexpr auto branching      = 1u << branching_log;
-constexpr std::size_t branching_mask = branching - 1;
+template <int B, typename T=std::size_t>
+constexpr T branches = T{1} << B;
 
-template <typename T>
+template <int B, typename T=std::size_t>
+constexpr T mask = branches<B, T> - 1;
+
+template <typename T, int B>
 struct node;
 
-template <typename T>
-using node_ptr = boost::intrusive_ptr<node<T> >;
+template <typename T, int B>
+using node_ptr = boost::intrusive_ptr<node<T, B> >;
 
-template <typename T>
-using leaf_node  = std::array<T, branching>;
+template <typename T, int B>
+using leaf_node  = std::array<T, 1 << B>;
 
-template <typename T>
-using inner_node = std::array<node_ptr<T>, branching>;
+template <typename T, int B>
+using inner_node = std::array<node_ptr<T, B>, 1 << B>;
 
-template <typename T, typename Deriv=void>
+template <typename T, int B, typename Deriv=void>
 struct node_base : ref_count_base<Deriv>
 {
-    using leaf_node_t  = leaf_node<T>;
-    using inner_node_t = inner_node<T>;
+    using leaf_node_t  = leaf_node<T, B>;
+    using inner_node_t = inner_node<T, B>;
 
     enum
     {
@@ -63,12 +65,12 @@ struct node_base : ref_count_base<Deriv>
         }
     }
 
-    node_base(leaf_node<T> n)
+    node_base(leaf_node<T, B> n)
         : kind{leaf_kind}
         , data{std::move(n)}
     {}
 
-    node_base(inner_node<T> n)
+    node_base(inner_node<T, B> n)
         : kind{inner_kind}
         , data{std::move(n)}
     {}
@@ -100,17 +102,17 @@ struct node_base : ref_count_base<Deriv>
     }
 };
 
-template <typename T>
-struct node : node_base<T, node<T>>
-            , with_thread_local_free_list<sizeof(node_base<T, node<T>>)>
+template <typename T, int B>
+struct node : node_base<T, B, node<T, B>>
+            , with_thread_local_free_list<sizeof(node_base<T, B, node<T, B>>)>
 {
-    using node_base<T, node<T>>::node_base;
+    using node_base<T, B, node<T, B>>::node_base;
 };
 
-template <typename T, typename ...Ts>
-auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T>>
+template <typename T, int B, typename ...Ts>
+auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T, B>>
 {
-    return new node<T>(std::forward<Ts>(xs)...);
+    return new node<T, B>(std::forward<Ts>(xs)...);
 }
 
 } /* namespace detail */

@@ -5,7 +5,7 @@
 
 namespace immu {
 
-template <typename T>
+template <typename T, int B=5>
 class dvektor
 {
 public:
@@ -15,7 +15,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::dvektor::iterator<T>;
+    using iterator         = detail::dvektor::iterator<T, B>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
@@ -44,8 +44,8 @@ public:
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
 private:
-    dvektor(detail::dvektor::impl<T> impl) : impl_(std::move(impl)) {}
-    detail::dvektor::impl<T> impl_ = detail::dvektor::empty<T>;
+    dvektor(detail::dvektor::impl<T, B> impl) : impl_(std::move(impl)) {}
+    detail::dvektor::impl<T, B> impl_ = detail::dvektor::empty<T, B>;
 };
 
 } // namespace immu
