@@ -34,6 +34,65 @@ struct impl
         return detail::make_node<T, B>(std::forward<Ts>(xs)...);
     }
 
+    template <typename Step, typename State>
+    void do_reduce_leaf(Step&& fn, State& acc, const node_t& node) const
+    {
+        for (auto&& x : node.leaf())
+            acc = fn(std::move(acc), x);
+    }
+
+    template <typename Step, typename State>
+    void do_reduce_node_full(Step&& fn, State& acc, const node_t& node, unsigned level) const
+    {
+        assert(level > 0);
+        auto next = level - B;
+        if (next == 0) {
+            for (auto&& n : node.inner())
+                do_reduce_leaf(fn, acc, *n);
+        } else {
+            for (auto&& n : node.inner())
+                do_reduce_node_full(fn, acc, *n, next);
+        }
+    }
+
+    template <typename Step, typename State>
+    void do_reduce_node_last(Step&& fn, State& acc, const node_t& node, unsigned level) const
+    {
+        assert(level > 0);
+        auto next = level - B;
+        auto last = (size >> level) & mask<B>;
+        auto iter = node.inner().begin();
+        if (next == 0) {
+            auto end = iter + last;
+            for (; iter != end; ++iter)
+                do_reduce_leaf(fn, acc, **iter);
+        } else {
+            auto end = iter + last - 1;
+            for (; iter != end; ++iter)
+                do_reduce_node_full(fn, acc, **iter, next);
+            do_reduce_node_last(fn, acc, **iter, next);
+        }
+    }
+
+    template <typename Step, typename State>
+    void do_reduce_tail(Step&& fn, State& acc) const
+    {
+        auto tail_size = size - tail_offset();
+        auto iter = tail->leaf().begin();
+        auto end  = iter + tail_size;
+        for (; iter != end; ++iter)
+            acc = fn(acc, *iter);
+    }
+
+    template <typename Step, typename State>
+    State reduce(Step fn, State acc) const
+    {
+        if (size > branches<B>)
+            do_reduce_node_last(fn, acc, *root, shift);
+        do_reduce_tail(fn, acc);
+        return acc;
+    }
+
     const leaf_t& array_for(std::size_t index) const
     {
         assert(index < size);

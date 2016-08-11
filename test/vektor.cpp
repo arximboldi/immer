@@ -132,3 +132,18 @@ TEST_CASE("iterator")
         CHECK((i2 - 30) - i2 == -30);
     }
 }
+
+TEST_CASE("reduce")
+{
+    const auto n = 666u;
+    auto v = vektor<unsigned>{};
+    for (auto i = 0u; i < n; ++i)
+        v = v.push_back(i);
+
+    SUBCASE("sum collection")
+    {
+        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto expected = v.size() * (v.size() - 1) / 2;
+        CHECK(sum == expected);
+    }
+}
