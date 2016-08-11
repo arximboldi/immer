@@ -16,7 +16,7 @@ extern "C" {
 }
 #endif
 
-NONIUS_PARAM("size", std::size_t{1000})
+NONIUS_PARAM(N, std::size_t{1000})
 
 auto make_generator(std::size_t runs)
 {
@@ -30,15 +30,15 @@ auto make_generator(std::size_t runs)
 
 NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    auto n = params.get<N>();
 
-    auto g = make_generator(benchmark_size);
-    auto v = std::vector<unsigned>(benchmark_size);
+    auto g = make_generator(n);
+    auto v = std::vector<unsigned>(n);
     std::iota(v.begin(), v.end(), 0u);
 
     return [=] {
         volatile auto r = 0u;
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             r += v[g[i]];
         return r;
     };
@@ -47,16 +47,16 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
 #if IMMU_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    auto n = params.get<N>();
 
     auto v = rrb_create();
-    for (auto i = 0u; i < benchmark_size; ++i)
+    for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
-    auto g = make_generator(benchmark_size);
+    auto g = make_generator(n);
 
     return [=] {
         volatile auto r = 0u;
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             r += reinterpret_cast<unsigned long>(rrb_nth(v, g[i]));
         return r;
     };
@@ -69,17 +69,17 @@ auto generic()
 {
     return [] (nonius::parameters params)
     {
-        auto benchmark_size = params.get<std::size_t>("size");
-        if (benchmark_size > Limit) benchmark_size = 0;
+        auto n = params.get<N>();
+        if (n > Limit) n = 0;
 
         auto v = Vektor{};
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             v = v.push_back(i);
-        auto g = make_generator(benchmark_size);
+        auto g = make_generator(n);
 
         return [=] {
             volatile auto r = 0u;
-            for (auto i = 0u; i < benchmark_size; ++i)
+            for (auto i = 0u; i < n; ++i)
                 r += v[g[i]];
             return r;
         };

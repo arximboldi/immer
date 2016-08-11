@@ -17,15 +17,15 @@ extern "C" {
 }
 #endif
 
-NONIUS_PARAM("size", std::size_t{1000})
+NONIUS_PARAM(N, std::size_t{1000})
 
 NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    auto n = params.get<N>();
 
     return [=] {
         auto v = std::vector<unsigned>{};
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             v.push_back(i);
         return v;
     };
@@ -33,11 +33,11 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
 
 NONIUS_BENCHMARK("std::list", [] (nonius::parameters params)
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    auto n = params.get<N>();
 
     return [=] {
         auto v = std::list<unsigned>{};
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             v.push_back(i);
         return v;
     };
@@ -46,11 +46,11 @@ NONIUS_BENCHMARK("std::list", [] (nonius::parameters params)
 #if IMMU_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 {
-    auto benchmark_size = params.get<std::size_t>("size");
+    auto n = params.get<N>();
 
     return [=] {
         auto v = rrb_create();
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             v = rrb_push(v, reinterpret_cast<void*>(i));
         return v;
     };
@@ -63,12 +63,12 @@ auto generic()
 {
     return [] (nonius::parameters params)
     {
-        auto benchmark_size = params.get<std::size_t>("size");
-        if (benchmark_size > Limit) benchmark_size = 1;
+        auto n = params.get<N>();
+        if (n > Limit) n = 1;
 
         return [=] {
             auto v = Vektor{};
-            for (auto i = 0u; i < benchmark_size; ++i)
+            for (auto i = 0u; i < n; ++i)
                 v = v.push_back(i);
             return v;
         };

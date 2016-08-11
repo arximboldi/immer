@@ -16,21 +16,21 @@ extern "C" {
 }
 #endif
 
-NONIUS_PARAM("size", std::size_t{1000})
+NONIUS_PARAM(N, std::size_t{1000})
 
 NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
 {
-    auto benchmark_size = meter.param<std::size_t>("size");
+    auto n = meter.param<N>();
 
-    auto v = std::vector<unsigned>(benchmark_size);
+    auto v = std::vector<unsigned>(n);
     std::iota(v.begin(), v.end(), 0u);
 
     auto all = std::vector<std::vector<unsigned>>(meter.runs(), v);
 
     meter.measure([&] (int iter) {
         auto& r = all[iter];
-        for (auto i = 0u; i < benchmark_size; ++i)
-            r[i] = benchmark_size - i;
+        for (auto i = 0u; i < n; ++i)
+            r[i] = n - i;
         return r;
     });
 })
@@ -38,16 +38,16 @@ NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
 #if IMMU_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
-    auto benchmark_size = meter.param<std::size_t>("size");
+    auto n = meter.param<N>();
 
     auto v = rrb_create();
-    for (auto i = 0u; i < benchmark_size; ++i)
+    for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
     meter.measure([&] {
         auto r = v;
-        for (auto i = 0u; i < benchmark_size; ++i)
-            r = rrb_update(r, i, reinterpret_cast<void*>(benchmark_size - i));
+        for (auto i = 0u; i < n; ++i)
+            r = rrb_update(r, i, reinterpret_cast<void*>(n - i));
         return r;
     });
 })
@@ -59,17 +59,17 @@ auto generic()
 {
     return [] (nonius::parameters params)
     {
-        auto benchmark_size = params.get<std::size_t>("size");
-        if (benchmark_size > Limit) benchmark_size = 1;
+        auto n = params.get<N>();
+        if (n > Limit) n = 1;
 
         auto v = Vektor{};
-        for (auto i = 0u; i < benchmark_size; ++i)
+        for (auto i = 0u; i < n; ++i)
             v = v.push_back(i);
 
         return [=] {
             auto r = v;
-            for (auto i = 0u; i < benchmark_size; ++i)
-                r = v.assoc(i, benchmark_size - i);
+            for (auto i = 0u; i < n; ++i)
+                r = v.assoc(i, n - i);
             return r;
         };
     };
