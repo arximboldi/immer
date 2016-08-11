@@ -179,7 +179,7 @@ add_custom_target(make-benchmark-report-dir ALL
   -E make_directory ${immu_benchmark_report_dir})
 add_dependencies(benchmarks make-benchmark-report-dir)
 
-file(GLOB_RECURSE immu_benchmarks "benchmark/*.cpp")
+file(GLOB immu_benchmarks "benchmark/*.cpp")
 foreach(_file IN LISTS immu_benchmarks)
   immu_target_name_for(_target "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
@@ -187,15 +187,12 @@ foreach(_file IN LISTS immu_benchmarks)
   target_link_libraries(${_target} PUBLIC ${immu_benchmark_libs})
   target_compile_definitions(${_target} PUBLIC NONIUS_RUNNER IMMU_BENCHMARK_LIBRRB=1)
   target_include_directories(${_target} PUBLIC ${immu_benchmark_include_dirs})
-
   if (immu_benchmark_param)
-    if (NOT "${_target}" MATCHES "^benchmark-extra*")
-      add_test(${_target} ${_target} -v
-        -t ${_target}
-        -r html
-        -s 20
-        -p ${immu_benchmark_param}
-        -o ${immu_benchmark_report_dir}/${_target}.html)
-    endif()
+    add_test(${_target} ${_target} -v
+      -t ${_target}
+      -r html
+      -s 20
+      -p ${immu_benchmark_param}
+      -o ${immu_benchmark_report_dir}/${_target}.html)
   endif()
 endforeach()
