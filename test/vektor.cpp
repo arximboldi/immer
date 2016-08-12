@@ -58,6 +58,40 @@ TEST_CASE("update")
         CHECK(v[3u] == 3u);
     }
 
+    SUBCASE("assoc further")
+    {
+        for (auto i = n; i < 666; ++i)
+            v = v.push_back(i);
+
+        auto u = v.assoc(3u, 13u);
+        u = u.assoc(200u, 7u);
+        CHECK(u.size() == v.size());
+
+        CHECK(u[2u] == 2u);
+        CHECK(u[4u] == 4u);
+        CHECK(u[40u] == 40u);
+        CHECK(u[600u] == 600u);
+
+        CHECK(u[3u] == 13u);
+        CHECK(u[200u] == 7u);
+
+        CHECK(v[3u] == 3u);
+        CHECK(v[200u] == 200u);
+    }
+
+    SUBCASE("assoc further more")
+    {
+        auto v = immu::vektor<unsigned, 4>{};
+
+        for (auto i = n; i < 1000u; ++i)
+            v = v.push_back(i);
+
+        for (auto i = 0u; i < v.size(); ++i) {
+            v = v.assoc(i, i+1);
+            CHECK(v[i] == i+1);
+        }
+    }
+
     SUBCASE("update")
     {
         const auto u = v.update(10u, [] (auto x) { return x + 10; });

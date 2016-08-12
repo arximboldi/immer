@@ -50,7 +50,7 @@ public:
 
 private:
     vektor(detail::vektor::impl<T, B> impl) : impl_(std::move(impl)) {}
-    detail::vektor::impl<T, B> impl_ = detail::vektor::empty<T, B>;
+    detail::vektor::impl<T, B> impl_ = detail::vektor::impl<T, B>::empty;
 };
 
 } // namespace immu

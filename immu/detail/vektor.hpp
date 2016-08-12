@@ -4,10 +4,8 @@
 #include <immu/detail/free_list.hpp>
 #include <immu/detail/ref_count_base.hpp>
 
-#include <boost/intrusive_ptr.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <cassert>
 #include <memory>
@@ -26,7 +24,7 @@ template <typename T, int B>
 struct node;
 
 template <typename T, int B>
-using node_ptr = boost::intrusive_ptr<node<T, B> >;
+using node_ptr = node<T, B>*;
 
 template <typename T, int B>
 using leaf_node  = std::array<T, 1 << B>;
@@ -34,11 +32,13 @@ using leaf_node  = std::array<T, 1 << B>;
 template <typename T, int B>
 using inner_node = std::array<node_ptr<T, B>, 1 << B>;
 
-template <typename T, int B, typename Deriv=void>
-struct node_base : ref_count_base<Deriv>
+template <typename T, int B>
+struct node_base
 {
     using leaf_node_t  = leaf_node<T, B>;
     using inner_node_t = inner_node<T, B>;
+
+    mutable std::atomic<int> ref_count {1};
 
     enum
     {
@@ -105,14 +105,14 @@ struct node_base : ref_count_base<Deriv>
 };
 
 template <typename T, int B>
-struct node : node_base<T, B, node<T, B>>
-            , with_thread_local_free_list<sizeof(node_base<T, B, node<T, B>>)>
+struct node : node_base<T, B>
+            , with_thread_local_free_list<sizeof(node_base<T, B>)>
 {
-    using node_base<T, B, node<T, B>>::node_base;
+    using node_base<T, B>::node_base;
 };
 
 template <typename T, int B, typename ...Ts>
-auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T, B>>
+auto make_node(Ts&& ...xs) -> node_ptr<T, B>
 {
     return new node<T, B>(std::forward<Ts>(xs)...);
 }
@@ -129,6 +129,122 @@ struct impl
     unsigned    shift;
     node_ptr_t  root;
     node_ptr_t  tail;
+
+    static const impl empty;
+
+    impl(std::size_t sz, unsigned sh, node_ptr_t r, node_ptr_t t)
+        : size{sz}, shift{sh}, root{r}, tail{t}
+    {
+        assert(r->ref_count.load() > 0);
+        assert(t->ref_count.load() > 0);
+    }
+
+    impl(const impl& other)
+        : impl{other.size, other.shift, other.root, other.tail}
+    {
+        inc();
+    }
+
+    impl(impl&& other)
+        : impl{empty}
+    {
+        swap(*this, other);
+    }
+
+    impl& operator=(const impl& other)
+    {
+        auto next = other;
+        swap(*this, other);
+        return *this;
+    }
+
+    impl& operator=(impl&& other)
+    {
+        swap(*this, other);
+        return *this;
+    }
+
+    friend void swap(impl& x, impl& y)
+    {
+        using std::swap;
+        swap(x.size,  y.size);
+        swap(x.shift, y.shift);
+        swap(x.root,  y.root);
+        swap(x.tail,  y.tail);
+    }
+
+    ~impl() {
+        dec();
+    }
+
+    void inc_node(const node_ptr_t n) const
+    {
+        n->ref_count.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void inc() const
+    {
+        inc_node(root);
+        inc_node(tail);
+    }
+
+    void dec_leaf(node_ptr_t n) const
+    {
+        if (n->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
+            std::atomic_thread_fence(std::memory_order_acquire);
+            delete n;
+        }
+    }
+
+    void dec_inner_full(node_ptr_t n, unsigned level) const
+    {
+        if (n->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
+            std::atomic_thread_fence(std::memory_order_acquire);
+            auto next = level - B;
+            if (next == 0) {
+                for (auto&& n : n->inner())
+                    dec_leaf(n);
+            } else {
+                for (auto&& n : n->inner())
+                    dec_inner_full(n, next);
+            }
+            delete n;
+        }
+    }
+
+    void dec_inner_last(node_ptr_t n, unsigned level) const
+    {
+        if (n->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
+            std::atomic_thread_fence(std::memory_order_acquire);
+            auto next = level - B;
+            auto last = ((tail_offset()-1) >> level) & mask<B>;
+            auto iter = n->inner().begin();
+            if (next == 0) {
+                auto end = iter + last + 1;
+                for (; iter != end; ++iter)
+                    dec_leaf(*iter);
+            } else {
+                auto end = iter + last;
+                for (; iter != end; ++iter)
+                    dec_inner_full(*iter, next);
+                dec_inner_last(*iter, next);
+            }
+            delete n;
+        }
+    }
+
+    void dec() const
+    {
+        if (size > branches<B>)
+            dec_inner_last(root, shift);
+        else {
+            if (root->ref_count.fetch_sub(1, std::memory_order_release) == 1) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                delete root;
+            }
+        }
+        dec_leaf(tail);
+    }
 
     auto tail_offset() const
     {
@@ -167,14 +283,14 @@ struct impl
     {
         assert(level > 0);
         auto next = level - B;
-        auto last = (size >> level) & mask<B>;
+        auto last = ((tail_offset()-1) >> level) & mask<B>;
         auto iter = node.inner().begin();
         if (next == 0) {
-            auto end = iter + last;
+            auto end = iter + last + 1;
             for (; iter != end; ++iter)
                 do_reduce_leaf(fn, acc, **iter);
         } else {
-            auto end = iter + last - 1;
+            auto end = iter + last;
             for (; iter != end; ++iter)
                 do_reduce_node_full(fn, acc, **iter, next);
             do_reduce_node_last(fn, acc, **iter, next);
@@ -207,9 +323,9 @@ struct impl
         if (index >= tail_offset())
             return tail->leaf();
         else {
-            auto node = root.get();
+            auto node = root;
             for (auto level = shift; level; level -= B) {
-                node = node->inner() [(index >> level) & mask<B>].get();
+                node = node->inner() [(index >> level) & mask<B>];
             }
             return node->leaf();
         }
@@ -227,18 +343,22 @@ struct impl
                          const node_t& parent_,
                          node_ptr_t tail) const
     {
+        auto idx             = ((size - branches<B> - 1) >> level) & mask<B>;
+        auto new_idx         = ((size - 1) >> level) & mask<B>;
         const auto& parent   = parent_.inner();
         auto new_parent_node = make_node(parent);
         auto& new_parent     = new_parent_node->inner();
-        auto idx             = ((size - 1) >> level) & mask<B>;
+        for (auto iter = new_parent.begin(), last = new_parent.begin() + new_idx;
+             iter != last; ++iter)
+            inc_node(*iter);
         auto next_node =
-            level == B ? std::move(tail) :
-            parent[idx]            ? push_tail(level - B,
-                                               *parent[idx],
-                                               std::move(tail)) :
-            /* otherwise */          make_path(level - B,
-                                               std::move(tail));
-        new_parent[idx] = next_node;
+            level == B       ? tail :
+            idx == new_idx   ? push_tail(level - B,
+                                         *parent[idx],
+                                         tail) :
+            /* otherwise */    make_path(level - B,
+                                         tail);
+        new_parent[new_idx] = next_node;
         return new_parent_node;
     }
 
@@ -253,21 +373,27 @@ struct impl
                       old_tail.begin() + tail_size,
                       new_tail.begin());
             new_tail[tail_size] = std::move(value);
+            inc_node(root);
             return impl{ size + 1,
                     shift,
                     root,
                     std::move(new_tail_node) };
         } else {
             auto new_tail_node = make_node(leaf_t {{ std::move(value) }});
-            return ((size >> B) > (1u << shift))
-                ? impl{ size + 1,
-                    shift + B,
-                    make_node(inner_t{{ root, make_path(shift, tail) }}),
-                    new_tail_node }
-            : impl{ size + 1,
-                      shift,
-                      push_tail(shift, *root, tail),
-                      new_tail_node };
+            if ((size >> B) > (1u << shift)) {
+                inc_node(root);
+                inc_node(tail);
+                return impl{ size + 1,
+                        shift + B,
+                        make_node(inner_t{{ root, make_path(shift, tail) }}),
+                        new_tail_node };
+            } else {
+                inc_node(tail);
+                return impl{ size + 1,
+                        shift,
+                        push_tail(shift, *root, tail),
+                        new_tail_node };
+            }
         }
     }
 
@@ -286,26 +412,28 @@ struct impl
             auto& item = new_tail_node->leaf() [idx & mask<B>];
             auto new_value = std::forward<FnT>(fn) (std::move(item));
             item = std::move(new_value);
+            inc_node(root);
             return impl{ size,
                     shift,
                     root,
                     std::move(new_tail_node) };
         } else {
+            inc_node(tail);
             return impl{size,
                     shift,
-                    do_update(shift,
-                              *root,
-                              idx,
-                              std::forward<FnT>(fn)),
+                    do_update_last(shift,
+                                   *root,
+                                   idx,
+                                   std::forward<FnT>(fn)),
                     tail};
         }
     }
 
     template <typename FnT>
-    node_ptr_t do_update(unsigned level,
-                         const node_t& node,
-                         std::size_t idx,
-                         FnT&& fn) const
+    node_ptr_t do_update_full(unsigned level,
+                              const node_t& node,
+                              std::size_t idx,
+                              FnT&& fn) const
     {
         if (level == 0) {
             auto new_node  = make_node(leaf_t{node.leaf()});
@@ -314,9 +442,51 @@ struct impl
             item = std::move(new_value);
             return new_node;
         } else {
+            auto offset = (idx >> level) & mask<B>;
             auto new_node = make_node(inner_t{node.inner()});
-            auto& item    = new_node->inner()[(idx >> level) & mask<B>];
-            item = do_update(level - B, *item, idx, std::forward<FnT>(fn));
+            {
+                auto iter = new_node->inner().begin();
+                for (auto last = iter + offset; iter != last; ++iter)
+                    inc_node(*iter);
+                ++iter;
+                for (auto last = new_node->inner().end(); iter != last; ++iter)
+                    inc_node(*iter);
+            }
+            auto& item    = new_node->inner()[offset];
+            item = do_update_full(level - B, *item, idx, std::forward<FnT>(fn));
+            return new_node;
+        }
+    }
+
+    template <typename FnT>
+    node_ptr_t do_update_last(unsigned level,
+                              const node_t& node,
+                              std::size_t idx,
+                              FnT&& fn) const
+    {
+        if (level == 0) {
+            auto new_node  = make_node(leaf_t{node.leaf()});
+            auto& item     = new_node->leaf() [idx & mask<B>];
+            auto new_value = std::forward<FnT>(fn) (std::move(item));
+            item = std::move(new_value);
+            return new_node;
+        } else {
+            auto offset = (idx >> level) & mask<B>;
+            auto end_offset = ((tail_offset()-1) >> level) & mask<B>;
+            auto new_node = make_node(inner_t{node.inner()});
+            {
+                auto iter = new_node->inner().begin();
+                for (auto last = iter + offset; iter != last; ++iter)
+                    inc_node(*iter);
+                ++iter;
+                for (auto last = new_node->inner().begin() + end_offset+1; iter != last; ++iter)
+                    inc_node(*iter);
+            }
+            auto& item    = new_node->inner()[offset];
+            if (offset == end_offset)
+                item = do_update_last(level - B, *item, idx, std::forward<FnT>(fn));
+            else
+                item = do_update_full(level - B, *item, idx, std::forward<FnT>(fn));
             return new_node;
         }
     }
@@ -329,13 +499,12 @@ struct impl
     }
 };
 
-template <typename T, int B> const auto    empty_inner = make_node<T, B>(inner_node<T, B>{});
-template <typename T, int B> const auto    empty_leaf  = make_node<T, B>(leaf_node<T, B>{});
-template <typename T, int B> const impl<T, B> empty       = {
+template <typename T, int B>
+const impl<T, B> impl<T, B>::empty = {
     0,
     B,
-    empty_inner<T, B>,
-    empty_leaf<T, B>
+    make_node(inner_node<T, B>{}),
+    make_node(leaf_node<T, B>{})
 };
 
 template <typename T, int B>
