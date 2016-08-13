@@ -32,6 +32,12 @@ using leaf_node  = std::array<T, 1 << B>;
 template <typename T, int B>
 using inner_node = std::array<node_ptr<T, B>, 1 << B>;
 
+#ifdef NDEBUG
+#define IMMU_TAGGED_NODES 0
+#else
+#define IMMU_TAGGED_NODES 1
+#endif
+
 template <typename T, int B>
 struct node_base
 {
@@ -39,12 +45,6 @@ struct node_base
     using inner_node_t = inner_node<T, B>;
 
     mutable std::atomic<int> ref_count {1};
-
-    enum
-    {
-        leaf_kind,
-        inner_kind
-    } kind;
 
     union data_t
     {
@@ -55,26 +55,26 @@ struct node_base
         ~data_t() {}
     } data;
 
-    ~node_base()
+#if IMMU_TAGGED_NODES
+    enum
     {
-        switch (kind) {
-        case leaf_kind:
-            data.leaf.~leaf_node_t();
-            break;
-        case inner_kind:
-            data.inner.~inner_node_t();
-            break;
-        }
-    }
+        leaf_kind,
+        inner_kind
+    } kind;
+#endif // IMMU_TAGGED_NODES
 
     node_base(leaf_node<T, B> n)
-        : kind{leaf_kind}
-        , data{std::move(n)}
+        : data{std::move(n)}
+#if IMMU_TAGGED_NODES
+        , kind{leaf_kind}
+#endif // IMMU_TAGGED_NODES
     {}
 
     node_base(inner_node<T, B> n)
-        : kind{inner_kind}
-        , data{std::move(n)}
+        : data{std::move(n)}
+#ifndef NDEBUG
+        , kind{inner_kind}
+#endif // IMMU_TAGGED_NODES
     {}
 
     inner_node_t& inner() & {
