@@ -80,6 +80,19 @@ TEST_CASE("update")
         CHECK(v[200u] == 200u);
     }
 
+    SUBCASE("assoc further more")
+    {
+        auto v = immu::dvektor<unsigned, 4>{};
+
+        for (auto i = n; i < 1000u; ++i)
+            v = v.push_back(i);
+
+        for (auto i = 0u; i < v.size(); ++i) {
+            v = v.assoc(i, i+1);
+            CHECK(v[i] == i+1);
+        }
+    }
+
     SUBCASE("update")
     {
         const auto u = v.update(10u, [] (auto x) { return x + 10; });

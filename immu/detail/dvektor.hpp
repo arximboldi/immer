@@ -9,16 +9,26 @@
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <cassert>
+#include <limits>
 
 namespace immu {
 namespace detail {
 namespace dvektor {
+
+constexpr auto fast_log2(std::size_t x)
+{
+    return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
+}
 
 template <int B, typename T=std::size_t>
 constexpr T branches = T{1} << B;
 
 template <int B, typename T=std::size_t>
 constexpr T mask = branches<B, T> - 1;
+
+template <int B, typename T=std::size_t>
+constexpr auto max_depth =
+    fast_log2(std::numeric_limits<std::size_t>::max()) / B;
 
 template <typename T, int B>
 struct node;
@@ -115,11 +125,6 @@ auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T, B>>
     return new node<T, B>(std::forward<Ts>(xs)...);
 }
 
-auto fast_log2(std::size_t x)
-{
-    return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
-}
-
 template <typename T, int B>
 struct ref
 {
@@ -129,7 +134,7 @@ struct ref
     using node_ptr_t = node_ptr<T, B>;
 
     unsigned depth;
-    std::array<node_ptr_t, 6> display;
+    std::array<node_ptr_t, max_depth<B>> display;
 
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
