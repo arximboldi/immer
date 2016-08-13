@@ -390,9 +390,8 @@ struct impl
     }
 };
 
-template <typename T, int B> const auto    empty_inner = make_node<T, B>(inner_node<T, B>{});
-template <typename T, int B> const auto    empty_leaf  = make_node<T, B>(leaf_node<T, B>{});
-template <typename T, int B> const impl<T, B> empty       = {
+template <typename T, int B>
+const impl<T, B> empty = {
     0,
     0,
     false,
