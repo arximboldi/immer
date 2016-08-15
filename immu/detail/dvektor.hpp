@@ -1,7 +1,10 @@
 
 #pragma once
 
-#include <immu/detail/free_list.hpp>
+#include <immu/detail/heap/free_list_heap.hpp>
+#include <immu/detail/heap/thread_local_free_list_heap.hpp>
+#include <immu/detail/heap/malloc_heap.hpp>
+#include <immu/detail/heap/with_heap.hpp>
 #include <immu/detail/ref_count_base.hpp>
 
 #include <boost/intrusive_ptr.hpp>
@@ -114,7 +117,9 @@ struct node_base : ref_count_base<Deriv>
 
 template <typename T, int B>
 struct node : node_base<T, B, node<T, B>>
-            , with_thread_local_free_list<sizeof(node_base<T, B, node<T, B>>)>
+            , with_heap<
+                 thread_local_free_list_heap<sizeof(node_base<T, B, node<T, B>>),
+                                             malloc_heap>>
 {
     using node_base<T, B, node<T, B>>::node_base;
 };

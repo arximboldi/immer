@@ -181,3 +181,48 @@ TEST_CASE("reduce")
         CHECK(sum == expected);
     }
 }
+
+TEST_CASE("vector of strings")
+{
+    // check with valgrind
+    const auto n = 666u;
+    auto v = immu::vektor<std::string>{};
+
+    for (auto i = 0u; i < n; ++i)
+        v = v.push_back(std::to_string(i));
+    for (auto i = 0u; i < v.size(); ++i)
+        CHECK(v[i] == std::to_string(i));
+
+    SUBCASE("assoc")
+    {
+        for (auto i = 0u; i < n; ++i)
+            v = v.assoc(i, "foo " + std::to_string(i));
+        for (auto i = 0u; i < n; ++i)
+            CHECK(v[i] == "foo " + std::to_string(i));
+    }
+}
+
+struct non_default
+{
+    unsigned value;
+    non_default() = delete;
+};
+
+TEST_CASE("non default")
+{
+    // check with valgrind
+    const auto n = 666u;
+    auto v = immu::vektor<non_default>{};
+    for (auto i = 0u; i < n; ++i)
+        v = v.push_back({ i });
+    for (auto i = 0u; i < v.size(); ++i)
+        CHECK(v[i].value == i);
+
+    SUBCASE("assoc")
+    {
+        for (auto i = 0u; i < n; ++i)
+            v = v.assoc(i, {i + 1});
+        for (auto i = 0u; i < n; ++i)
+            CHECK(v[i].value == i + 1);
+    }
+}
