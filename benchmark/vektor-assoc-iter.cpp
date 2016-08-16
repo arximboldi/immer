@@ -5,7 +5,10 @@
 #include <immu/dvektor.hpp>
 #include <immu/ivektor.hpp>
 
+#include <immu/heap/gc_heap.hpp>
+#include <immu/refcount/no_refcount_policy.hpp>
 #include <immu/refcount/unsafe_refcount_policy.hpp>
+
 #include <vector>
 #include <list>
 
@@ -83,8 +86,11 @@ NONIUS_BENCHMARK("immu::dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
 NONIUS_BENCHMARK("immu::dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
 NONIUS_BENCHMARK("immu::dvektor/6B",  generic<immu::dvektor<unsigned,6>>())
 NONIUS_BENCHMARK("immu::ivektor",     generic<immu::ivektor<unsigned>, 10000>())
+using gc_memory     = immu::memory_policy<immu::heap_policy<immu::gc_heap>, immu::no_refcount_policy>;
 using basic_memory  = immu::memory_policy<immu::heap_policy<immu::malloc_heap>, immu::refcount_policy>;
 using unsafe_memory = immu::memory_policy<immu::default_heap_policy, immu::unsafe_refcount_policy>;
+NONIUS_BENCHMARK("vektor/GC",  generic<immu::vektor<unsigned,5,gc_memory>>())
 NONIUS_BENCHMARK("vektor/NO",  generic<immu::vektor<unsigned,5,basic_memory>>())
+//NONIUS_BENCHMARK("dvektor/GC", generic<immu::dvektor<unsigned,5,gc_memory>>())
 NONIUS_BENCHMARK("dvektor/NO", generic<immu::dvektor<unsigned,5,basic_memory>>())
 NONIUS_BENCHMARK("dvektor/UN", generic<immu::dvektor<unsigned,5,unsafe_memory>>())

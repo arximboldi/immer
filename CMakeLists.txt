@@ -25,6 +25,8 @@ set(NONIUS_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
 set(LIBRRB_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/librrb-prefix/include")
+set(LIBGC_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/libgc-prefix/include")
 set(LIBRRB_LIBS
   "${CMAKE_BINARY_DIR}/librrb-prefix/lib/librrb.a"
   "${CMAKE_BINARY_DIR}/libgc-prefix/lib/libgc.a")
@@ -99,13 +101,19 @@ else()
   message(STATUS "Could not find ccache")
 endif()
 
+#  Config
+#  =====================================================================
+
+add_definitions(-DIMMU_HAS_LIBGC=1)
+
 #  Tests
 #  =====================================================================
 
 set(immu_include_dirs
   ${PROJECT_SOURCE_DIR}
   ${Boost_INCLUDE_DIR}
-  ${EGGS_VARIANT_INCLUDE_DIR})
+  ${EGGS_VARIANT_INCLUDE_DIR}
+  ${LIBGC_INCLUDE_DIR})
 set(immu_test_include_dirs
   ${immu_include_dirs}
   ${DOCTEST_INCLUDE_DIR})
