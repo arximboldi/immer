@@ -19,8 +19,6 @@ option(CHECK_BENCHMARKS_MORE_MORE "run benchmarks for more inputs")
 
 set(DOCTEST_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
-set(EGGS_VARIANT_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/eggs-variant-prefix/src/eggs-variant/include")
 set(NONIUS_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
 set(LIBRRB_INCLUDE_DIR
@@ -112,7 +110,6 @@ add_definitions(-DIMMU_HAS_LIBGC=1)
 set(immu_include_dirs
   ${PROJECT_SOURCE_DIR}
   ${Boost_INCLUDE_DIR}
-  ${EGGS_VARIANT_INCLUDE_DIR}
   ${LIBGC_INCLUDE_DIR})
 set(immu_test_include_dirs
   ${immu_include_dirs}
