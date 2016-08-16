@@ -88,10 +88,10 @@ auto generic()
     };
 };
 
-NONIUS_BENCHMARK("immu::vektor/4B",   generic<immu::vektor<unsigned,4>>())
-NONIUS_BENCHMARK("immu::vektor/5B",   generic<immu::vektor<unsigned,5>>())
-NONIUS_BENCHMARK("immu::vektor/6B",   generic<immu::vektor<unsigned,6>>())
-NONIUS_BENCHMARK("immu::dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
-NONIUS_BENCHMARK("immu::dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
-NONIUS_BENCHMARK("immu::dvektor/6B",  generic<immu::dvektor<unsigned,6>>())
-NONIUS_BENCHMARK("immu::ivektor",     generic<immu::ivektor<unsigned>, 10000>())
+NONIUS_BENCHMARK("vektor/4B",   generic<immu::vektor<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B",   generic<immu::vektor<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B",   generic<immu::vektor<unsigned,6>>())
+NONIUS_BENCHMARK("dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
+NONIUS_BENCHMARK("dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
+NONIUS_BENCHMARK("dvektor/6B",  generic<immu::dvektor<unsigned,6>>())
+NONIUS_BENCHMARK("ivektor",     generic<immu::ivektor<unsigned>, 10000>())
