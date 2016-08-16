@@ -7,7 +7,7 @@ namespace immu {
 namespace detail {
 
 template <typename Heap>
-struct with_heap
+struct enable_heap
 {
     using heap_type = Heap;
 

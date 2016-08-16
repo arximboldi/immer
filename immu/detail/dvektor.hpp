@@ -1,11 +1,9 @@
 
 #pragma once
 
-#include <immu/detail/heap/free_list_heap.hpp>
-#include <immu/detail/heap/thread_local_free_list_heap.hpp>
-#include <immu/detail/heap/malloc_heap.hpp>
-#include <immu/detail/heap/with_heap.hpp>
-#include <immu/detail/ref_count_base.hpp>
+#include <immu/detail/heap/heap_policy.hpp>
+#include <immu/detail/refcount/enable_intrusive_ptr.hpp>
+#include <immu/detail/refcount/refcount_policy.hpp>
 
 #include <boost/intrusive_ptr.hpp>
 #include <boost/iterator/iterator_facade.hpp>
@@ -45,8 +43,9 @@ using leaf_node  = std::array<T, 1 << B>;
 template <typename T, int B>
 using inner_node = std::array<node_ptr<T, B>, 1 << B>;
 
-template <typename T, int B, typename Deriv=void>
-struct node_base : ref_count_base<Deriv>
+template <typename T, int B>
+struct node : enable_intrusive_ptr<node<T, B>, refcount_policy>
+            , enable_heap_policy<node<T, B>, default_heap_policy>
 {
     using leaf_node_t  = leaf_node<T, B>;
     using inner_node_t = inner_node<T, B>;
@@ -66,7 +65,7 @@ struct node_base : ref_count_base<Deriv>
         ~data_t() {}
     } data;
 
-    ~node_base()
+    ~node()
     {
         switch (kind) {
         case leaf_kind:
@@ -78,12 +77,12 @@ struct node_base : ref_count_base<Deriv>
         }
     }
 
-    node_base(leaf_node<T, B> n)
+    node(leaf_node<T, B> n)
         : kind{leaf_kind}
         , data{std::move(n)}
     {}
 
-    node_base(inner_node<T, B> n)
+    node(inner_node<T, B> n)
         : kind{inner_kind}
         , data{std::move(n)}
     {}
@@ -113,15 +112,6 @@ struct node_base : ref_count_base<Deriv>
         assert(kind == leaf_kind);
         return std::move(data.leaf);
     }
-};
-
-template <typename T, int B>
-struct node : node_base<T, B, node<T, B>>
-            , with_heap<
-                 thread_local_free_list_heap<sizeof(node_base<T, B, node<T, B>>),
-                                             malloc_heap>>
-{
-    using node_base<T, B, node<T, B>>::node_base;
 };
 
 template <typename T, int B, typename ...Ts>

@@ -17,6 +17,11 @@ struct malloc_heap
     {
         std::free(data);
     }
+
+    template <typename Fn>
+    static void set_finalizer(void*, Fn&&)
+    {
+    }
 };
 
 } // namespace detail

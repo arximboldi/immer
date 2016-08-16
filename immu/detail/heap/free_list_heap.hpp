@@ -1,48 +1,52 @@
 
 #pragma once
 
+#include <immu/detail/heap/with_data.hpp>
+#include <immu/detail/heap/free_list_node.hpp>
+
 #include <atomic>
 #include <cassert>
-#include <cstdlib>
 
 namespace immu {
 namespace detail {
 
 template <std::size_t Size, typename Base>
-class free_list_heap : Base
+struct free_list_heap : Base
 {
-    struct node_t
-    {
-        std::atomic<node_t*> next;
-    };
-
-public:
     using base_t = Base;
 
     static void* allocate(std::size_t size)
     {
-        assert(size <= Size);
-        node_t* n;
+        assert(size <= sizeof(free_list_node) + Size);
+        assert(size >= sizeof(free_list_node));
+
+        free_list_node* n;
         do {
-            n = head_.next;
-            if (!n)
-                return 1 + static_cast<node_t*>(
-                    base_t::allocate(Size + sizeof(node_t)));
-        } while (!head_.next.compare_exchange_weak(n, n->next));
-        return 1 + n;
+            n = head_;
+            if (!n) {
+                auto p = base_t::allocate(Size + sizeof(free_list_node));
+                return static_cast<free_list_node*>(p);
+            }
+        } while (!head_.compare_exchange_weak(n, n->next));
+        return n;
     }
 
     static void deallocate(void* data)
     {
-        auto n = static_cast<node_t*>(data) - 1;
+        auto n = static_cast<free_list_node*>(data);
         do {
-            n->next = head_.next;
-        } while (!head_.next.compare_exchange_weak(n->next, n));
+            n->next = head_;
+        } while (!head_.compare_exchange_weak(n->next, n));
     }
 
 private:
-    static node_t head_;
+    using head_t = std::atomic<free_list_node*>;
+    static head_t head_;
 };
+
+template <std::size_t S, typename B>
+typename free_list_heap<S, B>::head_t
+free_list_heap<S, B>::head_ {nullptr};
 
 } // namespace detail
 } // namespace immu
