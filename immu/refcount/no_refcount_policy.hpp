@@ -1,10 +1,7 @@
 
 #pragma once
 
-#include <immu/detail/heap/malloc_heap.hpp>
-
 namespace immu {
-namespace detail {
 
 struct disowned {};
 
@@ -26,5 +23,4 @@ struct no_refcount_policy
     static void dec_unsafe(const data*) {};
 };
 
-} // namespace detail
 } // namespace immu

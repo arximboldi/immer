@@ -3,7 +3,6 @@
 #include <cstdio>
 
 namespace immu {
-namespace detail {
 
 template <typename T, typename Base>
 struct with_data : Base
@@ -24,5 +23,4 @@ struct with_data : Base
     }
 };
 
-} // namespace detail
 } // namespace immu

@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include <immu/detail/heap/heap_policy.hpp>
-#include <immu/detail/refcount/enable_intrusive_ptr.hpp>
-#include <immu/detail/refcount/refcount_policy.hpp>
+#include <immu/heap/heap_policy.hpp>
+#include <immu/refcount/enable_intrusive_ptr.hpp>
+#include <immu/refcount/refcount_policy.hpp>
 
 #include <boost/intrusive_ptr.hpp>
 #include <boost/iterator/iterator_facade.hpp>
@@ -31,24 +31,24 @@ template <int B, typename T=std::size_t>
 constexpr auto max_depth =
     fast_log2(std::numeric_limits<std::size_t>::max()) / B;
 
-template <typename T, int B>
+template <typename T, int B, typename MP>
 struct node;
 
-template <typename T, int B>
-using node_ptr = boost::intrusive_ptr<node<T, B> >;
+template <typename T, int B, typename MP>
+using node_ptr = boost::intrusive_ptr<node<T, B, MP> >;
 
 template <typename T, int B>
 using leaf_node  = std::array<T, 1 << B>;
 
-template <typename T, int B>
-using inner_node = std::array<node_ptr<T, B>, 1 << B>;
+template <typename T, int B, typename MP>
+using inner_node = std::array<node_ptr<T, B, MP>, 1 << B>;
 
-template <typename T, int B>
-struct node : enable_intrusive_ptr<node<T, B>, refcount_policy>
-            , enable_heap_policy<node<T, B>, default_heap_policy>
+template <typename T, int B, typename MP>
+struct node : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
+            , enable_heap_policy<node<T, B, MP>, typename MP::heap>
 {
     using leaf_node_t  = leaf_node<T, B>;
-    using inner_node_t = inner_node<T, B>;
+    using inner_node_t = inner_node<T, B, MP>;
 
     enum
     {
@@ -82,7 +82,7 @@ struct node : enable_intrusive_ptr<node<T, B>, refcount_policy>
         , data{std::move(n)}
     {}
 
-    node(inner_node<T, B> n)
+    node(inner_node<T, B, MP> n)
         : kind{inner_kind}
         , data{std::move(n)}
     {}
@@ -114,19 +114,21 @@ struct node : enable_intrusive_ptr<node<T, B>, refcount_policy>
     }
 };
 
-template <typename T, int B, typename ...Ts>
-auto make_node(Ts&& ...xs) -> boost::intrusive_ptr<node<T, B>>
+template <typename T, int B, typename MP,
+          typename ...Ts>
+auto make_node(Ts&& ...xs)
+    -> boost::intrusive_ptr<node<T, B, MP>>
 {
-    return new node<T, B>(std::forward<Ts>(xs)...);
+    return new node<T, B, MP>(std::forward<Ts>(xs)...);
 }
 
-template <typename T, int B>
+template <typename T, int B, typename MP>
 struct ref
 {
-    using inner_t    = inner_node<T, B>;
+    using inner_t    = inner_node<T, B, MP>;
     using leaf_t     = leaf_node<T, B>;
-    using node_t     = node<T, B>;
-    using node_ptr_t = node_ptr<T, B>;
+    using node_t     = node<T, B, MP>;
+    using node_ptr_t = node_ptr<T, B, MP>;
 
     unsigned depth;
     std::array<node_ptr_t, max_depth<B>> display;
@@ -134,7 +136,7 @@ struct ref
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return dvektor::make_node<T, B>(std::forward<Ts>(xs)...);
+        return dvektor::make_node<T, B, MP>(std::forward<Ts>(xs)...);
     }
 
     const T& get_elem(std::size_t index, std::size_t xr) const
@@ -299,14 +301,14 @@ struct ref
     }
 };
 
-template <typename T, int B>
+template <typename T, int B, typename MP>
 struct impl
 {
-    using inner_t    = inner_node<T, B>;
+    using inner_t    = inner_node<T, B, MP>;
     using leaf_t     = leaf_node<T, B>;
-    using node_t     = node<T, B>;
-    using node_ptr_t = node_ptr<T, B>;
-    using ref_t      = ref<T, B>;
+    using node_t     = node<T, B, MP>;
+    using node_ptr_t = node_ptr<T, B, MP>;
+    using ref_t      = ref<T, B, MP>;
 
     std::size_t size;
     std::size_t focus;
@@ -316,7 +318,7 @@ struct impl
     template <typename ...Ts>
     static auto make_node(Ts&& ...xs)
     {
-        return dvektor::make_node<T, B>(std::forward<Ts>(xs)...);
+        return dvektor::make_node<T, B, MP>(std::forward<Ts>(xs)...);
     }
 
     void goto_pos_writable(std::size_t old_index,
@@ -390,17 +392,17 @@ struct impl
     }
 };
 
-template <typename T, int B>
-const impl<T, B> empty = {
+template <typename T, int B, typename MP>
+const impl<T, B, MP> empty = {
     0,
     0,
     false,
-    ref<T, B> {1, {}}
+    ref<T, B, MP> {1, {}}
 };
 
-template <typename T, int B>
+template <typename T, int B, typename MP>
 struct iterator : boost::iterator_facade<
-    iterator<T, B>,
+    iterator<T, B, MP>,
     T,
     boost::random_access_traversal_tag,
     const T&>
@@ -409,7 +411,7 @@ struct iterator : boost::iterator_facade<
 
     iterator() = default;
 
-    iterator(const impl<T, B>& v)
+    iterator(const impl<T, B, MP>& v)
         : p_{ v.p }
         , i_{ 0 }
         , base_{ 0 }
@@ -420,7 +422,7 @@ struct iterator : boost::iterator_facade<
         curr_ = p_.display[0]->leaf().begin();
     }
 
-    iterator(const impl<T, B>& v, end_t)
+    iterator(const impl<T, B, MP>& v, end_t)
         : p_{ v.p }
         , i_{ v.size }
         , base_{ (v.size-1) & ~mask<B> }
@@ -435,9 +437,9 @@ private:
     friend class boost::iterator_core_access;
     using leaf_iterator = typename leaf_node<T, B>::const_iterator;
 
-    ref<T, B> p_;
-    std::size_t i_;
-    std::size_t base_;
+    ref<T, B, MP> p_;
+    std::size_t   i_;
+    std::size_t   base_;
     leaf_iterator curr_;
 
     void increment()

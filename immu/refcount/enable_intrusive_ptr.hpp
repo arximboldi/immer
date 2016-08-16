@@ -1,10 +1,9 @@
 
 #pragma once
 
-#include <immu/detail/refcount/no_refcount_policy.hpp>
+#include <immu/refcount/no_refcount_policy.hpp>
 
 namespace immu {
-namespace detail {
 
 template <typename Deriv, typename RefcountPolicy>
 struct enable_intrusive_ptr : RefcountPolicy::data
@@ -26,5 +25,4 @@ struct enable_intrusive_ptr : RefcountPolicy::data
     }
 };
 
-} // namespace deail
 } // namespace immu

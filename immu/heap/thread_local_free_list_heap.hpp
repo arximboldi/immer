@@ -1,11 +1,10 @@
 
 #pragma once
 
-#include <immu/detail/heap/free_list_node.hpp>
+#include <immu/heap/free_list_node.hpp>
 #include <cassert>
 
 namespace immu {
-namespace detail {
 
 template <std::size_t Size, typename Base>
 class thread_local_free_list_heap : Base
@@ -58,5 +57,4 @@ template <std::size_t S, typename B>
 thread_local typename thread_local_free_list_heap<S, B>::head_t
 thread_local_free_list_heap<S, B>::head_ {{nullptr}};
 
-} // namespace detail
 } // namespace immu

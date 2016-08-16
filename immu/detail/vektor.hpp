@@ -1,9 +1,6 @@
 
 #pragma once
 
-#include <immu/detail/heap/heap_policy.hpp>
-#include <immu/detail/refcount/refcount_policy.hpp>
-
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
@@ -27,11 +24,13 @@ constexpr T branches = T{1} << B;
 template <int B, typename T=std::size_t>
 constexpr T mask = branches<B, T> - 1;
 
-template <typename T, int B>
+template <typename T,
+          int B,
+          typename MemoryPolicy>
 struct impl
 {
-    using heap_policy = default_heap_policy;
-    using refcount    = refcount_policy;
+    using heap_policy = typename MemoryPolicy::heap;
+    using refcount    = typename MemoryPolicy::refcount;
 
     struct node_t : refcount::data
     {
@@ -466,17 +465,17 @@ struct impl
     }
 };
 
-template <typename T, int B>
-const impl<T, B> impl<T, B>::empty = {
+template <typename T, int B, typename MP>
+const impl<T, B, MP> impl<T, B, MP>::empty = {
     0,
     B,
     make_inner(),
     make_leaf()
 };
 
-template <typename T, int B>
+template <typename T, int B, typename MP>
 struct iterator : boost::iterator_facade<
-    iterator<T, B>,
+    iterator<T, B, MP>,
     T,
     boost::random_access_traversal_tag,
     const T&>
@@ -485,7 +484,7 @@ struct iterator : boost::iterator_facade<
 
     iterator() = default;
 
-    iterator(const impl<T, B>& v)
+    iterator(const impl<T, B, MP>& v)
         : v_    { &v }
         , i_    { 0 }
         , base_ { 0 }
@@ -493,7 +492,7 @@ struct iterator : boost::iterator_facade<
     {
     }
 
-    iterator(const impl<T, B>& v, end_t)
+    iterator(const impl<T, B, MP>& v, end_t)
         : v_    { &v }
         , i_    { v.size }
         , base_ { i_ - (i_ & mask<B>) }
@@ -503,7 +502,7 @@ struct iterator : boost::iterator_facade<
 private:
     friend class boost::iterator_core_access;
 
-    const impl<T, B>* v_;
+    const impl<T, B, MP>* v_;
     std::size_t       i_;
     std::size_t       base_;
     const T*          curr_;

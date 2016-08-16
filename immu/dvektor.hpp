@@ -2,12 +2,17 @@
 #pragma once
 
 #include <immu/detail/dvektor.hpp>
+#include <immu/memory_policy.hpp>
 
 namespace immu {
 
-template <typename T, int B=5>
+template <typename T,
+          int B = 5,
+          typename MemoryPolicy = default_memory_policy>
 class dvektor
 {
+    using impl_t = detail::dvektor::impl<T, B, MemoryPolicy>;
+
 public:
     using value_type = T;
     using reference = const T&;
@@ -15,7 +20,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::dvektor::iterator<T, B>;
+    using iterator         = detail::dvektor::iterator<T, B, MemoryPolicy>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
@@ -44,8 +49,8 @@ public:
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
 private:
-    dvektor(detail::dvektor::impl<T, B> impl) : impl_(std::move(impl)) {}
-    detail::dvektor::impl<T, B> impl_ = detail::dvektor::empty<T, B>;
+    dvektor(impl_t impl) : impl_(std::move(impl)) {}
+    impl_t impl_ = detail::dvektor::empty<T, B, MemoryPolicy>;
 };
 
 } // namespace immu

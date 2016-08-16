@@ -1,10 +1,9 @@
 
 #pragma once
 
-#include <immu/detail/heap/with_data.hpp>
+#include <immu/heap/with_data.hpp>
 
 namespace immu {
-namespace detail {
 
 struct free_list_node
 {
@@ -16,5 +15,4 @@ struct with_free_list_node
     : with_data<free_list_node, Base>
 {};
 
-} // namespace detail
 } // namespace immu

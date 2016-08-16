@@ -1,16 +1,14 @@
 
 #pragma once
 
-#include <immu/detail/heap/free_list_heap.hpp>
-#include <immu/detail/heap/malloc_heap.hpp>
-#include <immu/detail/heap/enable_heap.hpp>
-#include <immu/detail/heap/thread_local_free_list_heap.hpp>
+#include <immu/heap/free_list_heap.hpp>
+#include <immu/heap/malloc_heap.hpp>
+#include <immu/heap/thread_local_free_list_heap.hpp>
 
 #include <cstdlib>
 #include <algorithm>
 
 namespace immu {
-namespace detail {
 
 template <typename Heap>
 struct heap_policy
@@ -56,5 +54,4 @@ struct default_heap_policy
     };
 };
 
-} // namespace detail
 } // namespace immu

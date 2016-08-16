@@ -1,13 +1,12 @@
 
 #pragma once
 
-#include <immu/detail/refcount/no_refcount_policy.hpp>
+#include <immu/refcount/no_refcount_policy.hpp>
 
 #include <atomic>
 #include <utility>
 
 namespace immu {
-namespace detail {
 
 struct refcount_policy
 {
@@ -43,5 +42,4 @@ struct refcount_policy
     };
 };
 
-} // namespace detail
 } // namespace immu

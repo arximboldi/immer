@@ -1,14 +1,13 @@
 
 #pragma once
 
-#include <immu/detail/heap/with_data.hpp>
-#include <immu/detail/heap/free_list_node.hpp>
+#include <immu/heap/with_data.hpp>
+#include <immu/heap/free_list_node.hpp>
 
 #include <atomic>
 #include <cassert>
 
 namespace immu {
-namespace detail {
 
 template <std::size_t Size, typename Base>
 struct free_list_heap : Base
@@ -48,5 +47,4 @@ template <std::size_t S, typename B>
 typename free_list_heap<S, B>::head_t
 free_list_heap<S, B>::head_ {nullptr};
 
-} // namespace detail
 } // namespace immu
