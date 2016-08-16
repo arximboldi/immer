@@ -166,7 +166,9 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set(immu_benchmark_report_dir "../reports/report-${GIT_COMMIT_HASH}")
+get_filename_component(immu_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
+set(immu_benchmark_report_dir
+  "../reports/report-${GIT_COMMIT_HASH}-${immu_compiler_name}")
 
 if (CHECK_BENCHMARKS_MORE_MORE)
   set(immu_benchmark_param "N:*:1:10:7")
