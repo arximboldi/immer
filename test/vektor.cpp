@@ -42,7 +42,7 @@ TEST_CASE("push back one element")
 
 TEST_CASE("update")
 {
-    const auto n = 42;
+    const auto n = 42u;
     auto v = vektor<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);

@@ -41,36 +41,41 @@ struct impl
             inner_kind
         } kind;
 #endif // IMMU_TAGGED_NODES
-        char buffer[];
+        union data_t
+        {
+            node_t* inner[branches<B>];
+            T       leaf[branches<B>];
+            data_t() {}
+            ~data_t() {}
+        } data;
 
         node_t** inner()
         {
             assert(kind == inner_kind);
-            return reinterpret_cast<node_t**>(buffer);
+            return data.inner;
         }
 
         const node_t** inner() const
         {
             assert(kind == inner_kind);
-            return reinterpret_cast<const node_t**>(buffer);
+            return data.inner;
         }
 
         T* leaf()
         {
             assert(kind == leaf_kind);
-            return reinterpret_cast<T*>(buffer);
+            return data.leaf;
         }
 
         const T* leaf() const
         {
             assert(kind == leaf_kind);
-            return reinterpret_cast<const T*>(buffer);
+            return data.leaf;
         }
     };
 
     using heap = typename heap_policy::template apply<
-        sizeof(node_t) + branches<B> * sizeof(T),
-        sizeof(node_t) + branches<B> * sizeof(node_t*)
+        sizeof(node_t)
     >::type;
 
     std::size_t size;
@@ -82,8 +87,7 @@ struct impl
 
     static node_t* make_inner()
     {
-        auto size = sizeof(node_t) + branches<B> * sizeof(node_t*);
-        auto p = new (heap::allocate(size)) node_t;
+        auto p = new (heap::allocate(sizeof(node_t))) node_t;
 #if IMMU_TAGGED_NODES
         p->kind = node_t::inner_kind;
 #endif
@@ -107,8 +111,7 @@ struct impl
 
     static node_t* make_leaf()
     {
-        auto size = sizeof(node_t) + branches<B> * sizeof(T);
-        auto p = new (heap::allocate(size)) node_t;
+        auto p = new (heap::allocate(sizeof(node_t))) node_t;
 #if IMMU_TAGGED_NODES
         p->kind = node_t::leaf_kind;
 #endif

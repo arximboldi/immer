@@ -36,7 +36,7 @@ struct thread_local_free_list_storage
 
 template <typename Heap>
 thread_local typename thread_local_free_list_storage<Heap>::head_t
-thread_local_free_list_storage<Heap>::head {{nullptr}};
+thread_local_free_list_storage<Heap>::head {nullptr};
 
 template <template<class>class Storage,
           std::size_t Size,
