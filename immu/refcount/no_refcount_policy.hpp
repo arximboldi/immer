@@ -17,8 +17,7 @@ struct no_refcount_policy
 
     static void inc(const data*) {};
 
-    template <typename Fn>
-    static void dec(const data*, Fn&&) {};
+    static bool dec(const data*) { return false; };
 
     static void dec_unsafe(const data*) {};
 };

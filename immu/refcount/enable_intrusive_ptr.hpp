@@ -21,7 +21,8 @@ struct enable_intrusive_ptr : RefcountPolicy::data
 
     friend void intrusive_ptr_release(const Deriv* x)
     {
-        policy::dec(x, [&] { delete x; });
+        if (policy::dec(x))
+            delete x;
     }
 };
 

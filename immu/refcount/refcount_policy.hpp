@@ -25,13 +25,13 @@ struct refcount_policy
         p->refcount.fetch_add(1, std::memory_order_relaxed);
     };
 
-    template <typename Fn>
-    static void dec(const data* p, Fn&& cont)
+    static bool dec(const data* p)
     {
         if (1 == p->refcount.fetch_sub(1, std::memory_order_release)) {
             std::atomic_thread_fence(std::memory_order_acquire);
-            std::forward<Fn>(cont) ();
+            return true;
         }
+        return false;
     };
 
     template <typename T>

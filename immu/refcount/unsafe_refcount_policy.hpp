@@ -25,11 +25,9 @@ struct unsafe_refcount_policy
         ++p->refcount;
     };
 
-    template <typename Fn>
-    static void dec(const data* p, Fn&& cont)
+    static bool dec(const data* p)
     {
-        if (--p->refcount == 0)
-            std::forward<Fn>(cont) ();
+        return --p->refcount == 0;
     };
 
     static void dec_unsafe(const data* p)

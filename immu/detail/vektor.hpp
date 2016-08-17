@@ -214,21 +214,14 @@ struct impl
 
     struct dec_traversal
     {
-        template <typename Fn>
-        void visit_inner(node_t* p, Fn&& cont)
-        {
-            refcount::dec(p, [&] {
-                std::forward<Fn>(cont) ();
-                delete_inner(p);
-            });
-        }
+        bool predicate(node_t* p)
+        { return refcount::dec(p); }
+
+        void visit_inner(node_t* p)
+        { delete_inner(p); }
 
         void visit_leaf(node_t* p, unsigned n)
-        {
-            refcount::dec(p, [&] {
-                delete_leaf(p, n);
-            });
-        }
+        { delete_leaf(p, n); }
     };
 
     void dec() const
@@ -252,11 +245,8 @@ struct impl
         Step fn;
         State acc;
 
-        template <typename Fn>
-        void visit_inner(node_t* n, Fn&& cont)
-        {
-            std::forward<Fn>(cont) ();
-        }
+        bool predicate(node_t*) { return true; }
+        void visit_inner(node_t* n) {}
 
         void visit_leaf(node_t* n, unsigned elems)
         {
@@ -280,19 +270,21 @@ struct impl
     {
         assert(level > 0);
         assert(size > branches<B>);
-        t.visit_inner(node, [&] {
+        if (t.predicate(node)) {
             auto next = level - B;
             auto last = ((tail_offset()-1) >> level) & mask<B>;
             if (next == 0) {
                 for (auto i = node->inner(), e = i + last + 1; i != e; ++i)
-                    t.visit_leaf(*i, branches<B>);
+                    if (t.predicate(*i))
+                        t.visit_leaf(*i, branches<B>);
             } else {
                 auto i = node->inner();
                 for (auto e = i + last; i != e; ++i)
                     traverse_node_full(t, *i, next);
                 traverse_node_last(t, *i, next);
             }
-        });
+            t.visit_inner(node);
+        }
     }
 
     template <typename Traversal>
@@ -300,16 +292,18 @@ struct impl
     {
         assert(level > 0);
         assert(size > branches<B>);
-        t.visit_inner(node, [&] {
+        if (t.predicate(node)) {
             auto next = level - B;
             if (next == 0) {
                 for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
-                    t.visit_leaf(*i, branches<B>);
+                    if (t.predicate(*i))
+                        t.visit_leaf(*i, branches<B>);
             } else {
                 for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
                     traverse_node_full(t, *i, next);
             }
-        });
+            t.visit_inner(node);
+        }
     }
 
     template <typename Traversal>
@@ -317,9 +311,10 @@ struct impl
     {
         if (size > branches<B>)
             traverse_node_last(t, root, shift);
-        else
-            t.visit_inner(root, []{});
-        t.visit_leaf(tail, tail_size());
+        else if (t.predicate(root))
+            t.visit_inner(root);
+        if (t.predicate(tail))
+            t.visit_leaf(tail, tail_size());
     }
 
     const T* array_for(std::size_t index) const
