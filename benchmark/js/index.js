@@ -30,6 +30,14 @@ var suite = new Benchmark.Suite('push')
             v_.delete()
         }
     })
+    .add('immu.VektorNumber', function(){
+        var v = new immu.VektorNumber
+        for (var x = 0; x < N; ++x) {
+            var v_ = v
+            v = v.push(x)
+            v_.delete()
+        }
+    })
     .on('cycle', function(event) {
         console.log(String(event.target));
     })

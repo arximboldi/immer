@@ -18,10 +18,9 @@ out/immu.asmjs.js: immu.cpp
 	@mkdir -p $(@D)
 	$(EMCXX) $(EMCXXFLAGS) $< -o $@
 
-# EMCC_WASM_BACKEND=1
 out/immu.wasm.js: immu.cpp
 	@mkdir -p $(@D)
-	$(EMCXX) $(EMCXXFLAGS) -s BINARYEN=1 $< -o $@
+	EMCC_WASM_BACKEND=1 $(EMCXX) $(EMCXXFLAGS) -s BINARYEN=1 $< -o $@
 
 %.html: %.js index.tpl.html
 	sed s/%IMMU_JS%/`basename $<`/ < index.tpl.html > $@
