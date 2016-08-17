@@ -61,21 +61,21 @@ template <typename Vektor,
           std::size_t Limit=std::numeric_limits<std::size_t>::max()>
 auto generic()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > Limit) n = 1;
 
         auto v = Vektor{};
         for (auto i = 0u; i < n; ++i)
             v = v.push_back(i);
 
-        return [=] {
+        meter.measure([&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = v.assoc(i, n - i);
             return r;
-        };
+        });
     };
 };
 
@@ -95,7 +95,7 @@ NONIUS_BENCHMARK("dvektor/4B", generic<immu::dvektor<unsigned,4>>())
 NONIUS_BENCHMARK("dvektor/5B", generic<immu::dvektor<unsigned,5>>())
 NONIUS_BENCHMARK("dvektor/6B", generic<immu::dvektor<unsigned,6>>())
 
-//NONIUS_BENCHMARK("dvektor/GC", generic<immu::dvektor<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("dvektor/GC", generic<immu::dvektor<unsigned,5,gc_memory>>())
 NONIUS_BENCHMARK("dvektor/NO", generic<immu::dvektor<unsigned,5,basic_memory>>())
 NONIUS_BENCHMARK("dvektor/UN", generic<immu::dvektor<unsigned,5,unsafe_memory>>())
 
