@@ -4,6 +4,7 @@
 #include <immu/vektor.hpp>
 #include <immu/dvektor.hpp>
 #include <immu/ivektor.hpp>
+#include <immu/rvektor.hpp>
 
 #include <immu/heap/gc_heap.hpp>
 #include <immu/refcount/no_refcount_policy.hpp>
@@ -82,6 +83,8 @@ auto generic()
 using gc_memory     = immu::memory_policy<immu::heap_policy<immu::gc_heap>, immu::no_refcount_policy>;
 using basic_memory  = immu::memory_policy<immu::heap_policy<immu::malloc_heap>, immu::refcount_policy>;
 using unsafe_memory = immu::memory_policy<immu::default_heap_policy, immu::unsafe_refcount_policy>;
+
+NONIUS_BENCHMARK("rvektor/5B", generic<immu::rvektor<unsigned,5>>())
 
 NONIUS_BENCHMARK("vektor/4B",  generic<immu::vektor<unsigned,4>>())
 NONIUS_BENCHMARK("vektor/5B",  generic<immu::vektor<unsigned,5>>())

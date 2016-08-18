@@ -3,6 +3,8 @@
 
 #include <immu/vektor.hpp>
 #include <immu/dvektor.hpp>
+#include <immu/rvektor.hpp>
+
 #include <vector>
 #include <list>
 
@@ -74,6 +76,7 @@ auto generic()
     };
 };
 
+NONIUS_BENCHMARK("rvektor/5B",  generic<immu::rvektor<unsigned,5>>())
 NONIUS_BENCHMARK("vektor/4B",   generic<immu::vektor<unsigned,4>>())
 NONIUS_BENCHMARK("vektor/5B",   generic<immu::vektor<unsigned,5>>())
 NONIUS_BENCHMARK("vektor/6B",   generic<immu::vektor<unsigned,6>>())
