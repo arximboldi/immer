@@ -17,6 +17,8 @@ option(CHECK_BENCHMARKS "run benchmarks on make check")
 option(CHECK_BENCHMARKS_MORE "run benchmarks for more inputs")
 option(CHECK_BENCHMARKS_MORE_MORE "run benchmarks for more inputs")
 
+set(PRETTYPRINT_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/prettyprint-prefix/src/prettyprint")
 set(DOCTEST_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
 set(CATCH_INCLUDE_DIR
@@ -57,6 +59,9 @@ immu_external_dep_nobuild(catch
   # GIT_REPOSITORY git@github.com:philsquared/Catch.git
   # This fork has --break for GDB
   GIT_REPOSITORY git@github.com:lorenzhs/Catch.git)
+
+immu_external_dep_nobuild(prettyprint
+  GIT_REPOSITORY git@github.com:louisdx/cxx-prettyprint.git)
 
 immu_external_dep_nobuild(nonius
   GIT_REPOSITORY git@github.com:arximboldi/nonius.git
@@ -122,6 +127,7 @@ set(immu_include_dirs
 set(immu_test_include_dirs
   ${immu_include_dirs}
   ${CATCH_INCLUDE_DIR}
+  ${PRETTYPRINT_INCLUDE_DIR}
   ${DOCTEST_INCLUDE_DIR})
 set(immu_benchmark_include_dirs
   ${immu_include_dirs}

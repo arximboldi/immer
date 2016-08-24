@@ -108,10 +108,13 @@ TEST_CASE("update")
 
 TEST_CASE("push_front")
 {
+    using vektor_t = rvektor<unsigned, 3>;
+
     const auto n = 666u;
-    auto v = rvektor<unsigned>{};
+    auto v = vektor_t{};
 
     for (auto i = 0u; i < n; ++i) {
+        IMMU_TRACE("\n-- push_front: " << i);
         v = v.push_front(i);
         CHECK(v.size() == i + 1);
         for (auto j = 0; j < v.size(); ++j)
@@ -121,24 +124,26 @@ TEST_CASE("push_front")
 
 TEST_CASE("concat")
 {
+    using vektor_t = rvektor<unsigned, 3>;
+
     const auto n = 666u;
 
-    auto all_lhs = std::vector<rvektor<unsigned>>{};
-    auto all_rhs = std::vector<rvektor<unsigned>>{};
+    auto all_lhs = std::vector<vektor_t>{};
+    auto all_rhs = std::vector<vektor_t>{};
     all_lhs.reserve(n);
     all_rhs.reserve(n);
 
     std::generate_n(std::back_inserter(all_lhs), n,
-                    [v = rvektor<unsigned>{},
+                    [v = vektor_t{},
                      i = 0u] () mutable {
                         auto r = v;
                         v = v.push_back(i++);
                         return r;
                     });
 
-    auto v = rvektor<unsigned>{};
+    auto v = vektor_t{};
     std::generate_n(std::back_inserter(all_rhs), n,
-                    [v = rvektor<unsigned>{},
+                    [v = vektor_t{},
                      i = n-1] () mutable {
                         auto r = v;
                         v = v.push_front(--i);
@@ -149,6 +154,7 @@ TEST_CASE("concat")
     {
         for (auto i = 0u; i < n; ++i) {
             auto c = all_lhs[n - i - 1] + all_rhs[i];
+            IMMU_TRACE("\n-- concat: " << i);
             CHECK(c.size() == n - 1);
             for (auto j = 0u; j < c.size(); ++j)
                 CHECK(c[j] == j);
