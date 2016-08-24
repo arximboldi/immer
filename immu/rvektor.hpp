@@ -53,6 +53,12 @@ public:
     { return impl_.reduce(std::forward<Step>(step),
                           std::forward<State>(init)); }
 
+    friend rvektor operator+ (const rvektor& l, const rvektor& r)
+    { return l.impl_.concat(r.impl_); }
+
+    rvektor push_front(value_type value) const
+    { return rvektor{}.push_back(value) + *this; }
+
 private:
     rvektor(impl_t impl) : impl_(std::move(impl)) {}
     impl_t impl_ = impl_t::empty;

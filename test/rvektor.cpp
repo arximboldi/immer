@@ -106,6 +106,57 @@ TEST_CASE("update")
     }
 }
 
+TEST_CASE("push_front")
+{
+    const auto n = 666u;
+    auto v = rvektor<unsigned>{};
+
+    for (auto i = 0u; i < n; ++i) {
+        v = v.push_front(i);
+        CHECK(v.size() == i + 1);
+        for (auto j = 0; j < v.size(); ++j)
+            CHECK(v[v.size() - j - 1] == j);
+    }
+}
+
+TEST_CASE("concat")
+{
+    const auto n = 666u;
+
+    auto all_lhs = std::vector<rvektor<unsigned>>{};
+    auto all_rhs = std::vector<rvektor<unsigned>>{};
+    all_lhs.reserve(n);
+    all_rhs.reserve(n);
+
+    std::generate_n(std::back_inserter(all_lhs), n,
+                    [v = rvektor<unsigned>{},
+                     i = 0u] () mutable {
+                        auto r = v;
+                        v = v.push_back(i++);
+                        return r;
+                    });
+
+    auto v = rvektor<unsigned>{};
+    std::generate_n(std::back_inserter(all_rhs), n,
+                    [v = rvektor<unsigned>{},
+                     i = n-1] () mutable {
+                        auto r = v;
+                        v = v.push_front(--i);
+                        return r;
+                    });
+
+    SUBCASE("anywhere")
+    {
+        for (auto i = 0u; i < n; ++i) {
+            auto c = all_lhs[n - i - 1] + all_rhs[i];
+            CHECK(c.size() == n - 1);
+            for (auto j = 0u; j < c.size(); ++j)
+                CHECK(c[j] == j);
+        }
+    }
+}
+
+#if 0 // WIP
 TEST_CASE("iterator")
 {
     const auto n = 666u;
@@ -226,3 +277,4 @@ TEST_CASE("non default")
             CHECK(v[i].value == i + 1);
     }
 }
+#endif

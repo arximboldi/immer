@@ -46,8 +46,8 @@ struct impl
             using  leaf_t = T[branches<B>];
             struct inner_t
             {
-                std::size_t* sizes;
                 node_t* elems[branches<B>];
+                std::size_t* sizes;
             };
 
             inner_t inner;
@@ -63,13 +63,19 @@ struct impl
             return data.inner.sizes;
         }
 
+        const std::size_t* sizes() const
+        {
+            assert(kind == inner_kind);
+            return data.inner.sizes;
+        }
+
         node_t** inner()
         {
             assert(kind == inner_kind);
             return data.inner.elems;
         }
 
-        const node_t** inner() const
+        const node_t* const* inner() const
         {
             assert(kind == inner_kind);
             return data.inner.elems;
@@ -102,6 +108,18 @@ struct impl
     static node_t* make_inner()
     {
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
+        p->data.inner.sizes = nullptr;
+#if IMMU_TAGGED_NODES
+        p->kind = node_t::inner_kind;
+#endif
+        return p;
+    }
+
+    static node_t* make_inner_r()
+    {
+        auto p = new (heap::allocate(sizeof(node_t))) node_t;
+        auto s = heap::allocate(sizeof(std::size_t) * branches<B> + 1);
+        p->data.inner.sizes = static_cast<std::size_t*>(s);
 #if IMMU_TAGGED_NODES
         p->kind = node_t::inner_kind;
 #endif
@@ -120,6 +138,17 @@ struct impl
         auto p = make_inner();
         p->inner() [0] = x;
         p->inner() [1] = y;
+        return p;
+    }
+
+    static node_t* make_inner(node_t* x, std::size_t xs, node_t* y)
+    {
+        auto p = make_inner_r();
+        p->inner() [0] = x;
+        p->inner() [1] = y;
+        p->sizes() [0] = xs;
+        p->sizes() [1] = xs + branches<B>;
+        p->sizes() [branches<B>] = 2;
         return p;
     }
 
@@ -150,6 +179,18 @@ struct impl
         return dst;
     }
 
+    static node_t* copy_inner_r(node_t* src, int n)
+    {
+        assert(src->kind == node_t::inner_kind);
+        auto dst = make_inner();
+        for (auto i = src->inner(), e = i + n; i != e; ++i)
+            refcount::inc(*i);
+        std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
+        std::uninitialized_copy(src->sizes(), src->sizes() + n, dst->sizes());
+        dst->sizes() [branches<B>] = src->sizes() [branches<B>];
+        return dst;
+    }
+
     static node_t* copy_leaf(node_t* src, int n)
     {
         assert(src->kind == node_t::leaf_kind);
@@ -158,8 +199,30 @@ struct impl
         return dst;
     }
 
+    static node_t* copy_leaf(node_t* src1, int n1,
+                             node_t* src2, int n2)
+    {
+        assert(src1->kind == node_t::leaf_kind);
+        assert(src2->kind == node_t::leaf_kind);
+        auto dst = make_leaf();
+        std::uninitialized_copy(
+            src1->leaf(), src1->leaf() + n1, dst->leaf());
+        std::uninitialized_copy(
+            src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
+        return dst;
+    }
+
+    static node_t* copy_leaf(node_t* src, int idx, int n)
+    {
+        assert(src->kind == node_t::leaf_kind);
+        auto dst = make_leaf();
+        std::uninitialized_copy(
+            src->leaf() + idx, src->leaf() + idx + n, dst->leaf());
+        return dst;
+    }
+
     template <typename U>
-    static node_t* copy_leaf(node_t* src, int n, U&& x)
+    static node_t* copy_leaf_emplace(node_t* src, int n, U&& x)
     {
         auto dst = copy_leaf(src, n);
         new (dst->leaf() + n) T{std::forward<U>(x)};
@@ -169,6 +232,8 @@ struct impl
     static void delete_inner(node_t* p)
     {
         assert(p->kind == node_t::inner_kind);
+        auto sizes = p->sizes();
+        if (sizes) heap::deallocate(sizes);
         heap::deallocate(p);
     }
 
@@ -199,7 +264,7 @@ struct impl
     impl& operator=(const impl& other)
     {
         auto next = other;
-        swap(*this, other);
+        swap(*this, next);
         return *this;
     }
 
@@ -334,7 +399,7 @@ struct impl
             t.visit_leaf(tail, tail_size());
     }
 
-    const T* array_for(std::size_t index) const
+    const T* array_for(std::size_t& index) const
     {
         assert(index < size);
 
@@ -343,7 +408,19 @@ struct impl
         else {
             auto node = root;
             for (auto level = shift; level; level -= B) {
-                node = node->inner() [(index >> level) & mask<B>];
+                auto sizes = node->sizes();
+                if (sizes) {
+                    auto node_index = index >> level;
+                    while (sizes[node_index] <= index) ++node_index;
+                    if (node_index) index -= sizes[node_index];
+                    node = node->inner() [node_index];
+                } else {
+                    // balanced subtree
+                    do {
+                        node = node->inner() [(index >> level) & mask<B>];
+                    } while (level -= B);
+                    break;
+                }
             }
             return node->leaf();
         }
@@ -351,6 +428,7 @@ struct impl
 
     node_t* make_path(unsigned level, node_t* node) const
     {
+        assert(node->kind == node_t::leaf_kind);
         return level == 0
             ? node
             : make_inner(make_path(level - B, std::move(node)));
@@ -360,35 +438,82 @@ struct impl
                       node_t* parent,
                       node_t* tail) const
     {
-        auto idx        = ((size - branches<B> - 1) >> level) & mask<B>;
-        auto new_idx    = ((size - 1) >> level) & mask<B>;
-        auto new_parent = copy_inner(parent, new_idx);
-        new_parent->inner()[new_idx] =
-            level == B       ? tail :
-            idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
-            /* otherwise */  : make_path(level - B, tail);
-        return new_parent;
+        auto sizes = parent->sizes();
+        if (sizes) {
+            auto idx = sizes[branches<B>];
+            auto children   = idx ? sizes[idx] - sizes[idx - 1] : sizes[idx];
+            auto new_idx    = children == 1 << level ? idx + 1 : idx;
+            auto new_parent = copy_inner_r(parent, new_idx);
+            new_parent->inner()[new_idx] =
+                level == B       ? tail :
+                idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
+                /* otherwise */  : make_path(level - B, tail);
+            new_parent->sizes()[new_idx] = sizes[idx] + branches<B>;
+            new_parent->sizes()[branches<B>] = sizes[branches<B>] + (idx != new_idx);
+            return new_parent;
+        } else {
+            auto idx        = ((size - branches<B> - 1) >> level) & mask<B>;
+            auto new_idx    = ((size - 1) >> level) & mask<B>;
+            auto new_parent = copy_inner(parent, new_idx);
+            new_parent->inner()[new_idx] =
+                level == B       ? tail :
+                idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
+                /* otherwise */  : make_path(level - B, tail);
+            return new_parent;
+        }
+    }
+
+    bool is_overflow() const
+    {
+        auto node  = root;
+        auto sizes = node->sizes();
+        auto count = size;
+        if (!sizes)
+            return (count >> B) > (1u << shift);
+        for (auto level = shift; level > B; level -= B) {
+            if (!sizes)
+                return (count >> B) > (1u << level);
+            else {
+                auto s = sizes[branches<B>];
+                if (s != branches<B>)
+                    return false;
+                node  = node->inner() [s - 1];
+                count = (sizes[branches<B> - 1]  -
+                         sizes[branches<B> - 2]) + branches<B>;
+            }
+        }
+        return true;
+    }
+
+    std::pair<unsigned, node_t*> push_tail_into_root(node_t* tail) const
+    {
+        if (is_overflow()) {
+            refcount::inc(root);
+            auto new_path = make_path(shift, tail);
+            auto new_root = root->sizes()
+                ? make_inner(root,
+                             root->sizes() [branches<B> - 1],
+                             new_path)
+                : make_inner(root, new_path);
+            return { shift + B, new_root };
+        } else {
+            auto new_root = push_tail(shift, root, tail);
+            return { shift, new_root };
+        }
     }
 
     impl push_back(T value) const
     {
         auto ts = tail_size();
         if (ts < branches<B>) {
-            auto new_tail = copy_leaf(tail, ts, std::move(value));
+            auto new_tail = copy_leaf_emplace(tail, ts, std::move(value));
             refcount::inc(root);
             return { size + 1, shift, root, new_tail };
         } else {
             auto new_tail = make_leaf(std::move(value));
-            if ((size >> B) > (1u << shift)) {
-                refcount::inc(root);
-                refcount::inc(tail);
-                auto new_root = make_inner(root, make_path(shift, tail));
-                return { size + 1, shift + B, new_root, new_tail };
-            } else {
-                refcount::inc(tail);
-                auto new_root = push_tail(shift, root, tail);
-                return { size + 1, shift, new_root, new_tail };
-            }
+            auto new_root = push_tail_into_root(tail);
+            refcount::inc(tail);
+            return { size + 1, new_root.first, new_root.second, new_tail };
         }
     }
 
@@ -411,11 +536,44 @@ struct impl
             return { size, shift, root, new_tail };
         } else {
             refcount::inc(tail);
-            auto new_root = do_update_last(shift,
-                                           root,
-                                           idx,
-                                           std::forward<FnT>(fn));
+            auto new_root = do_update(shift,
+                                      root,
+                                      idx,
+                                      tail_offset(),
+                                      std::forward<FnT>(fn));
             return { size, shift, new_root, tail};
+        }
+    }
+
+    template <typename FnT>
+    node_t* do_update(unsigned level,
+                      node_t* node,
+                      std::size_t idx,
+                      std::size_t count,
+                      FnT&& fn) const
+    {
+        auto sizes = node->sizes();
+        if (level == 0) {
+            auto new_node  = copy_leaf(node, branches<B>);
+            auto& item     = new_node->leaf() [idx & mask<B>];
+            auto new_value = std::forward<FnT>(fn) (std::move(item));
+            item = std::move(new_value);
+            return new_node;
+        } else if (sizes) {
+            auto offset   = (idx >> level) & mask<B>;
+            while (sizes[offset] <= idx) ++offset;
+            auto new_node = copy_inner_r(node, sizes[branches<B>]);
+            refcount::dec_unsafe(node->inner()[offset]);
+            new_node->inner()[offset] =
+                do_update(level - B,
+                          node->inner()[offset],
+                          offset ? idx - sizes[idx] : idx,
+                          sizes[idx],
+                          std::forward<FnT>(fn));
+            return new_node;
+        } else {
+            return do_update_last(level, node, idx, count,
+                                  std::forward<FnT>(fn));
         }
     }
 
@@ -446,6 +604,7 @@ struct impl
     node_t* do_update_last(unsigned level,
                            node_t* node,
                            std::size_t idx,
+                           std::size_t count,
                            FnT&& fn) const
     {
         if (level == 0) {
@@ -456,12 +615,12 @@ struct impl
             return new_node;
         } else {
             auto offset     = (idx >> level) & mask<B>;
-            auto end_offset = ((tail_offset()-1) >> level) & mask<B>;
+            auto end_offset = ((count - 1) >> level) & mask<B>;
             auto new_node   = copy_inner(node, end_offset + 1);
             refcount::dec_unsafe(node->inner()[offset]);
             new_node->inner()[offset] =
                 offset == end_offset
-                ? do_update_last(level - B, node->inner()[offset], idx,
+                ? do_update_last(level - B, node->inner()[offset], idx, count,
                                  std::forward<FnT>(fn))
                 : do_update_full(level - B, node->inner()[offset], idx,
                                  std::forward<FnT>(fn));
@@ -474,6 +633,37 @@ struct impl
         return update(idx, [&] (auto&&) {
                 return std::move(value);
             });
+    }
+
+    impl concat(const impl& r) const
+    {
+        if (size == 0)
+            return r;
+        else if (r.size == 0)
+            return *this;
+        else if (r.size <= branches<B>) {
+            // just concat the tail, similar to push_back
+            auto ts = tail_size();
+            if (ts == branches<B>) {
+                auto new_tail = r.tail;
+                refcount::inc(new_tail);
+                auto new_root = push_tail_into_root(tail);
+                refcount::inc(tail);
+                return { size + r.size, new_root.first, new_root.second, new_tail };
+            } else if (ts + r.size <= branches<B>) {
+                auto new_tail = copy_leaf(tail, ts, r.tail, r.size);
+                refcount::inc(root);
+                return { size + r.size, shift, root, new_tail };
+            } else {
+                auto remaining = branches<B> - ts;
+                auto add_tail  = copy_leaf(tail, ts, r.tail, remaining);
+                auto new_tail  = copy_leaf(r.tail, remaining, r.size);
+                auto new_root = push_tail_into_root(add_tail);
+                return { size + r.size, new_root.first, new_root.second, new_tail };
+            }
+        } else {
+            return *this;
+        }
     }
 };
 
@@ -500,7 +690,7 @@ struct iterator : boost::iterator_facade<
         : v_    { &v }
         , i_    { 0 }
         , base_ { 0 }
-        , curr_ { v.array_for(0) }
+          //, curr_ { v.array_for(0) } // WIP
     {
     }
 
@@ -508,7 +698,7 @@ struct iterator : boost::iterator_facade<
         : v_    { &v }
         , i_    { v.size }
         , base_ { i_ - (i_ & mask<B>) }
-        , curr_ { v.array_for(i_ - 1) + (i_ - base_) }
+          //, curr_ { v.array_for(i_ - 1) + (i_ - base_) } // WIP
     {}
 
 private:
