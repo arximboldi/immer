@@ -77,6 +77,7 @@ ExternalProject_Add_Step(libgc ln-libatomic_ops
 immu_external_dep(librrb
   DEPENDS libgc
   GIT_REPOSITORY git@github.com:hyPiRion/c-rrb.git
+  GIT_TAG development
   BUILD_IN_SOURCE 1
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3\ -I${CMAKE_BINARY_DIR}/libgc-prefix/include LDFLAGS=-L${CMAKE_BINARY_DIR}/libgc-prefix/lib
