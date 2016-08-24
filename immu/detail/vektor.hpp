@@ -185,7 +185,7 @@ struct impl
     impl& operator=(const impl& other)
     {
         auto next = other;
-        swap(*this, other);
+        swap(*this, next);
         return *this;
     }
 
