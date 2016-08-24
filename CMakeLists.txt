@@ -19,6 +19,8 @@ option(CHECK_BENCHMARKS_MORE_MORE "run benchmarks for more inputs")
 
 set(DOCTEST_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
+set(CATCH_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/catch-prefix/src/catch/single_include")
 set(NONIUS_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
 set(LIBRRB_INCLUDE_DIR
@@ -50,6 +52,11 @@ endfunction()
 
 immu_external_dep_nobuild(doctest
   GIT_REPOSITORY git@github.com:onqtam/doctest.git)
+
+immu_external_dep_nobuild(catch
+  # GIT_REPOSITORY git@github.com:philsquared/Catch.git
+  # This fork has --break for GDB
+  GIT_REPOSITORY git@github.com:lorenzhs/Catch.git)
 
 immu_external_dep_nobuild(nonius
   GIT_REPOSITORY git@github.com:arximboldi/nonius.git
@@ -114,6 +121,7 @@ set(immu_include_dirs
   ${LIBGC_INCLUDE_DIR})
 set(immu_test_include_dirs
   ${immu_include_dirs}
+  ${CATCH_INCLUDE_DIR}
   ${DOCTEST_INCLUDE_DIR})
 set(immu_benchmark_include_dirs
   ${immu_include_dirs}
@@ -147,7 +155,9 @@ foreach(_file IN LISTS immu_unit_tests)
   immu_target_name_for(_target "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(tests ${_target})
-  target_compile_definitions(${_target} PUBLIC DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
+  target_compile_definitions(${_target} PUBLIC
+    DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+    CATCH_CONFIG_MAIN)
   target_include_directories(${_target} PUBLIC ${immu_test_include_dirs})
   add_test(${_target} ${_target})
 endforeach()
