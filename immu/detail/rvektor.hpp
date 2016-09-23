@@ -383,13 +383,50 @@ struct impl
     }
 
     template <typename Traversal>
-    void traverse_node_last(Traversal&& t, node_t* node, unsigned level) const
+    void traverse_node_relaxed(Traversal&& t,
+                               node_t* node,
+                               unsigned level,
+                               std::size_t size) const
+    {
+        assert(level > 0);
+        auto s = node->sizes();
+        if (s) {
+            if (t.predicate(node)) {
+                auto count = node->slots();
+                auto next = level - B;
+                if (next == 0) {
+                    auto c = node->inner();
+                    auto last_s = 0u;
+                    for (auto i = 0u; i < count; ++i) {
+                        if (t.predicate(c[i]))
+                            t.visit_leaf(c[i], s[i] - last_s);
+                        last_s = s[i];
+                    }
+                } else {
+                    auto c = node->inner();
+                    auto last_s = 0u;
+                    for (auto i = 0u; i < count; ++i) {
+                        traverse_node_relaxed(t, c[i], next, s[i] - last_s);
+                        last_s = s[i];
+                    }
+                }
+            }
+        } else {
+            traverse_node_last(t, node, level, size);
+        }
+    }
+
+    template <typename Traversal>
+    void traverse_node_last(Traversal&& t,
+                            node_t* node,
+                            unsigned level,
+                            std::size_t size) const
     {
         assert(level > 0);
         assert(size > branches<B>);
         if (t.predicate(node)) {
             auto next = level - B;
-            auto last = ((tail_offset()-1) >> level) & mask<B>;
+            auto last = ((size - 1) >> level) & mask<B>;
             if (next == 0) {
                 for (auto i = node->inner(), e = i + last + 1; i != e; ++i)
                     if (t.predicate(*i))
@@ -427,7 +464,7 @@ struct impl
     void traverse(Traversal&& t) const
     {
         if (size > branches<B>)
-            traverse_node_last(t, root, shift);
+            traverse_node_relaxed(t, root, shift, tail_offset());
         else if (t.predicate(root))
             t.visit_inner(root);
         if (t.predicate(tail))

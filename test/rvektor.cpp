@@ -162,6 +162,33 @@ TEST_CASE("concat")
     }
 }
 
+TEST_CASE("reduce")
+{
+    SECTION("sum regular")
+    {
+        const auto n = 666u;
+        auto v = rvektor<unsigned>{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_back(i);
+
+        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto expected = v.size() * (v.size() - 1) / 2;
+        CHECK(sum == expected);
+    }
+
+    SECTION("sum relaxed")
+    {
+        const auto n = 666u;
+        auto v = rvektor<unsigned>{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_front(i);
+
+        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto expected = v.size() * (v.size() - 1) / 2;
+        CHECK(sum == expected);
+    }
+}
+
 #if 0 // WIP
 TEST_CASE("iterator")
 {
@@ -221,21 +248,6 @@ TEST_CASE("iterator")
         CHECK(i2 - i1 == 100);
         CHECK(*(i2 - 50) == 50u);
         CHECK((i2 - 30) - i2 == -30);
-    }
-}
-
-TEST_CASE("reduce")
-{
-    const auto n = 666u;
-    auto v = rvektor<unsigned>{};
-    for (auto i = 0u; i < n; ++i)
-        v = v.push_back(i);
-
-    SECTION("sum collection")
-    {
-        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
-        auto expected = v.size() * (v.size() - 1) / 2;
-        CHECK(sum == expected);
     }
 }
 
