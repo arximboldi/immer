@@ -4,6 +4,7 @@
 #include <immu/heap/free_list_heap.hpp>
 #include <immu/heap/malloc_heap.hpp>
 #include <immu/heap/thread_local_free_list_heap.hpp>
+#include <immu/config.hpp>
 
 #include <cstdlib>
 #include <algorithm>
@@ -45,12 +46,16 @@ struct default_heap_policy
     template <std::size_t... Sizes>
     struct apply
     {
+#if IMMU_FAST_HEAP
         static constexpr auto node_size = std::max({Sizes...});
 
         using type = with_free_list_node<
             thread_local_free_list_heap<
                 node_size,
                 malloc_heap>>;
+#else
+        using type = malloc_heap;
+#endif
     };
 };
 

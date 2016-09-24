@@ -14,3 +14,5 @@
 #else
 #define IMMU_TRACE(...)
 #endif
+
+#define IMMU_FAST_HEAP 0
