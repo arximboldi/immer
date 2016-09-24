@@ -187,6 +187,27 @@ TEST_CASE("reduce")
         auto expected = v.size() * (v.size() - 1) / 2;
         CHECK(sum == expected);
     }
+
+    SECTION("sum relaxed complex")
+    {
+        const auto n = 20u;
+
+        auto v  = rvektor<unsigned>{};
+        for (auto i = 0u; i < n; ++i) {
+            IMMU_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
+            v = v.push_front(i) + v;
+        }
+        /*
+          0  // 0
+          1  // 1 0 0
+          4  // 2 1 0 0 1 0 0
+          11 // 3 2 1 0 0 1 0 0 2 1 0 0 1 0 0
+          26 // 4 3 2 1 0 0 1 0 0 2 1 0 0 1 0 0
+        */
+        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto expected = (1 << n) - n - 1;
+        CHECK(sum == expected);
+    }
 }
 
 #if 0 // WIP
