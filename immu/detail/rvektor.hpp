@@ -203,8 +203,7 @@ struct impl
     {
         assert(src->kind == node_t::inner_kind);
         auto dst = make_inner();
-        for (auto i = src->inner(), e = i + n; i != e; ++i)
-            refcount::inc(*i);
+        inc_nodes(src->inner(), n);
         std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
         dst->slots() = n;
         return dst;
@@ -213,9 +212,8 @@ struct impl
     static node_t* copy_inner_r(node_t* src, int n)
     {
         assert(src->kind == node_t::inner_kind);
-        auto dst = make_inner();
-        for (auto i = src->inner(), e = i + n; i != e; ++i)
-            refcount::inc(*i);
+        auto dst = make_inner_r();
+        inc_nodes(src->inner(), n);
         std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
         std::uninitialized_copy(src->sizes(), src->sizes() + n, dst->sizes());
         dst->slots() = n;
@@ -320,13 +318,19 @@ struct impl
 
     ~impl()
     {
-        //dec();
+        dec();
     }
 
     void inc() const
     {
         refcount::inc(root);
         refcount::inc(tail);
+    }
+
+    static void inc_nodes(node_t** p, std::size_t n)
+    {
+        for (auto i = p, e = i + n; i != e; ++i)
+            refcount::inc(*i);
     }
 
     struct dec_traversal
@@ -410,6 +414,7 @@ struct impl
                         last_s = s[i];
                     }
                 }
+                t.visit_inner(node);
             }
         } else {
             traverse_node_last(t, node, level, size);
@@ -423,19 +428,24 @@ struct impl
                             std::size_t size) const
     {
         assert(level > 0);
-        assert(size > branches<B>);
+        assert(size > 0);
         if (t.predicate(node)) {
             auto next = level - B;
             auto last = ((size - 1) >> level) & mask<B>;
             if (next == 0) {
-                for (auto i = node->inner(), e = i + last + 1; i != e; ++i)
+                auto i = node->inner();
+                for (auto e = i + last; i != e; ++i)
                     if (t.predicate(*i))
                         t.visit_leaf(*i, branches<B>);
+                if (t.predicate(*i)) {
+                    auto last_size = size & mask<B>;
+                    t.visit_leaf(*i, last_size ? last_size : branches<B>);
+                }
             } else {
                 auto i = node->inner();
                 for (auto e = i + last; i != e; ++i)
                     traverse_node_full(t, *i, next);
-                traverse_node_last(t, *i, next);
+                traverse_node_last(t, *i, next, size);
             }
             t.visit_inner(node);
         }
@@ -463,7 +473,7 @@ struct impl
     template <typename Traversal>
     void traverse(Traversal&& t) const
     {
-        if (size > branches<B>)
+        if (tail_size() < size)
             traverse_node_relaxed(t, root, shift, tail_offset());
         else if (t.predicate(root))
             t.visit_inner(root);
@@ -513,7 +523,7 @@ struct impl
     {
         auto sizes = parent->sizes();
         if (sizes) {
-            auto idx = parent->slots();
+            auto idx = parent->slots() - 1;
             auto children   = idx ? sizes[idx] - sizes[idx - 1] : sizes[idx];
             auto new_idx    = children == 1 << level ? idx + 1 : idx;
             auto new_parent = copy_inner_r(parent, new_idx);
@@ -714,35 +724,40 @@ struct impl
 
     impl concat(const impl& r) const
     {
-        if (size == 0)
+        if (size == 0) {
+            r.inc();
             return r;
-        else if (r.size == 0)
+        }
+        else if (r.size == 0) {
+            inc();
             return *this;
+        }
         else if (r.size <= branches<B>) {
             // just concat the tail, similar to push_back
             auto ts = tail_size();
             if (ts == branches<B>) {
-                auto new_tail = r.tail;
-                refcount::inc(new_tail);
-                auto new_root = push_tail_into_root(tail);
+                refcount::inc(r.tail);
                 refcount::inc(tail);
-                return { size + r.size, new_root.first, new_root.second, new_tail };
+                auto new_root = push_tail_into_root(tail);
+                return { size + r.size, new_root.first, new_root.second, r.tail };
             } else if (ts + r.size <= branches<B>) {
                 auto new_tail = copy_leaf(tail, ts, r.tail, r.size);
                 refcount::inc(root);
                 return { size + r.size, shift, root, new_tail };
             } else {
+                IMMU_TRACE("claro...");
                 auto remaining = branches<B> - ts;
                 auto add_tail  = copy_leaf(tail, ts, r.tail, remaining);
                 auto new_tail  = copy_leaf(r.tail, remaining, r.size);
-                auto new_root = push_tail_into_root(add_tail);
+                auto new_root  = push_tail_into_root(add_tail);
                 return { size + r.size, new_root.first, new_root.second, new_tail };
             }
         } else {
+            refcount::inc(r.tail);
             auto left_root = push_tail_into_root(tail);
-            auto new_root = concat_sub_tree(left_root.first, left_root.second,
-                                            r.shift, r.root,
-                                            true);
+            auto new_root  = concat_sub_tree(left_root.first, left_root.second,
+                                             r.shift, r.root,
+                                             true);
             auto new_shift = compute_shift(new_root);
             IMMU_TRACE("new_shift: " << new_shift);
             set_sizes(new_root, new_shift);
@@ -774,8 +789,11 @@ struct impl
             IMMU_TRACE("ls: " << lslots << " " << rslots);
             if (is_top && lslots + rslots <= branches<B>)
                 return copy_leaf(lnode, lslots, rnode, rslots);
-            else
+            else {
+                refcount::inc(lnode);
+                refcount::inc(rnode);
                 return make_inner_r(lnode, rnode);
+            }
         } else {
             auto lidx  = lnode->slots() - 1;
             auto cnode = concat_sub_tree(lshift - B, lnode->inner() [lidx],
@@ -801,16 +819,19 @@ struct impl
             auto slots = lnode->slots() - 1;
             IMMU_TRACE("l-slots: " << slots);
             std::copy(lnode->inner(), lnode->inner() + slots, all + all_n);
+            inc_nodes(lnode->inner(), slots);
             all_n += slots;
         } {
             auto slots = cnode->slots();
             IMMU_TRACE("c-slots: " << slots);
             std::copy(cnode->inner(), cnode->inner() + slots, all + all_n);
+            inc_nodes(cnode->inner(), slots);
             all_n += slots;
         } if (rnode) {
             auto slots = rnode->slots() - 1;
             IMMU_TRACE("r-slots: " << slots);
             std::copy(rnode->inner() + 1, rnode->inner() + slots + 1, all + all_n);
+            inc_nodes(rnode->inner() + 1, slots);
             all_n += slots;
         }
 
@@ -818,6 +839,7 @@ struct impl
         unsigned all_slots [3 * branches<B>];
         auto total_all_slots = 0u;
         for (auto i = 0u; i < all_n; ++i) {
+            refcount::inc(all[i]);
             auto sub_slots = all[i]->slots();
             all_slots[i] = sub_slots;
             total_all_slots += sub_slots;
@@ -870,6 +892,7 @@ struct impl
                 auto from_slots = from_node->slots();
                 if (from_offset == 0 && new_slots == from_slots) {
                     ++from_i;
+                    refcount::inc(from_node);
                     all[i] = from_node;
                 } else {
                     auto new_node = all[i] = make_leaf();
@@ -883,6 +906,7 @@ struct impl
                                 from_data + from_slots,
                                 new_data + cur_slots);
                             cur_slots += from_slots - from_offset;
+                            // todo dec_node...
                             ++ from_i;
                             from_node   = all[from_i];
                             from_slots  = from_node->slots();
@@ -919,11 +943,14 @@ struct impl
                     new_node->slots() = new_slots;
                     while (cur_slots < new_slots) {
                         if (new_slots - cur_slots >= from_slots - from_offset) {
+                            auto to_copy = from_slots - from_offset;
                             std::uninitialized_copy(
                                 from_data + from_offset,
                                 from_data + from_slots,
                                 new_data + cur_slots);
-                            cur_slots += from_slots - from_offset;
+                            inc_nodes(from_data, to_copy);
+                            // todo dec_node..
+                            cur_slots += to_copy;
                             ++ from_i;
                             from_node   = all[from_i];
                             from_data   = from_node->inner();
@@ -935,6 +962,8 @@ struct impl
                                 from_data + from_offset,
                                 from_data + from_offset + to_copy,
                                 new_data + cur_slots);
+                            inc_nodes(from_data, to_copy);
+                            // todo dec_node..
                             from_offset += to_copy;
                             assert(cur_slots + to_copy == new_slots);
                             cur_slots = new_slots;
