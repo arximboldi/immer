@@ -4,3 +4,5 @@ reports/
 benchmark/clojure/target/
 benchmark/js/out
 benchmark/js/boost
+
+.gdb_history
