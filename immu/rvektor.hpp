@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <immu/detail/rvektor.hpp>
+#include <immu/detail/rvektor_impl.hpp>
 #include <immu/memory_policy.hpp>
 
 namespace immu {
