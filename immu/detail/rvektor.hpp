@@ -350,6 +350,11 @@ struct impl
         traverse(dec_traversal{});
     }
 
+    void dec_node(node_t* n, unsigned shift, std::size_t size) const
+    {
+        traverse(dec_traversal{}, n, shift, size);
+    }
+
     auto tail_size() const
     {
         return tail->slots();
@@ -479,6 +484,15 @@ struct impl
             t.visit_inner(root);
         if (t.predicate(tail))
             t.visit_leaf(tail, tail_size());
+    }
+
+    template <typename Traversal>
+    void traverse(Traversal&& t,
+                  node_t* n,
+                  unsigned shift,
+                  std::size_t size) const
+    {
+        traverse_node_relaxed(t, n, shift, size);
     }
 
     const T* array_for(std::size_t& index) const
@@ -622,12 +636,12 @@ struct impl
             refcount::inc(root);
             return { size, shift, root, new_tail };
         } else {
-            refcount::inc(tail);
             auto new_root = do_update(shift,
                                       root,
                                       idx,
                                       tail_offset(),
                                       std::forward<FnT>(fn));
+            refcount::inc(tail);
             return { size, shift, new_root, tail};
         }
     }
@@ -753,36 +767,49 @@ struct impl
                 return { size + r.size, new_root.first, new_root.second, new_tail };
             }
         } else {
-            refcount::inc(r.tail);
+            refcount::inc(tail);
             auto left_root = push_tail_into_root(tail);
-            auto new_root  = concat_sub_tree(left_root.first, left_root.second,
-                                             r.shift, r.root,
-                                             true);
+            auto new_root  = concat_sub_tree(
+                size, left_root.first, left_root.second,
+                r.tail_offset(), r.shift, r.root,
+                true);
             auto new_shift = compute_shift(new_root);
             IMMU_TRACE("new_shift: " << new_shift);
             set_sizes(new_root, new_shift);
             assert(compute_size(new_root, new_shift) == size + r.tail_offset());
+            refcount::inc(r.tail);
+            dec_node(left_root.second, left_root.first, size);
             return { size + r.size, new_shift, new_root, r.tail };
         }
     }
 
     friend node_t* concat_sub_tree(
-        unsigned lshift, node_t* lnode,
-        unsigned rshift, node_t* rnode,
+        std::size_t lsize, unsigned lshift, node_t* lnode,
+        std::size_t rsize, unsigned rshift, node_t* rnode,
         bool is_top)
     {
         IMMU_TRACE("concat_sub_tree: " << lshift << " <> " << rshift);
         if (lshift > rshift) {
-            auto lidx  = lnode->slots() - 1;
-            auto cnode = concat_sub_tree(lshift - B, lnode->inner() [lidx],
-                                         rshift, rnode,
-                                         false);
-            return rebalance(lnode, cnode, nullptr, lshift, is_top);
+            auto lidx   = lnode->slots() - 1;
+            if (lnode->sizes() && lidx)
+                lsize = lnode->sizes()[lidx] - lnode->sizes()[lidx - 1];
+            auto cnode  = concat_sub_tree(lsize, lshift - B, lnode->inner() [lidx],
+                                          rsize, rshift, rnode,
+                                          false);
+            return rebalance(lsize, lnode,
+                             cnode,
+                             0, nullptr,
+                             lshift, is_top);
         } else if (lshift < rshift) {
-            auto cnode = concat_sub_tree(lshift, lnode,
-                                         rshift - B, rnode->inner() [0],
+            if (rnode->sizes())
+                rsize = rnode->sizes()[0];
+            auto cnode = concat_sub_tree(lsize, lshift, lnode,
+                                         rsize, rshift - B, rnode->inner() [0],
                                          false);
-            return rebalance(nullptr, cnode, rnode, rshift, is_top);
+            return rebalance(0, nullptr,
+                             cnode,
+                             rsize, rnode,
+                             rshift, is_top);
         } else if (lshift == 0) {
             auto lslots = lnode->slots();
             auto rslots = rnode->slots();
@@ -796,16 +823,117 @@ struct impl
             }
         } else {
             auto lidx  = lnode->slots() - 1;
-            auto cnode = concat_sub_tree(lshift - B, lnode->inner() [lidx],
-                                         rshift - B, rnode->inner() [0],
+            if (lnode->sizes() && lidx)
+                lsize = lnode->sizes()[lidx] - lnode->sizes()[lidx - 1];
+            if (rnode->sizes())
+                rsize = rnode->sizes()[0];
+            auto cnode = concat_sub_tree(lsize, lshift - B, lnode->inner() [lidx],
+                                         rsize, rshift - B, rnode->inner() [0],
                                          false);
-            return rebalance(lnode, cnode, rnode, lshift, is_top);
+            return rebalance(lsize, lnode,
+                             cnode,
+                             rsize, rnode,
+                             lshift, is_top);
         }
     }
 
-    friend node_t* rebalance(node_t* lnode,
+    struct leaf_policy
+    {
+        using data_t = T;
+        static node_t* make() { return make_leaf(); }
+        static data_t* data(node_t* n) { return n->leaf(); }
+        static void finish(node_t*, unsigned) {}
+    };
+
+    struct inner_r_policy
+    {
+        using data_t = node_t*;
+        static node_t* make() { return make_inner_r(); }
+        static data_t* data(node_t* n) { return n->inner(); }
+        static void finish(node_t* n, unsigned s) { set_sizes(n, s); }
+    };
+
+    template <typename ChildrenPolicy>
+    struct node_merger
+    {
+        using policy = ChildrenPolicy;
+        using data_t = typename policy::data_t;
+
+        unsigned* slots;
+
+        node_t* result  = make_inner_r();
+        node_t* parent  = result;
+        node_t* current = nullptr;
+        data_t* data    = nullptr;
+
+        node_merger(unsigned* s)
+            : slots{s}
+        {}
+
+        node_t* finish(unsigned shift, bool is_top)
+        {
+            assert(!current);
+            if (parent != result) {
+                set_sizes(result->inner()[result->slots() - 1], shift);
+                return result;
+            }
+            set_sizes(result, shift);
+            if (is_top)
+                return result;
+            return make_inner_r(result);
+        }
+
+        void merge(node_t* node, unsigned first, unsigned count,
+                   unsigned shift, std::size_t size)
+        {
+            auto add_child = [&] (node_t* n) {
+                ++slots;
+                if (parent->slots() == branches<B>) {
+                    if (result == parent)
+                        result = make_inner_r(parent);
+                    set_sizes(result->inner() [result->slots() - 1], shift);
+                    assert(result->slots() < branches<B>);
+                    parent
+                        = result->inner() [result->slots()++]
+                        = make_inner_r();
+                }
+                parent->inner() [parent->slots()++] = n;
+            };
+
+            for (auto p = node->inner() + first, e = p + count; p != e; ++p) {
+                auto n = *p;
+                auto from_slots = n->slots();
+                auto from_data  = policy::data(n);
+                if (!current && *slots == from_slots) {
+                    add_child(n);
+                } else {
+                    do {
+                        if (!current) {
+                            current = policy::make();
+                            data    = policy::data(current);
+                            current->slots() = *slots;
+                        }
+                        auto to_copy = std::min(from_slots, *slots);
+                        data = std::uninitialized_copy(from_data,
+                                                       from_data + to_copy,
+                                                       data);
+                        from_data  += to_copy;
+                        from_slots -= to_copy;
+                        *slots     -= to_copy;
+                        if (*slots == 0) {
+                            policy::finish(current, shift - B);
+                            add_child(current);
+                            current = nullptr;
+                        }
+                    } while (from_slots);
+                }
+            }
+        }
+    };
+
+    friend node_t* rebalance(std::size_t lsize, node_t* lnode,
                              node_t* cnode,
-                             node_t* rnode,
+                             std::size_t rsize, node_t* rnode,
                              unsigned shift,
                              bool is_top)
     {
@@ -823,9 +951,7 @@ struct impl
             all_n += slots;
         } {
             auto slots = cnode->slots();
-            IMMU_TRACE("c-slots: " << slots);
             std::copy(cnode->inner(), cnode->inner() + slots, all + all_n);
-            inc_nodes(cnode->inner(), slots);
             all_n += slots;
         } if (rnode) {
             auto slots = rnode->slots() - 1;
@@ -839,7 +965,6 @@ struct impl
         unsigned all_slots [3 * branches<B>];
         auto total_all_slots = 0u;
         for (auto i = 0u; i < all_n; ++i) {
-            refcount::inc(all[i]);
             auto sub_slots = all[i]->slots();
             all_slots[i] = sub_slots;
             total_all_slots += sub_slots;
@@ -880,124 +1005,26 @@ struct impl
 
         IMMU_TRACE("suffled_all_slots: " <<
                    pretty_print_array(all_slots, shuffled_n));
+        IMMU_TRACE("shuffled_n: " << shuffled_n << "  is_top: " << is_top);
 
         // actually rebalance the nodes
-        if (shift == B) {
-            auto from_i = 0u;
-            auto from_offset = 0u;
-            for (auto i = 0; i < shuffled_n; ++i) {
-                auto new_slots  = all_slots[i];
-                auto from_node  = all[from_i];
-                auto from_data  = from_node->leaf();
-                auto from_slots = from_node->slots();
-                if (from_offset == 0 && new_slots == from_slots) {
-                    ++from_i;
-                    refcount::inc(from_node);
-                    all[i] = from_node;
-                } else {
-                    auto new_node = all[i] = make_leaf();
-                    auto new_data = new_node->leaf();
-                    auto cur_slots = 0u;
-                    new_node->slots() = new_slots;
-                    while (cur_slots < new_slots) {
-                        if (new_slots - cur_slots >= from_slots - from_offset) {
-                            std::uninitialized_copy(
-                                from_data + from_offset,
-                                from_data + from_slots,
-                                new_data + cur_slots);
-                            cur_slots += from_slots - from_offset;
-                            // todo dec_node...
-                            ++ from_i;
-                            from_node   = all[from_i];
-                            from_slots  = from_node->slots();
-                            from_data   = from_node->leaf();
-                            from_offset = 0;
-                        } else {
-                            auto to_copy = new_slots - cur_slots;
-                            std::uninitialized_copy(
-                                from_data + from_offset,
-                                from_data + from_offset + to_copy,
-                                new_data + cur_slots);
-                            from_offset += to_copy;
-                            assert(cur_slots + to_copy == new_slots);
-                            cur_slots = new_slots;
-                        }
-                    }
-                }
-            }
-        } else {
-            auto from_i = 0u;
-            auto from_offset = 0u;
-            for (auto i = 0; i < shuffled_n; ++i) {
-                auto new_slots  = all_slots[i];
-                auto from_node  = all[from_i];
-                auto from_data  = from_node->inner();
-                auto from_slots = from_node->slots();
-                if (from_offset == 0 && new_slots == from_slots) {
-                    ++from_i;
-                    all[i] = from_node;
-                } else {
-                    auto new_node = all[i] = make_inner_r();
-                    auto new_data = new_node->inner();
-                    auto cur_slots = 0u;
-                    new_node->slots() = new_slots;
-                    while (cur_slots < new_slots) {
-                        if (new_slots - cur_slots >= from_slots - from_offset) {
-                            auto to_copy = from_slots - from_offset;
-                            std::uninitialized_copy(
-                                from_data + from_offset,
-                                from_data + from_slots,
-                                new_data + cur_slots);
-                            inc_nodes(from_data, to_copy);
-                            // todo dec_node..
-                            cur_slots += to_copy;
-                            ++ from_i;
-                            from_node   = all[from_i];
-                            from_data   = from_node->inner();
-                            from_slots  = from_node->slots(); // crash?
-                            from_offset = 0;
-                        } else {
-                            auto to_copy = new_slots - cur_slots;
-                            std::uninitialized_copy(
-                                from_data + from_offset,
-                                from_data + from_offset + to_copy,
-                                new_data + cur_slots);
-                            inc_nodes(from_data, to_copy);
-                            // todo dec_node..
-                            from_offset += to_copy;
-                            assert(cur_slots + to_copy == new_slots);
-                            cur_slots = new_slots;
-                        }
-                    }
-                    set_sizes(new_node, shift - B);
-                }
-            }
-        }
+        auto merge_all = [&] (auto& merger) {
+            if (lnode)
+                merger.merge(lnode, 0, lnode->slots() - 1, shift, lsize);
+            if (cnode)
+                merger.merge(cnode, 0, cnode->slots(), shift, lsize);
+            if (rnode)
+                merger.merge(rnode, 1, rnode->slots() - 1, shift, rsize);
+            assert(merger.slots == all_slots + shuffled_n);
+            return merger.finish(shift, is_top);
+        };
 
-        // make a node and return it
-        IMMU_TRACE("shuffled_n: " << shuffled_n << "  is_top: " << is_top);
-        if (shuffled_n <= branches<B>) {
-            auto node = make_inner_r();
-            std::copy(all, all + shuffled_n, node->inner());
-            node->slots() = shuffled_n;
-            set_sizes(node, shift);
-            if (is_top)
-                return node;
-            else
-                return make_inner_r(node); // set_sizes?
+        if (shift == B) {
+            auto merger = node_merger<leaf_policy>{all_slots};
+            return merge_all(merger);
         } else {
-            assert(shuffled_n <= 2 * branches<B>);
-            auto node1 = make_inner_r(); {
-                std::copy(all, all + branches<B>, node1->inner());
-                node1->slots() = branches<B>;
-                set_sizes(node1, shift);
-            }
-            auto node2 = make_inner_r(); {
-                std::copy(all + branches<B>, all + shuffled_n, node2->inner());
-                node2->slots() = shuffled_n - branches<B>;
-                set_sizes(node2, shift);
-            }
-            return make_inner_r(node1, node2); // set_sizes above
+            auto merger = node_merger<inner_r_policy>{all_slots};
+            return merge_all(merger);
         }
     }
 
