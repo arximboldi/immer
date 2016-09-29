@@ -192,7 +192,7 @@ TEST_CASE("reduce")
     {
         const auto n = 20u;
 
-        auto v  = rvektor<unsigned>{};
+        auto v  = rvektor<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             IMMU_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
             v = v.push_front(i) + v;
