@@ -209,3 +209,36 @@ TEST_CASE("reduce")
         CHECK(sum == expected);
     }
 }
+
+TEST_CASE("take")
+{
+    const auto n = 666u;
+
+    SECTION("anywhere")
+    {
+        auto v = rvektor<unsigned, 3>{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_back(i);
+
+        for (auto i = 0u; i < n; ++i) {
+            auto vv = v.take(i);
+            CHECK(vv.size() == i);
+            for (auto j = 0u; j < i; ++j)
+                CHECK(vv[j] == v[j]);
+        }
+    }
+
+    SECTION("relaxed")
+    {
+        auto v = rvektor<unsigned, 3>{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_front(i);
+
+        for (auto i = 0u; i < n; ++i) {
+            auto vv = v.take(i);
+            CHECK(vv.size() == i);
+            for (auto j = 0u; j < i; ++j)
+                CHECK(vv[j] == v[j]);
+        }
+    }
+}

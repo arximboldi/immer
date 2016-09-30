@@ -755,6 +755,108 @@ struct impl
             });
     }
 
+    static std::tuple<unsigned, node_t*, node_t*>
+    slice_right(node_t* n, unsigned shift, std::size_t size,
+                std::size_t new_size, bool collapse)
+    {
+        if (shift == 0) {
+            assert(new_size > 0);
+            auto new_tail = (new_size & mask<B>) == (size & mask<B>)
+                ? (refcount::inc(n), n)
+                : copy_leaf(n, new_size & mask<B>);
+            return { 0, nullptr, new_tail };
+        } else if (auto sizes = n->sizes()) {
+            assert(shift > 0);
+            auto idx = ((new_size - 1) >> shift) & mask<B>;
+            while (sizes[idx] < new_size) ++idx;
+            if (collapse && idx == 0) {
+                return slice_right(n->inner()[idx], shift - B,
+                                   sizes[idx], new_size,
+                                   collapse);
+            } else {
+                using std::get;
+                auto lsize = idx ? sizes[idx - 1] : 0;
+                auto subs = slice_right(n->inner()[idx], shift - B,
+                                        sizes[idx] - lsize,
+                                        new_size - lsize,
+                                        false);
+                auto next = get<1>(subs);
+                if (next) {
+                    auto newn = copy_inner_r(n, idx);
+                    newn->inner()[idx] = next;
+                    newn->sizes()[idx] = new_size;
+                    newn->slots()++;
+                    return { shift, newn, get<2>(subs) };
+                } else if (idx == 0) {
+                    refcount::inc(empty.root);
+                    return { shift, nullptr, get<2>(subs) };
+                } else {
+                    return { shift, copy_inner_r(n, idx), get<2>(subs) };
+                }
+            }
+        } else {
+            return slice_right_regular(n, shift, size, new_size, collapse);
+        }
+    }
+
+    static std::tuple<unsigned, node_t*, node_t*>
+    slice_right_regular(node_t* n, unsigned shift, std::size_t size,
+                        std::size_t new_size, bool collapse)
+    {
+        if (shift == 0) {
+            assert(new_size > 0);
+            auto new_tail = (new_size & mask<B>) == (size & mask<B>)
+                ? (refcount::inc(n), n)
+                : copy_leaf(n, new_size & mask<B>);
+            return { 0, nullptr, new_tail };
+        } else {
+            auto idx = ((new_size - 1) >> shift) & mask<B>;
+            if (collapse && idx == 0) {
+                return slice_right_regular(n->inner()[idx], shift - B,
+                                           size, new_size, collapse);
+            } else {
+                using std::get;
+                auto subs = slice_right_regular(n->inner()[idx], shift - B,
+                                                size, new_size, false);
+                auto next = get<1>(subs);
+                if (next) {
+                    auto newn = copy_inner(n, idx);
+                    newn->inner()[idx] = next;
+                    newn->slots()++;
+                    return { shift, newn, get<2>(subs) };
+                } else if (idx == 0) {
+                    return { shift, nullptr, get<2>(subs) };
+                } else {
+                    return { shift, copy_inner(n, idx), get<2>(subs) };
+                }
+            }
+        }
+    }
+
+    impl take(std::size_t new_size) const
+    {
+        if (new_size == 0) {
+            return empty;
+        } else if (new_size >= size) {
+            return *this;
+        } else if (new_size >= tail_offset()) {
+            auto new_tail = copy_leaf(tail, new_size - tail_offset());
+            refcount::inc(root);
+            return { new_size, shift, root, new_tail };
+        } else {
+            using std::get;
+            auto r = slice_right(root, shift, tail_offset(), new_size, true);
+            auto new_root = get<1>(r);
+            if (new_root) {
+                assert(compute_shift(new_root) == get<0>(r));
+                return { new_size, get<0>(r), new_root, get<2>(r) };
+            } else {
+                refcount::inc(empty.root);
+                return { new_size, B, empty.root, get<2>(r) };
+            }
+        }
+    }
+
     impl concat(const impl& r) const
     {
         if (size == 0)
