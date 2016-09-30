@@ -250,13 +250,13 @@ struct impl
         return dst;
     }
 
-    static node_t* copy_leaf(node_t* src, int idx, int n)
+    static node_t* copy_leaf(node_t* src, int idx, int last)
     {
         assert(src->kind == node_t::leaf_kind);
         auto dst = make_leaf();
         std::uninitialized_copy(
-            src->leaf() + idx, src->leaf() + idx + n, dst->leaf());
-        dst->slots() = n - idx;
+            src->leaf() + idx, src->leaf() + last, dst->leaf());
+        dst->slots() = last - idx;
         return dst;
     }
 
