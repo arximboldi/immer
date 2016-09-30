@@ -526,12 +526,11 @@ struct impl
             for (auto level = shift; level; level -= B) {
                 auto sizes = node->sizes();
                 if (sizes) {
-                    auto node_index = (index >> level) & mask<B>; // todo
+                    auto node_index = (index >> level) & mask<B>;
                     while (sizes[node_index] <= index) ++node_index;
                     if (node_index) index -= sizes[node_index - 1];
                     node = node->inner() [node_index];
                 } else {
-                    // balanced subtree
                     do {
                         node = node->inner() [(index >> level) & mask<B>];
                     } while (level -= B);
