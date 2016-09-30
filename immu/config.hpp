@@ -1,10 +1,12 @@
 
 #pragma once
 
+#define IMMU_DEBUG_TRACE_0N 0
+
 #ifdef NDEBUG
 #define IMMU_TRACE_ON 0
 #else
-#define IMMU_TRACE_ON 1
+#define IMMU_TRACE_ON IMMU_DEBUG_TRACE_0N
 #endif
 
 #if IMMU_TRACE_ON
