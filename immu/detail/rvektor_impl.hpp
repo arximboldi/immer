@@ -846,15 +846,139 @@ struct impl
         } else {
             using std::get;
             auto r = slice_right(root, shift, tail_offset(), new_size, true);
-            auto new_root = get<1>(r);
+            auto new_shift = get<0>(r);
+            auto new_root  = get<1>(r);
+            auto new_ts    = get<2>(r);
+            auto new_tail  = get<3>(r);
             if (new_root) {
                 assert(compute_shift(new_root) == get<0>(r));
-                return { new_size, get<0>(r), new_root, get<2>(r) };
+                assert(compute_size(new_root, new_shift) ==
+                       new_size - new_ts);
+                return { new_size, new_shift, new_root, new_tail };
             } else {
                 refcount::inc(empty.root);
-                return { new_size, B, empty.root, get<2>(r) };
+                return { new_size, B, empty.root, new_tail };
             }
         }
+    }
+
+    static std::tuple<unsigned, node_t*>
+    slice_left_leaf(node_t* n, std::size_t size, std::size_t elems)
+    {
+        assert(size <= branches<B>);
+        return { 0, copy_leaf(n, elems, size) };
+    }
+
+    static std::tuple<unsigned, node_t*>
+    slice_left(node_t* n, unsigned shift,
+               std::size_t size, std::size_t elems,
+               bool collapse)
+    {
+        assert(elems <= size);
+        if (shift == 0) {
+            return slice_left_leaf(n, size, elems);
+        } else if (auto sizes = n->sizes()) {
+            auto idx = (elems >> shift) & mask<B>;
+            while (sizes[idx] <= elems) ++idx;
+            auto lsize = idx ? sizes[idx - 1] : 0;
+            if (collapse && shift > B && idx == n->slots() - 1) {
+                return slice_left(n->inner()[idx], shift - B,
+                                  sizes[idx] - lsize,
+                                  elems - lsize,
+                                  collapse);
+            } else {
+                using std::get;
+                auto subs = slice_left(n->inner()[idx], shift - B,
+                                       sizes[idx] - lsize,
+                                       elems - lsize,
+                                       false);
+                auto newn = make_inner_r();
+                auto news = newn->sizes();
+                newn->slots() = n->slots() - idx;
+                news[0] = sizes[idx] - elems;
+                for (auto i = 1; i < newn->slots(); ++i)
+                    news[i] = (sizes[idx+i] - sizes[idx+i-1]) + news[i-1];
+                newn->inner()[0] = get<1>(subs);
+                std::uninitialized_copy(n->inner() + idx + 1,
+                                        n->inner() + n->slots(),
+                                        newn->inner() + 1);
+                inc_nodes(newn->inner() + 1, newn->slots() - 1);
+                return { shift, newn };
+            }
+        } else {
+            return slice_left_regular(n, shift, size, elems, collapse);
+        }
+    }
+
+    static std::tuple<unsigned, node_t*>
+    slice_left_regular(node_t* n, unsigned shift,
+                       std::size_t size, std::size_t elems,
+                       bool collapse)
+    {
+        assert(elems <= size);
+        if (shift == 0) {
+            return slice_left_leaf(n, size, elems);
+        } else {
+            auto idx    = (elems >> shift) & mask<B>;
+            auto lidx   = ((size - 1) >> shift) & mask<B>;
+            auto lsize  = idx << shift;
+            auto csize  = idx == lidx ? size - lsize : 1 << shift;
+            auto celems = elems - lsize;
+            if (collapse && shift > B && idx == lidx) {
+                return slice_left_regular(n->inner()[idx],
+                                          shift - B,
+                                          csize,
+                                          celems,
+                                          collapse);
+            } else {
+                using std::get;
+                auto subs = slice_left_regular(n->inner()[idx],
+                                               shift - B,
+                                               csize,
+                                               celems,
+                                               false);
+                auto newn = make_inner_r();
+                auto news = newn->sizes();
+                newn->slots() = n->slots() - idx;
+                news[0] = csize - celems;
+                for (auto i = 1; i < newn->slots() - 1; ++i)
+                    news[i] = news[i - 1] + (1 << shift);
+                news[newn->slots() - 1] = size - elems;
+                newn->inner()[0] = get<1>(subs);
+                std::uninitialized_copy(n->inner() + idx + 1,
+                                        n->inner() + n->slots(),
+                                        newn->inner() + 1);
+                inc_nodes(newn->inner() + 1, newn->slots() - 1);
+                return { shift, newn };
+            }
+        }
+    }
+
+    impl drop(std::size_t elems) const
+    {
+        if (elems == 0) {
+            return *this;
+        } else if (elems >= size) {
+            return empty;
+        } else if (elems == tail_offset()) {
+            refcount::inc(empty.root);
+            refcount::inc(tail);
+            return { size - elems, B, empty.root, tail };
+        } else if (elems > tail_offset()) {
+            auto new_tail = copy_leaf(tail, elems - tail_offset(), tail_size());
+            refcount::inc(empty.root);
+            return { size - elems, B, empty.root, new_tail };
+        } else {
+            using std::get;
+            auto r = slice_left(root, shift, tail_offset(), elems, true);
+            auto new_root  = get<1>(r);
+            auto new_shift = get<0>(r);
+            refcount::inc(tail);
+            assert(compute_size(new_root, new_shift) ==
+                   size - elems - tail->slots());
+            return { size - elems, new_shift, new_root, tail };
+        }
+        return *this;
     }
 
     impl concat(const impl& r) const

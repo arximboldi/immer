@@ -51,6 +51,9 @@ public:
     rvektor take(std::size_t elems) const
     { return { impl_.take(elems) }; }
 
+    rvektor drop(std::size_t elems) const
+    { return { impl_.drop(elems) }; }
+
     template <typename Step, typename State>
     State reduce(Step&& step, State&& init) const
     { return impl_.reduce(std::forward<Step>(step),
