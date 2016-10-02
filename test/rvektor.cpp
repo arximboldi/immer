@@ -106,6 +106,18 @@ TEST_CASE("push_back")
                 CHECK(v[j] == j * 42);
         }
     }
+
+    SECTION("many elements, small branching factor")
+    {
+        const auto n = 666u;
+        auto v = rvektor<unsigned, 3>{};
+        for (auto i = 0u; i < n; ++i) {
+            v = v.push_back(i * 42);
+            CHECK(v.size() == i + 1);
+            for (auto j = 0u; j < v.size(); ++j)
+                CHECK(v[j] == j * 42);
+        }
+    }
 }
 
 TEST_CASE("update")
