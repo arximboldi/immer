@@ -746,16 +746,24 @@ struct impl
             });
     }
 
-    static std::tuple<unsigned, node_t*, node_t*>
+    static std::tuple<unsigned, node_t*, unsigned, node_t*>
+    slice_right_leaf(node_t* n, std::size_t size, std::size_t new_size)
+    {
+        assert(new_size > 0 && size > 0);
+        auto old_tail_size = ((size - 1) & mask<B>) + 1;
+        auto tail_size     = ((new_size - 1) & mask<B>) + 1;
+        auto new_tail      = tail_size == old_tail_size
+            ? (refcount::inc(n), n)
+            : copy_leaf(n, tail_size);
+        return { 0, nullptr, tail_size, new_tail };
+    }
+
+    static std::tuple<unsigned, node_t*, unsigned, node_t*>
     slice_right(node_t* n, unsigned shift, std::size_t size,
                 std::size_t new_size, bool collapse)
     {
         if (shift == 0) {
-            assert(new_size > 0);
-            auto new_tail = (new_size & mask<B>) == (size & mask<B>)
-                ? (refcount::inc(n), n)
-                : copy_leaf(n, new_size & mask<B>);
-            return { 0, nullptr, new_tail };
+            return slice_right_leaf(n, size, new_size);
         } else if (auto sizes = n->sizes()) {
             assert(shift > 0);
             auto idx = ((new_size - 1) >> shift) & mask<B>;
@@ -767,22 +775,28 @@ struct impl
             } else {
                 using std::get;
                 auto lsize = idx ? sizes[idx - 1] : 0;
-                auto subs = slice_right(n->inner()[idx], shift - B,
-                                        sizes[idx] - lsize,
-                                        new_size - lsize,
-                                        false);
+                auto subs  = slice_right(n->inner()[idx], shift - B,
+                                         sizes[idx] - lsize,
+                                         new_size - lsize,
+                                         false);
                 auto next = get<1>(subs);
+                auto tail_size = get<2>(subs);
+                auto tail = get<3>(subs);
                 if (next) {
                     auto newn = copy_inner_r(n, idx);
                     newn->inner()[idx] = next;
-                    newn->sizes()[idx] = new_size;
+                    newn->sizes()[idx] = new_size - tail_size;
                     newn->slots()++;
-                    return { shift, newn, get<2>(subs) };
+                    return { shift, newn, tail_size, tail };
                 } else if (idx == 0) {
                     refcount::inc(empty.root);
-                    return { shift, nullptr, get<2>(subs) };
+                    return { shift, nullptr, tail_size, tail };
+                } else if (idx == 1 && collapse && shift > B) {
+                    auto newn = n->inner()[0];
+                    refcount::inc(newn);
+                    return { shift - B, newn, tail_size, tail };
                 } else {
-                    return { shift, copy_inner_r(n, idx), get<2>(subs) };
+                    return { shift, copy_inner_r(n, idx), tail_size, tail };
                 }
             }
         } else {
@@ -790,16 +804,12 @@ struct impl
         }
     }
 
-    static std::tuple<unsigned, node_t*, node_t*>
+    static std::tuple<unsigned, node_t*, unsigned, node_t*>
     slice_right_regular(node_t* n, unsigned shift, std::size_t size,
                         std::size_t new_size, bool collapse)
     {
         if (shift == 0) {
-            assert(new_size > 0);
-            auto new_tail = (new_size & mask<B>) == (size & mask<B>)
-                ? (refcount::inc(n), n)
-                : copy_leaf(n, new_size & mask<B>);
-            return { 0, nullptr, new_tail };
+            return slice_right_leaf(n, size, new_size);
         } else {
             auto idx = ((new_size - 1) >> shift) & mask<B>;
             if (collapse && idx == 0) {
@@ -810,15 +820,21 @@ struct impl
                 auto subs = slice_right_regular(n->inner()[idx], shift - B,
                                                 size, new_size, false);
                 auto next = get<1>(subs);
+                auto tail_size = get<2>(subs);
+                auto tail = get<3>(subs);
                 if (next) {
                     auto newn = copy_inner(n, idx);
                     newn->inner()[idx] = next;
                     newn->slots()++;
-                    return { shift, newn, get<2>(subs) };
+                    return { shift, newn, tail_size, tail };
                 } else if (idx == 0) {
-                    return { shift, nullptr, get<2>(subs) };
+                    return { shift, nullptr, tail_size, tail };
+                } else if (idx == 1 && collapse && shift > B) {
+                    auto newn = n->inner()[0];
+                    refcount::inc(newn);
+                    return { shift - B, newn, tail_size, tail };
                 } else {
-                    return { shift, copy_inner(n, idx), get<2>(subs) };
+                    return { shift, copy_inner(n, idx), tail_size, tail };
                 }
             }
         }
