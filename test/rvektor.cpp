@@ -335,3 +335,32 @@ TEST_CASE("drop")
         }
     }
 }
+
+TEST_CASE("reconcat")
+{
+    const auto n = 666u;
+    auto v = make_test_rvektor_front<3>(0, n);
+    auto all_lhs = make_many_test_rvektor_front<3>(n + 1);
+    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = all_lhs[i] + all_rhs[n - i];
+        CHECK(vv.size() == n);
+        for (auto j = 0u; j < n; ++j)
+            CHECK(vv[j] == v[j]);
+    }
+}
+
+TEST_CASE("reconcat take")
+{
+    const auto n = 666u;
+    auto v = make_test_rvektor_front<3>(0, n);
+    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = v.take(i) + all_rhs[n - i];
+        CHECK(vv.size() == n);
+        for (auto j = 0u; j < n; ++j)
+            CHECK(vv[j] == v[j]);
+    }
+}

@@ -548,17 +548,29 @@ struct impl
     {
         auto sizes = parent->sizes();
         if (sizes) {
-            auto idx = parent->slots() - 1;
+            auto idx        = parent->slots() - 1;
             auto children   = idx ? sizes[idx] - sizes[idx - 1] : sizes[idx];
-            auto new_idx    = children == 1 << level ? idx + 1 : idx;
-            auto new_parent = copy_inner_r(parent, new_idx);
-            new_parent->inner()[new_idx] =
+            auto new_idx    = children == 1 << level || level == B
+                ? idx + 1 : idx;
+            if (new_idx >= branches<B>)
+                return nullptr;
+            auto new_child  =
                 level == B       ? tail :
                 idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
                 /* otherwise */  : make_path(level - B, tail);
-            new_parent->sizes()[new_idx] = sizes[idx] + branches<B>;
-            new_parent->slots() = parent->slots() + (idx != new_idx);
-            assert(new_parent->slots() <= branches<B>);
+            // if there was no space on the leftmost branch, we see if
+            // there is an empty slot to its left and we just put it there
+            if (!new_child) {
+                if (idx == new_idx && idx + 1 < branches<B>) {
+                    ++new_idx;
+                    new_child = make_path(level - B, tail);
+                } else
+                    return nullptr;
+            }
+            auto new_parent = copy_inner_r(parent, new_idx);
+            new_parent->inner()[new_idx] = new_child;
+            new_parent->sizes()[new_idx] = sizes[idx] + tail->slots();
+            new_parent->slots() = new_idx + 1;
             return new_parent;
         } else {
             auto idx        = ((size - branches<B> - 1) >> level) & mask<B>;
@@ -574,38 +586,25 @@ struct impl
         }
     }
 
-    bool is_overflow() const
     std::tuple<unsigned, node_t*> push_tail_into_root(node_t* tail) const
     {
-        auto node  = root;
-        auto sizes = node->sizes();
-        auto count = tail_offset();
-        if (!sizes)
-            return (count >> B) >= (1u << shift);
-        for (auto level = shift; level > B; level -= B) {
-            if (!sizes)
-                return (count >> B) >= (1u << level);
-            auto slots = node->slots();
-            if (slots != branches<B>) return false;
-            node  = node->inner() [slots - 1];
-            sizes = node->sizes();
-            count = (sizes[branches<B> - 1]  -
-                     sizes[branches<B> - 2]) + branches<B>;
-        }
-        return true;
-    }
-
-        IMMU_TRACE("push_tail_into_root: " << is_overflow());
-        if (is_overflow()) {
+        if (auto sizes = root->sizes()) {
+            auto new_root = push_tail(shift, root, tail);
+            if (new_root)
+                return { shift, new_root };
+            else {
+                refcount::inc(root);
+                auto new_path = make_path(shift, tail);
+                auto new_root = make_inner_r(root,
+                                             root->sizes() [branches<B> - 1],
+                                             new_path);
+                set_sizes(new_root, shift + B);
+                return { shift + B, new_root };
+            }
+        } else if (tail_offset() >> B >= 1u << shift) {
             refcount::inc(root);
             auto new_path = make_path(shift, tail);
-            auto new_root = root->sizes()
-                ? make_inner_r(root,
-                               root->sizes() [branches<B> - 1],
-                               new_path)
-                : make_inner(root, new_path);
-            if (new_root->sizes())
-                set_sizes(new_root, shift + B);
+            auto new_root = make_inner(root, new_path);
             return { shift + B, new_root };
         } else {
             auto new_root = push_tail(shift, root, tail);
