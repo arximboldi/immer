@@ -997,7 +997,7 @@ struct impl
             return r;
         else if (r.size == 0)
             return *this;
-        else if (r.size <= branches<B>) {
+        else if (r.tail_offset() == 0) {
             // just concat the tail, similar to push_back
             auto ts = tail_size();
             if (ts == branches<B>) {

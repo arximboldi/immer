@@ -351,6 +351,20 @@ TEST_CASE("reconcat")
     }
 }
 
+TEST_CASE("reconcat drop")
+{
+    const auto n = 666u;
+    auto v = make_test_rvektor_front<3>(0, n);
+    auto all_lhs = make_many_test_rvektor_front<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = all_lhs[i] + v.drop(i);
+        CHECK(vv.size() == n);
+        for (auto j = 0u; j < n; ++j)
+            CHECK(vv[j] == v[j]);
+    }
+}
+
 TEST_CASE("reconcat take")
 {
     const auto n = 666u;
@@ -359,6 +373,32 @@ TEST_CASE("reconcat take")
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = v.take(i) + all_rhs[n - i];
+        CHECK(vv.size() == n);
+        for (auto j = 0u; j < n; ++j)
+            CHECK(vv[j] == v[j]);
+    }
+}
+
+TEST_CASE("reconcat take drop")
+{
+    const auto n = 666u;
+    auto v = make_test_rvektor_front<3>(0, n);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = v.take(i) + v.drop(i);
+        CHECK(vv.size() == n);
+        for (auto j = 0u; j < n; ++j)
+            CHECK(vv[j] == v[j]);
+    }
+}
+
+TEST_CASE("reconcat take drop feedback")
+{
+    const auto n = 666u;
+    auto v = make_test_rvektor_front<3>(0, n);
+    auto vv = v;
+    for (auto i = 0u; i < n; ++i) {
+        vv = vv.take(i) + vv.drop(i);
         CHECK(vv.size() == n);
         for (auto j = 0u; j < n; ++j)
             CHECK(vv[j] == v[j]);
