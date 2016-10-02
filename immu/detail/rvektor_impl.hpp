@@ -81,13 +81,6 @@ struct impl
             return data.inner.sizes;
         }
 
-        const std::size_t size() const
-        {
-            assert(kind == inner_kind);
-            assert(sizes());
-            return sizes()[slots() - 1];
-        }
-
         node_t** inner()
         {
             assert(kind == inner_kind);
@@ -346,10 +339,8 @@ struct impl
     {
         bool predicate(node_t* p)
         { return refcount::dec(p); }
-
         void visit_inner(node_t* p)
         { delete_inner(p); }
-
         void visit_leaf(node_t* p, unsigned n)
         { delete_leaf(p, n); }
     };
@@ -536,7 +527,7 @@ struct impl
                     do {
                         node = node->inner() [(index >> level) & mask<B>];
                     } while (level -= B);
-                    break;
+                    return node->leaf();
                 }
             }
             return node->leaf();
@@ -867,6 +858,7 @@ struct impl
     static std::tuple<unsigned, node_t*>
     slice_left_leaf(node_t* n, std::size_t size, std::size_t elems)
     {
+        assert(elems < size);
         assert(size <= branches<B>);
         return { 0, copy_leaf(n, elems, size) };
     }
@@ -975,9 +967,9 @@ struct impl
             auto r = slice_left(root, shift, tail_offset(), elems, true);
             auto new_root  = get<1>(r);
             auto new_shift = get<0>(r);
-            refcount::inc(tail);
             assert(compute_size(new_root, new_shift) ==
                    size - elems - tail->slots());
+            refcount::inc(tail);
             return { size - elems, new_shift, new_root, tail };
         }
         return *this;
@@ -1039,6 +1031,7 @@ struct impl
     {
         IMMU_TRACE("concat_sub_tree: " << lshift << " <> " << rshift);
         if (lshift > rshift) {
+            assert(lnode->slots() > 0);
             auto lidx   = lnode->slots() - 1;
             if (lnode->sizes() && lidx)
                 lsize = lnode->sizes()[lidx] - lnode->sizes()[lidx - 1];
@@ -1052,6 +1045,7 @@ struct impl
             dec_node(cnode, lshift);
             return result;
         } else if (lshift < rshift) {
+            assert(rnode->slots() > 0);
             if (rnode->sizes())
                 rsize = rnode->sizes()[0];
             auto cnode  = concat_sub_tree(lsize, lshift, lnode,
@@ -1064,8 +1058,10 @@ struct impl
             dec_node(cnode, rshift);
             return result;
         } else if (lshift == 0) {
-            auto lslots = lsize & mask<B>;
-            auto rslots = std::min(rsize, branches<B>);
+            auto lslots = lnode->slots();
+            auto rslots = rnode->slots();
+            assert(lslots > 0);
+            assert(rslots > 0);
             IMMU_TRACE("ls: " << lslots << " " << rslots);
             if (is_top && lslots + rslots <= branches<B>)
                 return copy_leaf(lnode, lslots, rnode, rslots);
@@ -1074,10 +1070,12 @@ struct impl
                 refcount::inc(rnode);
                 auto result = make_inner_r(lnode, rnode);
                 result->sizes()[0] = lslots;
-                result->sizes()[1] = result->sizes()[0] + rslots;
+                result->sizes()[1] = lslots + rslots;
                 return result;
             }
         } else {
+            assert(rnode->slots() > 0);
+            assert(lnode->slots() > 0);
             auto lidx  = lnode->slots() - 1;
             if (lnode->sizes() && lidx)
                 lsize = lnode->sizes()[lidx] - lnode->sizes()[lidx - 1];
@@ -1134,27 +1132,31 @@ struct impl
         {
             assert(!current);
             if (parent != result) {
-                set_sizes(result->inner()[result->slots() - 1], shift);
+                assert(result->slots());
+                set_sizes(parent, shift);
+                set_sizes(result, shift);
                 return result;
             }
             set_sizes(result, shift);
             if (is_top)
                 return result;
             auto r = make_inner_r(result);
-            r->sizes()[0] = result->size();
+            r->sizes()[0] = result->sizes()[result->slots() - 1];
             return r;
         }
 
         void merge(node_t* node, unsigned first, unsigned count,
                    unsigned shift, std::size_t size)
         {
-            auto add_child = [&] (node_t* n) {
+            auto add_child = [&] (node_t* n)
+            {
                 ++slots;
                 if (parent->slots() == branches<B>) {
                     if (result == parent)
                         result = make_inner_r(parent);
-                    set_sizes(result->inner() [result->slots() - 1], shift);
+                    assert(result->slots());
                     assert(result->slots() < branches<B>);
+                    set_sizes(parent, shift);
                     parent
                         = result->inner() [result->slots()++]
                         = make_inner_r();
@@ -1208,15 +1210,18 @@ struct impl
         node_t* all [3 * branches<B>];
         auto all_n = 0u;
         if (lnode) {
+            assert(lnode->slots() > 0);
             auto slots = lnode->slots() - 1;
             IMMU_TRACE("l-slots: " << slots);
             std::copy(lnode->inner(), lnode->inner() + slots, all + all_n);
             all_n += slots;
         } {
+            assert(cnode->slots() > 0);
             auto slots = cnode->slots();
             std::copy(cnode->inner(), cnode->inner() + slots, all + all_n);
             all_n += slots;
         } if (rnode) {
+            assert(rnode->slots() > 0);
             auto slots = rnode->slots() - 1;
             IMMU_TRACE("r-slots: " << slots);
             std::copy(rnode->inner() + 1, rnode->inner() + slots + 1, all + all_n);
@@ -1227,6 +1232,7 @@ struct impl
         unsigned all_slots [3 * branches<B>];
         auto total_all_slots = 0u;
         for (auto i = 0u; i < all_n; ++i) {
+            assert(all[i]->slots() > 0);
             auto sub_slots = all[i]->slots();
             all_slots[i] = sub_slots;
             total_all_slots += sub_slots;
@@ -1239,6 +1245,7 @@ struct impl
         IMMU_TRACE("all_slots: " <<
                    pretty_print_array(all_slots, all_n));
 
+        assert(total_all_slots > 0);
         const auto optimal_slots = ((total_all_slots - 1) / branches<B>) + 1;
         IMMU_TRACE("optimal_slots: " << optimal_slots <<
                    " // " << total_all_slots);
@@ -1270,11 +1277,12 @@ struct impl
         IMMU_TRACE("shuffled_n: " << shuffled_n << "  is_top: " << is_top);
 
         // actually rebalance the nodes
-        auto merge_all = [&] (auto& merger) {
+        auto merge_all = [&] (auto& merger)
+        {
             if (lnode)
                 merger.merge(lnode, 0, lnode->slots() - 1, shift, lsize);
             if (cnode)
-                merger.merge(cnode, 0, cnode->slots(), shift, lsize);
+                merger.merge(cnode, 0, cnode->slots(), shift, 42);
             if (rnode)
                 merger.merge(rnode, 1, rnode->slots() - 1, shift, rsize);
             assert(merger.slots == all_slots + shuffled_n);
@@ -1306,6 +1314,7 @@ struct impl
         } else {
             auto sizes = node->sizes();
             auto slots = node->slots();
+            assert(slots > 0);
             return sizes
                 ? sizes[node->slots() - 1]
                 : ((slots - 1) << shift)
