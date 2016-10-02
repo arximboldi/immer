@@ -10,13 +10,81 @@
 
 using namespace immu;
 
+namespace {
+
+template <unsigned B=5>
+auto make_test_rvektor(std::size_t min, std::size_t max)
+{
+    auto v = rvektor<unsigned, B>{};
+    for (auto i = min; i < max; ++i)
+        v = v.push_back(i);
+    return v;
+}
+
+template <unsigned B=5>
+auto make_test_rvektor_front(std::size_t min, std::size_t max)
+{
+    auto v = rvektor<unsigned, B>{};
+    for (auto i = max; i > min;)
+        v = v.push_front(--i);
+    return v;
+}
+
+template <unsigned B=5>
+auto make_many_test_rvektor(std::size_t n)
+{
+    using vektor_t = immu::rvektor<unsigned, B>;
+    auto many = std::vector<vektor_t>{};
+    many.reserve(n);
+    std::generate_n(std::back_inserter(many), n,
+                    [v = vektor_t{}, i = 0u] () mutable
+                    {
+                        auto r = v;
+                        v = v.push_back(i++);
+                        return r;
+                    });
+    return many;
+}
+
+template <unsigned B=5>
+auto make_many_test_rvektor_front(std::size_t n)
+{
+    using vektor_t = immu::rvektor<unsigned, B>;
+    auto many = std::vector<vektor_t>{};
+    many.reserve(n);
+    std::generate_n(std::back_inserter(many), n,
+                    [i = 0u] () mutable
+                    {
+                        return make_test_rvektor_front<B>(0, i++);
+                    });
+    return many;
+}
+
+template <unsigned B=5>
+auto make_many_test_rvektor_front_remainder(std::size_t n)
+{
+    using vektor_t = immu::rvektor<unsigned, B>;
+    auto many = std::vector<vektor_t>{};
+    many.reserve(n);
+    std::generate_n(std::back_inserter(many), n,
+                    [v = vektor_t{}, i = n-1] () mutable
+                    {
+                        auto r = v;
+                        v = v.push_front(--i);
+                        return r;
+                    });
+    return many;
+}
+
+} // anonymous namespace
+
 TEST_CASE("instantiation")
 {
     auto v = rvektor<int>{};
     CHECK(v.size() == 0u);
 }
 
-TEST_CASE("push back")
+TEST_CASE("push_back")
 {
     SECTION("one element")
     {
@@ -43,9 +111,7 @@ TEST_CASE("push back")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = rvektor<unsigned>{};
-    for (auto i = 0u; i < n; ++i)
-        v = v.push_back(i);
+    auto v = make_test_rvektor(0, n);
 
     SECTION("assoc")
     {
@@ -60,9 +126,7 @@ TEST_CASE("update")
 
     SECTION("assoc further")
     {
-        for (auto i = n; i < 666; ++i)
-            v = v.push_back(i);
-
+        auto v = make_test_rvektor(0, 666u);
         auto u = v.assoc(3u, 13u);
         u = u.assoc(200u, 7u);
         CHECK(u.size() == v.size());
@@ -81,11 +145,7 @@ TEST_CASE("update")
 
     SECTION("assoc further more")
     {
-        auto v = immu::rvektor<unsigned, 4>{};
-
-        for (auto i = n; i < 1000u; ++i)
-            v = v.push_back(i);
-
+        auto v = make_test_rvektor<4>(0, 1000u);
         for (auto i = 0u; i < v.size(); ++i) {
             v = v.assoc(i, i+1);
             CHECK(v[i] == i+1);
@@ -108,10 +168,8 @@ TEST_CASE("update")
 
 TEST_CASE("push_front")
 {
-    using vektor_t = rvektor<unsigned, 3>;
-
     const auto n = 666u;
-    auto v = vektor_t{};
+    auto v = rvektor<unsigned, 3>{};
 
     for (auto i = 0u; i < n; ++i) {
         IMMU_TRACE("\n-- push_front: " << i);
@@ -124,36 +182,15 @@ TEST_CASE("push_front")
 
 TEST_CASE("concat")
 {
-    using vektor_t = rvektor<unsigned, 3>;
-
     const auto n = 666u;
 
-    auto all_lhs = std::vector<vektor_t>{};
-    auto all_rhs = std::vector<vektor_t>{};
-    all_lhs.reserve(n);
-    all_rhs.reserve(n);
-
-    std::generate_n(std::back_inserter(all_lhs), n,
-                    [v = vektor_t{},
-                     i = 0u] () mutable {
-                        auto r = v;
-                        v = v.push_back(i++);
-                        return r;
-                    });
-
-    auto v = vektor_t{};
-    std::generate_n(std::back_inserter(all_rhs), n,
-                    [v = vektor_t{},
-                     i = n-1] () mutable {
-                        auto r = v;
-                        v = v.push_front(--i);
-                        return r;
-                    });
+    auto all_lhs = make_many_test_rvektor<3>(n);
+    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n);
 
     SECTION("anywhere")
     {
         for (auto i = 0u; i < n; ++i) {
-            auto c = all_lhs[n - i - 1] + all_rhs[i];
+            auto c = all_lhs[i] + all_rhs[n - i - 1];
             IMMU_TRACE("\n-- concat: " << i);
             CHECK(c.size() == n - 1);
             for (auto j = 0u; j < c.size(); ++j)
@@ -167,9 +204,7 @@ TEST_CASE("reduce")
     SECTION("sum regular")
     {
         const auto n = 666u;
-        auto v = rvektor<unsigned>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
+        auto v = make_test_rvektor(0, n);
 
         auto sum = v.reduce(std::plus<unsigned>{}, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
@@ -179,9 +214,7 @@ TEST_CASE("reduce")
     SECTION("sum relaxed")
     {
         const auto n = 666u;
-        auto v = rvektor<unsigned>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_front(i);
+        auto v = make_test_rvektor_front(0, n);
 
         auto sum = v.reduce(std::plus<unsigned>{}, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
@@ -216,9 +249,7 @@ TEST_CASE("take")
 
     SECTION("anywhere")
     {
-        auto v = rvektor<unsigned, 3>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
+        auto v = make_test_rvektor<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.take(i);
@@ -230,9 +261,7 @@ TEST_CASE("take")
 
     SECTION("relaxed")
     {
-        auto v = rvektor<unsigned, 3>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_front(i);
+        auto v = make_test_rvektor_front<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.take(i);
@@ -247,11 +276,9 @@ TEST_CASE("drop")
 {
     const auto n = 666u;
 
-    SECTION("anywhere")
+    SECTION("regular")
     {
-        auto v = rvektor<unsigned, 3>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
+        auto v = make_test_rvektor<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.drop(i);
@@ -263,18 +290,13 @@ TEST_CASE("drop")
 
     SECTION("relaxed")
     {
-        auto v = rvektor<unsigned, 3>{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_front(i);
+        auto v = make_test_rvektor_front<3>(0, n);
 
-        SECTION("normal")
-        {
-            for (auto i = 0u; i < n; ++i) {
-                auto vv = v.drop(i);
-                CHECK(vv.size() == n - i);
-                for (auto j = 0u; j < n - i; ++j)
-                    CHECK(vv[j] == v[j + i]);
-            }
+        for (auto i = 0u; i < n; ++i) {
+            auto vv = v.drop(i);
+            CHECK(vv.size() == n - i);
+            for (auto j = 0u; j < n - i; ++j)
+                CHECK(vv[j] == v[j + i]);
         }
     }
 }
