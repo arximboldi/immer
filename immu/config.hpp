@@ -5,8 +5,10 @@
 
 #ifdef NDEBUG
 #define IMMU_TRACE_ON 0
+#define IMMU_DEBUG_DEEP_CHECK 0
 #else
 #define IMMU_TRACE_ON IMMU_DEBUG_TRACE_0N
+#define IMMU_DEBUG_DEEP_CHECK 0
 #endif
 
 #if IMMU_TRACE_ON

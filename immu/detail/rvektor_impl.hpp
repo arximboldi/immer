@@ -287,7 +287,9 @@ struct impl
 
     impl(std::size_t sz, unsigned sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
-    {}
+    {
+        assert(check_tree());
+    }
 
     impl(const impl& other)
         : impl{other.size, other.shift, other.root, other.tail}
@@ -853,6 +855,7 @@ struct impl
                 assert(compute_shift(new_root) == get<0>(r));
                 assert(compute_size(new_root, new_shift) ==
                        new_size - new_ts);
+                assert(check_node(new_root, new_shift, new_size - new_ts));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
                 refcount::inc(empty.root);
@@ -1008,17 +1011,22 @@ struct impl
             }
         } else {
             refcount::inc(tail);
-            auto left_root = push_tail_into_root(tail);
+            auto lr     = push_tail_into_root(tail);
+            auto lshift = get<0>(lr);
+            auto lroot  = get<1>(lr);
+            assert(check_node(lroot, lshift, size));
+            assert(compute_size(lroot, lshift) == size);
             auto new_root  = concat_sub_tree(
-                size, left_root.first, left_root.second,
+                size, lshift, lroot,
                 r.tail_offset(), r.shift, r.root,
                 true);
             auto new_shift = compute_shift(new_root);
             IMMU_TRACE("new_shift: " << new_shift);
             set_sizes(new_root, new_shift);
+            assert(check_node(new_root, new_shift, size + r.tail_offset()));
             assert(compute_size(new_root, new_shift) == size + r.tail_offset());
             refcount::inc(r.tail);
-            dec_node(left_root.second, left_root.first, size);
+            dec_node(lroot, lshift, size);
             return { size + r.size, new_shift, new_root, r.tail };
         }
     }
@@ -1311,6 +1319,79 @@ struct impl
             return 0;
         else
             return B + compute_shift(node->inner() [0]);
+    }
+
+    bool check_tree() const
+    {
+#if IMMU_DEBUG_DEEP_CHECK
+        assert(shift >= B);
+        assert(tail_offset() <= size);
+        assert(check_root());
+        assert(check_tail());
+#endif
+        return true;
+    }
+
+    bool check_tail() const
+    {
+#if IMMU_DEBUG_DEEP_CHECK
+        if (tail_size() > 0)
+            check_node(tail, 0, tail_size());
+#endif
+        return true;
+    }
+
+    bool check_root() const
+    {
+#if IMMU_DEBUG_DEEP_CHECK
+        if (tail_offset() > 0)
+            check_node(root, shift, tail_offset());
+        else {
+            assert(root->kind == node_t::inner_kind);
+            assert(shift == B);
+        }
+#endif
+        return true;
+    }
+
+    bool check_node(node_t* node, unsigned shift, std::size_t size) const
+    {
+#if IMMU_DEBUG_DEEP_CHECK
+        assert(size > 0);
+        if (shift == 0) {
+            assert(node->kind == node_t::leaf_kind);
+            assert(size <= branches<B>);
+        } else if (auto sizes = node->sizes()) {
+            auto count = node->slots();
+            assert(count > 0);
+            assert(count <= branches<B>);
+            assert(sizes[count - 1] == size);
+            for (auto i = 1; i < count; ++i)
+                assert(sizes[i - 1] < sizes[i]);
+            auto last_size = std::size_t{};
+            for (auto i = 0; i < count; ++i) {
+                assert(check_node(node->inner()[i],
+                                  shift - B,
+                                  sizes[i] - last_size));
+                last_size = sizes[i];
+            }
+        } else {
+            assert(size <= branches<B> << shift);
+            auto count = (size >> shift)
+                + (size - ((size >> shift) << shift) > 0);
+            assert(count <= branches<B>);
+            if (count) {
+                for (auto i = 1; i < count - 1; ++i)
+                    assert(check_node(node->inner()[i],
+                                      shift - B,
+                                      1 << shift));
+                assert(check_node(node->inner()[count - 1],
+                                  shift - B,
+                                  size - ((count - 1) << shift)));
+            }
+        }
+#endif // IMMU_DEBUG_DEEP_CHECK
+        return true;
     }
 };
 
