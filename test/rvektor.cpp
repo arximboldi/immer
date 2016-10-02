@@ -211,6 +211,29 @@ TEST_CASE("concat")
     }
 }
 
+template <unsigned B=5>
+auto make_rvektor_concat(std::size_t min, std::size_t max)
+{
+    using vektor_t = immu::rvektor<unsigned, B>;
+    if (max == min)
+        return vektor_t{};
+    else if (max == min + 1)
+        return vektor_t{}.push_back(min);
+    auto mid = min + (max - min) / 2;
+    return make_rvektor_concat<B>(min, mid)
+        +  make_rvektor_concat<B>(mid, max);
+}
+
+TEST_CASE("concat recursive")
+{
+    const auto n = 666u;
+    auto v = make_rvektor_concat<3>(0, n);
+
+    CHECK(v.size() == n);
+    for (auto i = 0u; i < n; ++i)
+        CHECK(v[i] == i);
+}
+
 TEST_CASE("reduce")
 {
     SECTION("sum regular")
