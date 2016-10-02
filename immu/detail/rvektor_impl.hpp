@@ -584,6 +584,7 @@ struct impl
     }
 
     bool is_overflow() const
+    std::tuple<unsigned, node_t*> push_tail_into_root(node_t* tail) const
     {
         auto node  = root;
         auto sizes = node->sizes();
@@ -603,8 +604,6 @@ struct impl
         return true;
     }
 
-    std::pair<unsigned, node_t*> push_tail_into_root(node_t* tail) const
-    {
         IMMU_TRACE("push_tail_into_root: " << is_overflow());
         if (is_overflow()) {
             refcount::inc(root);
@@ -631,10 +630,11 @@ struct impl
             refcount::inc(root);
             return { size + 1, shift, root, new_tail };
         } else {
+            using std::get;
             auto new_tail = make_leaf(std::move(value));
             auto new_root = push_tail_into_root(tail);
             refcount::inc(tail);
-            return { size + 1, new_root.first, new_root.second, new_tail };
+            return { size + 1, get<0>(new_root), get<1>(new_root), new_tail };
         }
     }
 
@@ -985,6 +985,7 @@ struct impl
 
     impl concat(const impl& r) const
     {
+        using std::get;
         if (size == 0)
             return r;
         else if (r.size == 0)
@@ -996,7 +997,7 @@ struct impl
                 refcount::inc(tail);
                 auto new_root = push_tail_into_root(tail);
                 refcount::inc(r.tail);
-                return { size + r.size, new_root.first, new_root.second, r.tail };
+                return { size + r.size, get<0>(new_root), get<1>(new_root), r.tail };
             } else if (ts + r.size <= branches<B>) {
                 auto new_tail = copy_leaf(tail, ts, r.tail, r.size);
                 refcount::inc(root);
@@ -1007,7 +1008,7 @@ struct impl
                 auto add_tail  = copy_leaf(tail, ts, r.tail, remaining);
                 auto new_tail  = copy_leaf(r.tail, remaining, r.size);
                 auto new_root  = push_tail_into_root(add_tail);
-                return { size + r.size, new_root.first, new_root.second, new_tail };
+                return { size + r.size, get<0>(new_root), get<1>(new_root), new_tail };
             }
         } else {
             refcount::inc(tail);
