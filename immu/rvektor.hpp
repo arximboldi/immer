@@ -65,8 +65,21 @@ public:
     rvektor push_front(value_type value) const
     { return rvektor{}.push_back(value) + *this; }
 
+#if IMMU_DEBUG_PRINT
+    void debug_print() const
+    { impl_.debug_print(); }
+#endif
+
 private:
-    rvektor(impl_t impl) : impl_(std::move(impl)) {}
+    rvektor(impl_t impl)
+        : impl_(std::move(impl))
+    {
+#if IMMU_DEBUG_PRINT
+        // force the compiler to generate debug_print, so we can call
+        // it from a debugger
+        [](volatile auto){}(&rvektor::debug_print);
+#endif
+    }
     impl_t impl_ = impl_t::empty;
 };
 

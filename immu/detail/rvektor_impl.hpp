@@ -1393,6 +1393,73 @@ struct impl
 #endif // IMMU_DEBUG_DEEP_CHECK
         return true;
     }
+
+#if IMMU_DEBUG_PRINT
+    void debug_print() const
+    {
+        std::cerr
+            << "--" << std::endl
+            << "{" << std::endl
+            << "  size  = " << size << std::endl
+            << "  shift = " << shift << std::endl
+            << "  root  = " << std::endl;
+        debug_print_node(root, shift, tail_offset());
+        std::cerr << "  tail  = " << std::endl;
+        debug_print_node(tail, 0, tail_size());
+        std::cerr << "}" << std::endl;
+    }
+
+    void debug_print_indent(unsigned indent) const
+    {
+        while (indent --> 0)
+            std::cerr << ' ';
+    }
+
+    void debug_print_node(node_t* node,
+                          unsigned shift,
+                          std::size_t size,
+                          unsigned indent = 8) const
+    {
+        const auto indent_step = 4;
+
+        if (shift == 0) {
+            debug_print_indent(indent);
+            std::cerr << "- {" << size << "} "
+                      << pretty_print_array(node->leaf(), size)
+                      << std::endl;
+        } else if (auto sizes = node->sizes()) {
+            auto count = node->slots();
+            debug_print_indent(indent);
+            std::cerr << "# {" << size << "} "
+                      << pretty_print_array(node->sizes(), node->slots())
+                      << std::endl;
+            auto last_size = std::size_t{};
+            for (auto i = 0; i < count; ++i) {
+                debug_print_node(node->inner()[i],
+                                 shift - B,
+                                 sizes[i] - last_size,
+                                 indent + indent_step);
+                last_size = sizes[i];
+            }
+        } else {
+            debug_print_indent(indent);
+            std::cerr << "+ {" << size << "}" << std::endl;
+            auto count = (size >> shift)
+                + (size - ((size >> shift) << shift) > 0);
+            if (count) {
+                for (auto i = 1; i < count - 1; ++i)
+                    debug_print_node(node->inner()[i],
+                                     shift - B,
+                                     1 << shift,
+                                     indent + indent_step);
+                debug_print_node(node->inner()[count - 1],
+                                 shift - B,
+                                 size - ((count - 1) << shift),
+                                 indent + indent_step);
+            }
+        }
+    }
+#endif // IMMU_DEBUG_PRINT
 };
 
 template <typename T, int B, typename MP>
