@@ -14,11 +14,11 @@ namespace immu {
 namespace detail {
 namespace rvektor {
 
-//#ifdef NDEBUG
-//#define IMMU_RVEKTOR_TAGGED_NODES 0
-//#else
+#ifdef NDEBUG
+#define IMMU_RVEKTOR_TAGGED_NODES 0
+#else
 #define IMMU_RVEKTOR_TAGGED_NODES 1
-//#endif
+#endif
 
 template <int B, typename T=std::size_t>
 constexpr T branches = T{1} << B;
@@ -1078,12 +1078,13 @@ struct impl
             auto lshift     = get<0>(with_tail);
             auto lroot      = get<1>(with_tail);
             assert(check_node(lroot, lshift, size));
-            auto new_root  = concat_sub_tree(
+            auto concated   = concat_sub_tree(
                 size, lshift, lroot,
                 r.tail_offset(), r.shift, r.root,
                 true);
-            auto new_shift = compute_shift(new_root);
-            IMMU_TRACE("new_shift: " << new_shift);
+            auto new_shift  = get<0>(concated);
+            auto new_root   = get<1>(concated);
+            assert(new_shift == compute_shift(new_root));
             assert(check_node(new_root, new_shift, size + r.tail_offset()));
             refcount::inc(r.tail);
             dec_node(lroot, lshift, size);
@@ -1091,12 +1092,13 @@ struct impl
         }
     }
 
-    friend node_t* concat_sub_tree(
+    friend std::tuple<unsigned, node_t*> concat_sub_tree(
         std::size_t lsize, unsigned lshift, node_t* lnode,
         std::size_t rsize, unsigned rshift, node_t* rnode,
         bool is_top)
     {
         IMMU_TRACE("concat_sub_tree: " << lshift << " <> " << rshift);
+        using std::get;
         if (lshift > rshift) {
             auto lidx = lnode->sizes()
                 ? lnode->slots() - 1
@@ -1104,10 +1106,11 @@ struct impl
             auto llsize = lnode->sizes()
                 ? lnode->sizes()[lidx] - (lidx ? lnode->sizes()[lidx - 1] : 0)
                 : lsize - (lidx << lshift);
-            auto cnode  = concat_sub_tree(
-                llsize, lshift - B, lnode->inner() [lidx],
-                rsize, rshift, rnode,
-                false);
+            auto cnode  = get<1>(
+                concat_sub_tree(
+                    llsize, lshift - B, lnode->inner() [lidx],
+                    rsize, rshift, rnode,
+                    false));
             auto result = concat_rebalance(
                 lsize, lnode,
                 llsize, cnode,
@@ -1119,10 +1122,11 @@ struct impl
             auto rrsize = rnode->sizes()
                 ? rnode->sizes()[0]
                 : std::min(rsize, std::size_t{1} << rshift);
-            auto cnode  = concat_sub_tree(
-                lsize, lshift, lnode,
-                rrsize, rshift - B, rnode->inner() [0],
-                false);
+            auto cnode  = get<1>(
+                concat_sub_tree(
+                    lsize, lshift, lnode,
+                    rrsize, rshift - B, rnode->inner() [0],
+                    false));
             auto result = concat_rebalance(
                 0, nullptr,
                 rrsize, cnode,
@@ -1131,16 +1135,18 @@ struct impl
             dec_node(cnode, rshift);
             return result;
         } else if (lshift == 0) {
+            assert(lsize);
+            assert(rsize);
             auto lslots = (((lsize - 1) >> lshift) & mask<B>) + 1;
             auto rslots = (((rsize - 1) >> lshift) & mask<B>) + 1;
             if (is_top && lslots + rslots <= branches<B>)
-                return copy_leaf(lnode, lslots, rnode, rslots);
+                return { 0, copy_leaf(lnode, lslots, rnode, rslots) };
             else {
                 refcount::inc(lnode);
                 refcount::inc(rnode);
                 auto result = make_inner_r(lnode, lslots,
                                            rnode, rslots);
-                return result;
+                return { B, result };
             }
         } else {
             auto lidx = lnode->sizes()
@@ -1152,10 +1158,11 @@ struct impl
             auto rrsize = rnode->sizes()
                 ? rnode->sizes()[0]
                 : std::min(rsize, std::size_t{1} << rshift);
-            auto cnode  = concat_sub_tree(
-                llsize, lshift - B, lnode->inner() [lidx],
-                rrsize, rshift - B, rnode->inner() [0],
-                false);
+            auto cnode  = get<1>(
+                concat_sub_tree(
+                    llsize, lshift - B, lnode->inner() [lidx],
+                    rrsize, rshift - B, rnode->inner() [0],
+                    false));
             auto result = concat_rebalance(
                 lsize, lnode,
                 llsize + rrsize, cnode,
@@ -1237,18 +1244,19 @@ struct impl
             : slots{s}
         {}
 
-        node_t* finish(unsigned shift, bool is_top)
+        std::tuple<unsigned, node_t*>
+        finish(unsigned shift, bool is_top)
         {
             assert(!to);
             if (parent != result) {
                 assert(result->slots() == 2);
                 auto sizes = result->sizes();
                 sizes [1] = sizes[0] + size_sum;
-                return result;
+                return { shift + B, result };
             } else if (is_top) {
-                return result;
+                return { shift, result };
             } else {
-                return make_inner_r(result, size_sum);
+                return { shift, make_inner_r(result, size_sum) };
             }
         }
 
@@ -1326,11 +1334,12 @@ struct impl
         unsigned count = 0u;
     };
 
-    friend node_t* concat_rebalance(std::size_t lsize, node_t* lnode,
-                                    std::size_t csize, node_t* cnode,
-                                    std::size_t rsize, node_t* rnode,
-                                    unsigned shift,
-                                    bool is_top)
+    friend std::tuple<unsigned, node_t*>
+    concat_rebalance(std::size_t lsize, node_t* lnode,
+                     std::size_t csize, node_t* cnode,
+                     std::size_t rsize, node_t* rnode,
+                     unsigned shift,
+                     bool is_top)
     {
         assert(cnode);
         assert(lnode || rnode);
@@ -1436,6 +1445,7 @@ struct impl
         }
     }
 
+#if IMMU_RVEKTOR_TAGGED_NODES
     friend unsigned compute_shift(node_t* node)
     {
         if (node->kind == node_t::leaf_kind)
@@ -1443,6 +1453,7 @@ struct impl
         else
             return B + compute_shift(node->inner() [0]);
     }
+#endif
 
     bool check_tree() const
     {
