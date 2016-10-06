@@ -1,7 +1,8 @@
 
 #pragma once
 
-#include <immu/detail/vektor_impl.hpp>
+#include <immu/detail/rbtree.hpp>
+#include <immu/detail/rbtree_iterator.hpp>
 #include <immu/memory_policy.hpp>
 
 namespace immu {
@@ -11,7 +12,7 @@ template <typename T,
           typename MemoryPolicy = default_memory_policy>
 class vektor
 {
-    using impl_t = detail::vektor::impl<T, B, MemoryPolicy>;
+    using impl_t = detail::rbtree<T, B, MemoryPolicy>;
 
 public:
     using value_type = T;
@@ -20,7 +21,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::vektor::iterator<T, B, MemoryPolicy>;
+    using iterator         = detail::rbtree_iterator<T, B, MemoryPolicy>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
