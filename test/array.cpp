@@ -1,5 +1,5 @@
 
-#include <immu/array.hpp>
+#include <immer/array.hpp>
 
 #include <doctest.h>
 #include <boost/range/adaptors.hpp>
@@ -8,7 +8,7 @@
 #include <numeric>
 #include <vector>
 
-using namespace immu;
+using namespace immer;
 
 TEST_CASE("instantiation")
 {

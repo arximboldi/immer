@@ -1,12 +1,12 @@
 
 #include <nonius/nonius_single.h++>
 
-#include <immu/vector.hpp>
-#include <immu/array.hpp>
-#include <immu/flex_vector.hpp>
+#include <immer/vector.hpp>
+#include <immer/array.hpp>
+#include <immer/flex_vector.hpp>
 
-#if IMMU_BENCHMARK_EXPERIMENTAL
-#include <immu/experimental/dvektor.hpp>
+#if IMMER_BENCHMARK_EXPERIMENTAL
+#include <immer/experimental/dvektor.hpp>
 #endif
 
 #include <vector>
@@ -62,15 +62,15 @@ auto generic()
     };
 }
 
-NONIUS_BENCHMARK("vektor/4B",   generic<immu::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",   generic<immu::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",   generic<immu::vector<unsigned,6>>())
-#if IMMU_BENCHMARK_EXPERIMENTAL
-NONIUS_BENCHMARK("dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
-NONIUS_BENCHMARK("dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
-NONIUS_BENCHMARK("dvektor/6B",  generic<immu::dvektor<unsigned,6>>())
+NONIUS_BENCHMARK("vektor/4B",   generic<immer::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B",   generic<immer::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B",   generic<immer::vector<unsigned,6>>())
+#if IMMER_BENCHMARK_EXPERIMENTAL
+NONIUS_BENCHMARK("dvektor/4B",  generic<immer::dvektor<unsigned,4>>())
+NONIUS_BENCHMARK("dvektor/5B",  generic<immer::dvektor<unsigned,5>>())
+NONIUS_BENCHMARK("dvektor/6B",  generic<immer::dvektor<unsigned,6>>())
 #endif
-NONIUS_BENCHMARK("array",     generic<immu::array<unsigned>, 10000>())
+NONIUS_BENCHMARK("array",     generic<immer::array<unsigned>, 10000>())
 
 template <typename Vektor,
           std::size_t Limit=std::numeric_limits<std::size_t>::max()>
@@ -92,7 +92,7 @@ auto reduce_generic()
     };
 }
 
-NONIUS_BENCHMARK("flex_vector/5B/reduce",  reduce_generic<immu::flex_vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/4B/reduce",   reduce_generic<immu::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B/reduce",   reduce_generic<immu::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B/reduce",   reduce_generic<immu::vector<unsigned,6>>())
+NONIUS_BENCHMARK("flex_vector/5B/reduce",  reduce_generic<immer::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/4B/reduce",   reduce_generic<immer::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B/reduce",   reduce_generic<immer::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B/reduce",   reduce_generic<immer::vector<unsigned,6>>())

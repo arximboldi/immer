@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include <immu/experimental/dvektor.hpp>
+#include <immer/experimental/dvektor.hpp>
 
 #include <doctest.h>
 #include <boost/range/adaptors.hpp>
@@ -9,7 +9,7 @@
 #include <numeric>
 #include <vector>
 
-using namespace immu;
+using namespace immer;
 
 TEST_CASE("instantiation")
 {
@@ -82,7 +82,7 @@ TEST_CASE("update")
 
     SUBCASE("assoc further more")
     {
-        auto v = immu::dvektor<unsigned, 4>{};
+        auto v = immer::dvektor<unsigned, 4>{};
 
         for (auto i = n; i < 1000u; ++i)
             v = v.push_back(i);
@@ -107,7 +107,7 @@ TEST_CASE("update")
     }
 }
 
-#if IMMU_SLOW_TEST
+#if IMMER_SLOW_TEST
 TEST_CASE("big")
 {
     const auto n = 1000000;

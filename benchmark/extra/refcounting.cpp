@@ -1,6 +1,6 @@
 
 
-#include <immu/detail/ref_count_base.hpp>
+#include <immer/detail/ref_count_base.hpp>
 
 #include <nonius/nonius_single.h++>
 #include <boost/intrusive_ptr.hpp>
@@ -15,7 +15,7 @@
 
 constexpr auto benchmark_size = 32u;
 
-struct object_t : immu::detail::ref_count_base<object_t>
+struct object_t : immer::detail::ref_count_base<object_t>
 {};
 
 auto make_data()

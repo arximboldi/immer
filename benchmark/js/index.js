@@ -1,5 +1,5 @@
 
-var immu = Module
+var immer = Module
 
 var N = 1000
 
@@ -14,24 +14,24 @@ var suite = new Benchmark.Suite('push')
         for (var x = 0; x < N; ++x)
             v = mori.conj(v, x)
     })
-    .add('immu.Vektor', function(){
-        var v = new immu.Vektor
+    .add('immer.Vector', function(){
+        var v = new immer.Vector
         for (var x = 0; x < N; ++x) {
             var v_ = v
             v = v.push(x)
             v_.delete()
         }
     })
-    .add('immu.VektorInt', function(){
-        var v = new immu.VektorInt
+    .add('immer.VectorInt', function(){
+        var v = new immer.VectorInt
         for (var x = 0; x < N; ++x) {
             var v_ = v
             v = v.push(x)
             v_.delete()
         }
     })
-    .add('immu.VektorNumber', function(){
-        var v = new immu.VektorNumber
+    .add('immer.VectorNumber', function(){
+        var v = new immer.VectorNumber
         for (var x = 0; x < N; ++x) {
             var v_ = v
             v = v.push(x)

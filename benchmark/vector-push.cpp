@@ -1,23 +1,23 @@
 
 #include <nonius/nonius_single.h++>
 
-#include <immu/vector.hpp>
-#include <immu/array.hpp>
-#include <immu/flex_vector.hpp>
+#include <immer/vector.hpp>
+#include <immer/array.hpp>
+#include <immer/flex_vector.hpp>
 
-#if IMMU_BENCHMARK_EXPERIMENTAL
-#include <immu/experimental/dvektor.hpp>
+#if IMMER_BENCHMARK_EXPERIMENTAL
+#include <immer/experimental/dvektor.hpp>
 #endif
 
-#include <immu/heap/gc_heap.hpp>
-#include <immu/refcount/no_refcount_policy.hpp>
-#include <immu/refcount/unsafe_refcount_policy.hpp>
+#include <immer/heap/gc_heap.hpp>
+#include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/refcount/unsafe_refcount_policy.hpp>
 
 #include <vector>
 #include <list>
 #include <numeric>
 
-#if IMMU_BENCHMARK_LIBRRB
+#if IMMER_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
 #include <rrb.h>
@@ -51,7 +51,7 @@ NONIUS_BENCHMARK("std::list", [] (nonius::parameters params)
     };
 })
 
-#if IMMU_BENCHMARK_LIBRRB
+#if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 {
     auto n = params.get<N>();
@@ -83,28 +83,28 @@ auto generic()
     };
 };
 
-using gc_memory     = immu::memory_policy<immu::heap_policy<immu::gc_heap>, immu::no_refcount_policy>;
-using basic_memory  = immu::memory_policy<immu::heap_policy<immu::malloc_heap>, immu::refcount_policy>;
-using unsafe_memory = immu::memory_policy<immu::default_heap_policy, immu::unsafe_refcount_policy>;
+using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
+using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
+using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("flex_vector/5B", generic<immu::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("flex_vector/5B", generic<immer::flex_vector<unsigned,5>>())
 
-NONIUS_BENCHMARK("vektor/4B",  generic<immu::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",  generic<immu::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",  generic<immu::vector<unsigned,6>>())
+NONIUS_BENCHMARK("vektor/4B",  generic<immer::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B",  generic<immer::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B",  generic<immer::vector<unsigned,6>>())
 
-NONIUS_BENCHMARK("vektor/GC",  generic<immu::vector<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("vektor/NO",  generic<immu::vector<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("vektor/UN",  generic<immu::vector<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("vektor/GC",  generic<immer::vector<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("vektor/NO",  generic<immer::vector<unsigned,5,basic_memory>>())
+NONIUS_BENCHMARK("vektor/UN",  generic<immer::vector<unsigned,5,unsafe_memory>>())
 
-#if IMMU_BENCHMARK_EXPERIMENTAL
-NONIUS_BENCHMARK("dvektor/4B", generic<immu::dvektor<unsigned,4>>())
-NONIUS_BENCHMARK("dvektor/5B", generic<immu::dvektor<unsigned,5>>())
-NONIUS_BENCHMARK("dvektor/6B", generic<immu::dvektor<unsigned,6>>())
+#if IMMER_BENCHMARK_EXPERIMENTAL
+NONIUS_BENCHMARK("dvektor/4B", generic<immer::dvektor<unsigned,4>>())
+NONIUS_BENCHMARK("dvektor/5B", generic<immer::dvektor<unsigned,5>>())
+NONIUS_BENCHMARK("dvektor/6B", generic<immer::dvektor<unsigned,6>>())
 
-NONIUS_BENCHMARK("dvektor/GC", generic<immu::dvektor<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("dvektor/NO", generic<immu::dvektor<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("dvektor/UN", generic<immu::dvektor<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("dvektor/GC", generic<immer::dvektor<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("dvektor/NO", generic<immer::dvektor<unsigned,5,basic_memory>>())
+NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,5,unsafe_memory>>())
 #endif
 
-NONIUS_BENCHMARK("array",    generic<immu::array<unsigned>, 10000>())
+NONIUS_BENCHMARK("array",    generic<immer::array<unsigned>, 10000>())

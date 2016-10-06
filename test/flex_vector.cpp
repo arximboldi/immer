@@ -1,5 +1,5 @@
 
-#include <immu/flex_vector.hpp>
+#include <immer/flex_vector.hpp>
 
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
@@ -8,7 +8,7 @@
 #include <numeric>
 #include <vector>
 
-using namespace immu;
+using namespace immer;
 
 namespace {
 
@@ -184,7 +184,7 @@ TEST_CASE("push_front")
     auto v = flex_vector<unsigned, 3>{};
 
     for (auto i = 0u; i < n; ++i) {
-        IMMU_TRACE("\n-- push_front: " << i);
+        IMMER_TRACE("\n-- push_front: " << i);
         v = v.push_front(i);
         CHECK(v.size() == i + 1);
         for (auto j = 0u; j < v.size(); ++j)
@@ -203,7 +203,7 @@ TEST_CASE("concat")
     {
         for (auto i = 0u; i < n; ++i) {
             auto c = all_lhs[i] + all_rhs[n - i - 1];
-            IMMU_TRACE("\n-- concat: " << i);
+            IMMER_TRACE("\n-- concat: " << i);
             CHECK(c.size() == n - 1);
             for (auto j = 0u; j < c.size(); ++j)
                 CHECK(c[j] == j);
@@ -262,7 +262,7 @@ TEST_CASE("reduce")
 
         auto v  = flex_vector<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
-            IMMU_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
+            IMMER_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
             v = v.push_front(i) + v;
         }
         /*

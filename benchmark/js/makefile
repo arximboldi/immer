@@ -7,23 +7,23 @@ EMCXXFLAGS=-O3 -std=c++14 --bind \
 	-I $(BOOST)
 
 ALL= \
-	out/immu.asmjs.js \
-	out/immu.asmjs.html \
-	out/immu.wasm.js \
-	out/immu.wasm.html
+	out/immer.asmjs.js \
+	out/immer.asmjs.html \
+	out/immer.wasm.js \
+	out/immer.wasm.html
 
 all: $(ALL)
 
-out/immu.asmjs.js: immu.cpp
+out/immer.asmjs.js: immer.cpp
 	@mkdir -p $(@D)
 	$(EMCXX) $(EMCXXFLAGS) $< -o $@
 
-out/immu.wasm.js: immu.cpp
+out/immer.wasm.js: immer.cpp
 	@mkdir -p $(@D)
 	EMCC_WASM_BACKEND=1 $(EMCXX) $(EMCXXFLAGS) -s BINARYEN=1 $< -o $@
 
 %.html: %.js index.tpl.html
-	sed s/%IMMU_JS%/`basename $<`/ < index.tpl.html > $@
+	sed s/%IMMER_JS%/`basename $<`/ < index.tpl.html > $@
 
 clean:
 	rm -f $(ALL)
