@@ -87,15 +87,15 @@ using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, i
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("flex_vector/5B", generic<immer::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,5>>())
 
-NONIUS_BENCHMARK("vektor/4B",  generic<immer::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",  generic<immer::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",  generic<immer::vector<unsigned,6>>())
+NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vector/6B",  generic<immer::vector<unsigned,6>>())
 
-NONIUS_BENCHMARK("vektor/GC",  generic<immer::vector<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("vektor/NO",  generic<immer::vector<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("vektor/UN",  generic<immer::vector<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("vector/GC",  generic<immer::vector<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("vector/NO",  generic<immer::vector<unsigned,5,basic_memory>>())
+NONIUS_BENCHMARK("vector/UN",  generic<immer::vector<unsigned,5,unsafe_memory>>())
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
 NONIUS_BENCHMARK("dvektor/4B", generic<immer::dvektor<unsigned,4>>())

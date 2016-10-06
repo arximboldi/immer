@@ -92,10 +92,10 @@ auto generic()
     };
 };
 
-NONIUS_BENCHMARK("flex_vector/5B",  generic<immer::flex_vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/4B",   generic<immer::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",   generic<immer::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",   generic<immer::vector<unsigned,6>>())
+NONIUS_BENCHMARK("flex/5B",     generic<immer::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("vector/4B",   generic<immer::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vector/5B",   generic<immer::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vector/6B",   generic<immer::vector<unsigned,6>>())
 #if IMMER_BENCHMARK_EXPERIMENTAL
 NONIUS_BENCHMARK("dvektor/4B",  generic<immer::dvektor<unsigned,4>>())
 NONIUS_BENCHMARK("dvektor/5B",  generic<immer::dvektor<unsigned,5>>())
