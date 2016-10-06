@@ -209,7 +209,10 @@ foreach(_file IN LISTS immu_benchmarks)
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(benchmarks ${_target})
   target_link_libraries(${_target} PUBLIC ${immu_benchmark_libs})
-  target_compile_definitions(${_target} PUBLIC NONIUS_RUNNER IMMU_BENCHMARK_LIBRRB=1)
+  target_compile_definitions(${_target} PUBLIC
+    NONIUS_RUNNER
+    IMMU_BENCHMARK_LIBRRB=1
+    IMMU_BENCHMARK_EXPERIMENTAL=0)
   target_include_directories(${_target} PUBLIC ${immu_benchmark_include_dirs})
   if (immu_benchmark_param)
     add_test(${_target} ${_target} -v

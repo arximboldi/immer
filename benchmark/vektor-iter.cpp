@@ -2,9 +2,12 @@
 #include <nonius/nonius_single.h++>
 
 #include <immu/vektor.hpp>
-#include <immu/dvektor.hpp>
 #include <immu/ivektor.hpp>
 #include <immu/rvektor.hpp>
+
+#if IMMU_BENCHMARK_EXPERIMENTAL
+#include <immu/experimental/dvektor.hpp>
+#endif
 
 #include <vector>
 #include <list>
@@ -62,9 +65,11 @@ auto generic()
 NONIUS_BENCHMARK("vektor/4B",   generic<immu::vektor<unsigned,4>>())
 NONIUS_BENCHMARK("vektor/5B",   generic<immu::vektor<unsigned,5>>())
 NONIUS_BENCHMARK("vektor/6B",   generic<immu::vektor<unsigned,6>>())
+#if IMMU_BENCHMARK_EXPERIMENTAL
 NONIUS_BENCHMARK("dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
 NONIUS_BENCHMARK("dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
 NONIUS_BENCHMARK("dvektor/6B",  generic<immu::dvektor<unsigned,6>>())
+#endif
 NONIUS_BENCHMARK("ivektor",     generic<immu::ivektor<unsigned>, 10000>())
 
 template <typename Vektor,
