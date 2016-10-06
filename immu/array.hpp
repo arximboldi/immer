@@ -1,13 +1,15 @@
 
 #pragma once
 
-#include <immu/detail/ivektor.hpp>
+#include <immu/detail/array_impl.hpp>
 
 namespace immu {
 
 template <typename T>
-class ivektor
+class array
 {
+    using impl_t = detail::array_impl<T>;
+
 public:
     using value_type = T;
     using reference = const T&;
@@ -19,7 +21,7 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = typename std::vector<T>::reverse_iterator;
 
-    ivektor() = default;
+    array() = default;
 
     iterator begin() const { return impl_.d->begin(); }
     iterator end()   const { return impl_.d->end(); }
@@ -33,19 +35,19 @@ public:
     reference operator[] (size_type index) const
     { return impl_.get(index); }
 
-    ivektor push_back(value_type value) const
+    array push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
-    ivektor assoc(std::size_t idx, value_type value) const
+    array assoc(std::size_t idx, value_type value) const
     { return { impl_.assoc(idx, std::move(value)) }; }
 
     template <typename FnT>
-    ivektor update(std::size_t idx, FnT&& fn) const
+    array update(std::size_t idx, FnT&& fn) const
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
 private:
-    ivektor(detail::ivektor::impl<T> impl) : impl_(std::move(impl)) {}
-    detail::ivektor::impl<T> impl_ = detail::ivektor::empty<T>;
+    array(impl_t impl) : impl_(std::move(impl)) {}
+    impl_t impl_ = impl_t::empty;
 };
 
 } /* namespace immu */

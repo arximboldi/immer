@@ -2,7 +2,7 @@
 #include <nonius/nonius_single.h++>
 
 #include <immu/vector.hpp>
-#include <immu/ivektor.hpp>
+#include <immu/array.hpp>
 #include <immu/flex_vector.hpp>
 
 #if IMMU_BENCHMARK_EXPERIMENTAL
@@ -107,4 +107,4 @@ NONIUS_BENCHMARK("dvektor/NO", generic<immu::dvektor<unsigned,5,basic_memory>>()
 NONIUS_BENCHMARK("dvektor/UN", generic<immu::dvektor<unsigned,5,unsafe_memory>>())
 #endif
 
-NONIUS_BENCHMARK("ivektor",    generic<immu::ivektor<unsigned>, 10000>())
+NONIUS_BENCHMARK("array",    generic<immu::array<unsigned>, 10000>())

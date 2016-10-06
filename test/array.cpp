@@ -1,5 +1,5 @@
 
-#include <immu/ivektor.hpp>
+#include <immu/array.hpp>
 
 #include <doctest.h>
 #include <boost/range/adaptors.hpp>
@@ -12,7 +12,7 @@ using namespace immu;
 
 TEST_CASE("instantiation")
 {
-    auto v = ivektor<int>{};
+    auto v = array<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -20,7 +20,7 @@ TEST_CASE("push back one element")
 {
     SUBCASE("one element")
     {
-        const auto v1 = ivektor<int>{};
+        const auto v1 = array<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -30,7 +30,7 @@ TEST_CASE("push back one element")
     SUBCASE("many elements")
     {
         const auto n = 666u;
-        auto v = ivektor<unsigned>{};
+        auto v = array<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -43,7 +43,7 @@ TEST_CASE("push back one element")
 TEST_CASE("update")
 {
     const auto n = 42;
-    auto v = ivektor<unsigned>{};
+    auto v = array<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -75,7 +75,7 @@ TEST_CASE("update")
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = ivektor<unsigned>{};
+    auto v = array<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
