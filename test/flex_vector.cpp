@@ -1,5 +1,5 @@
 
-#include <immu/rvektor.hpp>
+#include <immu/flex_vector.hpp>
 
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
@@ -13,27 +13,27 @@ using namespace immu;
 namespace {
 
 template <unsigned B=5>
-auto make_test_rvektor(std::size_t min, std::size_t max)
+auto make_test_flex_vector(std::size_t min, std::size_t max)
 {
-    auto v = rvektor<unsigned, B>{};
+    auto v = flex_vector<unsigned, B>{};
     for (auto i = min; i < max; ++i)
         v = v.push_back(i);
     return v;
 }
 
 template <unsigned B=5>
-auto make_test_rvektor_front(std::size_t min, std::size_t max)
+auto make_test_flex_vector_front(std::size_t min, std::size_t max)
 {
-    auto v = rvektor<unsigned, B>{};
+    auto v = flex_vector<unsigned, B>{};
     for (auto i = max; i > min;)
         v = v.push_front(--i);
     return v;
 }
 
 template <unsigned B=5>
-auto make_many_test_rvektor(std::size_t n)
+auto make_many_test_flex_vector(std::size_t n)
 {
-    using vektor_t = immu::rvektor<unsigned, B>;
+    using vektor_t = flex_vector<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
@@ -47,23 +47,23 @@ auto make_many_test_rvektor(std::size_t n)
 }
 
 template <unsigned B=5>
-auto make_many_test_rvektor_front(std::size_t n)
+auto make_many_test_flex_vector_front(std::size_t n)
 {
-    using vektor_t = immu::rvektor<unsigned, B>;
+    using vektor_t = flex_vector<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
                     [i = 0u] () mutable
                     {
-                        return make_test_rvektor_front<B>(0, i++);
+                        return make_test_flex_vector_front<B>(0, i++);
                     });
     return many;
 }
 
 template <unsigned B=5>
-auto make_many_test_rvektor_front_remainder(std::size_t n)
+auto make_many_test_flex_vector_front_remainder(std::size_t n)
 {
-    using vektor_t = immu::rvektor<unsigned, B>;
+    using vektor_t = flex_vector<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
@@ -80,7 +80,7 @@ auto make_many_test_rvektor_front_remainder(std::size_t n)
 
 TEST_CASE("instantiation")
 {
-    auto v = rvektor<int>{};
+    auto v = flex_vector<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -88,7 +88,7 @@ TEST_CASE("push_back")
 {
     SECTION("one element")
     {
-        const auto v1 = rvektor<int>{};
+        const auto v1 = flex_vector<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -98,7 +98,7 @@ TEST_CASE("push_back")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = rvektor<unsigned>{};
+        auto v = flex_vector<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -110,7 +110,7 @@ TEST_CASE("push_back")
     SECTION("many elements, small branching factor")
     {
         const auto n = 666u;
-        auto v = rvektor<unsigned, 3>{};
+        auto v = flex_vector<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -123,7 +123,7 @@ TEST_CASE("push_back")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = make_test_rvektor(0, n);
+    auto v = make_test_flex_vector(0, n);
 
     SECTION("assoc")
     {
@@ -138,7 +138,7 @@ TEST_CASE("update")
 
     SECTION("assoc further")
     {
-        auto v = make_test_rvektor(0, 666u);
+        auto v = make_test_flex_vector(0, 666u);
         auto u = v.assoc(3u, 13u);
         u = u.assoc(200u, 7u);
         CHECK(u.size() == v.size());
@@ -157,7 +157,7 @@ TEST_CASE("update")
 
     SECTION("assoc further more")
     {
-        auto v = make_test_rvektor<4>(0, 1000u);
+        auto v = make_test_flex_vector<4>(0, 1000u);
         for (auto i = 0u; i < v.size(); ++i) {
             v = v.assoc(i, i+1);
             CHECK(v[i] == i+1);
@@ -181,7 +181,7 @@ TEST_CASE("update")
 TEST_CASE("push_front")
 {
     const auto n = 666u;
-    auto v = rvektor<unsigned, 3>{};
+    auto v = flex_vector<unsigned, 3>{};
 
     for (auto i = 0u; i < n; ++i) {
         IMMU_TRACE("\n-- push_front: " << i);
@@ -196,8 +196,8 @@ TEST_CASE("concat")
 {
     const auto n = 666u;
 
-    auto all_lhs = make_many_test_rvektor<3>(n);
-    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n);
+    auto all_lhs = make_many_test_flex_vector<3>(n);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n);
 
     SECTION("anywhere")
     {
@@ -212,22 +212,22 @@ TEST_CASE("concat")
 }
 
 template <unsigned B=5>
-auto make_rvektor_concat(std::size_t min, std::size_t max)
+auto make_flex_vector_concat(std::size_t min, std::size_t max)
 {
-    using vektor_t = immu::rvektor<unsigned, B>;
+    using vektor_t = flex_vector<unsigned, B>;
     if (max == min)
         return vektor_t{};
     else if (max == min + 1)
         return vektor_t{}.push_back(min);
     auto mid = min + (max - min) / 2;
-    return make_rvektor_concat<B>(min, mid)
-        +  make_rvektor_concat<B>(mid, max);
+    return make_flex_vector_concat<B>(min, mid)
+        +  make_flex_vector_concat<B>(mid, max);
 }
 
 TEST_CASE("concat recursive")
 {
     const auto n = 666u;
-    auto v = make_rvektor_concat<3>(0, n);
+    auto v = make_flex_vector_concat<3>(0, n);
 
     CHECK(v.size() == n);
     for (auto i = 0u; i < n; ++i)
@@ -239,7 +239,7 @@ TEST_CASE("reduce")
     SECTION("sum regular")
     {
         const auto n = 666u;
-        auto v = make_test_rvektor(0, n);
+        auto v = make_test_flex_vector(0, n);
 
         auto sum = v.reduce(std::plus<unsigned>{}, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
@@ -249,7 +249,7 @@ TEST_CASE("reduce")
     SECTION("sum relaxed")
     {
         const auto n = 666u;
-        auto v = make_test_rvektor_front(0, n);
+        auto v = make_test_flex_vector_front(0, n);
 
         auto sum = v.reduce(std::plus<unsigned>{}, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
@@ -260,7 +260,7 @@ TEST_CASE("reduce")
     {
         const auto n = 20u;
 
-        auto v  = rvektor<unsigned, 3>{};
+        auto v  = flex_vector<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             IMMU_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
             v = v.push_front(i) + v;
@@ -284,7 +284,7 @@ TEST_CASE("take")
 
     SECTION("anywhere")
     {
-        auto v = make_test_rvektor<3>(0, n);
+        auto v = make_test_flex_vector<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.take(i);
@@ -296,7 +296,7 @@ TEST_CASE("take")
 
     SECTION("relaxed")
     {
-        auto v = make_test_rvektor_front<3>(0, n);
+        auto v = make_test_flex_vector_front<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.take(i);
@@ -313,7 +313,7 @@ TEST_CASE("drop")
 
     SECTION("regular")
     {
-        auto v = make_test_rvektor<3>(0, n);
+        auto v = make_test_flex_vector<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.drop(i);
@@ -325,7 +325,7 @@ TEST_CASE("drop")
 
     SECTION("relaxed")
     {
-        auto v = make_test_rvektor_front<3>(0, n);
+        auto v = make_test_flex_vector_front<3>(0, n);
 
         for (auto i = 0u; i < n; ++i) {
             auto vv = v.drop(i);
@@ -339,9 +339,9 @@ TEST_CASE("drop")
 TEST_CASE("reconcat")
 {
     const auto n = 666u;
-    auto v = make_test_rvektor_front<3>(0, n);
-    auto all_lhs = make_many_test_rvektor_front<3>(n + 1);
-    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n + 1);
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + all_rhs[n - i];
@@ -354,8 +354,8 @@ TEST_CASE("reconcat")
 TEST_CASE("reconcat drop")
 {
     const auto n = 666u;
-    auto v = make_test_rvektor_front<3>(0, n);
-    auto all_lhs = make_many_test_rvektor_front<3>(n + 1);
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + v.drop(i);
@@ -368,8 +368,8 @@ TEST_CASE("reconcat drop")
 TEST_CASE("reconcat take")
 {
     const auto n = 666u;
-    auto v = make_test_rvektor_front<3>(0, n);
-    auto all_rhs = make_many_test_rvektor_front_remainder<3>(n + 1);
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = v.take(i) + all_rhs[n - i];
@@ -382,7 +382,7 @@ TEST_CASE("reconcat take")
 TEST_CASE("reconcat take drop")
 {
     const auto n = 666u;
-    auto v = make_test_rvektor_front<3>(0, n);
+    auto v = make_test_flex_vector_front<3>(0, n);
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = v.take(i) + v.drop(i);
@@ -395,7 +395,7 @@ TEST_CASE("reconcat take drop")
 TEST_CASE("reconcat take drop feedback")
 {
     const auto n = 666u;
-    auto v = make_test_rvektor_front<3>(0, n);
+    auto v = make_test_flex_vector_front<3>(0, n);
     auto vv = v;
     for (auto i = 0u; i < n; ++i) {
         vv = vv.take(i) + vv.drop(i);

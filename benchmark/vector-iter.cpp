@@ -3,7 +3,7 @@
 
 #include <immu/vector.hpp>
 #include <immu/ivektor.hpp>
-#include <immu/rvektor.hpp>
+#include <immu/flex_vector.hpp>
 
 #if IMMU_BENCHMARK_EXPERIMENTAL
 #include <immu/experimental/dvektor.hpp>
@@ -92,7 +92,7 @@ auto reduce_generic()
     };
 }
 
-NONIUS_BENCHMARK("rvektor/5B/reduce",  reduce_generic<immu::rvektor<unsigned,5>>())
+NONIUS_BENCHMARK("flex_vector/5B/reduce",  reduce_generic<immu::flex_vector<unsigned,5>>())
 NONIUS_BENCHMARK("vektor/4B/reduce",   reduce_generic<immu::vector<unsigned,4>>())
 NONIUS_BENCHMARK("vektor/5B/reduce",   reduce_generic<immu::vector<unsigned,5>>())
 NONIUS_BENCHMARK("vektor/6B/reduce",   reduce_generic<immu::vector<unsigned,6>>())

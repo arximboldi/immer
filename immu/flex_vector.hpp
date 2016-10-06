@@ -10,7 +10,7 @@ namespace immu {
 template <typename T,
           int B = 5,
           typename MemoryPolicy = default_memory_policy>
-class rvektor
+class flex_vector
 {
     using impl_t = detail::rrbtree<T, B, MemoryPolicy>;
 
@@ -25,7 +25,7 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    rvektor() = default;
+    flex_vector() = default;
 
     iterator begin() const { return {impl_}; }
     iterator end()   const { return {impl_, typename iterator::end_t{}}; }
@@ -39,20 +39,20 @@ public:
     reference operator[] (size_type index) const
     { return impl_.get(index); }
 
-    rvektor push_back(value_type value) const
+    flex_vector push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
-    rvektor assoc(std::size_t idx, value_type value) const
+    flex_vector assoc(std::size_t idx, value_type value) const
     { return { impl_.assoc(idx, std::move(value)) }; }
 
     template <typename FnT>
-    rvektor update(std::size_t idx, FnT&& fn) const
+    flex_vector update(std::size_t idx, FnT&& fn) const
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
-    rvektor take(std::size_t elems) const
+    flex_vector take(std::size_t elems) const
     { return { impl_.take(elems) }; }
 
-    rvektor drop(std::size_t elems) const
+    flex_vector drop(std::size_t elems) const
     { return { impl_.drop(elems) }; }
 
     template <typename Step, typename State>
@@ -60,11 +60,11 @@ public:
     { return impl_.reduce(std::forward<Step>(step),
                           std::forward<State>(init)); }
 
-    friend rvektor operator+ (const rvektor& l, const rvektor& r)
+    friend flex_vector operator+ (const flex_vector& l, const flex_vector& r)
     { return l.impl_.concat(r.impl_); }
 
-    rvektor push_front(value_type value) const
-    { return rvektor{}.push_back(value) + *this; }
+    flex_vector push_front(value_type value) const
+    { return flex_vector{}.push_back(value) + *this; }
 
 #if IMMU_DEBUG_PRINT
     void debug_print() const
@@ -72,13 +72,13 @@ public:
 #endif
 
 private:
-    rvektor(impl_t impl)
+    flex_vector(impl_t impl)
         : impl_(std::move(impl))
     {
 #if IMMU_DEBUG_PRINT
         // force the compiler to generate debug_print, so we can call
         // it from a debugger
-        [](volatile auto){}(&rvektor::debug_print);
+        [](volatile auto){}(&flex_vector::debug_print);
 #endif
     }
     impl_t impl_ = impl_t::empty;

@@ -3,7 +3,7 @@
 
 #include <immu/vector.hpp>
 #include <immu/ivektor.hpp>
-#include <immu/rvektor.hpp>
+#include <immu/flex_vector.hpp>
 
 #if IMMU_BENCHMARK_EXPERIMENTAL
 #include <immu/experimental/dvektor.hpp>
@@ -87,7 +87,7 @@ using gc_memory     = immu::memory_policy<immu::heap_policy<immu::gc_heap>, immu
 using basic_memory  = immu::memory_policy<immu::heap_policy<immu::malloc_heap>, immu::refcount_policy>;
 using unsafe_memory = immu::memory_policy<immu::default_heap_policy, immu::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("rvektor/5B", generic<immu::rvektor<unsigned,5>>())
+NONIUS_BENCHMARK("flex_vector/5B", generic<immu::flex_vector<unsigned,5>>())
 
 NONIUS_BENCHMARK("vektor/4B",  generic<immu::vector<unsigned,4>>())
 NONIUS_BENCHMARK("vektor/5B",  generic<immu::vector<unsigned,5>>())
