@@ -187,7 +187,7 @@ TEST_CASE("push_front")
         IMMU_TRACE("\n-- push_front: " << i);
         v = v.push_front(i);
         CHECK(v.size() == i + 1);
-        for (auto j = 0; j < v.size(); ++j)
+        for (auto j = 0u; j < v.size(); ++j)
             CHECK(v[v.size() - j - 1] == j);
     }
 }
