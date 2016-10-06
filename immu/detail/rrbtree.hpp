@@ -4,27 +4,17 @@
 #include <immu/config.hpp>
 #include <immu/detail/vnode.hpp>
 
-#include <boost/iterator/iterator_facade.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include <cassert>
 #include <memory>
 #include <numeric>
 
 namespace immu {
 namespace detail {
-namespace rvektor {
-
-template <int B, typename T=std::size_t>
-constexpr T branches = T{1} << B;
-
-template <int B, typename T=std::size_t>
-constexpr T mask = branches<B, T> - 1;
 
 template <typename T,
           int B,
           typename MemoryPolicy>
-struct impl
+struct rrbtree
 {
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
@@ -37,40 +27,40 @@ struct impl
     node_t*     root;
     node_t*     tail;
 
-    static const impl empty;
+    static const rrbtree empty;
 
-    impl(std::size_t sz, unsigned sh, node_t* r, node_t* t)
+    rrbtree(std::size_t sz, unsigned sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {
         assert(check_tree());
     }
 
-    impl(const impl& other)
-        : impl{other.size, other.shift, other.root, other.tail}
+    rrbtree(const rrbtree& other)
+        : rrbtree{other.size, other.shift, other.root, other.tail}
     {
         inc();
     }
 
-    impl(impl&& other)
-        : impl{empty}
+    rrbtree(rrbtree&& other)
+        : rrbtree{empty}
     {
         swap(*this, other);
     }
 
-    impl& operator=(const impl& other)
+    rrbtree& operator=(const rrbtree& other)
     {
         auto next{other};
         swap(*this, next);
         return *this;
     }
 
-    impl& operator=(impl&& other)
+    rrbtree& operator=(rrbtree&& other)
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(impl& x, impl& y)
+    friend void swap(rrbtree& x, rrbtree& y)
     {
         using std::swap;
         swap(x.size,  y.size);
@@ -79,7 +69,7 @@ struct impl
         swap(x.tail,  y.tail);
     }
 
-    ~impl()
+    ~rrbtree()
     {
         dec();
     }
@@ -383,7 +373,7 @@ struct impl
         }
     }
 
-    impl push_back(T value) const
+    rrbtree push_back(T value) const
     {
         auto ts = tail_size();
         if (ts < branches<B>) {
@@ -407,7 +397,7 @@ struct impl
     }
 
     template <typename FnT>
-    impl update(std::size_t idx, FnT&& fn) const
+    rrbtree update(std::size_t idx, FnT&& fn) const
     {
         auto tail_off = tail_offset();
         if (idx >= tail_off) {
@@ -514,7 +504,7 @@ struct impl
         }
     }
 
-    impl assoc(std::size_t idx, T value) const
+    rrbtree assoc(std::size_t idx, T value) const
     {
         return update(idx, [&] (auto&&) {
                 return std::move(value);
@@ -616,7 +606,7 @@ struct impl
         }
     }
 
-    impl take(std::size_t new_size) const
+    rrbtree take(std::size_t new_size) const
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
@@ -737,7 +727,7 @@ struct impl
         }
     }
 
-    impl drop(std::size_t elems) const
+    rrbtree drop(std::size_t elems) const
     {
         if (elems == 0) {
             return *this;
@@ -760,7 +750,7 @@ struct impl
         return *this;
     }
 
-    impl concat(const impl& r) const
+    rrbtree concat(const rrbtree& r) const
     {
         using std::get;
         if (size == 0)
@@ -1311,103 +1301,12 @@ struct impl
 };
 
 template <typename T, int B, typename MP>
-const impl<T, B, MP> impl<T, B, MP>::empty = {
+const rrbtree<T, B, MP> rrbtree<T, B, MP>::empty = {
     0,
     B,
     node_t::make_inner(),
     node_t::make_leaf()
 };
 
-template <typename T, int B, typename MP>
-struct iterator : boost::iterator_facade<
-    iterator<T, B, MP>,
-    T,
-    boost::random_access_traversal_tag,
-    const T&>
-{
-    struct end_t {};
-
-    iterator() = default;
-
-    iterator(const impl<T, B, MP>& v)
-        : v_    { &v }
-        , i_    { 0 }
-        , base_ { 0 }
-          //, curr_ { v.array_for(0) } // WIP
-    {
-    }
-
-    iterator(const impl<T, B, MP>& v, end_t)
-        : v_    { &v }
-        , i_    { v.size }
-        , base_ { i_ - (i_ & mask<B>) }
-          //, curr_ { v.array_for(i_ - 1) + (i_ - base_) } // WIP
-    {}
-
-private:
-    friend class boost::iterator_core_access;
-
-    const impl<T, B, MP>* v_;
-    std::size_t       i_;
-    std::size_t       base_;
-    const T*          curr_;
-
-    void increment()
-    {
-        assert(i_ < v_->size);
-        ++i_;
-        if (i_ - base_ < branches<B>) {
-            ++curr_;
-        } else {
-            base_ += branches<B>;
-            curr_ = v_->array_for(i_);
-        }
-    }
-
-    void decrement()
-    {
-        assert(i_ > 0);
-        --i_;
-        if (i_ >= base_) {
-            --curr_;
-        } else {
-            base_ -= branches<B>;
-            curr_ = v_->array_for(i_) + (branches<B> - 1);
-        }
-    }
-
-    void advance(std::ptrdiff_t n)
-    {
-        assert(n <= 0 || i_ + static_cast<std::size_t>(n) <= v_->size);
-        assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
-
-        i_ += n;
-        if (i_ <= base_ && i_ - base_ < branches<B>) {
-            curr_ += n;
-        } else {
-            base_ = i_ - (i_ & mask<B>);
-            curr_ = v_->array_for(i_) + (i_ - base_);
-        }
-    }
-
-    bool equal(const iterator& other) const
-    {
-        return i_ == other.i_;
-    }
-
-    std::ptrdiff_t distance_to(const iterator& other) const
-    {
-        return other.i_ > i_
-            ?   static_cast<std::ptrdiff_t>(other.i_ - i_)
-            : - static_cast<std::ptrdiff_t>(i_ - other.i_);
-    }
-
-    const T& dereference() const
-    {
-        return *curr_;
-    }
-};
-
-} /* namespace rvektor */
 } /* namespace detail */
 } /* namespace immu */
