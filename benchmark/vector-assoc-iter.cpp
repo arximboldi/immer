@@ -1,7 +1,7 @@
 
 #include <nonius/nonius_single.h++>
 
-#include <immu/vektor.hpp>
+#include <immu/vector.hpp>
 #include <immu/ivektor.hpp>
 #include <immu/rvektor.hpp>
 
@@ -15,7 +15,6 @@
 
 #include <vector>
 #include <list>
-#include <numeric>
 
 #if IMMU_BENCHMARK_LIBRRB
 extern "C" {
@@ -27,41 +26,38 @@ extern "C" {
 
 NONIUS_PARAM(N, std::size_t{1000})
 
-NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
+NONIUS_BENCHMARK("std::vector", [] (nonius::chronometer meter)
 {
-    auto n = params.get<N>();
+    auto n = meter.param<N>();
 
-    return [=] {
-        auto v = std::vector<unsigned>{};
+    auto v = std::vector<unsigned>(n);
+    std::iota(v.begin(), v.end(), 0u);
+
+    auto all = std::vector<std::vector<unsigned>>(meter.runs(), v);
+
+    meter.measure([&] (int iter) {
+        auto& r = all[iter];
         for (auto i = 0u; i < n; ++i)
-            v.push_back(i);
-        return v;
-    };
-})
-
-NONIUS_BENCHMARK("std::list", [] (nonius::parameters params)
-{
-    auto n = params.get<N>();
-
-    return [=] {
-        auto v = std::list<unsigned>{};
-        for (auto i = 0u; i < n; ++i)
-            v.push_back(i);
-        return v;
-    };
+            r[i] = n - i;
+        return r;
+    });
 })
 
 #if IMMU_BENCHMARK_LIBRRB
-NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
+NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
-    auto n = params.get<N>();
+    auto n = meter.param<N>();
 
-    return [=] {
-        auto v = rrb_create();
+    auto v = rrb_create();
+    for (auto i = 0u; i < n; ++i)
+        v = rrb_push(v, reinterpret_cast<void*>(i));
+
+    meter.measure([&] {
+        auto r = v;
         for (auto i = 0u; i < n; ++i)
-            v = rrb_push(v, reinterpret_cast<void*>(i));
-        return v;
-    };
+            r = rrb_update(r, i, reinterpret_cast<void*>(n - i));
+        return r;
+    });
 })
 #endif
 
@@ -69,17 +65,21 @@ template <typename Vektor,
           std::size_t Limit=std::numeric_limits<std::size_t>::max()>
 auto generic()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > Limit) n = 1;
 
-        return [=] {
-            auto v = Vektor{};
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_back(i);
+
+        meter.measure([&] {
+            auto r = v;
             for (auto i = 0u; i < n; ++i)
-                v = v.push_back(i);
-            return v;
-        };
+                r = v.assoc(i, n - i);
+            return r;
+        });
     };
 };
 
@@ -89,13 +89,13 @@ using unsafe_memory = immu::memory_policy<immu::default_heap_policy, immu::unsaf
 
 NONIUS_BENCHMARK("rvektor/5B", generic<immu::rvektor<unsigned,5>>())
 
-NONIUS_BENCHMARK("vektor/4B",  generic<immu::vektor<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",  generic<immu::vektor<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",  generic<immu::vektor<unsigned,6>>())
+NONIUS_BENCHMARK("vektor/4B",  generic<immu::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B",  generic<immu::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B",  generic<immu::vector<unsigned,6>>())
 
-NONIUS_BENCHMARK("vektor/GC",  generic<immu::vektor<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("vektor/NO",  generic<immu::vektor<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("vektor/UN",  generic<immu::vektor<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("vektor/GC",  generic<immu::vector<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("vektor/NO",  generic<immu::vector<unsigned,5,basic_memory>>())
+NONIUS_BENCHMARK("vektor/UN",  generic<immu::vector<unsigned,5,unsafe_memory>>())
 
 #if IMMU_BENCHMARK_EXPERIMENTAL
 NONIUS_BENCHMARK("dvektor/4B", generic<immu::dvektor<unsigned,4>>())

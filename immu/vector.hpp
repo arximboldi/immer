@@ -10,7 +10,7 @@ namespace immu {
 template <typename T,
           int B = 5,
           typename MemoryPolicy = default_memory_policy>
-class vektor
+class vector
 {
     using impl_t = detail::rbtree<T, B, MemoryPolicy>;
 
@@ -25,7 +25,7 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    vektor() = default;
+    vector() = default;
 
     iterator begin() const { return {impl_}; }
     iterator end()   const { return {impl_, typename iterator::end_t{}}; }
@@ -39,14 +39,14 @@ public:
     reference operator[] (size_type index) const
     { return impl_.get(index); }
 
-    vektor push_back(value_type value) const
+    vector push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
-    vektor assoc(std::size_t idx, value_type value) const
+    vector assoc(std::size_t idx, value_type value) const
     { return { impl_.assoc(idx, std::move(value)) }; }
 
     template <typename FnT>
-    vektor update(std::size_t idx, FnT&& fn) const
+    vector update(std::size_t idx, FnT&& fn) const
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
     template <typename Step, typename State>
@@ -55,7 +55,7 @@ public:
                           std::forward<State>(init)); }
 
 private:
-    vektor(impl_t impl) : impl_(std::move(impl)) {}
+    vector(impl_t impl) : impl_(std::move(impl)) {}
     impl_t impl_ = impl_t::empty;
 };
 

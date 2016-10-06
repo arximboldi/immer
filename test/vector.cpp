@@ -1,5 +1,5 @@
 
-#include <immu/vektor.hpp>
+#include <immu/vector.hpp>
 
 #include <doctest.h>
 #include <boost/range/adaptors.hpp>
@@ -12,7 +12,7 @@ using namespace immu;
 
 TEST_CASE("instantiation")
 {
-    auto v = vektor<int>{};
+    auto v = vector<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -20,7 +20,7 @@ TEST_CASE("push back one element")
 {
     SUBCASE("one element")
     {
-        const auto v1 = vektor<int>{};
+        const auto v1 = vector<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -30,7 +30,7 @@ TEST_CASE("push back one element")
     SUBCASE("many elements")
     {
         const auto n = 666u;
-        auto v = vektor<unsigned>{};
+        auto v = vector<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -43,7 +43,7 @@ TEST_CASE("push back one element")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = vektor<unsigned>{};
+    auto v = vector<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -81,7 +81,7 @@ TEST_CASE("update")
 
     SUBCASE("assoc further more")
     {
-        auto v = immu::vektor<unsigned, 4>{};
+        auto v = vector<unsigned, 4>{};
 
         for (auto i = n; i < 1000u; ++i)
             v = v.push_back(i);
@@ -109,7 +109,7 @@ TEST_CASE("update")
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = vektor<unsigned>{};
+    auto v = vector<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -170,7 +170,7 @@ TEST_CASE("iterator")
 TEST_CASE("reduce")
 {
     const auto n = 666u;
-    auto v = vektor<unsigned>{};
+    auto v = vector<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -186,7 +186,7 @@ TEST_CASE("vector of strings")
 {
     // check with valgrind
     const auto n = 666u;
-    auto v = immu::vektor<std::string>{};
+    auto v = vector<std::string>{};
 
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(std::to_string(i));
@@ -212,7 +212,7 @@ TEST_CASE("non default")
 {
     // check with valgrind
     const auto n = 666u;
-    auto v = immu::vektor<non_default>{};
+    auto v = vector<non_default>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back({ i });
     for (auto i = 0u; i < v.size(); ++i)

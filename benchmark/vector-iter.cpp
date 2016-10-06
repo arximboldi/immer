@@ -1,7 +1,7 @@
 
 #include <nonius/nonius_single.h++>
 
-#include <immu/vektor.hpp>
+#include <immu/vector.hpp>
 #include <immu/ivektor.hpp>
 #include <immu/rvektor.hpp>
 
@@ -62,9 +62,9 @@ auto generic()
     };
 }
 
-NONIUS_BENCHMARK("vektor/4B",   generic<immu::vektor<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B",   generic<immu::vektor<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B",   generic<immu::vektor<unsigned,6>>())
+NONIUS_BENCHMARK("vektor/4B",   generic<immu::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B",   generic<immu::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B",   generic<immu::vector<unsigned,6>>())
 #if IMMU_BENCHMARK_EXPERIMENTAL
 NONIUS_BENCHMARK("dvektor/4B",  generic<immu::dvektor<unsigned,4>>())
 NONIUS_BENCHMARK("dvektor/5B",  generic<immu::dvektor<unsigned,5>>())
@@ -93,6 +93,6 @@ auto reduce_generic()
 }
 
 NONIUS_BENCHMARK("rvektor/5B/reduce",  reduce_generic<immu::rvektor<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/4B/reduce",   reduce_generic<immu::vektor<unsigned,4>>())
-NONIUS_BENCHMARK("vektor/5B/reduce",   reduce_generic<immu::vektor<unsigned,5>>())
-NONIUS_BENCHMARK("vektor/6B/reduce",   reduce_generic<immu::vektor<unsigned,6>>())
+NONIUS_BENCHMARK("vektor/4B/reduce",   reduce_generic<immu::vector<unsigned,4>>())
+NONIUS_BENCHMARK("vektor/5B/reduce",   reduce_generic<immu::vector<unsigned,5>>())
+NONIUS_BENCHMARK("vektor/6B/reduce",   reduce_generic<immu::vector<unsigned,6>>())
