@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <immer/detail/vnode.hpp>
+#include <immer/detail/rbnode.hpp>
 
 #include <cassert>
 #include <memory>
@@ -18,7 +18,7 @@ struct rbtree
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
 
-    using node_t = vnode<T, B, MemoryPolicy>;
+    using node_t = rbnode<T, B, MemoryPolicy>;
     using heap   = typename node_t::heap;
 
     std::size_t size;

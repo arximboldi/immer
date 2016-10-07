@@ -5,9 +5,9 @@
 #include <cassert>
 
 #ifdef NDEBUG
-#define IMMER_TAGGED_VNODE 0
+#define IMMER_TAGGED_RBNODE 0
 #else
-#define IMMER_TAGGED_VNODE 1
+#define IMMER_TAGGED_RBNODE 1
 #endif
 
 namespace immer {
@@ -22,7 +22,7 @@ constexpr T mask = branches<B, T> - 1;
 template <typename T,
           int B,
           typename MemoryPolicy>
-struct vnode
+struct rbnode
 {
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
@@ -35,7 +35,7 @@ struct vnode
 
     struct impl_t : refcount::data
     {
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
         kind_t kind;
 #endif
 
@@ -49,7 +49,7 @@ struct vnode
                     std::size_t sizes[branches<B>];
                     unsigned count = 0u;
                 };
-                vnode*     elems[branches<B>];
+                rbnode*     elems[branches<B>];
                 relaxed_t* relaxed;
             };
 
@@ -61,14 +61,14 @@ struct vnode
         } data;
     };
 
-    using node_t = vnode;
+    using node_t = rbnode;
     using heap   = typename heap_policy::template apply<
         sizeof(impl_t)
     >::type;
 
     impl_t impl;
 
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
     kind_t kind() const
     {
         return impl.kind;
@@ -127,7 +127,7 @@ struct vnode
     {
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
         p->impl.data.inner.relaxed = nullptr;
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
         p->impl.kind = node_t::inner_kind;
 #endif
         return p;
@@ -139,7 +139,7 @@ struct vnode
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
         auto r = new (heap::allocate(sizeof(relaxed_t))) relaxed_t;
         p->impl.data.inner.relaxed = r;
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
         p->impl.kind = node_t::inner_kind;
 #endif
         return p;
@@ -148,7 +148,7 @@ struct vnode
     static node_t* make_leaf()
     {
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
         p->impl.kind = node_t::leaf_kind;
 #endif
         return p;

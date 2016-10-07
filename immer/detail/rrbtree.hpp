@@ -2,7 +2,7 @@
 #pragma once
 
 #include <immer/config.hpp>
-#include <immer/detail/vnode.hpp>
+#include <immer/detail/rbnode.hpp>
 
 #include <cassert>
 #include <memory>
@@ -19,7 +19,7 @@ struct rrbtree
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
 
-    using node_t = vnode<T, B, MemoryPolicy>;
+    using node_t = rbnode<T, B, MemoryPolicy>;
     using heap   = typename node_t::heap;
 
     std::size_t size;
@@ -1149,7 +1149,7 @@ struct rrbtree
         }
     }
 
-#if IMMER_TAGGED_VNODE
+#if IMMER_TAGGED_RBNODE
     static unsigned compute_shift(node_t* node)
     {
         if (node->kind() == node_t::leaf_kind)
