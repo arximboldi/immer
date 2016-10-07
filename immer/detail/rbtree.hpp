@@ -2,6 +2,8 @@
 #pragma once
 
 #include <immer/detail/rbnode.hpp>
+#include <immer/detail/rbpos.hpp>
+#include <immer/detail/rbalgorithm.hpp>
 
 #include <cassert>
 #include <memory>
@@ -77,21 +79,11 @@ struct rbtree
         tail->inc();
     }
 
-    struct dec_traversal
-    {
-        bool predicate(node_t* p)
-        { return p->dec(); }
-
-        void visit_inner(node_t* p)
-        { node_t::delete_inner(p); }
-
-        void visit_leaf(node_t* p, unsigned n)
-        { node_t::delete_leaf(p, n); }
-    };
-
     void dec() const
     {
-        traverse(dec_traversal{});
+        do_dec([&] (auto&& ...vs) {
+            visit_rbtree(*this, vs...);
+        });
     }
 
     auto tail_size() const
@@ -105,81 +97,11 @@ struct rbtree
     }
 
     template <typename Step, typename State>
-    struct reduce_traversal
-    {
-        Step fn;
-        State acc;
-
-        bool predicate(node_t*) { return true; }
-        void visit_inner(node_t* n) {}
-
-        void visit_leaf(node_t* n, unsigned elems)
-        {
-            acc = std::accumulate(n->leaf(),
-                                  n->leaf() + elems,
-                                  acc,
-                                  fn);
-        }
-    };
-
-    template <typename Step, typename State>
     State reduce(Step step, State init) const
     {
-        auto t = reduce_traversal<Step, State>{step, init};
-        traverse(t);
-        return t.acc;
-    }
-
-    template <typename Traversal>
-    void traverse_node_last(Traversal&& t, node_t* node, unsigned level) const
-    {
-        assert(level > 0);
-        assert(size > branches<B>);
-        if (t.predicate(node)) {
-            auto next = level - B;
-            auto last = ((tail_offset()-1) >> level) & mask<B>;
-            if (next == 0) {
-                for (auto i = node->inner(), e = i + last + 1; i != e; ++i)
-                    if (t.predicate(*i))
-                        t.visit_leaf(*i, branches<B>);
-            } else {
-                auto i = node->inner();
-                for (auto e = i + last; i != e; ++i)
-                    traverse_node_full(t, *i, next);
-                traverse_node_last(t, *i, next);
-            }
-            t.visit_inner(node);
-        }
-    }
-
-    template <typename Traversal>
-    void traverse_node_full(Traversal&& t, node_t* node, unsigned level) const
-    {
-        assert(level > 0);
-        assert(size > branches<B>);
-        if (t.predicate(node)) {
-            auto next = level - B;
-            if (next == 0) {
-                for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
-                    if (t.predicate(*i))
-                        t.visit_leaf(*i, branches<B>);
-            } else {
-                for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
-                    traverse_node_full(t, *i, next);
-            }
-            t.visit_inner(node);
-        }
-    }
-
-    template <typename Traversal>
-    void traverse(Traversal&& t) const
-    {
-        if (size > branches<B>)
-            traverse_node_last(t, root, shift);
-        else if (t.predicate(root))
-            t.visit_inner(root);
-        if (t.predicate(tail))
-            t.visit_leaf(tail, tail_size());
+        return do_reduce(step, init, [&] (auto&& ...vs) {
+                return visit_rbtree(*this, vs...);
+            });
     }
 
     const T* array_for(std::size_t index) const

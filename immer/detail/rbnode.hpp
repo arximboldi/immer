@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <immer/detail/rbbits.hpp>
+
 #include <memory>
 #include <cassert>
 
@@ -13,17 +15,13 @@
 namespace immer {
 namespace detail {
 
-template <int B, typename T=std::size_t>
-constexpr T branches = T{1} << B;
-
-template <int B, typename T=std::size_t>
-constexpr T mask = branches<B, T> - 1;
-
 template <typename T,
           int B,
           typename MemoryPolicy>
 struct rbnode
 {
+    static constexpr auto bits = B;
+
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
 
@@ -269,8 +267,16 @@ struct rbnode
     static void delete_inner(node_t* p)
     {
         assert(p->kind() == node_t::inner_kind);
+        assert(!p->relaxed());
+        heap::deallocate(p);
+    }
+
+    static void delete_inner_r(node_t* p)
+    {
+        assert(p->kind() == node_t::inner_kind);
         auto r = p->relaxed();
-        if (r) heap::deallocate(r);
+        assert(r);
+        heap::deallocate(r);
         heap::deallocate(p);
     }
 

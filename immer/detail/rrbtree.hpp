@@ -3,6 +3,8 @@
 
 #include <immer/config.hpp>
 #include <immer/detail/rbnode.hpp>
+#include <immer/detail/rbpos.hpp>
+#include <immer/detail/rbalgorithm.hpp>
 
 #include <cassert>
 #include <memory>
@@ -80,29 +82,26 @@ struct rrbtree
         tail->inc();
     }
 
-    struct dec_traversal
-    {
-        bool predicate(node_t* p)
-        { return p->dec(); }
-        void visit_inner(node_t* p)
-        { node_t::delete_inner(p); }
-        void visit_leaf(node_t* p, unsigned n)
-        { node_t::delete_leaf(p, n); }
-    };
-
     void dec() const
     {
-        traverse(dec_traversal{});
-    }
+        do_dec([&] (auto&& ...vs) {
+            visit_rrbtree(*this, vs...);
+        });
+     }
 
     static void dec_node(node_t* n, unsigned shift, std::size_t size)
     {
-        traverse(dec_traversal{}, n, shift, size);
+        do_dec([&] (auto&& ...vs) {
+            visit_maybe_relaxed(n, shift, size, vs...);
+        });
     }
 
     static void dec_node(node_t* n, unsigned shift)
     {
-        traverse(dec_traversal{}, n, shift);
+        assert(n->relaxed());
+        do_dec([&] (auto&& ...vs) {
+            make_relaxed_rbpos(n, shift, n->relaxed()).visit(vs...);
+        });
     }
 
     auto tail_size() const
@@ -121,142 +120,11 @@ struct rrbtree
     }
 
     template <typename Step, typename State>
-    struct reduce_traversal
-    {
-        Step fn;
-        State acc;
-
-        bool predicate(node_t*) { return true; }
-        void visit_inner(node_t* n) {}
-        void visit_leaf(node_t* n, unsigned elems)
-        {
-            acc = std::accumulate(n->leaf(),
-                                  n->leaf() + elems,
-                                  acc,
-                                  fn);
-        }
-    };
-
-    template <typename Step, typename State>
     State reduce(Step step, State init) const
     {
-        auto t = reduce_traversal<Step, State>{step, init};
-        traverse(t);
-        return t.acc;
-    }
-
-    template <typename Traversal>
-    static void traverse_node_relaxed(Traversal&& t,
-                                      node_t* node,
-                                      unsigned level,
-                                      std::size_t size = 0)
-    {
-        assert(level > 0);
-        assert(size || node->relaxed());
-        if (auto r = node->relaxed()) {
-            if (t.predicate(node)) {
-                auto count = r->count;
-                auto next = level - B;
-                if (next == 0) {
-                    auto c = node->inner();
-                    auto last_s = 0u;
-                    for (auto i = 0u; i < count; ++i) {
-                        if (t.predicate(c[i]))
-                            t.visit_leaf(c[i], r->sizes[i] - last_s);
-                        last_s = r->sizes[i];
-                    }
-                } else {
-                    auto c = node->inner();
-                    auto last_s = 0u;
-                    for (auto i = 0u; i < count; ++i) {
-                        traverse_node_relaxed(t, c[i], next,
-                                              r->sizes[i] - last_s);
-                        last_s = r->sizes[i];
-                    }
-                }
-                t.visit_inner(node);
-            }
-        } else {
-            traverse_node_regular(t, node, level, size);
-        }
-    }
-
-    template <typename Traversal>
-    static void traverse_node_regular(Traversal&& t,
-                                      node_t* node,
-                                      unsigned level,
-                                      std::size_t size)
-    {
-        assert(level > 0);
-        assert(size > 0);
-        if (t.predicate(node)) {
-            auto next = level - B;
-            auto last = ((size - 1) >> level) & mask<B>;
-            if (next == 0) {
-                auto i = node->inner();
-                for (auto e = i + last; i != e; ++i)
-                    if (t.predicate(*i))
-                        t.visit_leaf(*i, branches<B>);
-                if (t.predicate(*i)) {
-                    auto last_size = size & mask<B>;
-                    t.visit_leaf(*i, last_size ? last_size : branches<B>);
-                }
-            } else {
-                auto i = node->inner();
-                for (auto e = i + last; i != e; ++i)
-                    traverse_node_full(t, *i, next);
-                traverse_node_regular(t, *i, next, size);
-            }
-            t.visit_inner(node);
-        }
-    }
-
-    template <typename Traversal>
-    static void traverse_node_full(Traversal&& t, node_t* node, unsigned level)
-    {
-        assert(level > 0);
-        if (t.predicate(node)) {
-            auto next = level - B;
-            if (next == 0) {
-                for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
-                    if (t.predicate(*i))
-                        t.visit_leaf(*i, branches<B>);
-            } else {
-                for (auto i = node->inner(), e = i + branches<B>; i != e; ++i)
-                    traverse_node_full(t, *i, next);
-            }
-            t.visit_inner(node);
-        }
-    }
-
-    template <typename Traversal>
-    void traverse(Traversal&& t) const
-    {
-        auto to = tail_offset();
-        auto ts = size - to;
-        if (ts < size)
-            traverse_node_relaxed(t, root, shift, to);
-        else if (t.predicate(root))
-            t.visit_inner(root);
-        if (t.predicate(tail))
-            t.visit_leaf(tail, ts);
-    }
-
-    template <typename Traversal>
-    static void traverse(Traversal&& t,
-                         node_t* n,
-                         unsigned shift)
-    {
-        traverse_node_relaxed(t, n, shift);
-    }
-
-    template <typename Traversal>
-    static void traverse(Traversal&& t,
-                         node_t* n,
-                         unsigned shift,
-                         std::size_t size)
-    {
-        traverse_node_relaxed(t, n, shift, size);
+        return do_reduce(step, init, [&] (auto&& ...vs) {
+                return visit_rrbtree(*this, vs...);
+            });
     }
 
     const T* array_for(std::size_t& index) const
