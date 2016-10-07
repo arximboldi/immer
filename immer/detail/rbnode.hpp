@@ -33,32 +33,38 @@ struct rbnode
         inner_kind
     };
 
+    struct relaxed_t
+    {
+        std::size_t sizes[branches<B>];
+        unsigned    count;
+    };
+
+    struct leaf_t
+    {
+        T           items[branches<B>];
+    };
+
+    struct inner_t
+    {
+        rbnode*     children[branches<B>];
+        relaxed_t*  relaxed;
+    };
+
     struct impl_t : refcount::data
     {
 #if IMMER_TAGGED_RBNODE
         kind_t kind;
 #endif
-
         union data_t
         {
-            using  leaf_t = T[branches<B>];
-            struct inner_t
-            {
-                struct relaxed_t
-                {
-                    std::size_t sizes[branches<B>];
-                    unsigned count = 0u;
-                };
-                rbnode*     elems[branches<B>];
-                relaxed_t* relaxed;
-            };
-
             inner_t inner;
             leaf_t  leaf;
 
             data_t() {}
             ~data_t() {}
-        } data;
+        };
+
+        data_t data;
     };
 
     using node_t = rbnode;
@@ -75,25 +81,7 @@ struct rbnode
     }
 #endif
 
-    unsigned& slots()
-    {
-        assert(sizes());
-        return impl.data.inner.relaxed->count;
-    }
-
-    const unsigned& slots() const
-    {
-        assert(sizes());
-        return impl.data.inner.relaxed->count;
-    }
-
-    std::size_t* sizes()
-    {
-        assert(kind() == inner_kind);
-        return reinterpret_cast<std::size_t*>(impl.data.inner.relaxed);
-    }
-
-    const std::size_t* sizes() const
+    relaxed_t* relaxed()
     {
         assert(kind() == inner_kind);
         return impl.data.inner.relaxed;
@@ -102,25 +90,13 @@ struct rbnode
     node_t** inner()
     {
         assert(kind() == inner_kind);
-        return impl.data.inner.elems;
-    }
-
-    const node_t* const* inner() const
-    {
-        assert(kind() == inner_kind);
-        return impl.data.inner.elems;
+        return impl.data.inner.children;
     }
 
     T* leaf()
     {
         assert(kind() == leaf_kind);
-        return impl.data.leaf;
-    }
-
-    const T* leaf() const
-    {
-        assert(kind() == leaf_kind);
-        return impl.data.leaf;
+        return impl.data.leaf.items;
     }
 
     static node_t* make_inner()
@@ -135,9 +111,9 @@ struct rbnode
 
     static node_t* make_inner_r()
     {
-        using relaxed_t = typename impl_t::data_t::inner_t::relaxed_t;
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
         auto r = new (heap::allocate(sizeof(relaxed_t))) relaxed_t;
+        r->count = 0u;
         p->impl.data.inner.relaxed = r;
 #if IMMER_TAGGED_RBNODE
         p->impl.kind = node_t::inner_kind;
@@ -172,36 +148,40 @@ struct rbnode
     static node_t* make_inner_r(node_t* x)
     {
         auto p = make_inner_r();
+        auto r = p->relaxed();
         p->inner() [0] = x;
-        p->slots() = 1;
+        r->count = 1;
         return p;
     }
 
     static node_t* make_inner_r(node_t* x, std::size_t xs)
     {
         auto p = make_inner_r();
+        auto r = p->relaxed();
         p->inner() [0] = x;
-        p->sizes() [0] = xs;
-        p->slots() = 1;
+        r->sizes [0] = xs;
+        r->count = 1;
         return p;
     }
 
     static node_t* make_inner_r(node_t* x, node_t* y)
     {
         auto p = make_inner_r();
+        auto r = p->relaxed();
         p->inner() [0] = x;
         p->inner() [1] = y;
-        p->slots() = 2;
+        r->count = 2;
         return p;
     }
 
     static node_t* make_inner_r(node_t* x, std::size_t xs, node_t* y)
     {
         auto p = make_inner_r();
+        auto r = p->relaxed();
         p->inner() [0] = x;
         p->inner() [1] = y;
-        p->sizes() [0] = xs;
-        p->slots() = 2;
+        r->sizes [0] = xs;
+        r->count = 2;
         return p;
     }
 
@@ -209,11 +189,12 @@ struct rbnode
                                 node_t* y, std::size_t ys)
     {
         auto p = make_inner_r();
+        auto r = p->relaxed();
         p->inner() [0] = x;
         p->inner() [1] = y;
-        p->sizes() [0] = xs;
-        p->sizes() [1] = xs + ys;
-        p->slots() = 2;
+        r->sizes [0] = xs;
+        r->sizes [1] = xs + ys;
+        r->count = 2;
         return p;
     }
 
@@ -238,10 +219,12 @@ struct rbnode
     {
         assert(src->kind() == node_t::inner_kind);
         auto dst = make_inner_r();
+        auto src_r = src->relaxed();
+        auto dst_r = dst->relaxed();
         inc_nodes(src->inner(), n);
         std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
-        std::uninitialized_copy(src->sizes(), src->sizes() + n, dst->sizes());
-        dst->slots() = n;
+        std::uninitialized_copy(src_r->sizes, src_r->sizes + n, dst_r->sizes);
+        dst_r->count = n;
         return dst;
     }
 
@@ -286,8 +269,8 @@ struct rbnode
     static void delete_inner(node_t* p)
     {
         assert(p->kind() == node_t::inner_kind);
-        auto sizes = p->sizes();
-        if (sizes) heap::deallocate(sizes);
+        auto r = p->relaxed();
+        if (r) heap::deallocate(r);
         heap::deallocate(p);
     }
 

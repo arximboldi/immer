@@ -112,9 +112,10 @@ struct rrbtree
 
     auto tail_offset() const
     {
-        assert(!root->sizes() || root->slots());
+        auto r = root->relaxed();
+        assert(r == nullptr || r->count);
         return
-            root->sizes()   ? root->sizes() [root->slots() - 1] :
+            r               ? r->sizes[r->count - 1] :
             size            ? (size - 1) & ~mask<B>
             /* otherwise */ : 0;
     }
@@ -151,25 +152,26 @@ struct rrbtree
                                       std::size_t size = 0)
     {
         assert(level > 0);
-        assert(size || node->sizes());
-        if (auto s = node->sizes()) {
+        assert(size || node->relaxed());
+        if (auto r = node->relaxed()) {
             if (t.predicate(node)) {
-                auto count = node->slots();
+                auto count = r->count;
                 auto next = level - B;
                 if (next == 0) {
                     auto c = node->inner();
                     auto last_s = 0u;
                     for (auto i = 0u; i < count; ++i) {
                         if (t.predicate(c[i]))
-                            t.visit_leaf(c[i], s[i] - last_s);
-                        last_s = s[i];
+                            t.visit_leaf(c[i], r->sizes[i] - last_s);
+                        last_s = r->sizes[i];
                     }
                 } else {
                     auto c = node->inner();
                     auto last_s = 0u;
                     for (auto i = 0u; i < count; ++i) {
-                        traverse_node_relaxed(t, c[i], next, s[i] - last_s);
-                        last_s = s[i];
+                        traverse_node_relaxed(t, c[i], next,
+                                              r->sizes[i] - last_s);
+                        last_s = r->sizes[i];
                     }
                 }
                 t.visit_inner(node);
@@ -267,11 +269,11 @@ struct rrbtree
         } else {
             auto node = root;
             for (auto level = shift; level; level -= B) {
-                auto sizes = node->sizes();
-                if (sizes) {
+                auto r = node->relaxed();
+                if (r) {
                     auto node_index = (index >> level) & mask<B>;
-                    while (sizes[node_index] <= index) ++node_index;
-                    if (node_index) index -= sizes[node_index - 1];
+                    while (r->sizes[node_index] <= index) ++node_index;
+                    if (node_index) index -= r->sizes[node_index - 1];
                     node = node->inner() [node_index];
                 } else {
                     do {
@@ -297,9 +299,11 @@ struct rrbtree
                               node_t* tail,
                               unsigned tail_size) const
     {
-        if (auto sizes      = parent->sizes()) {
-            auto idx        = parent->slots() - 1;
-            auto children   = idx ? sizes[idx] - sizes[idx - 1] : sizes[idx];
+        if (auto r          = parent->relaxed()) {
+            auto idx        = r->count - 1;
+            auto children   = idx
+                ? r->sizes[idx] - r->sizes[idx - 1]
+                : r->sizes[idx];
             auto new_idx    = children == 1 << level || level == B
                 ? idx + 1 : idx;
             if (new_idx >= branches<B>)
@@ -321,9 +325,10 @@ struct rrbtree
                     return nullptr;
             }
             auto new_parent = node_t::copy_inner_r(parent, new_idx);
+            auto nr = new_parent->relaxed();
             new_parent->inner()[new_idx] = new_child;
-            new_parent->sizes()[new_idx] = sizes[idx] + tail_size;
-            new_parent->slots() = new_idx + 1;
+            nr->sizes[new_idx] = r->sizes[idx] + tail_size;
+            nr->count = new_idx + 1;
             return new_parent;
         } else {
             return push_tail_regular(level, parent, tail);
@@ -351,7 +356,7 @@ struct rrbtree
     push_tail(node_t* root, unsigned shift, std::size_t size,
               node_t* tail, unsigned tail_size) const
     {
-        if (auto sizes = root->sizes()) {
+        if (auto r = root->relaxed()) {
             auto new_root = push_tail_relaxed(shift, root, tail, tail_size);
             if (new_root)
                 return { shift, new_root };
@@ -433,19 +438,18 @@ struct rrbtree
                       std::size_t count,
                       FnT&& fn) const
     {
-        auto sizes = node->sizes();
         if (level == 0) {
             return do_update_leaf(node, idx, std::forward<FnT>(fn));
-        } else if (sizes) {
+        } else if (auto r = node->relaxed()) {
             auto offset   = (idx >> level) & mask<B>;
-            while (sizes[offset] <= idx) ++offset;
-            auto new_node = node_t::copy_inner_r(node, node->slots());
+            while (r->sizes[offset] <= idx) ++offset;
+            auto new_node = node_t::copy_inner_r(node, r->count);
             node->inner()[offset]->dec_unsafe();
             new_node->inner()[offset] =
                 do_update(level - B,
                           node->inner()[offset],
-                          offset ? idx - sizes[offset - 1] : idx,
-                          sizes[idx],
+                          offset ? idx - r->sizes[offset - 1] : idx,
+                          r->sizes[idx],
                           std::forward<FnT>(fn));
             return new_node;
         } else {
@@ -531,19 +535,19 @@ struct rrbtree
     {
         if (shift == 0) {
             return slice_right_leaf(n, size, new_size);
-        } else if (auto sizes = n->sizes()) {
+        } else if (auto r = n->relaxed()) {
             assert(shift > 0);
             auto idx = ((new_size - 1) >> shift) & mask<B>;
-            while (sizes[idx] < new_size) ++idx;
+            while (r->sizes[idx] < new_size) ++idx;
             if (collapse && idx == 0) {
                 return slice_right(n->inner()[idx], shift - B,
-                                   sizes[idx], new_size,
+                                   r->sizes[idx], new_size,
                                    collapse);
             } else {
                 using std::get;
-                auto lsize = idx ? sizes[idx - 1] : 0;
+                auto lsize = idx ? r->sizes[idx - 1] : 0;
                 auto subs  = slice_right(n->inner()[idx], shift - B,
-                                         sizes[idx] - lsize,
+                                         r->sizes[idx] - lsize,
                                          new_size - lsize,
                                          false);
                 auto next = get<1>(subs);
@@ -551,9 +555,10 @@ struct rrbtree
                 auto tail = get<3>(subs);
                 if (next) {
                     auto newn = node_t::copy_inner_r(n, idx);
+                    auto newr = newn->relaxed();
                     newn->inner()[idx] = next;
-                    newn->sizes()[idx] = new_size - tail_size;
-                    newn->slots()++;
+                    newr->sizes[idx] = new_size - tail_size;
+                    newr->count++;
                     return { shift, newn, tail_size, tail };
                 } else if (idx == 0) {
                     return { shift, nullptr, tail_size, tail };
@@ -648,32 +653,33 @@ struct rrbtree
         assert(elems <= size);
         if (shift == 0) {
             return slice_left_leaf(n, size, elems);
-        } else if (auto sizes = n->sizes()) {
+        } else if (auto r = n->relaxed()) {
             auto idx = (elems >> shift) & mask<B>;
-            while (sizes[idx] <= elems) ++idx;
-            auto lsize = idx ? sizes[idx - 1] : 0;
-            if (collapse && shift > B && idx == n->slots() - 1) {
+            while (r->sizes[idx] <= elems) ++idx;
+            auto lsize = idx ? r->sizes[idx - 1] : 0;
+            if (collapse && shift > B && idx == r->count - 1) {
                 return slice_left(n->inner()[idx], shift - B,
-                                  sizes[idx] - lsize,
+                                  r->sizes[idx] - lsize,
                                   elems - lsize,
                                   collapse);
             } else {
                 using std::get;
                 auto subs = slice_left(n->inner()[idx], shift - B,
-                                       sizes[idx] - lsize,
+                                       r->sizes[idx] - lsize,
                                        elems - lsize,
                                        false);
                 auto newn = node_t::make_inner_r();
-                auto news = newn->sizes();
-                newn->slots() = n->slots() - idx;
-                news[0] = sizes[idx] - elems;
-                for (auto i = 1; i < newn->slots(); ++i)
-                    news[i] = (sizes[idx+i] - sizes[idx+i-1]) + news[i-1];
+                auto newr = newn->relaxed();
+                newr->count = r->count - idx;
+                newr->sizes[0] = r->sizes[idx] - elems;
+                for (auto i = 1; i < newr->count; ++i)
+                    newr->sizes[i] = (r->sizes[idx+i] - r->sizes[idx+i-1])
+                        + newr->sizes[i-1];
                 newn->inner()[0] = get<1>(subs);
                 std::uninitialized_copy(n->inner() + idx + 1,
-                                        n->inner() + n->slots(),
+                                        n->inner() + r->count,
                                         newn->inner() + 1);
-                node_t::inc_nodes(newn->inner() + 1, newn->slots() - 1);
+                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
                 return { shift, newn };
             }
         } else {
@@ -711,17 +717,17 @@ struct rrbtree
                                                celems,
                                                false);
                 auto newn = node_t::make_inner_r();
-                auto news = newn->sizes();
-                newn->slots() = count - idx;
-                news[0] = csize - celems;
-                for (auto i = 1; i < newn->slots() - 1; ++i)
-                    news[i] = news[i - 1] + (1 << shift);
-                news[newn->slots() - 1] = size - elems;
+                auto newr = newn->relaxed();
+                newr->count = count - idx;
+                newr->sizes[0] = csize - celems;
+                for (auto i = 1; i < newr->count - 1; ++i)
+                    newr->sizes[i] = newr->sizes[i - 1] + (1 << shift);
+                newr->sizes[newr->count - 1] = size - elems;
                 newn->inner()[0] = get<1>(subs);
                 std::uninitialized_copy(n->inner() + idx + 1,
                                         n->inner() + count,
                                         newn->inner() + 1);
-                node_t::inc_nodes(newn->inner() + 1, newn->slots() - 1);
+                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
                 return { shift, newn };
             }
         }
@@ -808,11 +814,12 @@ struct rrbtree
         IMMER_TRACE("concat_sub_tree: " << lshift << " <> " << rshift);
         using std::get;
         if (lshift > rshift) {
-            auto lidx = lnode->sizes()
-                ? lnode->slots() - 1
+            auto lr = lnode->relaxed();
+            auto lidx = lr
+                ? lr->count - 1
                 : ((lsize - 1) >> lshift) & mask<B>;
-            auto llsize = lnode->sizes()
-                ? lnode->sizes()[lidx] - (lidx ? lnode->sizes()[lidx - 1] : 0)
+            auto llsize = lr
+                ? lr->sizes[lidx] - (lidx ? lr->sizes[lidx - 1] : 0)
                 : lsize - (lidx << lshift);
             auto cnode  = get<1>(
                 concat_sub_tree(
@@ -827,8 +834,9 @@ struct rrbtree
             dec_node(cnode, lshift);
             return result;
         } else if (lshift < rshift) {
-            auto rrsize = rnode->sizes()
-                ? rnode->sizes()[0]
+            auto rr = rnode->relaxed();
+            auto rrsize = rr
+                ? rr->sizes[0]
                 : std::min(rsize, std::size_t{1} << rshift);
             auto cnode  = get<1>(
                 concat_sub_tree(
@@ -854,14 +862,16 @@ struct rrbtree
                                                  rnode->inc(), rslots) };
             }
         } else {
-            auto lidx = lnode->sizes()
-                ? lnode->slots() - 1
+            auto lr = lnode->relaxed();
+            auto lidx = lr
+                ? lr->count - 1
                 : ((lsize - 1) >> lshift) & mask<B>;
-            auto llsize = lnode->sizes()
-                ? lnode->sizes()[lidx] - (lidx ? lnode->sizes()[lidx - 1] : 0)
+            auto llsize = lr
+                ? lr->sizes[lidx] - (lidx ? lr->sizes[lidx - 1] : 0)
                 : lsize - (lidx << lshift);
-            auto rrsize = rnode->sizes()
-                ? rnode->sizes()[0]
+            auto rr = rnode->relaxed();
+            auto rrsize = rr
+                ? rr->sizes[0]
                 : std::min(rsize, std::size_t{1} << rshift);
             auto cnode  = get<1>(
                 concat_sub_tree(
@@ -883,8 +893,12 @@ struct rrbtree
         using data_t = T;
         static node_t* make() { return node_t::make_leaf(); }
         static data_t* data(node_t* n) { return n->leaf(); }
-        static std::size_t* sizes(node_t*) { return nullptr; }
-        static std::size_t size(node_t*, unsigned slots) { return slots; }
+        static typename node_t::relaxed_t* relaxed(node_t*) {
+            return nullptr;
+        }
+        static std::size_t size(node_t*, unsigned slots) {
+            return slots;
+        }
         static void copied(node_t*, unsigned, std::size_t,
                            unsigned, unsigned,
                            node_t*, unsigned) {}
@@ -895,37 +909,39 @@ struct rrbtree
         using data_t = node_t*;
         static node_t* make() { return node_t::make_inner_r(); }
         static data_t* data(node_t* n) { return n->inner(); }
-        static std::size_t* sizes(node_t* n) { return n->sizes(); }
+        static typename node_t::relaxed_t* relaxed(node_t* n) {
+            return n->relaxed();
+        }
         static std::size_t size(node_t* n, unsigned slots) {
-            return n->sizes()[slots - 1];
+            return n->relaxed()->sizes[slots - 1];
         }
         static void copied(node_t* from, unsigned shift, std::size_t size,
                            unsigned from_offset, unsigned copy_count,
                            node_t* to, unsigned to_offset)
         {
-            to->slots() += copy_count;
+            auto tor = to->relaxed();
+            tor->count += copy_count;
             node_t::inc_nodes(to->inner() + to_offset, copy_count);
-            auto to_sizes  = to->sizes();
-            if (auto sizes = from->sizes()) {
-                auto last_from_size = from_offset  ? sizes[from_offset - 1] : 0;
-                auto last_to_size   = to_offset ? to_sizes[to_offset - 1] : 0;
+            if (auto fromr = from->relaxed()) {
+                auto last_from_size = from_offset ? fromr->sizes[from_offset - 1] : 0;
+                auto last_to_size   = to_offset ? tor->sizes[to_offset - 1] : 0;
                 for (auto i = 0; i < copy_count; ++i) {
-                    last_to_size = to_sizes [to_offset + i] =
-                        sizes[from_offset + i] -
+                    last_to_size = tor->sizes [to_offset + i] =
+                        fromr->sizes[from_offset + i] -
                         last_from_size +
                         last_to_size;
-                    last_from_size = sizes[from_offset + i];
+                    last_from_size = fromr->sizes[from_offset + i];
                 }
             } else {
                 auto lidx = ((size - 1) >> shift) & mask<B>;
                 auto end = from_offset + copy_count;
                 if (end < lidx) {
                     for (auto idx = from_offset; idx < end; ++idx)
-                        to_sizes[idx] = (idx + 1) << (shift - B);
+                        tor->sizes[idx] = (idx + 1) << (shift - B);
                 } else {
                     for (auto idx = from_offset; idx < lidx; ++idx)
-                        to_sizes[idx] = (idx + 1) << (shift - B);
-                    to_sizes[lidx] = size;
+                        tor->sizes[idx] = (idx + 1) << (shift - B);
+                    tor->sizes[lidx] = size;
                 }
             }
         }
@@ -954,9 +970,9 @@ struct rrbtree
         {
             assert(!to);
             if (parent != result) {
-                assert(result->slots() == 2);
-                auto sizes = result->sizes();
-                sizes [1] = sizes[0] + size_sum;
+                assert(result->relaxed()->count == 2);
+                auto r = result->relaxed();
+                r->sizes[1] = r->sizes[0] + size_sum;
                 return { shift + B, result };
             } else if (is_top) {
                 return { shift, result };
@@ -971,33 +987,36 @@ struct rrbtree
             auto add_child = [&] (node_t* n, std::size_t size)
             {
                 ++slots;
-                if (parent->slots() == branches<B>) {
+                auto r = parent->relaxed();
+                if (r->count == branches<B>) {
                     assert(result == parent);
                     auto new_parent = node_t::make_inner_r();
                     result = node_t::make_inner_r(parent, size_sum, new_parent);
                     parent = new_parent;
+                    r = new_parent->relaxed();
                     size_sum = 0;
                 }
-                auto idx = parent->slots()++;
+                auto idx = r->count++;
+                r->sizes[idx] = size_sum += size;
                 parent->inner() [idx] = n;
-                parent->sizes() [idx] = size_sum += size;
                 assert(!idx || parent->inner() [idx] != parent->inner() [idx - 1]);
             };
 
             if (!node) return;
-            auto sizes  = node->sizes();
+            auto r  = node->relaxed();
             auto nshift = shift - B;
             for (auto idx = offset; idx + endoff < nslots; ++idx) {
                 auto from = node->inner() [idx];
+                auto fromr = policy::relaxed(from);
                 auto from_data  = policy::data(from);
                 auto from_size  =
-                    sizes            ? sizes[idx] - (idx ? sizes[idx - 1] : 0) :
+                    r                ? r->sizes[idx] - (idx ? r->sizes[idx - 1] : 0) :
                     idx < nslots - 1 ? 1 << shift
                     /* otherwise */  : size - (idx << shift);
                 assert(from_size);
                 auto from_slots = static_cast<unsigned>(
-                    policy::sizes(from) ? from->slots()
-                    /* otherwise */     : ((from_size - 1) >> nshift) + 1);
+                    fromr           ? fromr->count
+                    /* otherwise */ : ((from_size - 1) >> nshift) + 1);
                 if (!to && *slots == from_slots) {
                     add_child(from->inc(), from_size);
                 } else {
@@ -1058,16 +1077,16 @@ struct rrbtree
         {
             if (node) {
                 auto nshift = shift - B;
-                if (auto sizes = node->sizes()) {
-                    slots = node->slots();
-                    auto last_size = offset ? sizes[offset - 1] : 0;
+                if (auto r = node->relaxed()) {
+                    slots = r->count;
+                    auto last_size = offset ? r->sizes[offset - 1] : 0;
                     for (auto i = offset; i + endoff < slots; ++i) {
-                        auto nsize = sizes[i] - last_size;
+                        auto nsize = r->sizes[i] - last_size;
                         total_all_slots += all_slots[all_n++] =
-                            nshift == 0 || !node->inner()[i]->sizes()
+                            nshift == 0 || !node->inner()[i]->relaxed()
                             ? ((nsize - 1) >> nshift) + 1
-                            : node->inner()[i]->slots();
-                        last_size = sizes[i];
+                            : node->inner()[i]->relaxed()->count;
+                        last_size = r->sizes[i];
                         assert(all_slots[all_n-1]);
                     }
                 } else {
@@ -1199,19 +1218,19 @@ struct rrbtree
         if (shift == 0) {
             assert(node->kind() == node_t::leaf_kind);
             assert(size <= branches<B>);
-        } else if (auto sizes = node->sizes()) {
-            auto count = node->slots();
+        } else if (auto r = node->relaxed()) {
+            auto count = r->count;
             assert(count > 0);
             assert(count <= branches<B>);
-            assert(sizes[count - 1] == size);
+            assert(r->sizes[count - 1] == size);
             for (auto i = 1; i < count; ++i)
-                assert(sizes[i - 1] < sizes[i]);
+                assert(r->sizes[i - 1] < r->sizes[i]);
             auto last_size = std::size_t{};
             for (auto i = 0; i < count; ++i) {
                 assert(check_node(node->inner()[i],
                                   shift - B,
-                                  sizes[i] - last_size));
-                last_size = sizes[i];
+                                  r->sizes[i] - last_size));
+                last_size = r->sizes[i];
             }
         } else {
             assert(size <= branches<B> << shift);
@@ -1265,19 +1284,19 @@ struct rrbtree
             std::cerr << "- {" << size << "} "
                       << pretty_print_array(node->leaf(), size)
                       << std::endl;
-        } else if (auto sizes = node->sizes()) {
-            auto count = node->slots();
+        } else if (auto r = node->relaxed()) {
+            auto count = r->count;
             debug_print_indent(indent);
             std::cerr << "# {" << size << "} "
-                      << pretty_print_array(node->sizes(), node->slots())
+                      << pretty_print_array(r->sizes, r->count)
                       << std::endl;
             auto last_size = std::size_t{};
             for (auto i = 0; i < count; ++i) {
                 debug_print_node(node->inner()[i],
                                  shift - B,
-                                 sizes[i] - last_size,
+                                 r->sizes[i] - last_size,
                                  indent + indent_step);
-                last_size = sizes[i];
+                last_size = r->sizes[i];
             }
         } else {
             debug_print_indent(indent);
