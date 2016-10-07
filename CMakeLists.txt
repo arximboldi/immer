@@ -122,12 +122,12 @@ add_definitions(-DIMMER_HAS_LIBGC=1)
 
 set(immer_include_dirs
   ${PROJECT_SOURCE_DIR}
+  ${PRETTYPRINT_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
   ${LIBGC_INCLUDE_DIR})
 set(immer_test_include_dirs
   ${immer_include_dirs}
   ${CATCH_INCLUDE_DIR}
-  ${PRETTYPRINT_INCLUDE_DIR}
   ${DOCTEST_INCLUDE_DIR})
 set(immer_benchmark_include_dirs
   ${immer_include_dirs}
