@@ -85,7 +85,7 @@ struct rrbtree
     void dec() const
     {
         do_dec([&] (auto&& ...vs) {
-            visit_rrbtree(*this, vs...);
+            traverse(vs...);
         });
      }
 
@@ -119,11 +119,24 @@ struct rrbtree
             /* otherwise */ : 0;
     }
 
+    template <typename ...Visitors>
+    void traverse(Visitors&&... vs) const
+    {
+        auto tail_off  = tail_offset();
+        auto tail_size = size - tail_off;
+
+        if (tail_off) visit_maybe_relaxed(root, shift, tail_off, vs...);
+        else make_empty_regular_rbpos(root).visit(vs...);
+
+        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(vs...);
+        else make_empty_leaf_rbpos(tail).visit(vs...);
+    }
+
     template <typename Step, typename State>
     State reduce(Step step, State init) const
     {
         return do_reduce(step, init, [&] (auto&& ...vs) {
-                return visit_rrbtree(*this, vs...);
+                return traverse(vs...);
             });
     }
 

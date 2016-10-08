@@ -354,39 +354,5 @@ auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
     }
 }
 
-template <typename TreeT, typename... Visitors>
-auto visit_rrbtree(TreeT&& tree, Visitors&& ...vs)
-{
-    auto tail_offset = tree.tail_offset();
-    auto tail_size   = tree.size - tail_offset;
-
-    if (tail_offset)
-        visit_maybe_relaxed(tree.root, tree.shift, tail_offset, vs...);
-    else
-        make_empty_regular_rbpos(tree.root).visit(vs...);
-
-    if (tail_size)
-        make_leaf_rbpos(tree.tail, tail_size).visit(vs...);
-    else
-        make_empty_leaf_rbpos(tree.tail).visit(vs...);
-};
-
-template <typename TreeT, typename... Visitors>
-auto visit_rbtree(TreeT&& tree, Visitors&& ...vs)
-{
-    auto tail_offset = tree.tail_offset();
-    auto tail_size   = tree.size - tail_offset;
-
-    if (tail_offset)
-        make_regular_rbpos(tree.root, tree.shift, tail_offset).visit(vs...);
-    else
-        make_empty_regular_rbpos(tree.root).visit(vs...);
-
-    if (tail_size)
-        make_leaf_rbpos(tree.tail, tail_size).visit(vs...);
-    else
-        make_empty_leaf_rbpos(tree.tail).visit(vs...);
-};
-
 } // namespace detail
 } // namespace immer
