@@ -113,7 +113,7 @@ struct rbtree
         auto tail_off  = tail_offset();
         return idx >= tail_off
             ? make_leaf_descent_rbpos(tail).visit(v, idx)
-            : make_regular_descent_rbpos(root, shift).visit(v, idx);
+            : visit_regular_descent(root, shift, v, idx);
     }
 
     template <typename Step, typename State>
