@@ -180,18 +180,16 @@ struct rbtree
     template <typename FnT>
     rbtree update(std::size_t idx, FnT&& fn) const
     {
-        auto tail_off = tail_offset();
+        auto tail_off  = tail_offset();
+        auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
-            auto new_tail  = node_t::copy_leaf(tail, size - tail_off);
-            auto& item     = new_tail->leaf() [idx & mask<B>];
-            auto new_value = std::forward<FnT>(fn) (std::move(item));
-            item = std::move(new_value);
+            auto tail_size = size - tail_off;
+            auto new_tail  = make_leaf_rbpos(tail, tail_size)
+                .visit(visitor, idx);
             return { size, shift, root->inc(), new_tail };
         } else {
-            auto new_root = do_update_last(shift,
-                                           root,
-                                           idx,
-                                           std::forward<FnT>(fn));
+            auto new_root  = make_regular_rbpos(root, shift, tail_off)
+                .visit(visitor, idx);
             return { size, shift, new_root, tail->inc() };
         }
     }

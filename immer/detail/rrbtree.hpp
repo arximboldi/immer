@@ -278,107 +278,17 @@ struct rrbtree
     template <typename FnT>
     rrbtree update(std::size_t idx, FnT&& fn) const
     {
-        auto tail_off = tail_offset();
+        auto tail_off  = tail_offset();
+        auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
-            auto new_tail  = node_t::copy_leaf(tail, size - tail_off);
-            auto& item     = new_tail->leaf() [idx & mask<B>];
-            auto new_value = std::forward<FnT>(fn) (std::move(item));
-            item = std::move(new_value);
+            auto tail_size = size - tail_off;
+            auto new_tail  = make_leaf_rbpos(tail, tail_size)
+                .visit(visitor, idx);
             return { size, shift, root->inc(), new_tail };
         } else {
-            auto new_root = do_update(shift,
-                                      root,
-                                      idx,
-                                      tail_offset(),
-                                      std::forward<FnT>(fn));
+            auto new_root  = visit_maybe_relaxed(
+                root, shift, tail_off, visitor, idx);
             return { size, shift, new_root, tail->inc() };
-        }
-    }
-
-    template <typename FnT>
-    node_t* do_update_leaf(node_t* node, std::size_t idx, FnT&& fn) const
-    {
-        auto new_node  = node_t::copy_leaf(node, branches<B>);
-        auto& item     = new_node->leaf() [idx & mask<B>];
-        auto new_value = std::forward<FnT>(fn) (std::move(item));
-        item = std::move(new_value);
-        return new_node;
-    }
-
-    template <typename FnT>
-    node_t* do_update(unsigned level,
-                      node_t* node,
-                      std::size_t idx,
-                      std::size_t count,
-                      FnT&& fn) const
-    {
-        if (level == 0) {
-            return do_update_leaf(node, idx, std::forward<FnT>(fn));
-        } else if (auto r = node->relaxed()) {
-            auto offset   = (idx >> level) & mask<B>;
-            while (r->sizes[offset] <= idx) ++offset;
-            auto new_node = node_t::copy_inner_r(node, r->count);
-            node->inner()[offset]->dec_unsafe();
-            new_node->inner()[offset] =
-                do_update(level - B,
-                          node->inner()[offset],
-                          offset ? idx - r->sizes[offset - 1] : idx,
-                          r->sizes[idx],
-                          std::forward<FnT>(fn));
-            return new_node;
-        } else {
-            return do_update_regular(level, node, idx, count,
-                                     std::forward<FnT>(fn));
-        }
-    }
-
-    template <typename FnT>
-    node_t* do_update_full(unsigned level,
-                           node_t* node,
-                           std::size_t idx,
-                           FnT&& fn) const
-    {
-        if (level == 0) {
-            return do_update_leaf(node, idx, std::forward<FnT>(fn));
-        } else {
-            auto offset   = (idx >> level) & mask<B>;
-            auto new_node = node_t::copy_inner(node, branches<B>);
-            node->inner()[offset]->dec_unsafe();
-            new_node->inner()[offset] =
-                do_update_full(level - B,
-                               node->inner()[offset],
-                               idx,
-                               std::forward<FnT>(fn));
-            return new_node;
-        }
-    }
-
-    template <typename FnT>
-    node_t* do_update_regular(unsigned level,
-                              node_t* node,
-                              std::size_t idx,
-                              std::size_t size,
-                              FnT&& fn) const
-    {
-        if (level == 0) {
-            return do_update_leaf(node, idx, std::forward<FnT>(fn));
-        } else {
-            auto offset     = (idx >> level) & mask<B>;
-            auto end_offset = ((size - 1) >> level) & mask<B>;
-            auto new_node   = node_t::copy_inner(node, end_offset + 1);
-            node->inner()[offset]->dec_unsafe();
-            new_node->inner()[offset] =
-                offset == end_offset
-                ? do_update_regular(level - B,
-                                    node->inner()[offset],
-                                    idx,
-                                    size,
-                                    std::forward<FnT>(fn))
-                : do_update_full(level - B,
-                                 node->inner()[offset],
-                                 idx,
-                                 std::forward<FnT>(fn));
-            return new_node;
         }
     }
 

@@ -23,6 +23,8 @@ struct empty_regular_rbpos
 
     template <typename Visitor>
     void each(Visitor&&) {}
+    template <typename Visitor>
+    void descend(Visitor&&, std::size_t) {}
 
     template <typename Visitor>
     auto visit(Visitor&& v)
@@ -54,12 +56,14 @@ struct empty_leaf_rbpos
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&&, std::size_t) {}
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vl(*this, v);
+            return vl(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -83,15 +87,18 @@ struct leaf_rbpos
     auto node()  const { return node_; }
     auto size()  const { return count_; }
     auto shift() const { return 0; }
+    auto index(std::size_t idx) const { return idx & mask<bits>; }
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&&, std::size_t) {}
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vl(*this, v);
+            return vl(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -115,15 +122,18 @@ struct full_leaf_rbpos
     auto node()  const { return node_; }
     auto size()  const { return branches<bits>; }
     auto shift() const { return 0; }
+    auto index(std::size_t idx) const { return idx & mask<bits>; }
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&&, std::size_t) {}
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vl(*this, v);
+            return vl(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -144,23 +154,24 @@ struct regular_rbpos
     unsigned shift_;
     std::size_t size_;
 
-    auto count() const { return (((size_ - 1) >> shift_) & mask<bits>) + 1; }
+    auto count() const { return index(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
     auto shift() const { return shift_; }
+    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
 
     template <typename Visitor>
     void each(Visitor&& v)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
-            auto e = p + (((size_ - 1) >> bits) & mask<bits>);
+            auto e = p + index(size_ - 1);
             for (; p != e; ++p)
                 make_full_leaf_rbpos(*p).visit(v);
             make_leaf_rbpos(*p, ((size_ - 1) & mask<bits>) + 1).visit(v);
         } else {
             auto p = node_->inner();
-            auto e = p + (((size_ - 1) >> shift_) & mask<bits>);
+            auto e = p + index(size_ - 1);
             auto ss = shift_ - bits;
             for (; p != e; ++p)
                 make_full_rbpos(*p, ss).visit(v);
@@ -169,10 +180,26 @@ struct regular_rbpos
     }
 
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&& v, std::size_t idx)
+    {
+        auto offset  = index(idx);
+        auto is_last = offset + 1 == count();
+        auto is_leaf = shift_ == bits;
+        auto child   = node_->inner() [offset];
+        return is_last
+            ? (is_leaf
+               ? make_leaf_rbpos(child, ((size_ - 1) & mask<bits>) + 1).visit(v, idx)
+               : make_regular_rbpos(child, shift_ - bits, size_).visit(v, idx))
+            : (is_leaf
+               ? make_full_leaf_rbpos(child).visit(v, idx)
+               : make_full_rbpos(child, shift_ - bits).visit(v, idx));
+    }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vi(*this, v);
+            return vi(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -200,6 +227,7 @@ struct full_rbpos
     auto node()  const { return node_; }
     auto size()  const { return 1 << shift_; }
     auto shift() const { return shift_; }
+    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
 
     template <typename Visitor>
     void each(Visitor&& v)
@@ -219,10 +247,21 @@ struct full_rbpos
     }
 
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&& v, std::size_t idx)
+    {
+        auto offset  = index(idx);
+        auto is_leaf = shift_ == bits;
+        auto child   = node_->inner() [offset];
+        return is_leaf
+            ? make_full_leaf_rbpos(child).visit(v, idx)
+            : make_full_rbpos(child, shift_ - bits).visit(v, idx);
+    }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vi(*this, v);
+            return vi(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -251,6 +290,13 @@ struct relaxed_rbpos
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
 
+    auto index(std::size_t idx) const
+    {
+        auto offset = (idx >> shift_) & mask<bits>;
+        while (relaxed_->sizes[offset] <= idx) ++offset;
+        return offset;
+    }
+
     template <typename Visitor>
     void each(Visitor&& v)
     {
@@ -273,10 +319,24 @@ struct relaxed_rbpos
     }
 
     template <typename Visitor>
-    auto visit(Visitor&& v)
+    auto descend(Visitor&& v, std::size_t idx)
+    {
+        auto offset    = index(idx);
+        auto child     = node_->inner() [offset];
+        auto is_leaf   = shift_ == bits;
+        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
+        auto next_size = relaxed_->sizes[offset] - left_size;
+        auto next_idx  = idx - left_size;
+        return is_leaf
+            ? make_leaf_rbpos(child, next_size).visit(v, next_idx)
+            : visit_maybe_relaxed(child, shift_ - bits, next_size, v, next_idx);
+    }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
         return v([&] (auto&& vr, auto&& vi, auto&& vl) {
-            return vr(*this, v);
+            return vr(*this, v, std::forward<Args>(args)...);
         });
     }
 };
@@ -292,17 +352,19 @@ relaxed_rbpos<NodeT> make_relaxed_rbpos(NodeT* node,
     return {node, shift, relaxed};
 }
 
-template <typename NodeT, typename Visitor>
+template <typename NodeT, typename Visitor, typename... Args>
 auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
-                         Visitor&& v)
+                         Visitor&& v, Args&& ...args)
 {
     assert(node);
     auto relaxed = node->relaxed();
     if (relaxed) {
         assert(size == relaxed->sizes[relaxed->count - 1]);
-        return make_relaxed_rbpos(node, shift, relaxed).visit(v);
+        return make_relaxed_rbpos(node, shift, relaxed)
+            .visit(v, std::forward<Args>(args)...);
     } else {
-        return make_regular_rbpos(node, shift, size).visit(v);
+        return make_regular_rbpos(node, shift, size)
+            .visit(v, std::forward<Args>(args)...);
     }
 }
 
