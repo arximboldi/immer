@@ -21,22 +21,16 @@ struct empty_regular_rbpos
     auto shift() const { return 0; }
     auto size()  const { return 0; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&...) {}
+    template <typename Visitor>
+    void each(Visitor&&) {}
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vi(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vi(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vi(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -58,22 +52,16 @@ struct empty_leaf_rbpos
     auto shift() const { return 0; }
     auto size()  const { return 0; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&...) {}
+    template <typename ...Visitor>
+    void each(Visitor&&...) {}
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vl(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -96,22 +84,16 @@ struct leaf_rbpos
     auto size()  const { return count_; }
     auto shift() const { return 0; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&...) {}
+    template <typename ...Visitor>
+    void each(Visitor&&...) {}
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vl(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -134,22 +116,16 @@ struct full_leaf_rbpos
     auto size()  const { return branches<bits>; }
     auto shift() const { return 0; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&...) {}
+    template <typename ...Visitor>
+    void each(Visitor&&...) {}
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vl(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vl(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -173,43 +149,31 @@ struct regular_rbpos
     auto size()  const { return size_; }
     auto shift() const { return shift_; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&... vs)
+    template <typename Visitor>
+    void each(Visitor&& v)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
             auto e = p + (((size_ - 1) >> bits) & mask<bits>);
             for (; p != e; ++p)
-                make_full_leaf_rbpos(*p).visit(vs...);
-            make_leaf_rbpos(*p, ((size_ - 1) & mask<bits>) + 1).visit(vs...);
+                make_full_leaf_rbpos(*p).visit(v);
+            make_leaf_rbpos(*p, ((size_ - 1) & mask<bits>) + 1).visit(v);
         } else {
             auto p = node_->inner();
             auto e = p + (((size_ - 1) >> shift_) & mask<bits>);
             auto ss = shift_ - bits;
             for (; p != e; ++p)
-                make_full_rbpos(*p, ss).visit(vs...);
-            make_regular_rbpos(*p, ss, size_).visit(vs...);
+                make_full_rbpos(*p, ss).visit(v);
+            make_regular_rbpos(*p, ss, size_).visit(v);
         }
     }
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
+    template <typename Visitor>
+    auto visit(Visitor&& v)
     {
-        return v(*this, v);
-    }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    {
-        return vi(*this, vi, vl);
-    }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    {
-        return vi(*this, vr, vi, vl);
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vi(*this, v);
+        });
     }
 };
 
@@ -237,36 +201,30 @@ struct full_rbpos
     auto size()  const { return 1 << shift_; }
     auto shift() const { return shift_; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&... vs)
+    template <typename Visitor>
+    void each(Visitor&& v)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
             auto e = p + branches<bits>;
             for (; p != e; ++p)
-                make_full_leaf_rbpos(*p).visit(vs...);
+                make_full_leaf_rbpos(*p).visit(v);
         } else {
             auto p = node_->inner();
             auto e = p + branches<bits>;
             auto ss = shift_ - bits;
             for (; p != e; ++p)
-                make_full_rbpos(*p, ss).visit(vs...);
+                make_full_rbpos(*p, ss).visit(v);
         }
     }
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vi(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vi(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vi(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -293,14 +251,14 @@ struct relaxed_rbpos
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
 
-    template <typename ...Visitors>
-    void each(Visitors&&... vs)
+    template <typename Visitor>
+    void each(Visitor&& v)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
             auto s = std::size_t{};
             for (auto i = 0u; i < relaxed_->count; ++i) {
-                make_leaf_rbpos(p[i], relaxed_->sizes[i] - s).visit(vs...);
+                make_leaf_rbpos(p[i], relaxed_->sizes[i] - s).visit(v);
                 s = relaxed_->sizes[i];
             }
         } else {
@@ -308,25 +266,19 @@ struct relaxed_rbpos
             auto s = std::size_t{};
             auto ss = shift_ - bits;
             for (auto i = 0u; i < relaxed_->count; ++i) {
-                visit_maybe_relaxed(p[i], ss, relaxed_->sizes[i] - s, vs...);
+                visit_maybe_relaxed(p[i], ss, relaxed_->sizes[i] - s, v);
                 s = relaxed_->sizes[i];
             }
         }
     }
 
-    template <typename VisitT>
-    auto visit(VisitT&& v)
-    { return v(*this, v); }
-
-    template <typename InnerVisitT, typename LeafVisitT>
-    auto visit(InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vi(*this, vi, vl); }
-
-    template <typename RelaxedVisitT,
-              typename InnerVisitT,
-              typename LeafVisitT>
-    auto visit(RelaxedVisitT vr, InnerVisitT&& vi, LeafVisitT&& vl)
-    { return vr(*this, vr, vi, vl); }
+    template <typename Visitor>
+    auto visit(Visitor&& v)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vr(*this, v);
+        });
+    }
 };
 
 template <typename NodeT>
@@ -340,18 +292,48 @@ relaxed_rbpos<NodeT> make_relaxed_rbpos(NodeT* node,
     return {node, shift, relaxed};
 }
 
-template <typename NodeT, typename... Visitors>
+template <typename NodeT, typename Visitor>
 auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
-                         Visitors&& ...vs)
+                         Visitor&& v)
 {
     assert(node);
     auto relaxed = node->relaxed();
     if (relaxed) {
         assert(size == relaxed->sizes[relaxed->count - 1]);
-        return make_relaxed_rbpos(node, shift, relaxed).visit(vs...);
+        return make_relaxed_rbpos(node, shift, relaxed).visit(v);
     } else {
-        return make_regular_rbpos(node, shift, size).visit(vs...);
+        return make_regular_rbpos(node, shift, size).visit(v);
     }
+}
+
+template <typename GenericVisitor>
+auto make_visitor(GenericVisitor v)
+{
+    return
+        [=] (auto&& op) {
+            return std::forward<decltype(op)>(op) (
+                v, v, v);
+        };
+}
+
+template <typename InnerVisitor, typename LeafVisitor>
+auto make_visitor(InnerVisitor vi, LeafVisitor vl)
+{
+    return
+        [=] (auto&& op) {
+            return std::forward<decltype(op)>(op) (
+                vi, vi, vl);
+        };
+}
+
+template <typename RelaxedVisitor, typename InnerVisitor, typename LeafVisitor>
+auto make_visitor(RelaxedVisitor vr, InnerVisitor vi, LeafVisitor vl)
+{
+    return
+        [=] (auto&& op) {
+            return std::forward<decltype(op)>(op) (
+                vr, vi, vl);
+        };
 }
 
 } // namespace detail

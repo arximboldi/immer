@@ -81,9 +81,7 @@ struct rbtree
 
     void dec() const
     {
-        do_dec([&] (auto&& ...vs) {
-            traverse(vs...);
-        });
+        traverse(dec_visitor());
     }
 
     auto tail_size() const
@@ -96,25 +94,24 @@ struct rbtree
         return size ? (size-1) & ~mask<B> : 0;
     }
 
-    template <typename ...Visitors>
-    void traverse(Visitors&&... vs) const
+    template <typename Visitor>
+    void traverse(Visitor&& v) const
     {
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) make_regular_rbpos(root, shift, tail_off).visit(vs...);
-        else make_empty_regular_rbpos(root).visit(vs...);
+        if (tail_off) make_regular_rbpos(root, shift, tail_off).visit(v);
+        else make_empty_regular_rbpos(root).visit(v);
 
-        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(vs...);
-        else make_empty_leaf_rbpos(tail).visit(vs...);
+        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(v);
+        else make_empty_leaf_rbpos(tail).visit(v);
     }
 
     template <typename Step, typename State>
-    State reduce(Step step, State init) const
+    State reduce(Step step, State acc) const
     {
-        return do_reduce(step, init, [&] (auto&& ...vs) {
-                return traverse(*this, vs...);
-            });
+        traverse(reduce_visitor(step, acc));
+        return acc;
     }
 
     const T* array_for(std::size_t index) const

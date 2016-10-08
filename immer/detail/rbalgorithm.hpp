@@ -4,48 +4,48 @@
 #include <utility>
 #include <numeric>
 
+#include <immer/detail/rbpos.hpp>
+
 namespace immer {
 namespace detail {
 
-template <typename Step, typename State, typename Fn>
-State do_reduce(Step step, State init, Fn&& fn)
+template <typename Step, typename State>
+auto reduce_visitor(Step&& step, State& acc)
 {
-    std::forward<Fn>(fn) (
-        [] (auto&& pos, auto&& ...recur) {
-            pos.each(recur...);
+    return make_visitor(
+        [] (auto&& pos, auto&& v) {
+            pos.each(v);
         },
-        [&] (auto&& pos, auto&&...) {
+        [&] (auto&& pos, auto&&) {
             auto data  = pos.node()->leaf();
             auto count = pos.count();
-            init = std::accumulate(data,
-                                   data + count,
-                                   init,
-                                   step);
+            acc = std::accumulate(data,
+                                  data + count,
+                                  acc,
+                                  step);
         });
-    return init;
 }
 
-template <typename Fn>
-auto do_dec(Fn&& fn)
+auto dec_visitor()
 {
-    return std::forward<Fn>(fn) (
-        [] (auto&& pos, auto&& ...recur) {
+    return make_visitor(
+        [] (auto&& pos, auto&& v) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {
-                pos.each(recur...);
+                pos.each(v);
                 node_t::delete_inner_r(node);
             }
         },
-        [] (auto&& pos, auto&& ...recur) {
+        [] (auto&& pos, auto&& v) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {
-                pos.each(recur...);
+                pos.each(v);
                 node_t::delete_inner(node);
             }
         },
-        [] (auto&& pos, auto&&...) {
+        [] (auto&& pos, auto&&) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {

@@ -84,24 +84,18 @@ struct rrbtree
 
     void dec() const
     {
-        do_dec([&] (auto&& ...vs) {
-            traverse(vs...);
-        });
-     }
+        traverse(dec_visitor());
+    }
 
     static void dec_node(node_t* n, unsigned shift, std::size_t size)
     {
-        do_dec([&] (auto&& ...vs) {
-            visit_maybe_relaxed(n, shift, size, vs...);
-        });
+        visit_maybe_relaxed(n, shift, size, dec_visitor());
     }
 
     static void dec_node(node_t* n, unsigned shift)
     {
         assert(n->relaxed());
-        do_dec([&] (auto&& ...vs) {
-            make_relaxed_rbpos(n, shift, n->relaxed()).visit(vs...);
-        });
+        make_relaxed_rbpos(n, shift, n->relaxed()).visit(dec_visitor());
     }
 
     auto tail_size() const
@@ -119,25 +113,24 @@ struct rrbtree
             /* otherwise */ : 0;
     }
 
-    template <typename ...Visitors>
-    void traverse(Visitors&&... vs) const
+    template <typename ...Visitor>
+    void traverse(Visitor&&... v) const
     {
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) visit_maybe_relaxed(root, shift, tail_off, vs...);
-        else make_empty_regular_rbpos(root).visit(vs...);
+        if (tail_off) visit_maybe_relaxed(root, shift, tail_off, v...);
+        else make_empty_regular_rbpos(root).visit(v...);
 
-        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(vs...);
-        else make_empty_leaf_rbpos(tail).visit(vs...);
+        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(v...);
+        else make_empty_leaf_rbpos(tail).visit(v...);
     }
 
     template <typename Step, typename State>
-    State reduce(Step step, State init) const
+    State reduce(Step step, State acc) const
     {
-        return do_reduce(step, init, [&] (auto&& ...vs) {
-                return traverse(vs...);
-            });
+        traverse(reduce_visitor(step, acc));
+        return acc;
     }
 
     const T* array_for(std::size_t& index) const
