@@ -112,6 +112,36 @@ leaf_rbpos<NodeT> make_leaf_rbpos(NodeT* node, unsigned count)
 }
 
 template <typename NodeT>
+struct leaf_descent_rbpos
+{
+    static constexpr auto bits = NodeT::bits;
+    using node_t = NodeT;
+    node_t* node_;
+
+    auto node()  const { return node_; }
+    auto shift() const { return 0; }
+    auto index(std::size_t idx) const { return idx & mask<bits>; }
+
+    template <typename... Args>
+    auto descend(Args&&...) {}
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vl(*this, v, std::forward<Args>(args)...);
+        });
+    }
+};
+
+template <typename NodeT>
+leaf_descent_rbpos<NodeT> make_leaf_descent_rbpos(NodeT* node)
+{
+    assert(node);
+    return {node};
+}
+
+template <typename NodeT>
 struct full_leaf_rbpos
 {
     static constexpr auto bits = NodeT::bits;
@@ -217,6 +247,46 @@ regular_rbpos<NodeT> make_regular_rbpos(NodeT* node,
     assert(shift >= NodeT::bits);
     assert(size > 0);
     return {node, shift, size};
+}
+
+template <typename NodeT>
+struct regular_descent_rbpos
+{
+    static constexpr auto bits = NodeT::bits;
+    using node_t = NodeT;
+    node_t* node_;
+    unsigned shift_;
+
+    auto node()  const { return node_; }
+    auto shift() const { return shift_; }
+    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
+
+    template <typename Visitor>
+    auto descend(Visitor&& v, std::size_t idx)
+    {
+        auto offset = index(idx);
+        auto child  = node_->inner()[offset];
+        return shift_ == bits
+            ? make_leaf_descent_rbpos(child).visit(v, idx)
+            : make_regular_descent_rbpos(child, shift_ - bits).visit(v, idx);
+    }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
+    {
+        return v([&] (auto&& vr, auto&& vi, auto&& vl) {
+            return vi(*this, v, std::forward<Args>(args)...);
+        });
+    }
+};
+
+template <typename NodeT>
+regular_descent_rbpos<NodeT> make_regular_descent_rbpos(NodeT* node,
+                                                        unsigned shift)
+{
+    assert(node);
+    assert(shift >= NodeT::bits);
+    return {node, shift};
 }
 
 template <typename NodeT>
@@ -337,6 +407,19 @@ struct relaxed_rbpos
             : visit_maybe_relaxed(child, shift_ - bits, next_size, v, next_idx);
     }
 
+    template <typename Visitor>
+    auto descend(Visitor&& v, std::size_t idx)
+    {
+        auto offset    = index(idx);
+        auto child     = node_->inner() [offset];
+        auto is_leaf   = shift_ == bits;
+        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
+        auto next_idx  = idx - left_size;
+        return is_leaf
+            ? make_leaf_descent_rbpos(child).visit(v, next_idx)
+            : visit_maybe_relaxed_descent(child, shift_ - bits, v, next_idx);
+    }
+
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
@@ -369,6 +452,22 @@ auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
             .visit(v, std::forward<Args>(args)...);
     } else {
         return make_regular_rbpos(node, shift, size)
+            .visit(v, std::forward<Args>(args)...);
+    }
+}
+
+
+template <typename NodeT, typename Visitor, typename... Args>
+auto visit_maybe_relaxed_descent(NodeT* node, unsigned shift,
+                                 Visitor&& v, Args&& ...args)
+{
+    assert(node);
+    auto relaxed = node->relaxed();
+    if (relaxed) {
+        return make_relaxed_rbpos(node, shift, relaxed)
+            .visit(v, std::forward<Args>(args)...);
+    } else {
+        return make_regular_descent_rbpos(node, shift)
             .visit(v, std::forward<Args>(args)...);
     }
 }

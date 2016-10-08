@@ -10,6 +10,30 @@
 namespace immer {
 namespace detail {
 
+template <typename T>
+auto array_for_visitor()
+{
+    return make_visitor(
+        [] (auto&& pos, auto&& v, std::size_t idx) -> T* {
+            return pos.descend(v, idx);
+        },
+        [] (auto&& pos, auto&&, std::size_t) -> T* {
+            return pos.node()->leaf();
+        });
+}
+
+template <typename T>
+auto get_visitor()
+{
+    return make_visitor(
+        [] (auto&& pos, auto&& v, std::size_t idx) -> const T* {
+            return pos.descend(v, idx);
+        },
+        [] (auto&& pos, auto&&, std::size_t idx) -> const T* {
+            return &pos.node()->leaf() [pos.index(idx)];
+        });
+}
+
 template <typename Step, typename State>
 auto reduce_visitor(Step&& step, State& acc)
 {

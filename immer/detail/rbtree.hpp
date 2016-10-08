@@ -107,26 +107,20 @@ struct rbtree
         else make_empty_leaf_rbpos(tail).visit(v);
     }
 
+    template <typename Visitor>
+    auto descend(Visitor&& v, std::size_t idx) const
+    {
+        auto tail_off  = tail_offset();
+        return idx >= tail_off
+            ? make_leaf_descent_rbpos(tail).visit(v, idx)
+            : make_regular_descent_rbpos(root, shift).visit(v, idx);
+    }
+
     template <typename Step, typename State>
     State reduce(Step step, State acc) const
     {
         traverse(reduce_visitor(step, acc));
         return acc;
-    }
-
-    const T* array_for(std::size_t index) const
-    {
-        assert(index < size);
-
-        if (index >= tail_offset())
-            return tail->leaf();
-        else {
-            auto node = root;
-            for (auto level = shift; level; level -= B) {
-                node = node->inner() [(index >> level) & mask<B>];
-            }
-            return node->leaf();
-        }
     }
 
     node_t* make_path(unsigned level, node_t* node) const
@@ -171,10 +165,14 @@ struct rbtree
         }
     }
 
+    const T* array_for(std::size_t index) const
+    {
+        return descend(array_for_visitor<T>(), index);
+    }
+
     const T& get(std::size_t index) const
     {
-        auto arr = array_for(index);
-        return arr [index & mask<B>];
+        return *descend(get_visitor<T>(), index);
     }
 
     template <typename FnT>
