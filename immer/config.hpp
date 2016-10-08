@@ -21,5 +21,3 @@
 #else
 #define IMMER_TRACE(...)
 #endif
-
-#define IMMER_FAST_HEAP 0

@@ -14,8 +14,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #  =====================================================================
 
 option(CHECK_BENCHMARKS "run benchmarks on make check")
-option(CHECK_BENCHMARKS_MORE "run benchmarks for more inputs")
-option(CHECK_BENCHMARKS_MORE_MORE "run benchmarks for more inputs")
+option(CHECK_BENCHMARKS_LONG "run benchmarks for more inputs")
+option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
+
+option(CHECK_FREE_LIST "run checks with use free list heap")
 
 set(PRETTYPRINT_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/prettyprint-prefix/src/prettyprint")
@@ -117,6 +119,10 @@ endif()
 
 add_definitions(-DIMMER_HAS_LIBGC=1)
 
+if (CHECK_FREE_LIST)
+  add_definitions(-DIMMER_FREE_LIST=1)
+endif()
+
 #  Tests
 #  =====================================================================
 
@@ -136,6 +142,7 @@ set(immer_benchmark_include_dirs
 set(immer_benchmark_libs
   ${LIBRRB_LIBS}
   ${CMAKE_THREAD_LIBS_INIT})
+set(immer_definitions)
 
 enable_testing()
 
@@ -181,15 +188,20 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 get_filename_component(immer_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
-set(immer_benchmark_report_dir
-  "../reports/report-${GIT_COMMIT_HASH}-${immer_compiler_name}")
 
-if (CHECK_BENCHMARKS_MORE_MORE)
+set(immer_benchmark_report_dir
+  "../reports/report_${GIT_COMMIT_HASH}_${immer_compiler_name}")
+
+if (CHECK_FREE_LIST)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_free-list")
+endif()
+
+if (CHECK_BENCHMARKS_LONGER)
   set(immer_benchmark_param "N:*:1:10:7")
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}-more2")
-elseif(CHECK_BENCHMARKS_MORE)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_longer")
+elseif(CHECK_BENCHMARKS_LONG)
   set(immer_benchmark_param "N:*:10:10:4")
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}-more1")
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_long")
 elseif(CHECK_BENCHMARKS)
   set(immer_benchmark_param "N:1000")
 endif()

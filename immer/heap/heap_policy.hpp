@@ -46,7 +46,7 @@ struct default_heap_policy
     template <std::size_t... Sizes>
     struct apply
     {
-#if IMMER_FAST_HEAP
+#if IMMER_FREE_LIST
         static constexpr auto node_size = std::max({Sizes...});
 
         using type = with_free_list_node<
