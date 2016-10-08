@@ -34,16 +34,18 @@ auto update_visitor(FnT&& fn)
     return make_visitor(
         []  (auto&& pos, auto&& v, std::size_t idx) -> NodeT* {
             auto offset  = pos.index(idx);
-            auto node    = node_t::copy_inner_r(pos.node(), pos.count());
+            auto count   = pos.count();
+            auto node    = node_t::copy_inner_r(pos.node(), count);
             node->inner()[offset]->dec_unsafe();
-            node->inner()[offset] = pos.descend(v, idx);
+            node->inner()[offset] = pos.towards(v, idx, offset);
             return node;
         },
         []  (auto&& pos, auto&& v, std::size_t idx) -> NodeT*  {
             auto offset  = pos.index(idx);
-            auto node    = node_t::copy_inner(pos.node(), pos.count());
+            auto count   = pos.count();
+            auto node    = node_t::copy_inner(pos.node(), count);
             node->inner()[offset]->dec_unsafe();
-            node->inner()[offset] = pos.descend(v, idx);
+            node->inner()[offset] = pos.towards(v, idx, offset, count);
             return node;
         },
         [&]  (auto&& pos, auto&& v, std::size_t idx) -> NodeT*  {

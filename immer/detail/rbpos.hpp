@@ -23,8 +23,8 @@ struct empty_regular_rbpos
 
     template <typename Visitor>
     void each(Visitor&&) {}
-    template <typename Visitor>
-    void descend(Visitor&&, std::size_t) {}
+    template <typename Args>
+    void towards(Args&&...) {}
 
     template <typename Visitor>
     auto visit(Visitor&& v)
@@ -56,8 +56,8 @@ struct empty_leaf_rbpos
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-    template <typename Visitor>
-    auto descend(Visitor&&, std::size_t) {}
+    template <typename Args>
+    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -91,8 +91,8 @@ struct leaf_rbpos
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-    template <typename Visitor>
-    auto descend(Visitor&&, std::size_t) {}
+    template <typename Args>
+    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -126,8 +126,8 @@ struct full_leaf_rbpos
 
     template <typename ...Visitor>
     void each(Visitor&&...) {}
-    template <typename Visitor>
-    auto descend(Visitor&&, std::size_t) {}
+    template <typename Args>
+    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -180,12 +180,16 @@ struct regular_rbpos
     }
 
     template <typename Visitor>
-    auto descend(Visitor&& v, std::size_t idx)
+    auto towards(Visitor&& v,
+                 std::size_t idx,
+                 unsigned offset_hint,
+                 unsigned count_hint)
     {
-        auto offset  = index(idx);
-        auto is_last = offset + 1 == count();
+        assert(offset_hint == index(idx));
+        assert(count_hint  == count());
+        auto is_last = offset_hint + 1 == count_hint;
         auto is_leaf = shift_ == bits;
-        auto child   = node_->inner() [offset];
+        auto child   = node_->inner() [offset_hint];
         return is_last
             ? (is_leaf
                ? make_leaf_rbpos(child, ((size_ - 1) & mask<bits>) + 1).visit(v, idx)
@@ -246,12 +250,13 @@ struct full_rbpos
         }
     }
 
-    template <typename Visitor>
-    auto descend(Visitor&& v, std::size_t idx)
+    template <typename Visitor, typename... Args>
+    auto towards(Visitor&& v, std::size_t idx,
+                 unsigned offset_hint, Args&&...)
     {
-        auto offset  = index(idx);
+        assert(offset_hint == index(idx));
         auto is_leaf = shift_ == bits;
-        auto child   = node_->inner() [offset];
+        auto child   = node_->inner() [offset_hint];
         return is_leaf
             ? make_full_leaf_rbpos(child).visit(v, idx)
             : make_full_rbpos(child, shift_ - bits).visit(v, idx);
@@ -319,13 +324,13 @@ struct relaxed_rbpos
     }
 
     template <typename Visitor>
-    auto descend(Visitor&& v, std::size_t idx)
+    auto towards(Visitor&& v, std::size_t idx, unsigned offset_hint)
     {
-        auto offset    = index(idx);
-        auto child     = node_->inner() [offset];
+        assert(offset_hint == index(idx));
+        auto child     = node_->inner() [offset_hint];
         auto is_leaf   = shift_ == bits;
-        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
-        auto next_size = relaxed_->sizes[offset] - left_size;
+        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
+        auto next_size = relaxed_->sizes[offset_hint] - left_size;
         auto next_idx  = idx - left_size;
         return is_leaf
             ? make_leaf_rbpos(child, next_size).visit(v, next_idx)
