@@ -323,6 +323,61 @@ struct rbnode
         for (auto i = p, e = i + n; i != e; ++i)
             refcount::inc(&(*i)->impl);
     }
+
+#if IMMER_TAGGED_RBNODE
+    unsigned compute_shift()
+    {
+        if (kind() == node_t::leaf_kind)
+            return 0;
+        else
+            return B + inner() [0]->compute_shift();
+    }
+#endif
+
+    bool check(unsigned shift, std::size_t size)
+    {
+#if IMMER_DEBUG_DEEP_CHECK
+        assert(size > 0);
+        if (shift == 0) {
+            assert(kind() == node_t::leaf_kind);
+            assert(size <= branches<B>);
+        } else if (auto r = relaxed()) {
+            auto count = r->count;
+            assert(count > 0);
+            assert(count <= branches<B>);
+            if (r->sizes[count - 1] != size) {
+                IMMER_TRACE_F("check");
+                IMMER_TRACE_E(r->sizes[count - 1]);
+                IMMER_TRACE_E(size);
+            }
+            assert(r->sizes[count - 1] == size);
+            for (auto i = 1; i < count; ++i)
+                assert(r->sizes[i - 1] < r->sizes[i]);
+            auto last_size = std::size_t{};
+            for (auto i = 0; i < count; ++i) {
+                assert(inner()[i]->check(
+                           shift - B,
+                           r->sizes[i] - last_size));
+                last_size = r->sizes[i];
+            }
+        } else {
+            assert(size <= branches<B> << shift);
+            auto count = (size >> shift)
+                + (size - ((size >> shift) << shift) > 0);
+            assert(count <= branches<B>);
+            if (count) {
+                for (auto i = 1; i < count - 1; ++i)
+                    assert(inner()[i]->check(
+                               shift - B,
+                               1 << shift));
+                assert(inner()[count - 1]->check(
+                           shift - B,
+                           size - ((count - 1) << shift)));
+            }
+        }
+#endif // IMMER_DEBUG_DEEP_CHECK
+        return true;
+    }
 };
 
 } // namespace detail

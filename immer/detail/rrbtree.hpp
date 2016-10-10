@@ -238,8 +238,8 @@ struct rrbtree
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
             if (new_root) {
-                assert(compute_shift(new_root) == get<0>(r));
-                assert(check_node(new_root, new_shift, new_size - get<2>(r)));
+                assert(new_root->compute_shift() == get<0>(r));
+                assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
                 return { new_size, B, empty.root->inc(), new_tail };
@@ -402,15 +402,15 @@ struct rrbtree
                                         tail->inc(), size - tail_offst);
             auto lshift     = get<0>(with_tail);
             auto lroot      = get<1>(with_tail);
-            assert(check_node(lroot, lshift, size));
+            assert(lroot->check(lshift, size));
             auto concated   = concat_sub_tree(
                 size, lshift, lroot,
                 r.tail_offset(), r.shift, r.root,
                 true);
             auto new_shift  = get<0>(concated);
             auto new_root   = get<1>(concated);
-            assert(new_shift == compute_shift(new_root));
-            assert(check_node(new_root, new_shift, size + r.tail_offset()));
+            assert(new_shift == new_root->compute_shift());
+            assert(new_root->check(new_shift, size + r.tail_offset()));
             dec_node(lroot, lshift, size);
             return { size + r.size, new_shift, new_root, r.tail->inc() };
         }
@@ -778,16 +778,6 @@ struct rrbtree
         }
     }
 
-#if IMMER_TAGGED_RBNODE
-    static unsigned compute_shift(node_t* node)
-    {
-        if (node->kind() == node_t::leaf_kind)
-            return 0;
-        else
-            return B + compute_shift(node->inner() [0]);
-    }
-#endif
-
     bool check_tree() const
     {
 #if IMMER_DEBUG_DEEP_CHECK
@@ -803,7 +793,7 @@ struct rrbtree
     {
 #if IMMER_DEBUG_DEEP_CHECK
         if (tail_size() > 0)
-            check_node(tail, 0, tail_size());
+            assert(tail->check(0, tail_size()));
 #endif
         return true;
     }
@@ -812,52 +802,12 @@ struct rrbtree
     {
 #if IMMER_DEBUG_DEEP_CHECK
         if (tail_offset() > 0)
-            check_node(root, shift, tail_offset());
+            assert(root->check(shift, tail_offset()));
         else {
             assert(root->kind() == node_t::inner_kind);
             assert(shift == B);
         }
 #endif
-        return true;
-    }
-
-    bool check_node(node_t* node, unsigned shift, std::size_t size) const
-    {
-#if IMMER_DEBUG_DEEP_CHECK
-        assert(size > 0);
-        if (shift == 0) {
-            assert(node->kind() == node_t::leaf_kind);
-            assert(size <= branches<B>);
-        } else if (auto r = node->relaxed()) {
-            auto count = r->count;
-            assert(count > 0);
-            assert(count <= branches<B>);
-            assert(r->sizes[count - 1] == size);
-            for (auto i = 1; i < count; ++i)
-                assert(r->sizes[i - 1] < r->sizes[i]);
-            auto last_size = std::size_t{};
-            for (auto i = 0; i < count; ++i) {
-                assert(check_node(node->inner()[i],
-                                  shift - B,
-                                  r->sizes[i] - last_size));
-                last_size = r->sizes[i];
-            }
-        } else {
-            assert(size <= branches<B> << shift);
-            auto count = (size >> shift)
-                + (size - ((size >> shift) << shift) > 0);
-            assert(count <= branches<B>);
-            if (count) {
-                for (auto i = 1; i < count - 1; ++i)
-                    assert(check_node(node->inner()[i],
-                                      shift - B,
-                                      1 << shift));
-                assert(check_node(node->inner()[count - 1],
-                                  shift - B,
-                                  size - ((count - 1) << shift)));
-            }
-        }
-#endif // IMMER_DEBUG_DEEP_CHECK
         return true;
     }
 
