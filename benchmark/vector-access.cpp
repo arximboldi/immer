@@ -191,16 +191,16 @@ NONIUS_BENCHMARK("librrb/F/random", [] (nonius::parameters params)
 })
 #endif
 
-template <typename Vektor>
+template <typename Vektor, typename PushFn=push_back_fn>
 auto generic_iter()
 {
     return [] (nonius::parameters params)
     {
         auto n = params.get<N>();
-        auto v = Vektor{};
 
+        auto v = Vektor{};
         for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
+            v = PushFn{}(std::move(v), i);
 
         return [=] {
             auto volatile x = std::accumulate(v.begin(), v.end(), 0u);
@@ -209,6 +209,8 @@ auto generic_iter()
     };
 }
 
+NONIUS_BENCHMARK("flex/5B",     generic_iter<immer::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("flex/F/5B",   generic_iter<immer::flex_vector<unsigned,5>,push_front_fn>())
 NONIUS_BENCHMARK("vector/4B",   generic_iter<immer::vector<unsigned,4>>())
 NONIUS_BENCHMARK("vector/5B",   generic_iter<immer::vector<unsigned,5>>())
 NONIUS_BENCHMARK("vector/6B",   generic_iter<immer::vector<unsigned,6>>())
