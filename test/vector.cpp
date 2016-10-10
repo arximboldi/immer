@@ -10,6 +10,15 @@
 
 using namespace immer;
 
+template <unsigned B=5>
+auto make_test_vector(std::size_t min, std::size_t max)
+{
+    auto v = vector<unsigned, B>{};
+    for (auto i = min; i < max; ++i)
+        v = v.push_back(i);
+    return v;
+}
+
 TEST_CASE("instantiation")
 {
     auto v = vector<int>{};
@@ -43,9 +52,7 @@ TEST_CASE("push back one element")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = vector<unsigned>{};
-    for (auto i = 0u; i < n; ++i)
-        v = v.push_back(i);
+    auto v = make_test_vector(0, n);
 
     SUBCASE("assoc")
     {
@@ -60,8 +67,7 @@ TEST_CASE("update")
 
     SUBCASE("assoc further")
     {
-        for (auto i = n; i < 666; ++i)
-            v = v.push_back(i);
+        auto v = make_test_vector(0, 666);
 
         auto u = v.assoc(3u, 13u);
         u = u.assoc(200u, 7u);
@@ -81,10 +87,7 @@ TEST_CASE("update")
 
     SUBCASE("assoc further more")
     {
-        auto v = vector<unsigned, 4>{};
-
-        for (auto i = n; i < 1000u; ++i)
-            v = v.push_back(i);
+        auto v = make_test_vector<4>(0, 1000);
 
         for (auto i = 0u; i < v.size(); ++i) {
             v = v.assoc(i, i+1);
@@ -109,9 +112,7 @@ TEST_CASE("update")
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = vector<unsigned>{};
-    for (auto i = 0u; i < n; ++i)
-        v = v.push_back(i);
+    auto v = make_test_vector(0, n);
 
     SUBCASE("works with range loop")
     {
@@ -170,9 +171,7 @@ TEST_CASE("iterator")
 TEST_CASE("reduce")
 {
     const auto n = 666u;
-    auto v = vector<unsigned>{};
-    for (auto i = 0u; i < n; ++i)
-        v = v.push_back(i);
+    auto v = make_test_vector(0, n);
 
     SUBCASE("sum collection")
     {
