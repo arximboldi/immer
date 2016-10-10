@@ -27,11 +27,7 @@ struct refcount_policy
 
     static bool dec(const data* p)
     {
-        if (1 == p->refcount.fetch_sub(1, std::memory_order_release)) {
-            std::atomic_thread_fence(std::memory_order_acquire);
-            return true;
-        }
-        return false;
+        return 1 == p->refcount.fetch_sub(1, std::memory_order_acq_rel);
     };
 
     template <typename T>
