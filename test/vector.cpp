@@ -1,7 +1,7 @@
 
 #include <immer/vector.hpp>
 
-#include <doctest.h>
+#include <catch.hpp>
 #include <boost/range/adaptors.hpp>
 
 #include <algorithm>
@@ -27,7 +27,7 @@ TEST_CASE("instantiation")
 
 TEST_CASE("push back one element")
 {
-    SUBCASE("one element")
+    SECTION("one element")
     {
         const auto v1 = vector<int>{};
         auto v2 = v1.push_back(42);
@@ -36,7 +36,7 @@ TEST_CASE("push back one element")
         CHECK(v2[0] == 42);
     }
 
-    SUBCASE("many elements")
+    SECTION("many elements")
     {
         const auto n = 666u;
         auto v = vector<unsigned>{};
@@ -54,7 +54,7 @@ TEST_CASE("update")
     const auto n = 42u;
     auto v = make_test_vector(0, n);
 
-    SUBCASE("assoc")
+    SECTION("assoc")
     {
         const auto u = v.assoc(3u, 13u);
         CHECK(u.size() == v.size());
@@ -65,7 +65,7 @@ TEST_CASE("update")
         CHECK(v[3u] == 3u);
     }
 
-    SUBCASE("assoc further")
+    SECTION("assoc further")
     {
         auto v = make_test_vector(0, 666);
 
@@ -85,7 +85,7 @@ TEST_CASE("update")
         CHECK(v[200u] == 200u);
     }
 
-    SUBCASE("assoc further more")
+    SECTION("assoc further more")
     {
         auto v = make_test_vector<4>(0, 1000);
 
@@ -95,7 +95,7 @@ TEST_CASE("update")
         }
     }
 
-    SUBCASE("update")
+    SECTION("update")
     {
         const auto u = v.update(10u, [] (auto x) { return x + 10; });
         CHECK(u.size() == v.size());
@@ -114,7 +114,7 @@ TEST_CASE("iterator")
     const auto n = 666u;
     auto v = make_test_vector(0, n);
 
-    SUBCASE("works with range loop")
+    SECTION("works with range loop")
     {
         auto i = 0u;
         for (const auto& x : v)
@@ -122,19 +122,20 @@ TEST_CASE("iterator")
         CHECK(i == v.size());
     }
 
-    SUBCASE("works with standard algorithms")
+    SECTION("works with standard algorithms")
     {
         auto s = std::vector<unsigned>(n);
         std::iota(s.begin(), s.end(), 0u);
         std::equal(v.begin(), v.end(), s.begin(), s.end());
     }
 
-    SUBCASE("can go back from end")
+    SECTION("can go back from end")
     {
-        CHECK(n-1 == *--v.end());
+        auto expected  = n - 1;
+        CHECK(expected == *--v.end());
     }
 
-    SUBCASE("works with reversed range adaptor")
+    SECTION("works with reversed range adaptor")
     {
         auto r = v | boost::adaptors::reversed;
         auto i = n;
@@ -142,7 +143,7 @@ TEST_CASE("iterator")
             CHECK(x == --i);
     }
 
-    SUBCASE("works with strided range adaptor")
+    SECTION("works with strided range adaptor")
     {
         auto r = v | boost::adaptors::strided(5);
         auto i = 0u;
@@ -150,21 +151,21 @@ TEST_CASE("iterator")
             CHECK(x == 5 * i++);
     }
 
-    SUBCASE("works reversed")
+    SECTION("works reversed")
     {
         auto i = n;
         for (auto iter = v.rbegin(), last = v.rend(); iter != last; ++iter)
             CHECK(*iter == --i);
     }
 
-    SUBCASE("advance and distance")
+    SECTION("advance and distance")
     {
         auto i1 = v.begin();
         auto i2 = i1 + 100;
-        CHECK(*i2 == 100u);
-        CHECK(i2 - i1 == 100);
-        CHECK(*(i2 - 50) == 50u);
-        CHECK((i2 - 30) - i2 == -30);
+        CHECK(100u == *i2);
+        CHECK(100  == i2 - i1);
+        CHECK(50u  == *(i2 - 50));
+        CHECK(-30  == (i2 - 30) - i2);
     }
 }
 
@@ -173,7 +174,7 @@ TEST_CASE("reduce")
     const auto n = 666u;
     auto v = make_test_vector(0, n);
 
-    SUBCASE("sum collection")
+    SECTION("sum collection")
     {
         auto sum = v.reduce(std::plus<unsigned>{}, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
@@ -186,13 +187,13 @@ TEST_CASE("vector of strings")
     // check with valgrind
     const auto n = 666u;
     auto v = vector<std::string>{};
-
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(std::to_string(i));
+
     for (auto i = 0u; i < v.size(); ++i)
         CHECK(v[i] == std::to_string(i));
 
-    SUBCASE("assoc")
+    SECTION("assoc")
     {
         for (auto i = 0u; i < n; ++i)
             v = v.assoc(i, "foo " + std::to_string(i));
@@ -209,19 +210,37 @@ struct non_default
 
 TEST_CASE("non default")
 {
-    // check with valgrind
     const auto n = 666u;
     auto v = vector<non_default>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back({ i });
+
     for (auto i = 0u; i < v.size(); ++i)
         CHECK(v[i].value == i);
 
-    SUBCASE("assoc")
+    SECTION("assoc")
     {
         for (auto i = 0u; i < n; ++i)
             v = v.assoc(i, {i + 1});
         for (auto i = 0u; i < n; ++i)
             CHECK(v[i].value == i + 1);
+    }
+}
+
+
+TEST_CASE("take")
+{
+    const auto n = 666u;
+
+    SECTION("anywhere")
+    {
+        auto v = make_test_vector<3>(0, n);
+
+        for (auto i = 0u; i < n; ++i) {
+            auto vv = v.take(i);
+            CHECK(vv.size() == i);
+            for (auto j = 0u; j < i; ++j)
+                CHECK(vv[j] == v[j]);
+        }
     }
 }
