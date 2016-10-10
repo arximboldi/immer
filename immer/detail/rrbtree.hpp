@@ -219,102 +219,6 @@ struct rrbtree
             });
     }
 
-    static std::tuple<unsigned, node_t*, unsigned, node_t*>
-    slice_right_leaf(node_t* n, std::size_t size, std::size_t new_size)
-    {
-        assert(new_size > 0 && size > 0);
-        auto old_tail_size = ((size - 1) & mask<B>) + 1;
-        auto tail_size     = ((new_size - 1) & mask<B>) + 1;
-        IMMER_TRACE("slice_right_leaf: " << size << " -> " << new_size);
-        IMMER_TRACE("                : " << old_tail_size << " -> " << tail_size);
-        auto new_tail      = tail_size == old_tail_size
-            ? n->inc()
-            : node_t::copy_leaf(n, tail_size);
-        return { 0, nullptr, tail_size, new_tail };
-    }
-
-    static std::tuple<unsigned, node_t*, unsigned, node_t*>
-    slice_right(node_t* n, unsigned shift, std::size_t size,
-                std::size_t new_size, bool collapse)
-    {
-        if (shift == 0) {
-            return slice_right_leaf(n, size, new_size);
-        } else if (auto r = n->relaxed()) {
-            assert(shift > 0);
-            auto idx = ((new_size - 1) >> shift) & mask<B>;
-            while (r->sizes[idx] < new_size) ++idx;
-            if (collapse && idx == 0) {
-                return slice_right(n->inner()[idx], shift - B,
-                                   r->sizes[idx], new_size,
-                                   collapse);
-            } else {
-                using std::get;
-                auto lsize = idx ? r->sizes[idx - 1] : 0;
-                auto subs  = slice_right(n->inner()[idx], shift - B,
-                                         r->sizes[idx] - lsize,
-                                         new_size - lsize,
-                                         false);
-                auto next = get<1>(subs);
-                auto tail_size = get<2>(subs);
-                auto tail = get<3>(subs);
-                if (next) {
-                    auto newn = node_t::copy_inner_r(n, idx);
-                    auto newr = newn->relaxed();
-                    newn->inner()[idx] = next;
-                    newr->sizes[idx] = new_size - tail_size;
-                    newr->count++;
-                    return { shift, newn, tail_size, tail };
-                } else if (idx == 0) {
-                    return { shift, nullptr, tail_size, tail };
-                } else if (idx == 1 && collapse && shift > B) {
-                    auto newn = n->inner()[0];
-                    return { shift - B, newn->inc(), tail_size, tail };
-                } else {
-                    return { shift, node_t::copy_inner_r(n, idx),
-                             tail_size, tail };
-                }
-            }
-        } else {
-            return slice_right_regular(n, shift, size, new_size, collapse);
-        }
-    }
-
-    static std::tuple<unsigned, node_t*, unsigned, node_t*>
-    slice_right_regular(node_t* n, unsigned shift, std::size_t size,
-                        std::size_t new_size, bool collapse)
-    {
-        if (shift == 0) {
-            return slice_right_leaf(n, size, new_size);
-        } else {
-            assert(new_size);
-            auto idx = ((new_size - 1) >> shift) & mask<B>;
-            if (collapse && idx == 0) {
-                return slice_right_regular(n->inner()[idx], shift - B,
-                                           size, new_size, collapse);
-            } else {
-                using std::get;
-                auto subs = slice_right_regular(n->inner()[idx], shift - B,
-                                                size, new_size, false);
-                auto next = get<1>(subs);
-                auto tail_size = get<2>(subs);
-                auto tail = get<3>(subs);
-                if (next) {
-                    auto newn = node_t::copy_inner(n, idx);
-                    newn->inner()[idx] = next;
-                    return { shift, newn, tail_size, tail };
-                } else if (idx == 0) {
-                    return { shift, nullptr, tail_size, tail };
-                } else if (idx == 1 && collapse && shift > B) {
-                    auto newn = n->inner()[0];
-                    return { shift - B, newn->inc(), tail_size, tail };
-                } else {
-                    return { shift, node_t::copy_inner(n, idx),
-                             tail_size, tail };
-                }
-            }
-        }
-    }
-
     rrbtree take(std::size_t new_size) const
     {
         auto tail_off = tail_offset();
@@ -327,7 +231,9 @@ struct rrbtree
             return { new_size, shift, root->inc(), new_tail };
         } else {
             using std::get;
-            auto r = slice_right(root, shift, tail_off, new_size, true);
+            auto l = new_size - 1;
+            auto v = slice_right_visitor<node_t>();
+            auto r = visit_maybe_relaxed(root, shift, tail_off, v, l);
             auto new_shift = get<0>(r);
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
