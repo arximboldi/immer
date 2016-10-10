@@ -19,6 +19,8 @@ option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
 
 option(CHECK_FREE_LIST "run checks with use free list heap")
 
+option(CHECK_SLOW_TESTS "run slow tests")
+
 set(PRETTYPRINT_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/prettyprint-prefix/src/prettyprint")
 set(DOCTEST_INCLUDE_DIR
@@ -121,6 +123,10 @@ add_definitions(-DIMMER_HAS_LIBGC=1)
 
 if (CHECK_FREE_LIST)
   add_definitions(-DIMMER_FREE_LIST=1)
+endif()
+
+if (CHECK_SLOW_TESTS)
+  add_definitions(-DIMMER_SLOW_TESTS=1)
 endif()
 
 #  Tests

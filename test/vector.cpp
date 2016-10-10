@@ -1,6 +1,8 @@
 
 #include <immer/vector.hpp>
 
+#include "util.hpp"
+
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
 
@@ -236,11 +238,10 @@ TEST_CASE("take")
     {
         auto v = make_test_vector<3>(0, n);
 
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
             auto vv = v.take(i);
             CHECK(vv.size() == i);
-            for (auto j = 0u; j < i; ++j)
-                CHECK(vv[j] == v[j]);
+            CHECK_VECTOR_EQUALS_RANGE(vv, v.begin(), v.begin() + i);
         }
     }
 }

@@ -1,12 +1,16 @@
 
 #include <immer/flex_vector.hpp>
 
+#include "util.hpp"
+
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
+#include <boost/range/irange.hpp>
 
 #include <algorithm>
 #include <numeric>
 #include <vector>
+
 
 using namespace immer;
 
@@ -98,18 +102,6 @@ TEST_CASE("push_back")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = flex_vector<unsigned>{};
-        for (auto i = 0u; i < n; ++i) {
-            v = v.push_back(i * 42);
-            CHECK(v.size() == i + 1);
-            for (auto j = 0u; j < v.size(); ++j)
-                CHECK(v[j] == j * 42);
-        }
-    }
-
-    SECTION("many elements, small branching factor")
-    {
-        const auto n = 666u;
         auto v = flex_vector<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
@@ -194,19 +186,21 @@ TEST_CASE("push_front")
 
 TEST_CASE("concat")
 {
+#if IMMER_SLOW_TESTS
     const auto n = 666u;
+#else
+    const auto n = 101u;
+#endif
 
     auto all_lhs = make_many_test_flex_vector<3>(n);
     auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n);
 
     SECTION("anywhere")
     {
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
             auto c = all_lhs[i] + all_rhs[n - i - 1];
             IMMER_TRACE("\n-- concat: " << i);
-            CHECK(c.size() == n - 1);
-            for (auto j = 0u; j < c.size(); ++j)
-                CHECK(c[j] == j);
+            CHECK_VECTOR_EQUALS(c, boost::irange(0u, n - 1));
         }
     }
 }
@@ -229,9 +223,7 @@ TEST_CASE("concat recursive")
     const auto n = 666u;
     auto v = make_flex_vector_concat<3>(0, n);
 
-    CHECK(v.size() == n);
-    for (auto i = 0u; i < n; ++i)
-        CHECK(v[i] == i);
+    CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 }
 
 TEST_CASE("reduce")
@@ -286,11 +278,9 @@ TEST_CASE("take")
     {
         auto v = make_test_flex_vector<3>(0, n);
 
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
             auto vv = v.take(i);
-            CHECK(vv.size() == i);
-            for (auto j = 0u; j < i; ++j)
-                CHECK(vv[j] == v[j]);
+            CHECK_VECTOR_EQUALS_RANGE(vv, v.begin(), v.begin() + i);
         }
     }
 
@@ -298,11 +288,10 @@ TEST_CASE("take")
     {
         auto v = make_test_flex_vector_front<3>(0, n);
 
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
+            IMMER_TRACE("-- take relaxed: " << i);
             auto vv = v.take(i);
-            CHECK(vv.size() == i);
-            for (auto j = 0u; j < i; ++j)
-                CHECK(vv[j] == v[j]);
+            CHECK_VECTOR_EQUALS_RANGE(vv, v.begin(), v.begin() + i);
         }
     }
 }
@@ -315,11 +304,9 @@ TEST_CASE("drop")
     {
         auto v = make_test_flex_vector<3>(0, n);
 
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
             auto vv = v.drop(i);
-            CHECK(vv.size() == n - i);
-            for (auto j = 0u; j < n - i; ++j)
-                CHECK(vv[j] == v[j + i]);
+            CHECK_VECTOR_EQUALS_RANGE(vv, v.begin() + i, v.end());
         }
     }
 
@@ -327,55 +314,10 @@ TEST_CASE("drop")
     {
         auto v = make_test_flex_vector_front<3>(0, n);
 
-        for (auto i = 0u; i < n; ++i) {
+        for (auto i : test_irange(0u, n)) {
             auto vv = v.drop(i);
-            CHECK(vv.size() == n - i);
-            for (auto j = 0u; j < n - i; ++j)
-                CHECK(vv[j] == v[j + i]);
+            CHECK_VECTOR_EQUALS_RANGE(vv, v.begin() + i, v.end());
         }
-    }
-}
-
-TEST_CASE("reconcat")
-{
-    const auto n = 666u;
-    auto v = make_test_flex_vector_front<3>(0, n);
-    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
-    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
-
-    for (auto i = 0u; i < n; ++i) {
-        auto vv = all_lhs[i] + all_rhs[n - i];
-        CHECK(vv.size() == n);
-        for (auto j = 0u; j < n; ++j)
-            CHECK(vv[j] == v[j]);
-    }
-}
-
-TEST_CASE("reconcat drop")
-{
-    const auto n = 666u;
-    auto v = make_test_flex_vector_front<3>(0, n);
-    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
-
-    for (auto i = 0u; i < n; ++i) {
-        auto vv = all_lhs[i] + v.drop(i);
-        CHECK(vv.size() == n);
-        for (auto j = 0u; j < n; ++j)
-            CHECK(vv[j] == v[j]);
-    }
-}
-
-TEST_CASE("reconcat take")
-{
-    const auto n = 666u;
-    auto v = make_test_flex_vector_front<3>(0, n);
-    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
-
-    for (auto i = 0u; i < n; ++i) {
-        auto vv = v.take(i) + all_rhs[n - i];
-        CHECK(vv.size() == n);
-        for (auto j = 0u; j < n; ++j)
-            CHECK(vv[j] == v[j]);
     }
 }
 
@@ -384,11 +326,9 @@ TEST_CASE("reconcat take drop")
     const auto n = 666u;
     auto v = make_test_flex_vector_front<3>(0, n);
 
-    for (auto i = 0u; i < n; ++i) {
+    for (auto i : test_irange(0u, n)) {
         auto vv = v.take(i) + v.drop(i);
-        CHECK(vv.size() == n);
-        for (auto j = 0u; j < n; ++j)
-            CHECK(vv[j] == v[j]);
+        CHECK_VECTOR_EQUALS(vv, v);
     }
 }
 
@@ -397,16 +337,76 @@ TEST_CASE("reconcat take drop feedback")
     const auto n = 666u;
     auto v = make_test_flex_vector_front<3>(0, n);
     auto vv = v;
-    for (auto i = 0u; i < n; ++i) {
+    for (auto i : test_irange(0u, n)) {
         vv = vv.take(i) + vv.drop(i);
-        CHECK(vv.size() == n);
-        for (auto j = 0u; j < n; ++j)
-            CHECK(vv[j] == v[j]);
+        CHECK_VECTOR_EQUALS(vv, v);
+    }
+}
 
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = make_test_flex_vector(0, n);
+    auto v = make_test_flex_vector<3>(0, n);
+
+    SECTION("works with range loop")
+    {
+        auto i = 0u;
+        for (const auto& x : v)
+            CHECK(x == i++);
+        CHECK(i == v.size());
+    }
+
+    SECTION("works with standard algorithms")
+    {
+        auto s = std::vector<unsigned>(n);
+        std::iota(s.begin(), s.end(), 0u);
+        std::equal(v.begin(), v.end(), s.begin(), s.end());
+    }
+
+    SECTION("can go back from end")
+    {
+        auto expected  = n - 1;
+        CHECK(expected == *--v.end());
+    }
+
+    SECTION("works with reversed range adaptor")
+    {
+        auto r = v | boost::adaptors::reversed;
+        auto i = n;
+        for (const auto& x : r)
+            CHECK(x == --i);
+    }
+
+    SECTION("works with strided range adaptor")
+    {
+        auto r = v | boost::adaptors::strided(5);
+        auto i = 0u;
+        for (const auto& x : r)
+            CHECK(x == 5 * i++);
+    }
+
+    SECTION("works reversed")
+    {
+        auto i = n;
+        for (auto iter = v.rbegin(), last = v.rend(); iter != last; ++iter)
+            CHECK(*iter == --i);
+    }
+
+    SECTION("advance and distance")
+    {
+        auto i1 = v.begin();
+        auto i2 = i1 + 100;
+        CHECK(100u == *i2);
+        CHECK(100  == i2 - i1);
+        CHECK(50u  == *(i2 - 50));
+        CHECK(-30  == (i2 - 30) - i2);
+    }
+}
+
+TEST_CASE("iterator relaxed")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector_front<3>(0, n);
 
     SECTION("works with range loop")
     {

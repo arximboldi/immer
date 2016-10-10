@@ -107,7 +107,7 @@ TEST_CASE("update")
     }
 }
 
-#if IMMER_SLOW_TEST
+#if IMMER_SLOW_TESTS
 TEST_CASE("big")
 {
     const auto n = 1000000;
@@ -129,7 +129,7 @@ TEST_CASE("big")
         }
     }
 }
-#endif
+#endif // IMMER_SLOW_TESTS
 
 TEST_CASE("iterator")
 {
