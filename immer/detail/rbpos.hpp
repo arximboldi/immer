@@ -213,6 +213,17 @@ struct regular_rbpos
                : make_full_rbpos(child, shift_ - bits).visit(v, idx));
     }
 
+    template <typename Visitor>
+    auto last(Visitor&& v, unsigned offset_hint)
+    {
+        assert(offset_hint == count() - 1);
+        auto child   = node_->inner() [offset_hint];
+        auto is_leaf = shift_ == bits;
+        return is_leaf
+            ? make_leaf_rbpos(child, ((size_ - 1) & mask<bits>) + 1).visit(v)
+            : make_regular_rbpos(child, shift_ - bits, size_).visit(v);
+    }
+
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
@@ -383,6 +394,13 @@ struct relaxed_rbpos
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
 
+    auto child_size(unsigned offset) const
+    {
+        return offset
+            ? relaxed_->sizes[offset] - relaxed_->sizes[offset - 1]
+            : relaxed_->sizes[offset];
+    }
+
     auto index(std::size_t idx) const
     {
         auto offset = (idx >> shift_) & mask<bits>;
@@ -423,6 +441,18 @@ struct relaxed_rbpos
         return is_leaf
             ? make_leaf_rbpos(child, next_size).visit(v, next_idx)
             : visit_maybe_relaxed(child, shift_ - bits, next_size, v, next_idx);
+    }
+
+    template <typename Visitor>
+    auto last(Visitor&& v, unsigned offset_hint, unsigned child_size_hint)
+    {
+        assert(offset_hint == count() - 1);
+        assert(child_size_hint == child_size(offset_hint));
+        auto child     = node_->inner() [offset_hint];
+        auto is_leaf   = shift_ == bits;
+        return is_leaf
+            ? make_leaf_rbpos(child, child_size_hint).visit(v)
+            : visit_maybe_relaxed(child, shift_ - bits, child_size_hint, v);
     }
 
     template <typename Visitor, typename ...Args>

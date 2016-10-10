@@ -123,23 +123,10 @@ struct rbtree
         return acc;
     }
 
-    node_t* push_tail(unsigned level,
-                      node_t* parent,
-                      node_t* tail) const
-    {
-        auto idx        = ((size - branches<B> - 1) >> level) & mask<B>;
-        auto new_idx    = ((size - 1) >> level) & mask<B>;
-        auto new_parent = node_t::copy_inner(parent, new_idx);
-        new_parent->inner()[new_idx] =
-            level == B       ? tail :
-            idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
-            /* otherwise */  : node_t::make_path(level - B, tail);
-        return new_parent;
-    }
-
     rbtree push_back(T value) const
     {
-        auto ts = tail_size();
+        auto tail_off = tail_offset();
+        auto ts = size - tail_off;
         if (ts < branches<B>) {
             auto new_tail = node_t::copy_leaf_emplace(tail, ts,
                                                       std::move(value));
@@ -151,8 +138,12 @@ struct rbtree
                     root->inc(),
                     node_t::make_path(shift, tail->inc()));
                 return { size + 1, shift + B, new_root, new_tail };
+            } else if (tail_off) {
+                auto new_root = make_regular_rbpos(root, shift, tail_off)
+                    .visit(push_tail_visitor(tail->inc(), ts));
+                return { size + 1, shift, new_root, new_tail };
             } else {
-                auto new_root = push_tail(shift, root, tail->inc());
+                auto new_root = node_t::make_path(shift, tail->inc());
                 return { size + 1, shift, new_root, new_tail };
             }
         }

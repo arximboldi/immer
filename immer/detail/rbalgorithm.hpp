@@ -110,5 +110,53 @@ auto dec_visitor()
         });
 }
 
+template <typename NodeT>
+auto push_tail_visitor(NodeT* tail, unsigned ts)
+{
+    using node_t = NodeT;
+
+    return make_visitor(
+        [=] (auto&& pos, auto&& v) -> NodeT* {
+            constexpr auto B = NodeT::bits;
+            auto level       = pos.shift();
+            auto idx         = pos.count() - 1;
+            auto children    = pos.child_size(idx);
+            auto new_idx     = children == 1 << level || level == B
+                ? idx + 1 : idx;
+            auto new_child   = (node_t*){};
+            if (new_idx >= branches<B>)
+                return nullptr;
+            else if (idx == new_idx) {
+                new_child = pos.last(v, idx, children);
+                if (!new_child) {
+                    if (++new_idx < branches<B>)
+                        new_child = node_t::make_path(level - B, tail);
+                    else
+                        return nullptr;
+                }
+            } else
+                new_child = node_t::make_path(level - B, tail);
+            auto new_parent  = node_t::copy_inner_r(pos.node(), new_idx);
+            auto new_relaxed = new_parent->relaxed();
+            new_parent->inner()[new_idx] = new_child;
+            new_relaxed->sizes[new_idx] = pos.size() + ts;
+            new_relaxed->count = new_idx + 1;
+            return new_parent;
+        },
+        [=] (auto&& pos, auto&& v) -> NodeT* {
+            constexpr auto B = NodeT::bits;
+            auto idx         = pos.index(pos.size() - 1);
+            auto new_idx     = pos.index(pos.size() + ts - 1);
+            auto new_parent  = node_t::copy_inner(pos.node(), new_idx);
+            new_parent->inner()[new_idx] =
+                idx == new_idx   ? pos.last(v, idx)
+                /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
+            return new_parent;
+        },
+        [=] (auto&& pos, auto&&...) -> NodeT* {
+            return tail;
+        });
+}
+
 } // namespace detail
 } // namespace immer

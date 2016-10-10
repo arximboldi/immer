@@ -142,70 +142,14 @@ struct rrbtree
         return acc;
     }
 
-    node_t* push_tail_relaxed(unsigned level,
-                              node_t* parent,
-                              node_t* tail,
-                              unsigned tail_size) const
-    {
-        if (auto r          = parent->relaxed()) {
-            auto idx        = r->count - 1;
-            auto children   = idx
-                ? r->sizes[idx] - r->sizes[idx - 1]
-                : r->sizes[idx];
-            auto new_idx    = children == 1 << level || level == B
-                ? idx + 1 : idx;
-            if (new_idx >= branches<B>)
-                return nullptr;
-            auto new_child  =
-                level == B       ? tail :
-                idx == new_idx   ? push_tail_relaxed(level - B,
-                                                     parent->inner()[idx],
-                                                     tail,
-                                                     tail_size)
-                /* otherwise */  : node_t::make_path(level - B, tail);
-            // if there was no space on the leftmost branch, we see if
-            // there is an empty slot to its left and we just put it there
-            if (!new_child) {
-                if (idx == new_idx && idx + 1 < branches<B>) {
-                    ++new_idx;
-                    new_child = node_t::make_path(level - B, tail);
-                } else
-                    return nullptr;
-            }
-            auto new_parent = node_t::copy_inner_r(parent, new_idx);
-            auto nr = new_parent->relaxed();
-            new_parent->inner()[new_idx] = new_child;
-            nr->sizes[new_idx] = r->sizes[idx] + tail_size;
-            nr->count = new_idx + 1;
-            return new_parent;
-        } else {
-            return push_tail_regular(level, parent, tail);
-        }
-    }
-
-    node_t* push_tail_regular(unsigned level,
-                              node_t* parent,
-                              node_t* tail) const
-    {
-        auto idx        = ((size - branches<B> - 1) >> level) & mask<B>;
-        auto new_idx    = ((size - 1) >> level) & mask<B>;
-        auto new_parent = node_t::copy_inner(parent, new_idx);
-        new_parent->inner()[new_idx] =
-            level == B       ? tail :
-            idx == new_idx   ? push_tail_regular(level - B,
-                                                 parent->inner()[idx],
-                                                 tail)
-            /* otherwise */  : make_path(level - B, tail);
-        assert(new_idx < branches<B>);
-        return new_parent;
-    }
-
     std::tuple<unsigned, node_t*>
     push_tail(node_t* root, unsigned shift, std::size_t size,
               node_t* tail, unsigned tail_size) const
     {
         if (auto r = root->relaxed()) {
-            auto new_root = push_tail_relaxed(shift, root, tail, tail_size);
+            auto new_root = visit_maybe_relaxed(
+                root, shift, size,
+                push_tail_visitor(tail, tail_size));
             if (new_root)
                 return { shift, new_root };
             else {
@@ -217,12 +161,15 @@ struct rrbtree
                 return { shift + B, new_root };
             }
         } else if (size >> B >= 1u << shift) {
-            auto new_path = make_path(shift, tail);
+            auto new_path = node_t::make_path(shift, tail);
             auto new_root = node_t::make_inner(root->inc(), new_path);
             return { shift + B, new_root };
-        } else {
-            auto new_root = push_tail_regular(shift, root, tail);
+        } else if (size) {
+            auto new_root = make_regular_rbpos(root, shift, size)
+                .visit(push_tail_visitor(tail, tail_size));
             return { shift, new_root };
+        } else {
+            return { shift, node_t::make_path(shift, tail) };
         }
     }
 
