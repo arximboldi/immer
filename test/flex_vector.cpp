@@ -402,5 +402,63 @@ TEST_CASE("reconcat take drop feedback")
         CHECK(vv.size() == n);
         for (auto j = 0u; j < n; ++j)
             CHECK(vv[j] == v[j]);
+
+TEST_CASE("iterator")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector(0, n);
+
+    SECTION("works with range loop")
+    {
+        auto i = 0u;
+        for (const auto& x : v)
+            CHECK(x == i++);
+        CHECK(i == v.size());
+    }
+
+    SECTION("works with standard algorithms")
+    {
+        auto s = std::vector<unsigned>(n);
+        std::iota(s.begin(), s.end(), 0u);
+        std::equal(v.begin(), v.end(), s.begin(), s.end());
+    }
+
+    SECTION("can go back from end")
+    {
+        auto expected  = n - 1;
+        CHECK(expected == *--v.end());
+    }
+
+    SECTION("works with reversed range adaptor")
+    {
+        auto r = v | boost::adaptors::reversed;
+        auto i = n;
+        for (const auto& x : r)
+            CHECK(x == --i);
+    }
+
+    SECTION("works with strided range adaptor")
+    {
+        auto r = v | boost::adaptors::strided(5);
+        auto i = 0u;
+        for (const auto& x : r)
+            CHECK(x == 5 * i++);
+    }
+
+    SECTION("works reversed")
+    {
+        auto i = n;
+        for (auto iter = v.rbegin(), last = v.rend(); iter != last; ++iter)
+            CHECK(*iter == --i);
+    }
+
+    SECTION("advance and distance")
+    {
+        auto i1 = v.begin();
+        auto i2 = i1 + 100;
+        CHECK(100u == *i2);
+        CHECK(100  == i2 - i1);
+        CHECK(50u  == *(i2 - 50));
+        CHECK(-30  == (i2 - 30) - i2);
     }
 }

@@ -16,69 +16,65 @@ struct rrbtree_iterator : boost::iterator_facade<
     boost::random_access_traversal_tag,
     const T&>
 {
+    using tree_t   = rrbtree<T, B, MP>;
+    using region_t = std::tuple<const T*, std::size_t, std::size_t>;
+
     struct end_t {};
 
     rrbtree_iterator() = default;
 
-    rrbtree_iterator(const rrbtree<T, B, MP>& v)
+    rrbtree_iterator(const tree_t& v)
         : v_    { &v }
         , i_    { 0 }
-        , base_ { 0 }
-          //, curr_ { v.array_for(0) } // WIP
+        , curr_ { v.array_for(0) }
     {
     }
 
-    rrbtree_iterator(const rrbtree<T, B, MP>& v, end_t)
+    rrbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , base_ { i_ - (i_ & mask<B>) }
-          //, curr_ { v.array_for(i_ - 1) + (i_ - base_) } // WIP
+        , curr_ { v.array_for(v.size) }
     {}
 
 private:
     friend class boost::iterator_core_access;
 
-    const rrbtree<T, B, MP>* v_;
-    std::size_t       i_;
-    std::size_t       base_;
-    const T*          curr_;
+    const tree_t* v_;
+    std::size_t i_;
+    region_t    curr_;
 
     void increment()
     {
+        using std::get;
         assert(i_ < v_->size);
         ++i_;
-        if (i_ - base_ < branches<B>) {
-            ++curr_;
-        } else {
-            base_ += branches<B>;
+        if (i_ < get<2>(curr_))
+            ++get<0>(curr_);
+        else
             curr_ = v_->array_for(i_);
-        }
     }
 
     void decrement()
     {
+        using std::get;
         assert(i_ > 0);
         --i_;
-        if (i_ >= base_) {
-            --curr_;
-        } else {
-            base_ -= branches<B>;
-            curr_ = v_->array_for(i_) + (branches<B> - 1);
-        }
+        if (i_ >= get<1>(curr_))
+            --get<0>(curr_);
+        else
+            curr_ = v_->array_for(i_);
     }
 
     void advance(std::ptrdiff_t n)
     {
+        using std::get;
         assert(n <= 0 || i_ + static_cast<std::size_t>(n) <= v_->size);
         assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
-
         i_ += n;
-        if (i_ <= base_ && i_ - base_ < branches<B>) {
-            curr_ += n;
-        } else {
-            base_ = i_ - (i_ & mask<B>);
-            curr_ = v_->array_for(i_) + (i_ - base_);
-        }
+        if (i_ >= get<1>(curr_) && i_ < get<2>(curr_))
+            get<0>(curr_) += n;
+        else
+            curr_ = v_->array_for(i_);
     }
 
     bool equal(const rrbtree_iterator& other) const
@@ -95,7 +91,8 @@ private:
 
     const T& dereference() const
     {
-        return *curr_;
+        using std::get;
+        return *get<0>(curr_);
     }
 };
 

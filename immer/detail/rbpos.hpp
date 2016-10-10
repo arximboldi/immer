@@ -184,9 +184,13 @@ struct regular_rbpos
     }
 
     template <typename Visitor>
-    auto towards(Visitor&& v,
-                 std::size_t idx,
-                 unsigned offset_hint)
+    auto towards(Visitor&& v, std::size_t idx)
+    {
+        return towards(v, idx, index(idx), count());
+    }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx, unsigned offset_hint)
     {
         return towards(v, idx, offset_hint, count());
     }
@@ -341,9 +345,16 @@ struct full_rbpos
         }
     }
 
-    template <typename Visitor, typename... Args>
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx)
+    {
+        return towards(v, idx, index(idx));
+    }
+
+    template <typename Visitor, typename... OtherHints>
     auto towards(Visitor&& v, std::size_t idx,
-                 unsigned offset_hint, Args&&...)
+                 unsigned offset_hint,
+                 OtherHints&&...)
     {
         assert(offset_hint == index(idx));
         auto is_leaf = shift_ == bits;
@@ -383,6 +394,7 @@ struct relaxed_rbpos
     auto node()  const { return node_; }
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
+    auto relaxed() const { return relaxed_; }
 
     auto child_size(unsigned offset) const
     {
@@ -425,11 +437,23 @@ struct relaxed_rbpos
                  unsigned offset_hint)
     {
         assert(offset_hint == index(idx));
+        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
+        return towards(v, idx, offset_hint, left_size);
+    }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v,
+                 std::size_t idx,
+                 unsigned offset_hint,
+                 std::size_t left_size_hint)
+    {
+        assert(offset_hint == index(idx));
+        assert(left_size_hint ==
+               (offset_hint ? relaxed_->sizes[offset_hint - 1] : 0));
         auto child     = node_->inner() [offset_hint];
         auto is_leaf   = shift_ == bits;
-        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
-        auto next_size = relaxed_->sizes[offset_hint] - left_size;
-        auto next_idx  = idx - left_size;
+        auto next_size = relaxed_->sizes[offset_hint] - left_size_hint;
+        auto next_idx  = idx - left_size_hint;
         return is_leaf
             ? make_leaf_rbpos(child, next_size).visit(v, next_idx)
             : visit_maybe_relaxed(child, shift_ - bits, next_size, v, next_idx);

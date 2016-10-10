@@ -22,6 +22,37 @@ auto array_for_visitor()
         });
 }
 
+
+template <typename T>
+auto relaxed_array_for_visitor()
+{
+    using result_t = std::tuple<T*, std::size_t, std::size_t>;
+    return make_visitor(
+        [] (auto&& pos, auto&& v, std::size_t idx) -> result_t {
+            using std::get;
+            auto offset    = pos.index(idx);
+            auto left_size = offset ? pos.relaxed()->sizes[offset - 1] : 0;
+            auto sub       = pos.towards(v, idx, offset, left_size);
+            return {
+                get<0>(sub),
+                get<1>(sub) + left_size,
+                get<2>(sub) + left_size
+            };
+        },
+        [] (auto&& pos, auto&& v, std::size_t idx) -> result_t {
+            return pos.towards(v, idx);
+        },
+        [] (auto&& pos, auto&&, std::size_t idx) -> result_t {
+            constexpr auto B = std::decay_t<decltype(*pos.node())>::bits;
+            auto offset = idx & ~mask<B>;
+            return {
+                pos.node()->leaf() + pos.index(idx),
+                offset,
+                offset + pos.count()
+            };
+        });
+}
+
 template <typename T>
 auto get_visitor()
 {

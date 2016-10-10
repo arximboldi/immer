@@ -190,6 +190,16 @@ struct rrbtree
         }
     }
 
+    std::tuple<const T*, std::size_t, std::size_t>
+    array_for(std::size_t idx) const
+    {
+        auto tail_off = tail_offset();
+        auto v = relaxed_array_for_visitor<T>();
+        return idx >= tail_off
+            ? std::make_tuple(tail->leaf() + (idx - tail_off), tail_off, size)
+            : visit_maybe_relaxed(root, shift, tail_off, v, idx);
+    }
+
     const T& get(std::size_t index) const
     {
         return *descend(get_visitor<T>(), index);
