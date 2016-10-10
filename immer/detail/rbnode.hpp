@@ -204,6 +204,14 @@ struct rbnode
         return p;
     }
 
+    static node_t* make_path(unsigned level, node_t* node)
+    {
+        assert(node->kind() == node_t::leaf_kind);
+        return level == 0
+            ? node
+            : node_t::make_inner(make_path(level - B, node));
+    }
+
     static node_t* copy_inner(node_t* src, int n)
     {
         assert(src->kind() == node_t::inner_kind);

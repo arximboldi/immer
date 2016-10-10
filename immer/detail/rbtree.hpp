@@ -123,13 +123,6 @@ struct rbtree
         return acc;
     }
 
-    node_t* make_path(unsigned level, node_t* node) const
-    {
-        return level == 0
-            ? node
-            : node_t::make_inner(make_path(level - B, std::move(node)));
-    }
-
     node_t* push_tail(unsigned level,
                       node_t* parent,
                       node_t* tail) const
@@ -140,7 +133,7 @@ struct rbtree
         new_parent->inner()[new_idx] =
             level == B       ? tail :
             idx == new_idx   ? push_tail(level - B, parent->inner()[idx], tail)
-            /* otherwise */  : make_path(level - B, tail);
+            /* otherwise */  : node_t::make_path(level - B, tail);
         return new_parent;
     }
 
@@ -156,7 +149,7 @@ struct rbtree
             if ((size >> B) > (1u << shift)) {
                 auto new_root = node_t::make_inner(
                     root->inc(),
-                    make_path(shift, tail->inc()));
+                    node_t::make_path(shift, tail->inc()));
                 return { size + 1, shift + B, new_root, new_tail };
             } else {
                 auto new_root = push_tail(shift, root, tail->inc());

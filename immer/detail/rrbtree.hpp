@@ -142,14 +142,6 @@ struct rrbtree
         return acc;
     }
 
-    node_t* make_path(unsigned level, node_t* node) const
-    {
-        assert(node->kind() == node_t::leaf_kind);
-        return level == 0
-            ? node
-            : node_t::make_inner(make_path(level - B, std::move(node)));
-    }
-
     node_t* push_tail_relaxed(unsigned level,
                               node_t* parent,
                               node_t* tail,
@@ -170,13 +162,13 @@ struct rrbtree
                                                      parent->inner()[idx],
                                                      tail,
                                                      tail_size)
-                /* otherwise */  : make_path(level - B, tail);
+                /* otherwise */  : node_t::make_path(level - B, tail);
             // if there was no space on the leftmost branch, we see if
             // there is an empty slot to its left and we just put it there
             if (!new_child) {
                 if (idx == new_idx && idx + 1 < branches<B>) {
                     ++new_idx;
-                    new_child = make_path(level - B, tail);
+                    new_child = node_t::make_path(level - B, tail);
                 } else
                     return nullptr;
             }
@@ -217,7 +209,7 @@ struct rrbtree
             if (new_root)
                 return { shift, new_root };
             else {
-                auto new_path = make_path(shift, tail);
+                auto new_path = node_t::make_path(shift, tail);
                 auto new_root = node_t::make_inner_r(root->inc(),
                                                      size,
                                                      new_path,
