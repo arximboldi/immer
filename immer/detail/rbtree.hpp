@@ -232,6 +232,34 @@ struct rbtree
                 return std::move(value);
             });
     }
+
+    rbtree take(std::size_t new_size) const
+    {
+        auto tail_off = tail_offset();
+        if (new_size == 0) {
+            return empty;
+        } else if (new_size >= size) {
+            return *this;
+        } else if (new_size > tail_off) {
+            auto new_tail = node_t::copy_leaf(tail, new_size - tail_off);
+            return { new_size, shift, root->inc(), new_tail };
+        } else {
+            using std::get;
+            auto l = new_size - 1;
+            auto v = slice_right_visitor<node_t>();
+            auto r = make_regular_rbpos(root, shift, tail_off).visit(v, l);
+            auto new_shift = get<0>(r);
+            auto new_root  = get<1>(r);
+            auto new_tail  = get<3>(r);
+            if (new_root) {
+                assert(new_root->compute_shift() == get<0>(r));
+                assert(new_root->check(new_shift, new_size - get<2>(r)));
+                return { new_size, new_shift, new_root, new_tail };
+            } else {
+                return { new_size, B, empty.root->inc(), new_tail };
+            }
+        }
+    }
 };
 
 template <typename T, int B, typename MP>

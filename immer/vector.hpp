@@ -49,6 +49,9 @@ public:
     vector update(std::size_t idx, FnT&& fn) const
     { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
 
+    vector take(std::size_t elems) const
+    { return { impl_.take(elems) }; }
+
     template <typename Step, typename State>
     State reduce(Step&& step, State&& init) const
     { return impl_.reduce(std::forward<Step>(step),
