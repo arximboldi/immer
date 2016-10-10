@@ -24,8 +24,6 @@ struct empty_regular_rbpos
 
     template <typename Visitor>
     void each(Visitor&&) {}
-    template <typename Args>
-    void towards(Args&&...) {}
 
     template <typename Visitor>
     auto visit(Visitor&& v)
@@ -54,11 +52,6 @@ struct empty_leaf_rbpos
     auto node()  const { return node_; }
     auto shift() const { return 0; }
     auto size()  const { return 0; }
-
-    template <typename ...Visitor>
-    void each(Visitor&&...) {}
-    template <typename Args>
-    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -89,11 +82,6 @@ struct leaf_rbpos
     auto size()  const { return count_; }
     auto shift() const { return 0; }
     auto index(std::size_t idx) const { return idx & mask<bits>; }
-
-    template <typename ...Visitor>
-    void each(Visitor&&...) {}
-    template <typename Args>
-    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -154,11 +142,6 @@ struct full_leaf_rbpos
     auto size()  const { return branches<bits>; }
     auto shift() const { return 0; }
     auto index(std::size_t idx) const { return idx & mask<bits>; }
-
-    template <typename ...Visitor>
-    void each(Visitor&&...) {}
-    template <typename Args>
-    void towards(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
