@@ -219,9 +219,9 @@ struct slice_right_visitor_t
     }
 
     template <typename PosT>
-    friend result_t visit_inner(slice_right_visitor_t v,
-                                PosT&& pos,
-                                std::size_t last)
+    friend result_t visit_regular(slice_right_visitor_t v,
+                                  PosT&& pos,
+                                  std::size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.subindex(last);
@@ -278,12 +278,6 @@ struct slice_left_visitor_t
     using node_t = NodeT;
 
     static constexpr auto B = NodeT::bits;
-
-    template <typename PosT>
-    friend result_t visit_relaxed(slice_left_visitor_t v,
-                                  PosT&& pos,
-                                  std::size_t first)
-    { return visit_inner(v, pos, first); }
 
     template <typename PosT>
     friend result_t visit_inner(slice_left_visitor_t v,
