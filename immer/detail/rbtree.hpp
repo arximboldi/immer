@@ -176,56 +176,6 @@ struct rbtree
         }
     }
 
-    template <typename FnT>
-    node_t* do_update_full(unsigned level,
-                           node_t* node,
-                           std::size_t idx,
-                           FnT&& fn) const
-    {
-        if (level == 0) {
-            auto new_node  = node_t::copy_leaf(node, branches<B>);
-            auto& item     = new_node->leaf() [idx & mask<B>];
-            auto new_value = std::forward<FnT>(fn) (std::move(item));
-            item = std::move(new_value);
-            return new_node;
-        } else {
-            auto offset   = (idx >> level) & mask<B>;
-            auto new_node = node_t::copy_inner(node, branches<B>);
-            node->inner()[offset]->dec_unsafe();
-            new_node->inner()[offset] =
-                do_update_full(level - B, node->inner()[offset], idx,
-                               std::forward<FnT>(fn));
-            return new_node;
-        }
-    }
-
-    template <typename FnT>
-    node_t* do_update_last(unsigned level,
-                           node_t* node,
-                           std::size_t idx,
-                           FnT&& fn) const
-    {
-        if (level == 0) {
-            auto new_node  = node_t::copy_leaf(node, branches<B>);
-            auto& item     = new_node->leaf() [idx & mask<B>];
-            auto new_value = std::forward<FnT>(fn) (std::move(item));
-            item = std::move(new_value);
-            return new_node;
-        } else {
-            auto offset     = (idx >> level) & mask<B>;
-            auto end_offset = ((tail_offset()-1) >> level) & mask<B>;
-            auto new_node   = node_t::copy_inner(node, end_offset + 1);
-            node->inner()[offset]->dec_unsafe();
-            new_node->inner()[offset] =
-                offset == end_offset
-                ? do_update_last(level - B, node->inner()[offset], idx,
-                                 std::forward<FnT>(fn))
-                : do_update_full(level - B, node->inner()[offset], idx,
-                                 std::forward<FnT>(fn));
-            return new_node;
-        }
-    }
-
     rbtree assoc(std::size_t idx, T value) const
     {
         return update(idx, [&] (auto&&) {
