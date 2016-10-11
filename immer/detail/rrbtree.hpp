@@ -193,11 +193,18 @@ struct rrbtree
     std::tuple<const T*, std::size_t, std::size_t>
     array_for(std::size_t idx) const
     {
+        using std::get;
         auto tail_off = tail_offset();
         auto v = relaxed_array_for_visitor<T>();
-        return idx >= tail_off
-            ? std::make_tuple(tail->leaf() + (idx - tail_off), tail_off, size)
-            : visit_maybe_relaxed(root, shift, tail_off, v, idx);
+        if (idx >= tail_off) {
+            return { tail->leaf() + (idx - tail_off), tail_off, size };
+        } else {
+            auto subs = visit_maybe_relaxed(root, shift, tail_off, v, idx);
+            auto offset = get<1>(subs);
+            auto first  = idx - offset;
+            auto end    = first + get<2>(subs);
+            return { get<0>(subs) + offset, first, end };
+        }
     }
 
     const T& get(std::size_t index) const
@@ -213,7 +220,7 @@ struct rrbtree
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
             auto new_tail  = make_leaf_rbpos(tail, tail_size)
-                .visit(visitor, idx);
+                .visit(visitor, idx - tail_off);
             return { size, shift, root->inc(), new_tail };
         } else {
             auto new_root  = visit_maybe_relaxed(

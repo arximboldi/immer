@@ -167,7 +167,7 @@ struct rbtree
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
             auto new_tail  = make_leaf_rbpos(tail, tail_size)
-                .visit(visitor, idx);
+                .visit(visitor, idx - tail_off);
             return { size, shift, root->inc(), new_tail };
         } else {
             auto new_root  = make_regular_rbpos(root, shift, tail_off)

@@ -79,6 +79,7 @@ struct leaf_rbpos
     auto size()  const { return count_; }
     auto shift() const { return 0; }
     auto index(std::size_t idx) const { return idx & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -135,6 +136,7 @@ struct full_leaf_rbpos
     auto size()  const { return branches<bits>; }
     auto shift() const { return 0; }
     auto index(std::size_t idx) const { return idx & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -159,36 +161,38 @@ struct regular_rbpos
     unsigned shift_;
     std::size_t size_;
 
-    auto count() const { return index(size_ - 1) + 1; }
+    auto count() const { return subindex(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
-    auto this_size() const { return ((size_ - 1) & ~(~std::size_t{} << (shift_ + bits))) + 1; }
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx >> shift_; }
 
     template <typename Visitor>
     void each(Visitor&& v)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
-            auto e = p + index(size_ - 1);
+            auto last = subindex(size_ - 1);
+            auto e = p + last;
             for (; p != e; ++p)
                 make_full_leaf_rbpos(*p).visit(v);
-            make_leaf_rbpos(*p, ((size_ - 1) & mask<bits>) + 1).visit(v);
+            make_leaf_rbpos(*p, size_ - (last << bits)).visit(v);
         } else {
             auto p = node_->inner();
-            auto e = p + index(size_ - 1);
+            auto last = subindex(size_ - 1);
+            auto e = p + last;
             auto ss = shift_ - bits;
             for (; p != e; ++p)
                 make_full_rbpos(*p, ss).visit(v);
-            make_regular_rbpos(*p, ss, size_).visit(v);
+            make_regular_rbpos(*p, ss, size_ - (last << shift_)).visit(v);
         }
     }
 
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx)
     {
-        return towards(v, idx, index(idx), count());
+        return towards(v, idx, subindex(idx), count());
     }
 
     template <typename Visitor>
@@ -205,16 +209,17 @@ struct regular_rbpos
     {
         assert(offset_hint == index(idx));
         assert(count_hint  == count());
-        auto is_last = offset_hint + 1 == count_hint;
         auto is_leaf = shift_ == bits;
         auto child   = node_->inner() [offset_hint];
-        return is_last
+        auto lsize   = offset_hint << shift_;
+        auto is_full = (size_ - lsize) >= (1u << shift_);
+        return is_full
             ? (is_leaf
-               ? make_leaf_rbpos(child, ((size_ - 1) & mask<bits>) + 1).visit(v, idx)
-               : make_regular_rbpos(child, shift_ - bits, size_).visit(v, idx))
+               ? make_full_leaf_rbpos(child).visit(v, idx - lsize)
+               : make_full_rbpos(child, shift_ - bits).visit(v, idx - lsize))
             : (is_leaf
-               ? make_full_leaf_rbpos(child).visit(v, idx)
-               : make_full_rbpos(child, shift_ - bits).visit(v, idx));
+               ? make_leaf_rbpos(child, size_ - lsize).visit(v, idx - lsize)
+               : make_regular_rbpos(child, shift_ - bits, size_ - lsize).visit(v, idx - lsize));
     }
 
     template <typename Visitor>
@@ -223,9 +228,10 @@ struct regular_rbpos
         assert(offset_hint == count() - 1);
         auto child   = node_->inner() [offset_hint];
         auto is_leaf = shift_ == bits;
+        auto next_size = size_ - (offset_hint << shift_);
         return is_leaf
-            ? make_leaf_rbpos(child, ((size_ - 1) & mask<bits>) + 1).visit(v)
-            : make_regular_rbpos(child, shift_ - bits, size_).visit(v);
+            ? make_leaf_rbpos(child, next_size).visit(v)
+            : make_regular_rbpos(child, shift_ - bits, next_size).visit(v);
     }
 
     template <typename Visitor, typename ...Args>
@@ -327,9 +333,9 @@ struct full_rbpos
     auto count() const { return branches<bits>; }
     auto node()  const { return node_; }
     auto size()  const { return branches<bits> << shift_; }
-    auto this_size()  const { return branches<bits> << shift_; }
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx >> shift_; }
 
     template <typename Visitor>
     void each(Visitor&& v)
@@ -351,7 +357,7 @@ struct full_rbpos
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx)
     {
-        return towards(v, idx, index(idx));
+        return towards(v, idx, subindex(idx));
     }
 
     template <typename Visitor, typename... OtherHints>
@@ -363,8 +369,8 @@ struct full_rbpos
         auto is_leaf = shift_ == bits;
         auto child   = node_->inner() [offset_hint];
         return is_leaf
-            ? make_full_leaf_rbpos(child).visit(v, idx)
-            : make_full_rbpos(child, shift_ - bits).visit(v, idx);
+            ? make_full_leaf_rbpos(child).visit(v, idx - (offset_hint << bits))
+            : make_full_rbpos(child, shift_ - bits).visit(v, idx - (offset_hint << shift_));
     }
 
     template <typename Visitor, typename ...Args>
@@ -398,6 +404,7 @@ struct relaxed_rbpos
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
     auto relaxed() const { return relaxed_; }
+    auto subindex(std::size_t idx) const { return index(idx); }
 
     auto child_size(unsigned offset) const
     {
@@ -408,7 +415,7 @@ struct relaxed_rbpos
 
     auto index(std::size_t idx) const
     {
-        auto offset = (idx >> shift_) & mask<bits>;
+        auto offset = idx >> shift_;
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
     }
@@ -432,6 +439,12 @@ struct relaxed_rbpos
                 s = relaxed_->sizes[i];
             }
         }
+    }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx)
+    {
+        return towards(v, idx, subindex(idx));
     }
 
     template <typename Visitor>
@@ -526,7 +539,7 @@ struct relaxed_descent_rbpos
 
     auto index(std::size_t idx) const
     {
-        auto offset = (idx >> Shift) & mask<bits>;
+        auto offset = idx >> Shift;
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
     }
