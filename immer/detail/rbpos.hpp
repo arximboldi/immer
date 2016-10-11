@@ -6,6 +6,7 @@
 
 #include <utility>
 #include <cassert>
+#include <tuple>
 
 namespace immer {
 namespace detail {
@@ -25,10 +26,10 @@ struct empty_regular_rbpos
     template <typename Visitor>
     void each(Visitor&&) {}
 
-    template <typename Visitor>
-    auto visit(Visitor&& v)
+    template <typename Visitor, typename... Args>
+    auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_inner(*this, v);
+        return visit_inner(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -54,7 +55,7 @@ struct empty_leaf_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_leaf(*this, v, std::forward<Args>(args)...);
+        return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -82,7 +83,7 @@ struct leaf_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_leaf(*this, v, std::forward<Args>(args)...);
+        return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -111,7 +112,7 @@ struct leaf_descent_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_leaf(*this, v, std::forward<Args>(args)...);
+        return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -138,7 +139,7 @@ struct full_leaf_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_leaf(*this, v, std::forward<Args>(args)...);
+        return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -230,7 +231,7 @@ struct regular_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_inner(*this, v, std::forward<Args>(args)...);
+        return visit_inner(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -268,7 +269,7 @@ struct regular_descent_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_inner(*this, v, std::forward<Args>(args)...);
+        return visit_inner(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -293,7 +294,7 @@ struct regular_descent_rbpos<NodeT, B, B>
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_inner(*this, v, std::forward<Args>(args)...);
+        return visit_inner(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -369,7 +370,7 @@ struct full_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_inner(*this, v, std::forward<Args>(args)...);
+        return visit_inner(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -476,7 +477,7 @@ struct relaxed_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_relaxed(*this, v, std::forward<Args>(args)...);
+        return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -546,7 +547,7 @@ struct relaxed_descent_rbpos
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_relaxed(*this, v, std::forward<Args>(args)...);
+        return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -584,7 +585,7 @@ struct relaxed_descent_rbpos<NodeT, B, B>
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
     {
-        return v.visit_relaxed(*this, v, std::forward<Args>(args)...);
+        return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
 };
 
@@ -611,72 +612,54 @@ auto visit_maybe_relaxed_descent(NodeT* node, unsigned shift,
     }
 }
 
+struct visitor_tag {};
+
 template <typename... Fns>
-struct fn_visitor;
-
-template <typename Fn>
-struct fn_visitor<Fn> : std::tuple<Fn>
-{
-    using base_t = std::tuple<Fn>;
-    using base_t::base_t;
-
-    template <typename... Args>
-    auto visit_relaxed(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_inner(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_leaf(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-};
-
-template <typename FnI, typename FnL>
-struct fn_visitor<FnI, FnL> : std::tuple<FnI, FnL>
-{
-    using base_t = std::tuple<FnI, FnL>;
-    using base_t::base_t;
-
-    template <typename... Args>
-    auto visit_relaxed(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_inner(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_leaf(Args&& ...args)
-    { return std::get<1>(*this)(std::forward<Args>(args)...); }
-};
-
-template <typename FnR, typename FnI, typename FnL>
-struct fn_visitor<FnR, FnI, FnL> : std::tuple<FnR, FnI, FnL>
-{
-    using base_t = std::tuple<FnR, FnI, FnL>;
-    using base_t::base_t;
-
-    template <typename... Args>
-    auto visit_relaxed(Args&& ...args)
-    { return std::get<0>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_inner(Args&& ...args)
-    { return std::get<1>(*this)(std::forward<Args>(args)...); }
-
-    template <typename... Args>
-    auto visit_leaf(Args&& ...args)
-    { return std::get<2>(*this)(std::forward<Args>(args)...); }
-};
+using fn_visitor = std::tuple<visitor_tag, Fns...>;
 
 template <typename... Fns>
 auto make_visitor(Fns&& ...fns)
-    -> fn_visitor<std::decay_t<Fns>...>
 {
-    return { std::forward<Fns>(fns)... };
+    return std::make_tuple(visitor_tag{}, std::forward<Fns>(fns)...);
 }
+
+template <typename FnR, typename FnI, typename FnL, typename... Args>
+auto visit_relaxed(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
+
+template <typename FnR, typename FnI, typename FnL, typename... Args>
+auto visit_inner(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+{ return std::get<2>(v)(v, std::forward<Args>(args)...); }
+
+template <typename FnR, typename FnI, typename FnL, typename... Args>
+auto visit_leaf(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+{ return std::get<3>(v)(v, std::forward<Args>(args)...); }
+
+
+template <typename FnI, typename FnL, typename... Args>
+auto visit_relaxed(fn_visitor<FnI, FnL>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
+
+template <typename FnI, typename FnL, typename... Args>
+auto visit_inner(fn_visitor<FnI, FnL>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
+
+template <typename FnI, typename FnL, typename... Args>
+auto visit_leaf(fn_visitor<FnI, FnL>& v, Args&& ...args)
+{ return std::get<2>(v)(v, std::forward<Args>(args)...); }
+
+
+template <typename Fn, typename... Args>
+auto visit_relaxed(fn_visitor<Fn>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
+
+template <typename Fn, typename... Args>
+auto visit_inner(fn_visitor<Fn>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
+
+template <typename Fn, typename... Args>
+auto visit_leaf(fn_visitor<Fn>& v, Args&& ...args)
+{ return std::get<1>(v)(v, std::forward<Args>(args)...); }
 
 } // namespace detail
 } // namespace immer

@@ -15,10 +15,10 @@ template <typename T>
 auto array_for_visitor()
 {
     return make_visitor(
-        [] (auto&& pos, auto&& v, std::size_t idx) -> T* {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> T* {
             return pos.descend(v, idx);
         },
-        [] (auto&& pos, auto&&, std::size_t) -> T* {
+        [] (auto&&, auto&& pos, std::size_t) -> T* {
             return pos.node()->leaf();
         });
 }
@@ -29,7 +29,7 @@ auto relaxed_array_for_visitor()
 {
     using result_t = std::tuple<T*, std::size_t, std::size_t>;
     return make_visitor(
-        [] (auto&& pos, auto&& v, std::size_t idx) -> result_t {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> result_t {
             using std::get;
             auto offset    = pos.index(idx);
             auto left_size = offset ? pos.relaxed()->sizes[offset - 1] : 0;
@@ -40,10 +40,10 @@ auto relaxed_array_for_visitor()
                 get<2>(sub) + left_size
             };
         },
-        [] (auto&& pos, auto&& v, std::size_t idx) -> result_t {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> result_t {
             return pos.towards(v, idx);
         },
-        [] (auto&& pos, auto&&, std::size_t idx) -> result_t {
+        [] (auto&&, auto&& pos, std::size_t idx) -> result_t {
             constexpr auto B = std::decay_t<decltype(*pos.node())>::bits;
             auto offset = idx & ~mask<B>;
             return {
@@ -58,10 +58,10 @@ template <typename T>
 auto get_visitor()
 {
     return make_visitor(
-        [] (auto&& pos, auto&& v, std::size_t idx) -> const T* {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> const T* {
             return pos.descend(v, idx);
         },
-        [] (auto&& pos, auto&&, std::size_t idx) -> const T* {
+        [] (auto&&, auto&& pos, std::size_t idx) -> const T* {
             return &pos.node()->leaf() [pos.index(idx)];
         });
 }
@@ -70,10 +70,10 @@ template <typename Step, typename State>
 auto reduce_visitor(Step&& step, State& acc)
 {
     return make_visitor(
-        [] (auto&& pos, auto&& v) {
+        [] (auto&& v, auto&& pos) {
             pos.each(v);
         },
-        [&] (auto&& pos, auto&&) {
+        [&] (auto&&, auto&& pos) {
             auto data  = pos.node()->leaf();
             auto count = pos.count();
             acc = std::accumulate(data,
@@ -88,7 +88,7 @@ auto update_visitor(FnT&& fn)
 {
     using node_t = NodeT;
     return make_visitor(
-        []  (auto&& pos, auto&& v, std::size_t idx) -> NodeT* {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> NodeT* {
             auto offset  = pos.index(idx);
             auto count   = pos.count();
             auto node    = node_t::copy_inner_r(pos.node(), count);
@@ -96,7 +96,7 @@ auto update_visitor(FnT&& fn)
             node->inner()[offset] = pos.towards(v, idx, offset);
             return node;
         },
-        []  (auto&& pos, auto&& v, std::size_t idx) -> NodeT*  {
+        [] (auto&& v, auto&& pos, std::size_t idx) -> NodeT*  {
             auto offset  = pos.index(idx);
             auto count   = pos.count();
             auto node    = node_t::copy_inner(pos.node(), count);
@@ -104,7 +104,7 @@ auto update_visitor(FnT&& fn)
             node->inner()[offset] = pos.towards(v, idx, offset, count);
             return node;
         },
-        [&]  (auto&& pos, auto&& v, std::size_t idx) -> NodeT*  {
+        [&] (auto&& v, auto&& pos, std::size_t idx) -> NodeT*  {
             auto offset  = pos.index(idx);
             auto node    = node_t::copy_leaf(pos.node(), pos.count());
             node->leaf()[offset] = std::forward<FnT>(fn) (
@@ -116,7 +116,7 @@ auto update_visitor(FnT&& fn)
 auto dec_visitor()
 {
     return make_visitor(
-        [] (auto&& pos, auto&& v) {
+        [] (auto&& v, auto&& pos) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {
@@ -124,7 +124,7 @@ auto dec_visitor()
                 node_t::delete_inner_r(node);
             }
         },
-        [] (auto&& pos, auto&& v) {
+        [] (auto&& v, auto&& pos) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {
@@ -132,7 +132,7 @@ auto dec_visitor()
                 node_t::delete_inner(node);
             }
         },
-        [] (auto&& pos, auto&&) {
+        [] (auto&&, auto&& pos) {
             using node_t = std::decay_t<decltype(*pos.node())>;
             auto node = pos.node();
             if (node->dec()) {
@@ -148,7 +148,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
     using node_t = NodeT;
 
     return make_visitor(
-        [=] (auto&& pos, auto&& v) -> NodeT* {
+        [=] (auto&& v, auto&& pos) -> NodeT* {
             constexpr auto B = NodeT::bits;
             auto level       = pos.shift();
             auto idx         = pos.count() - 1;
@@ -175,7 +175,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
             new_relaxed->count = new_idx + 1;
             return new_parent;
         },
-        [=] (auto&& pos, auto&& v) -> NodeT* {
+        [=] (auto&& v, auto&& pos) -> NodeT* {
             constexpr auto B = NodeT::bits;
             auto idx         = pos.index(pos.size() - 1);
             auto new_idx     = pos.index(pos.size() + ts - 1);
@@ -185,7 +185,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
                 /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
             return new_parent;
         },
-        [=] (auto&& pos, auto&&...) -> NodeT* {
+        [=] (auto&&, auto&& pos) -> NodeT* {
             return tail;
         });
 }
@@ -197,8 +197,10 @@ struct slice_right_visitor_t
     using result_t = std::tuple<unsigned, NodeT*, unsigned, NodeT*>;
     using node_t = NodeT;
 
-    template <typename PosT, typename ThisT>
-    result_t visit_relaxed(PosT&& pos, ThisT&& v, std::size_t last)
+    template <typename PosT>
+    friend result_t visit_relaxed(slice_right_visitor_t v,
+                                  PosT&& pos,
+                                  std::size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
@@ -230,8 +232,10 @@ struct slice_right_visitor_t
         }
     }
 
-    template <typename PosT, typename ThisT>
-    result_t visit_inner(PosT&& pos, ThisT&& v, std::size_t last)
+    template <typename PosT>
+    friend result_t visit_inner(slice_right_visitor_t v,
+                                PosT&& pos,
+                                std::size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
@@ -260,8 +264,10 @@ struct slice_right_visitor_t
         }
     }
 
-    template <typename PosT, typename ThisT>
-    result_t visit_leaf(PosT&& pos, ThisT&& v, std::size_t last)
+    template <typename PosT>
+    friend result_t visit_leaf(slice_right_visitor_t v,
+                               PosT&& pos,
+                               std::size_t last)
     {
         auto old_tail_size = pos.count();
         auto new_tail_size = pos.index(last) + 1;
@@ -288,8 +294,10 @@ struct slice_left_visitor_t
 
     static constexpr auto B = NodeT::bits;
 
-    template <typename PosT, typename ThisT>
-    result_t visit_relaxed(PosT&& pos, ThisT&& v, std::size_t first)
+    template <typename PosT>
+    friend result_t visit_relaxed(slice_left_visitor_t v,
+                                  PosT&& pos,
+                                  std::size_t first)
     {
         auto idx = pos.index(first);
         if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
@@ -298,8 +306,8 @@ struct slice_left_visitor_t
             using std::get;
             auto n    = pos.node();
             auto r    = pos.relaxed();
-            auto fv   = slice_left_visitor_t<NodeT, false>{};
-            auto subs = pos.towards(fv, first, idx);
+            auto subs = pos.towards(slice_left_visitor_t<NodeT, false>{},
+                                    first, idx);
             auto newn = node_t::make_inner_r();
             auto newr = newn->relaxed();
             newr->count = pos.count() - idx;
@@ -316,8 +324,10 @@ struct slice_left_visitor_t
         }
     }
 
-    template <typename PosT, typename ThisT>
-    result_t visit_inner(PosT&& pos, ThisT&& v, std::size_t first)
+    template <typename PosT>
+    friend result_t visit_inner(slice_left_visitor_t v,
+                                PosT&& pos,
+                                std::size_t first)
     {
         auto shift  = pos.shift();
         auto idx    = pos.index(first);
@@ -351,8 +361,10 @@ struct slice_left_visitor_t
         }
     }
 
-    template <typename PosT, typename ThisT>
-    result_t visit_leaf(PosT&& pos, ThisT&&, std::size_t first)
+    template <typename PosT>
+    friend result_t visit_leaf(slice_left_visitor_t,
+                               PosT&& pos,
+                               std::size_t first)
     {
         return {
             0,
