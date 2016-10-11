@@ -167,6 +167,36 @@ struct regular_rbpos
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
     auto subindex(std::size_t idx) const { return idx >> shift_; }
+    auto size_before(unsigned offset) { return offset << shift_; }
+
+    auto size(unsigned offset)
+    {
+        return offset == subindex(size_ - 1)
+            ? size_ - size_before(offset)
+            : 1 << shift_;
+    }
+
+    auto size(unsigned offset, unsigned size_before_hint)
+    {
+        assert(size_before_hint == size_before(offset));
+        return offset == subindex(size_ - 1)
+            ? size_ - size_before_hint
+            : 1 << shift_;
+    }
+
+    void copy_sizes(unsigned offset,
+                    unsigned n,
+                    std::size_t init,
+                    std::size_t* sizes)
+    {
+        if (n) {
+            auto last = offset + n - 1;
+            auto e = sizes + n - 1;
+            for (; sizes != e; ++sizes)
+                init = *sizes = init + (1 << shift_);
+            *sizes = init + size(last);
+        }
+    }
 
     template <typename Visitor>
     void each(Visitor&& v)
@@ -336,6 +366,19 @@ struct full_rbpos
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
     auto subindex(std::size_t idx) const { return idx >> shift_; }
+    auto size(unsigned offset) const { return 1 << shift_; }
+    auto size(unsigned offset, unsigned) const { return 1 << shift_; }
+    auto size_before(unsigned offset) const { return offset << shift_; }
+
+    void copy_sizes(unsigned offset,
+                    unsigned n,
+                    std::size_t init,
+                    std::size_t* sizes)
+    {
+        auto e = sizes + n;
+        for (; sizes != e; ++sizes)
+            init = *sizes = init + (1 << shift_);
+    }
 
     template <typename Visitor>
     void each(Visitor&& v)
@@ -406,11 +449,16 @@ struct relaxed_rbpos
     auto relaxed() const { return relaxed_; }
     auto subindex(std::size_t idx) const { return index(idx); }
 
-    auto child_size(unsigned offset) const
+    auto size_before(unsigned offset) const
+    { return offset ? relaxed_->sizes[offset - 1] : 0u; }
+
+    auto size(unsigned offset) const
+    { return size(offset, size_before(offset)); }
+
+    auto size(unsigned offset, unsigned size_before_hint) const
     {
-        return offset
-            ? relaxed_->sizes[offset] - relaxed_->sizes[offset - 1]
-            : relaxed_->sizes[offset];
+        assert(size_before_hint == size_before(offset));
+        return relaxed_->sizes[offset] - size_before_hint;
     }
 
     auto index(std::size_t idx) const
@@ -418,6 +466,20 @@ struct relaxed_rbpos
         auto offset = idx >> shift_;
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
+    }
+
+    void copy_sizes(unsigned offset,
+                    unsigned n,
+                    std::size_t init,
+                    std::size_t* sizes)
+    {
+        auto e = sizes + n;
+        auto prev = size_before(offset);
+        auto these = relaxed_->sizes + offset;
+        for (; sizes != e; ++sizes) {
+            init = *sizes = init + (*these - prev);
+            prev = *these++;
+        }
     }
 
     template <typename Visitor>
@@ -479,7 +541,7 @@ struct relaxed_rbpos
     auto last(Visitor&& v, unsigned offset_hint, unsigned child_size_hint)
     {
         assert(offset_hint == count() - 1);
-        assert(child_size_hint == child_size(offset_hint));
+        assert(child_size_hint == size(offset_hint));
         auto child     = node_->inner() [offset_hint];
         auto is_leaf   = shift_ == bits;
         return is_leaf

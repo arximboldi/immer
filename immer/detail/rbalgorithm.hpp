@@ -138,7 +138,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
             constexpr auto B = NodeT::bits;
             auto level       = pos.shift();
             auto idx         = pos.count() - 1;
-            auto children    = pos.child_size(idx);
+            auto children    = pos.size(idx);
             auto new_idx     = children == 1 << level || level == B
                 ? idx + 1 : idx;
             auto new_child   = (node_t*){};
@@ -270,7 +270,6 @@ auto slice_right_visitor()
     return slice_right_visitor_t<NodeT, true>{};
 }
 
-
 template <typename NodeT, bool Collapse>
 struct slice_left_visitor_t
 {
@@ -284,47 +283,21 @@ struct slice_left_visitor_t
     friend result_t visit_relaxed(slice_left_visitor_t v,
                                   PosT&& pos,
                                   std::size_t first)
-    {
-        auto idx = pos.subindex(first);
-        if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
-            return pos.towards(v, first, idx);
-        } else {
-            using std::get;
-            auto n    = pos.node();
-            auto r    = pos.relaxed();
-            auto subs = pos.towards(slice_left_visitor_t<NodeT, false>{},
-                                    first, idx);
-            auto newn = node_t::make_inner_r();
-            auto newr = newn->relaxed();
-            newr->count = pos.count() - idx;
-            newr->sizes[0] = r->sizes[idx] - first;
-            for (auto i = 1; i < newr->count; ++i)
-                newr->sizes[i] = (r->sizes[idx+i] - r->sizes[idx+i-1])
-                    + newr->sizes[i-1];
-            newn->inner()[0] = get<1>(subs);
-            std::uninitialized_copy(n->inner() + idx + 1,
-                                    n->inner() + r->count,
-                                    newn->inner() + 1);
-            node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
-            return { pos.shift(), newn };
-        }
-    }
+    { return visit_inner(v, pos, first); }
 
     template <typename PosT>
     friend result_t visit_inner(slice_left_visitor_t v,
                                 PosT&& pos,
                                 std::size_t first)
     {
-        auto shift  = pos.shift();
         auto idx    = pos.subindex(first);
         auto count  = pos.count();
-        auto lidx   = count - 1;
         auto this_size  = pos.size();
-        auto left_size  = idx << shift;
-        auto child_size = idx == lidx ? this_size - left_size : 1 << shift;
+        auto left_size  = pos.size_before(idx);
+        auto child_size = pos.size(idx, left_size);
         auto dropped_size = first;
         auto child_dropped_size = dropped_size - left_size;
-        if (Collapse && pos.shift() > B && idx == lidx) {
+        if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
             return pos.towards(v, first, idx);
         } else {
             using std::get;
@@ -335,9 +308,9 @@ struct slice_left_visitor_t
             auto newr  = newn->relaxed();
             newr->count = count - idx;
             newr->sizes[0] = child_size - child_dropped_size;
-            for (auto i = 1; i < newr->count - 1; ++i)
-                newr->sizes[i] = newr->sizes[i - 1] + (1 << shift);
-            newr->sizes[newr->count - 1] = this_size - dropped_size;
+            pos.copy_sizes(idx + 1, newr->count - 1,
+                           newr->sizes[0], newr->sizes + 1);
+            assert(newr->sizes[newr->count - 1] == this_size - dropped_size);
             newn->inner()[0] = get<1>(subs);
             std::uninitialized_copy(n->inner() + idx + 1,
                                     n->inner() + count,
