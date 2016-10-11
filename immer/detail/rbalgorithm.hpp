@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <numeric>
+#include <memory>
 
 #include <immer/config.hpp>
 #include <immer/detail/rbpos.hpp>
@@ -275,6 +276,97 @@ template <typename NodeT>
 auto slice_right_visitor()
 {
     return slice_right_visitor_t<NodeT, true>{};
+}
+
+
+template <typename NodeT, bool Collapse>
+struct slice_left_visitor_t
+{
+    // returns a new shift and new root
+    using result_t = std::tuple<unsigned, NodeT*>;
+    using node_t = NodeT;
+
+    static constexpr auto B = NodeT::bits;
+
+    template <typename PosT, typename ThisT>
+    result_t visit_relaxed(PosT&& pos, ThisT&& v, std::size_t first)
+    {
+        auto idx = pos.index(first);
+        if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
+            return pos.towards(v, first, idx);
+        } else {
+            using std::get;
+            auto n    = pos.node();
+            auto r    = pos.relaxed();
+            auto fv   = slice_left_visitor_t<NodeT, false>{};
+            auto subs = pos.towards(fv, first, idx);
+            auto newn = node_t::make_inner_r();
+            auto newr = newn->relaxed();
+            newr->count = pos.count() - idx;
+            newr->sizes[0] = r->sizes[idx] - first;
+            for (auto i = 1; i < newr->count; ++i)
+                newr->sizes[i] = (r->sizes[idx+i] - r->sizes[idx+i-1])
+                    + newr->sizes[i-1];
+            newn->inner()[0] = get<1>(subs);
+            std::uninitialized_copy(n->inner() + idx + 1,
+                                    n->inner() + r->count,
+                                    newn->inner() + 1);
+            node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
+            return { pos.shift(), newn };
+        }
+    }
+
+    template <typename PosT, typename ThisT>
+    result_t visit_inner(PosT&& pos, ThisT&& v, std::size_t first)
+    {
+        auto shift  = pos.shift();
+        auto idx    = pos.index(first);
+        auto count  = pos.count();
+        auto lidx   = count - 1;
+        auto this_size  = pos.this_size();
+        auto left_size  = idx << shift;
+        auto child_size = idx == lidx ? this_size - left_size : 1 << shift;
+        auto dropped_size = first & ~(~std::size_t{} << (shift + B));
+        auto child_dropped_size = dropped_size - left_size;
+        if (Collapse && pos.shift() > B && idx == lidx) {
+            return pos.towards(v, first, idx);
+        } else {
+            using std::get;
+            auto n     = pos.node();
+            auto fv    = slice_left_visitor_t<NodeT, false>{};
+            auto subs  = pos.towards(fv, first, idx);
+            auto newn  = node_t::make_inner_r();
+            auto newr  = newn->relaxed();
+            newr->count = count - idx;
+            newr->sizes[0] = child_size - child_dropped_size;
+            for (auto i = 1; i < newr->count - 1; ++i)
+                newr->sizes[i] = newr->sizes[i - 1] + (1 << shift);
+            newr->sizes[newr->count - 1] = this_size - dropped_size;
+            newn->inner()[0] = get<1>(subs);
+            std::uninitialized_copy(n->inner() + idx + 1,
+                                    n->inner() + count,
+                                    newn->inner() + 1);
+            node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
+            return { pos.shift(), newn };
+        }
+    }
+
+    template <typename PosT, typename ThisT>
+    result_t visit_leaf(PosT&& pos, ThisT&&, std::size_t first)
+    {
+        return {
+            0,
+            node_t::copy_leaf(pos.node(),
+                              first & mask<B>,
+                              pos.count())
+        };
+    };
+};
+
+template <typename NodeT>
+auto slice_left_visitor()
+{
+    return slice_left_visitor_t<NodeT, true>{};
 }
 
 } // namespace detail

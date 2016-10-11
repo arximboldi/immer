@@ -161,6 +161,7 @@ struct regular_rbpos
     auto count() const { return index(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
+    auto this_size() const { return ((size_ - 1) & ~(~std::size_t{} << (shift_ + bits))) + 1; }
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
 
@@ -324,7 +325,8 @@ struct full_rbpos
 
     auto count() const { return branches<bits>; }
     auto node()  const { return node_; }
-    auto size()  const { return 1 << shift_; }
+    auto size()  const { return branches<bits> << shift_; }
+    auto this_size()  const { return branches<bits> << shift_; }
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
 

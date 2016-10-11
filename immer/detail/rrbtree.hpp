@@ -257,102 +257,6 @@ struct rrbtree
         }
     }
 
-    static std::tuple<unsigned, node_t*>
-    slice_left_leaf(node_t* n, std::size_t size, std::size_t elems)
-    {
-        assert(elems < size);
-        assert(size <= branches<B>);
-        return { 0, node_t::copy_leaf(n, elems, size) };
-    }
-
-    static std::tuple<unsigned, node_t*>
-    slice_left(node_t* n, unsigned shift,
-               std::size_t size, std::size_t elems,
-               bool collapse)
-    {
-        assert(elems <= size);
-        if (shift == 0) {
-            return slice_left_leaf(n, size, elems);
-        } else if (auto r = n->relaxed()) {
-            auto idx = (elems >> shift) & mask<B>;
-            while (r->sizes[idx] <= elems) ++idx;
-            auto lsize = idx ? r->sizes[idx - 1] : 0;
-            if (collapse && shift > B && idx == r->count - 1) {
-                return slice_left(n->inner()[idx], shift - B,
-                                  r->sizes[idx] - lsize,
-                                  elems - lsize,
-                                  collapse);
-            } else {
-                using std::get;
-                auto subs = slice_left(n->inner()[idx], shift - B,
-                                       r->sizes[idx] - lsize,
-                                       elems - lsize,
-                                       false);
-                auto newn = node_t::make_inner_r();
-                auto newr = newn->relaxed();
-                newr->count = r->count - idx;
-                newr->sizes[0] = r->sizes[idx] - elems;
-                for (auto i = 1; i < newr->count; ++i)
-                    newr->sizes[i] = (r->sizes[idx+i] - r->sizes[idx+i-1])
-                        + newr->sizes[i-1];
-                newn->inner()[0] = get<1>(subs);
-                std::uninitialized_copy(n->inner() + idx + 1,
-                                        n->inner() + r->count,
-                                        newn->inner() + 1);
-                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
-                return { shift, newn };
-            }
-        } else {
-            return slice_left_regular(n, shift, size, elems, collapse);
-        }
-    }
-
-    static std::tuple<unsigned, node_t*>
-    slice_left_regular(node_t* n, unsigned shift,
-                       std::size_t size, std::size_t elems,
-                       bool collapse)
-    {
-        assert(elems <= size);
-        assert(size > 0);
-        if (shift == 0) {
-            return slice_left_leaf(n, size, elems);
-        } else {
-            auto idx    = (elems >> shift) & mask<B>;
-            auto lidx   = ((size - 1) >> shift) & mask<B>;
-            auto count  = lidx + 1;
-            auto lsize  = idx << shift;
-            auto csize  = idx == lidx ? size - lsize : 1 << shift;
-            auto celems = elems - lsize;
-            if (collapse && shift > B && idx == lidx) {
-                return slice_left_regular(n->inner()[idx],
-                                          shift - B,
-                                          csize,
-                                          celems,
-                                          collapse);
-            } else {
-                using std::get;
-                auto subs = slice_left_regular(n->inner()[idx],
-                                               shift - B,
-                                               csize,
-                                               celems,
-                                               false);
-                auto newn = node_t::make_inner_r();
-                auto newr = newn->relaxed();
-                newr->count = count - idx;
-                newr->sizes[0] = csize - celems;
-                for (auto i = 1; i < newr->count - 1; ++i)
-                    newr->sizes[i] = newr->sizes[i - 1] + (1 << shift);
-                newr->sizes[newr->count - 1] = size - elems;
-                newn->inner()[0] = get<1>(subs);
-                std::uninitialized_copy(n->inner() + idx + 1,
-                                        n->inner() + count,
-                                        newn->inner() + 1);
-                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
-                return { shift, newn };
-            }
-        }
-    }
-
     rrbtree drop(std::size_t elems) const
     {
         if (elems == 0) {
@@ -368,7 +272,8 @@ struct rrbtree
             return { size - elems, B, empty.root->inc(), new_tail };
         } else {
             using std::get;
-            auto r = slice_left(root, shift, tail_offset(), elems, true);
+            auto v = slice_left_visitor<node_t>();
+            auto r = visit_maybe_relaxed(root, shift, tail_offset(), v, elems);
             auto new_root  = get<1>(r);
             auto new_shift = get<0>(r);
             return { size - elems, new_shift, new_root, tail->inc() };
