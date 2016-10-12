@@ -44,28 +44,28 @@ auto visit_node(fn_visitor<Fn>& v, Args&& ...args)
 { return std::get<1>(v)(v, std::forward<Args>(args)...); }
 
 template <typename Visitor, typename... Args>
-decltype(auto) visit_relaxed(Visitor&& v, Args&& ...args)
+auto visit_relaxed(Visitor&& v, Args&& ...args)
 {
     return visit_inner(std::forward<Visitor>(v),
                        std::forward<Args>(args)...);
 }
 
 template <typename Visitor, typename... Args>
-decltype(auto) visit_regular(Visitor&& v, Args&& ...args)
+auto visit_regular(Visitor&& v, Args&& ...args)
 {
     return visit_inner(std::forward<Visitor>(v),
                        std::forward<Args>(args)...);
 }
 
 template <typename Visitor, typename... Args>
-decltype(auto) visit_inner(Visitor&& v, Args&& ...args)
+auto visit_inner(Visitor&& v, Args&& ...args)
 {
     return visit_node(std::forward<Visitor>(v),
                       std::forward<Args>(args)...);
 }
 
 template <typename Visitor, typename... Args>
-decltype(auto) visit_leaf(Visitor&& v, Args&& ...args)
+auto visit_leaf(Visitor&& v, Args&& ...args)
 {
     return visit_node(std::forward<Visitor>(v),
                       std::forward<Args>(args)...);
