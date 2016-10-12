@@ -6,10 +6,12 @@
 #include <memory>
 
 #include <immer/config.hpp>
-#include <immer/detail/rbpos.hpp>
+#include <immer/detail/rbts/position.hpp>
+#include <immer/detail/rbts/visitor.hpp>
 
 namespace immer {
 namespace detail {
+namespace rbts {
 
 template <typename T>
 auto array_for_visitor()
@@ -334,5 +336,6 @@ auto slice_left_visitor()
     return slice_left_visitor_t<NodeT, true>{};
 }
 
+} // namespace rbts
 } // namespace detail
 } // namespace immer

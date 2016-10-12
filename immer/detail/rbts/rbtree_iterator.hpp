@@ -1,13 +1,14 @@
 
 #pragma once
 
-#include <immer/detail/rbtree.hpp>
+#include <immer/detail/rbts/rbtree.hpp>
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
 namespace immer {
 namespace detail {
+namespace rbts {
 
 template <typename T, int B, typename MP>
 struct rbtree_iterator : boost::iterator_facade<
@@ -99,5 +100,6 @@ private:
     }
 };
 
+} // namespace rbts
 } // namespace detail
 } // namespace immer

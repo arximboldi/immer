@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include <immer/detail/rbnode.hpp>
-#include <immer/detail/rbpos.hpp>
-#include <immer/detail/rbalgorithm.hpp>
+#include <immer/detail/rbts/node.hpp>
+#include <immer/detail/rbts/position.hpp>
+#include <immer/detail/rbts/algorithm.hpp>
 
 #include <cassert>
 #include <memory>
@@ -11,6 +11,7 @@
 
 namespace immer {
 namespace detail {
+namespace rbts {
 
 template <typename T,
           int B,
@@ -20,7 +21,7 @@ struct rbtree
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
 
-    using node_t = rbnode<T, B, MemoryPolicy>;
+    using node_t = node<T, B, MemoryPolicy>;
     using heap   = typename node_t::heap;
 
     std::size_t size;
@@ -100,11 +101,11 @@ struct rbtree
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) make_regular_rbpos(root, shift, tail_off).visit(v);
-        else make_empty_regular_rbpos(root).visit(v);
+        if (tail_off) make_regular_pos(root, shift, tail_off).visit(v);
+        else make_empty_regular_pos(root).visit(v);
 
-        if (tail_size) make_leaf_rbpos(tail, tail_size).visit(v);
-        else make_empty_leaf_rbpos(tail).visit(v);
+        if (tail_size) make_leaf_pos(tail, tail_size).visit(v);
+        else make_empty_leaf_pos(tail).visit(v);
     }
 
     template <typename Visitor>
@@ -112,7 +113,7 @@ struct rbtree
     {
         auto tail_off  = tail_offset();
         return idx >= tail_off
-            ? make_leaf_descent_rbpos(tail).visit(v, idx)
+            ? make_leaf_descent_pos(tail).visit(v, idx)
             : visit_regular_descent(root, shift, v, idx);
     }
 
@@ -139,7 +140,7 @@ struct rbtree
                     node_t::make_path(shift, tail->inc()));
                 return { size + 1, shift + B, new_root, new_tail };
             } else if (tail_off) {
-                auto new_root = make_regular_rbpos(root, shift, tail_off)
+                auto new_root = make_regular_pos(root, shift, tail_off)
                     .visit(push_tail_visitor(tail->inc(), ts));
                 return { size + 1, shift, new_root, new_tail };
             } else {
@@ -166,11 +167,11 @@ struct rbtree
         auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
-            auto new_tail  = make_leaf_rbpos(tail, tail_size)
+            auto new_tail  = make_leaf_pos(tail, tail_size)
                 .visit(visitor, idx - tail_off);
             return { size, shift, root->inc(), new_tail };
         } else {
-            auto new_root  = make_regular_rbpos(root, shift, tail_off)
+            auto new_root  = make_regular_pos(root, shift, tail_off)
                 .visit(visitor, idx);
             return { size, shift, new_root, tail->inc() };
         }
@@ -197,7 +198,7 @@ struct rbtree
             using std::get;
             auto l = new_size - 1;
             auto v = slice_right_visitor<node_t>();
-            auto r = make_regular_rbpos(root, shift, tail_off).visit(v, l);
+            auto r = make_regular_pos(root, shift, tail_off).visit(v, l);
             auto new_shift = get<0>(r);
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
@@ -220,5 +221,6 @@ const rbtree<T, B, MP> rbtree<T, B, MP>::empty = {
     node_t::make_leaf()
 };
 
-} /* namespace detail */
-} /* namespace immer */
+} // namespace rbts
+} // namespace detail
+} // namespace immer

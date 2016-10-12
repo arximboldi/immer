@@ -1,24 +1,25 @@
 
 #pragma once
 
-#include <immer/detail/rbbits.hpp>
+#include <immer/detail/rbts/bits.hpp>
 
 #include <memory>
 #include <cassert>
 
 #ifdef NDEBUG
-#define IMMER_TAGGED_RBNODE 0
+#define IMMER_RBTS_TAGGED_NODE 0
 #else
-#define IMMER_TAGGED_RBNODE 1
+#define IMMER_RBTS_TAGGED_NODE 1
 #endif
 
 namespace immer {
 namespace detail {
+namespace rbts {
 
 template <typename T,
           int B,
           typename MemoryPolicy>
-struct rbnode
+struct node
 {
     static constexpr auto bits = B;
 
@@ -44,13 +45,13 @@ struct rbnode
 
     struct inner_t
     {
-        rbnode*     children[branches<B>];
+        node*     children[branches<B>];
         relaxed_t*  relaxed;
     };
 
     struct impl_t : refcount::data
     {
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
         kind_t kind;
 #endif
         union data_t
@@ -65,14 +66,14 @@ struct rbnode
         data_t data;
     };
 
-    using node_t = rbnode;
+    using node_t = node;
     using heap   = typename heap_policy::template apply<
         sizeof(impl_t)
     >::type;
 
     impl_t impl;
 
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
     kind_t kind() const
     {
         return impl.kind;
@@ -101,7 +102,7 @@ struct rbnode
     {
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
         p->impl.data.inner.relaxed = nullptr;
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::inner_kind;
 #endif
         return p;
@@ -113,7 +114,7 @@ struct rbnode
         auto r = new (heap::allocate(sizeof(relaxed_t))) relaxed_t;
         r->count = 0u;
         p->impl.data.inner.relaxed = r;
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::inner_kind;
 #endif
         return p;
@@ -122,7 +123,7 @@ struct rbnode
     static node_t* make_leaf()
     {
         auto p = new (heap::allocate(sizeof(node_t))) node_t;
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::leaf_kind;
 #endif
         return p;
@@ -324,7 +325,7 @@ struct rbnode
             refcount::inc(&(*i)->impl);
     }
 
-#if IMMER_TAGGED_RBNODE
+#if IMMER_RBTS_TAGGED_NODE
     unsigned compute_shift()
     {
         if (kind() == node_t::leaf_kind)
@@ -380,5 +381,6 @@ struct rbnode
     }
 };
 
+} // namespace rbts
 } // namespace detail
 } // namespace immer
