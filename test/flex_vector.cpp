@@ -17,7 +17,7 @@ using namespace immer;
 
 namespace {
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_test_flex_vector(std::size_t min, std::size_t max)
 {
     auto v = flex_vector<unsigned, B>{};
@@ -26,7 +26,7 @@ auto make_test_flex_vector(std::size_t min, std::size_t max)
     return v;
 }
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_test_flex_vector_front(std::size_t min, std::size_t max)
 {
     auto v = flex_vector<unsigned, B>{};
@@ -35,7 +35,7 @@ auto make_test_flex_vector_front(std::size_t min, std::size_t max)
     return v;
 }
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_many_test_flex_vector(std::size_t n)
 {
     using vektor_t = flex_vector<unsigned, B>;
@@ -51,7 +51,7 @@ auto make_many_test_flex_vector(std::size_t n)
     return many;
 }
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_many_test_flex_vector_front(std::size_t n)
 {
     using vektor_t = flex_vector<unsigned, B>;
@@ -65,7 +65,7 @@ auto make_many_test_flex_vector_front(std::size_t n)
     return many;
 }
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_many_test_flex_vector_front_remainder(std::size_t n)
 {
     using vektor_t = flex_vector<unsigned, B>;
@@ -206,7 +206,7 @@ TEST_CASE("concat")
     }
 }
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_flex_vector_concat(std::size_t min, std::size_t max)
 {
     using vektor_t = flex_vector<unsigned, B>;

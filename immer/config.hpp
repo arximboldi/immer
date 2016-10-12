@@ -26,3 +26,9 @@
     IMMER_TRACE(__FILE__ << ":" << __LINE__ << ": " << __VA_ARGS__)
 #define IMMER_TRACE_E(expr)                             \
     IMMER_TRACE("    " << #expr << " = " << (expr))
+
+namespace immer {
+
+const auto default_bits = 5;
+
+} // namespace immer

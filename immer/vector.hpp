@@ -11,7 +11,7 @@ template <typename T, int B, typename MemoryPolicy>
 class flex_vector;
 
 template <typename T,
-          int B = 5,
+          int B = default_bits,
           typename MemoryPolicy = default_memory_policy>
 class vector
 {

@@ -12,7 +12,7 @@
 
 using namespace immer;
 
-template <unsigned B=5>
+template <unsigned B = default_bits>
 auto make_test_vector(std::size_t min, std::size_t max)
 {
     auto v = vector<unsigned, B>{};
