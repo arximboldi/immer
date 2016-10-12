@@ -41,22 +41,24 @@ struct enable_heap_policy
     }
 };
 
-struct default_heap_policy
+struct free_list_heap_policy
 {
     template <std::size_t... Sizes>
     struct apply
     {
-#if IMMER_FREE_LIST
         static constexpr auto node_size = std::max({Sizes...});
 
         using type = with_free_list_node<
             thread_local_free_list_heap<
                 node_size,
                 malloc_heap>>;
-#else
-        using type = malloc_heap;
-#endif
     };
 };
+
+#if IMMER_FREE_LIST
+using default_heap_policy = free_list_heap_policy;
+#else
+using default_heap_policy = heap_policy<malloc_heap>;
+#endif
 
 } // namespace immer
