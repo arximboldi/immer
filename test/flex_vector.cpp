@@ -1,5 +1,6 @@
 
 #include <immer/flex_vector.hpp>
+#include <immer/vector.hpp>
 
 #include "util.hpp"
 
@@ -460,5 +461,16 @@ TEST_CASE("iterator relaxed")
         CHECK(100  == i2 - i1);
         CHECK(50u  == *(i2 - 50));
         CHECK(-30  == (i2 - 30) - i2);
+    }
+}
+
+TEST_CASE("adopt regular vector contents")
+{
+    const auto n = 666u;
+    auto v = vector<unsigned, 3>{};
+    for (auto i = 0u; i < n; ++i) {
+        v = v.push_back(i);
+        auto fv = flex_vector<unsigned, 3>{v};
+        CHECK_VECTOR_EQUALS_X(v, fv, [] (auto&& v) { return &v; });
     }
 }

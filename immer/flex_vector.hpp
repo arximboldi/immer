@@ -7,6 +7,9 @@
 
 namespace immer {
 
+template <typename T, int B, typename MP>
+class vector;
+
 template <typename T,
           int B = 5,
           typename MemoryPolicy = default_memory_policy>
@@ -26,6 +29,10 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
 
     flex_vector() = default;
+    flex_vector(vector<T, B, MemoryPolicy> v)
+        : impl_ { v.impl_.size, v.impl_.shift,
+                  v.impl_.root->inc(), v.impl_.tail->inc() }
+    {}
 
     iterator begin() const { return {impl_}; }
     iterator end()   const { return {impl_, typename iterator::end_t{}}; }

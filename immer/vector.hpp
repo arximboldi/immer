@@ -7,6 +7,9 @@
 
 namespace immer {
 
+template <typename T, int B, typename MemoryPolicy>
+class flex_vector;
+
 template <typename T,
           int B = 5,
           typename MemoryPolicy = default_memory_policy>
@@ -58,6 +61,8 @@ public:
                           std::forward<State>(init)); }
 
 private:
+    friend class flex_vector<T, B, MemoryPolicy>;
+
     vector(impl_t impl) : impl_(std::move(impl)) {}
     impl_t impl_ = impl_t::empty;
 };
