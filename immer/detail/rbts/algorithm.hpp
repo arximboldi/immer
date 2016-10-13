@@ -48,12 +48,12 @@ struct get_visitor
     using this_t = get_visitor;
 
     template <typename PosT>
-    friend const T* visit_inner(this_t v, PosT&& pos, std::size_t idx)
+    friend const T& visit_inner(this_t v, PosT&& pos, std::size_t idx)
     { return pos.descend(v, idx); }
 
     template <typename PosT>
-    friend const T* visit_leaf(this_t, PosT&& pos, std::size_t idx)
-    { return &pos.node()->leaf() [pos.index(idx)]; }
+    friend const T& visit_leaf(this_t, PosT&& pos, std::size_t idx)
+    { return pos.node()->leaf() [pos.index(idx)]; }
 };
 
 template <typename Step, typename State>
@@ -290,7 +290,6 @@ struct slice_left_visitor_t
     {
         auto idx    = pos.subindex(first);
         auto count  = pos.count();
-        auto this_size  = pos.size();
         auto left_size  = pos.size_before(idx);
         auto child_size = pos.size(idx, left_size);
         auto dropped_size = first;
@@ -308,7 +307,7 @@ struct slice_left_visitor_t
             newr->sizes[0] = child_size - child_dropped_size;
             pos.copy_sizes(idx + 1, newr->count - 1,
                            newr->sizes[0], newr->sizes + 1);
-            assert(newr->sizes[newr->count - 1] == this_size - dropped_size);
+            assert(newr->sizes[newr->count - 1] == pos.size() - dropped_size);
             newn->inner()[0] = get<1>(subs);
             std::uninitialized_copy(n->inner() + idx + 1,
                                     n->inner() + count,

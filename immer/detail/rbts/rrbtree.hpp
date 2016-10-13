@@ -128,7 +128,7 @@ struct rrbtree
     }
 
     template <typename Visitor>
-    auto descend(Visitor&& v, std::size_t idx) const
+    decltype(auto) descend(Visitor&& v, std::size_t idx) const
     {
         auto tail_off  = tail_offset();
         return idx >= tail_off
@@ -211,7 +211,7 @@ struct rrbtree
 
     const T& get(std::size_t index) const
     {
-        return *descend(get_visitor<T>(), index);
+        return descend(get_visitor<T>(), index);
     }
 
     template <typename FnT>
