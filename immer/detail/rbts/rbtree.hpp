@@ -98,7 +98,7 @@ struct rbtree
     }
 
     template <typename Visitor, typename... Args>
-    void traverse(Visitor&& v, Args&&... args) const
+    void traverse(Visitor v, Args&&... args) const
     {
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
@@ -111,7 +111,7 @@ struct rbtree
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor&& v, std::size_t idx) const
+    decltype(auto) descend(Visitor v, std::size_t idx) const
     {
         auto tail_off  = tail_offset();
         return idx >= tail_off
@@ -143,7 +143,7 @@ struct rbtree
                 return { size + 1, shift + B, new_root, new_tail };
             } else if (tail_off) {
                 auto new_root = make_regular_sub_pos(root, shift, tail_off)
-                    .visit(push_tail_visitor(tail->inc(), ts));
+                    .visit(push_tail_visitor<node_t>{}, tail->inc());
                 return { size + 1, shift, new_root, new_tail };
             } else {
                 auto new_root = node_t::make_path(shift, tail->inc());

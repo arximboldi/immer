@@ -19,8 +19,8 @@ struct array_for_visitor
     using this_t = array_for_visitor;
 
     template <typename PosT>
-    friend T* visit_inner(this_t v, PosT&& pos, std::size_t idx)
-    { return pos.descend(v, idx); }
+    friend T* visit_inner(this_t, PosT&& pos, std::size_t idx)
+    { return pos.descend(this_t{}, idx); }
 
     template <typename PosT>
     friend T* visit_leaf(this_t, PosT&& pos, std::size_t)
@@ -34,8 +34,8 @@ struct relaxed_array_for_visitor
     using result_t = std::tuple<T*, std::size_t, std::size_t>;
 
     template <typename PosT>
-    friend result_t visit_inner(this_t v, PosT&& pos, std::size_t idx)
-    { return pos.towards(v, idx); }
+    friend result_t visit_inner(this_t, PosT&& pos, std::size_t idx)
+    { return pos.towards(this_t{}, idx); }
 
     template <typename PosT>
     friend result_t visit_leaf(this_t, PosT&& pos, std::size_t idx)
@@ -48,8 +48,8 @@ struct get_visitor
     using this_t = get_visitor;
 
     template <typename PosT>
-    friend const T& visit_inner(this_t v, PosT&& pos, std::size_t idx)
-    { return pos.descend(v, idx); }
+    friend const T& visit_inner(this_t, PosT&& pos, std::size_t idx)
+    { return pos.descend(this_t{}, idx); }
 
     template <typename PosT>
     friend const T& visit_leaf(this_t, PosT&& pos, std::size_t idx)
@@ -61,11 +61,11 @@ struct reduce_visitor
     using this_t = reduce_visitor;
 
     template <typename Pos, typename Step, typename State>
-    friend void visit_inner(this_t v, Pos&& pos, Step&& step, State& acc)
-    { pos.each(v, step, acc); }
+    friend void visit_inner(this_t, Pos&& pos, Step&& step, State& acc)
+    { pos.each(this_t{}, step, acc); }
 
     template <typename Pos, typename Step, typename State>
-    friend void visit_leaf(this_t v, Pos&& pos, Step&& step, State& acc)
+    friend void visit_leaf(this_t, Pos&& pos, Step&& step, State& acc)
     {
         auto data  = pos.node()->leaf();
         auto count = pos.count();
@@ -83,29 +83,29 @@ struct update_visitor
     using this_t = update_visitor;
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_relaxed(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_relaxed(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
         auto node    = node_t::copy_inner_r(pos.node(), count);
         node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh(v, idx, offset, fn);
+        node->inner()[offset] = pos.towards_oh(this_t{}, idx, offset, fn);
         return node;
     }
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_regular(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_regular(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
         auto node    = node_t::copy_inner(pos.node(), count);
         node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh_ch(v, idx, offset, count, fn);
+        node->inner()[offset] = pos.towards_oh_ch(this_t{}, idx, offset, count, fn);
         return node;
     }
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_leaf(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_leaf(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto node    = node_t::copy_leaf(pos.node(), pos.count());
@@ -115,103 +115,119 @@ struct update_visitor
     };
 };
 
-auto dec_visitor()
+struct dec_visitor
 {
-    return make_visitor(
-        [] (auto&& v, auto&& pos) {
-            using node_t = std::decay_t<decltype(*pos.node())>;
-            auto node = pos.node();
-            if (node->dec()) {
-                pos.each(v);
-                node_t::delete_inner_r(node);
-            }
-        },
-        [] (auto&& v, auto&& pos) {
-            using node_t = std::decay_t<decltype(*pos.node())>;
-            auto node = pos.node();
-            if (node->dec()) {
-                pos.each(v);
-                node_t::delete_inner(node);
-            }
-        },
-        [] (auto&&, auto&& pos) {
-            using node_t = std::decay_t<decltype(*pos.node())>;
-            auto node = pos.node();
-            if (node->dec()) {
-                auto count = pos.count();
-                node_t::delete_leaf(node, count);
-            }
-        });
-}
+    using this_t = dec_visitor;
+
+    template <typename Pos>
+    friend void visit_relaxed(this_t, Pos&& p)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each(this_t{});
+            node_t::delete_inner_r(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_regular(this_t, Pos&& p)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each(this_t{});
+            node_t::delete_inner(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_leaf(this_t, Pos&& p)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            auto count = p.count();
+            node_t::delete_leaf(node, count);
+        }
+    }
+};
 
 template <typename NodeT>
-auto push_tail_visitor(NodeT* tail, unsigned ts)
+struct push_tail_visitor
 {
+    static constexpr auto B = NodeT::bits;
+
+    using this_t = push_tail_visitor;
     using node_t = NodeT;
 
-    return make_visitor(
-        [=] (auto&& v, auto&& pos) -> NodeT* {
-            constexpr auto B = NodeT::bits;
-            auto level       = pos.shift();
-            auto idx         = pos.count() - 1;
-            auto children    = pos.size(idx);
-            auto new_idx     = children == 1 << level || level == B
-                ? idx + 1 : idx;
-            auto new_child   = (node_t*){};
-            if (new_idx >= branches<B>)
-                return nullptr;
-            else if (idx == new_idx) {
-                new_child = pos.last_oh_csh(v, idx, children);
-                if (!new_child) {
-                    if (++new_idx < branches<B>)
-                        new_child = node_t::make_path(level - B, tail);
-                    else
-                        return nullptr;
-                }
-            } else
-                new_child = node_t::make_path(level - B, tail);
-            auto new_parent  = node_t::copy_inner_r(pos.node(), new_idx);
-            auto new_relaxed = new_parent->relaxed();
-            new_parent->inner()[new_idx] = new_child;
-            new_relaxed->sizes[new_idx] = pos.size() + ts;
-            new_relaxed->count = new_idx + 1;
-            return new_parent;
-        },
-        [=] (auto&& v, auto&& pos) -> NodeT* {
-            constexpr auto B = NodeT::bits;
-            auto idx         = pos.index(pos.size() - 1);
-            auto new_idx     = pos.index(pos.size() + ts - 1);
-            auto new_parent  = node_t::copy_inner(pos.node(), new_idx);
-            new_parent->inner()[new_idx] =
-                idx == new_idx   ? pos.last_oh(v, idx)
-                /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
-            return new_parent;
-        },
-        [=] (auto&&, auto&& pos) -> NodeT* {
-            return tail;
-        });
-}
+    template <typename Pos>
+    friend node_t* visit_relaxed(this_t, Pos&& pos, node_t* tail, unsigned ts)
+    {
+        auto level       = pos.shift();
+        auto idx         = pos.count() - 1;
+        auto children    = pos.size(idx);
+        auto new_idx     = children == 1 << level || level == B
+            ? idx + 1 : idx;
+        auto new_child   = (node_t*){};
+        if (new_idx >= branches<B>)
+            return nullptr;
+        else if (idx == new_idx) {
+            new_child = pos.last_oh_csh(this_t{}, idx, children, tail, ts);
+            if (!new_child) {
+                if (++new_idx < branches<B>)
+                    new_child = node_t::make_path(level - B, tail);
+                else
+                    return nullptr;
+            }
+        } else
+            new_child = node_t::make_path(level - B, tail);
+        auto new_parent  = node_t::copy_inner_r(pos.node(), new_idx);
+        auto new_relaxed = new_parent->relaxed();
+        new_parent->inner()[new_idx] = new_child;
+        new_relaxed->sizes[new_idx] = pos.size() + ts;
+        new_relaxed->count = new_idx + 1;
+        return new_parent;
+    }
 
-template <typename NodeT, bool Collapse>
-struct slice_right_visitor_t
+    template <typename Pos, typename... Args>
+    friend node_t* visit_regular(this_t, Pos&& pos, node_t* tail, Args&&...)
+    {
+        assert((pos.size() & mask<B>) == 0);
+        auto idx         = pos.index(pos.size() - 1);
+        auto new_idx     = pos.index(pos.size() + branches<B> - 1);
+        auto new_parent  = node_t::copy_inner(pos.node(), new_idx);
+        new_parent->inner()[new_idx] =
+            idx == new_idx   ? pos.last_oh(this_t{}, idx, tail)
+            /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
+        return new_parent;
+    }
+
+    template <typename Pos, typename... Args>
+    friend node_t* visit_leaf(this_t, Pos&& pos, node_t* tail, Args&&...)
+    { return tail; };
+};
+
+template <typename NodeT, bool Collapse=true>
+struct slice_right_visitor
 {
+    using node_t = NodeT;
+    using this_t = slice_right_visitor;
+
     // returns a new shift, new root, the new tail size and the new tail
     using result_t = std::tuple<unsigned, NodeT*, unsigned, NodeT*>;
-    using node_t = NodeT;
+    using no_collapse_t = slice_right_visitor<NodeT, false>;
 
     template <typename PosT>
-    friend result_t visit_relaxed(slice_right_visitor_t v,
-                                  PosT&& pos,
-                                  std::size_t last)
+    friend result_t visit_relaxed(this_t, PosT&& pos, std::size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
-            return pos.towards_oh(v, last, idx);
+            return pos.towards_oh(this_t{}, last, idx);
         } else {
             using std::get;
-            auto fv   = slice_right_visitor_t<NodeT, false>{};
-            auto subs = pos.towards_oh(fv, last, idx);
+            auto subs = pos.towards_oh(no_collapse_t{}, last, idx);
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
@@ -235,18 +251,15 @@ struct slice_right_visitor_t
     }
 
     template <typename PosT>
-    friend result_t visit_regular(slice_right_visitor_t v,
-                                  PosT&& pos,
-                                  std::size_t last)
+    friend result_t visit_regular(this_t, PosT&& pos, std::size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
-            return pos.towards_oh(v, last, idx);
+            return pos.towards_oh(this_t{}, last, idx);
         } else {
             using std::get;
-            auto fv   = slice_right_visitor_t<NodeT, false>();
-            auto subs = pos.towards_oh(fv, last, idx);
+            auto subs = pos.towards_oh(no_collapse_t{}, last, idx);
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
@@ -267,9 +280,7 @@ struct slice_right_visitor_t
     }
 
     template <typename PosT>
-    friend result_t visit_leaf(slice_right_visitor_t v,
-                               PosT&& pos,
-                               std::size_t last)
+    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t last)
     {
         auto old_tail_size = pos.count();
         auto new_tail_size = pos.index(last) + 1;
@@ -280,25 +291,20 @@ struct slice_right_visitor_t
     };
 };
 
-template <typename NodeT>
-auto slice_right_visitor()
+template <typename NodeT, bool Collapse=true>
+struct slice_left_visitor
 {
-    return slice_right_visitor_t<NodeT, true>{};
-}
+    using node_t = NodeT;
+    using this_t = slice_left_visitor;
 
-template <typename NodeT, bool Collapse>
-struct slice_left_visitor_t
-{
     // returns a new shift and new root
     using result_t = std::tuple<unsigned, NodeT*>;
-    using node_t = NodeT;
+    using no_collapse_t = slice_left_visitor<NodeT, false>;
 
     static constexpr auto B = NodeT::bits;
 
     template <typename PosT>
-    friend result_t visit_inner(slice_left_visitor_t v,
-                                PosT&& pos,
-                                std::size_t first)
+    friend result_t visit_inner(this_t, PosT&& pos, std::size_t first)
     {
         auto idx    = pos.subindex(first);
         auto count  = pos.count();
@@ -307,12 +313,11 @@ struct slice_left_visitor_t
         auto dropped_size = first;
         auto child_dropped_size = dropped_size - left_size;
         if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
-            return pos.towards_sub_oh(v, first, idx);
+            return pos.towards_sub_oh(this_t{}, first, idx);
         } else {
             using std::get;
             auto n     = pos.node();
-            auto fv    = slice_left_visitor_t<NodeT, false>{};
-            auto subs  = pos.towards_sub_oh(fv, first, idx);
+            auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
             auto newn  = node_t::make_inner_r();
             auto newr  = newn->relaxed();
             newr->count = count - idx;
@@ -330,9 +335,7 @@ struct slice_left_visitor_t
     }
 
     template <typename PosT>
-    friend result_t visit_leaf(slice_left_visitor_t,
-                               PosT&& pos,
-                               std::size_t first)
+    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t first)
     {
         return {
             0,
@@ -342,12 +345,6 @@ struct slice_left_visitor_t
         };
     };
 };
-
-template <typename NodeT>
-auto slice_left_visitor()
-{
-    return slice_left_visitor_t<NodeT, true>{};
-}
 
 } // namespace rbts
 } // namespace detail

@@ -20,27 +20,27 @@ auto make_visitor(Fns&& ...fns)
 }
 
 template <typename FnR, typename FnI, typename FnL, typename... Args>
-decltype(auto) visit_relaxed(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+decltype(auto) visit_relaxed(fn_visitor<FnR, FnI, FnL> v, Args&& ...args)
 { return std::get<1>(v)(v, std::forward<Args>(args)...); }
 
 template <typename FnR, typename FnI, typename FnL, typename... Args>
-decltype(auto) visit_regular(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+decltype(auto) visit_regular(fn_visitor<FnR, FnI, FnL> v, Args&& ...args)
 { return std::get<2>(v)(v, std::forward<Args>(args)...); }
 
 template <typename FnR, typename FnI, typename FnL, typename... Args>
-decltype(auto) visit_leaf(fn_visitor<FnR, FnI, FnL>& v, Args&& ...args)
+decltype(auto) visit_leaf(fn_visitor<FnR, FnI, FnL> v, Args&& ...args)
 { return std::get<3>(v)(v, std::forward<Args>(args)...); }
 
 template <typename FnI, typename FnL, typename... Args>
-decltype(auto) visit_inner(fn_visitor<FnI, FnL>& v, Args&& ...args)
+decltype(auto) visit_inner(fn_visitor<FnI, FnL> v, Args&& ...args)
 { return std::get<1>(v)(v, std::forward<Args>(args)...); }
 
 template <typename FnI, typename FnL, typename... Args>
-decltype(auto) visit_leaf(fn_visitor<FnI, FnL>& v, Args&& ...args)
+decltype(auto) visit_leaf(fn_visitor<FnI, FnL> v, Args&& ...args)
 { return std::get<2>(v)(v, std::forward<Args>(args)...); }
 
 template <typename Fn, typename... Args>
-decltype(auto) visit_node(fn_visitor<Fn>& v, Args&& ...args)
+decltype(auto) visit_node(fn_visitor<Fn> v, Args&& ...args)
 { return std::get<1>(v)(v, std::forward<Args>(args)...); }
 
 template <typename Visitor, typename... Args>

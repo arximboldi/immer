@@ -30,10 +30,10 @@ struct empty_regular_pos
     auto size()  const { return 0; }
 
     template <typename Visitor, typename... Args>
-    void each(Visitor&&, Args&&...) {}
+    void each(Visitor, Args&&...) {}
 
     template <typename Visitor, typename... Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
@@ -59,7 +59,7 @@ struct empty_leaf_pos
     auto size()  const { return 0; }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
@@ -88,7 +88,7 @@ struct leaf_pos
     auto subindex(std::size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
@@ -118,7 +118,7 @@ struct leaf_sub_pos
     auto subindex(std::size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
@@ -148,7 +148,7 @@ struct leaf_descent_pos
     decltype(auto) descend(Args&&...) {}
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
@@ -176,7 +176,7 @@ struct full_leaf_pos
     auto subindex(std::size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_leaf(v, *this, std::forward<Args>(args)...);
     }
@@ -207,45 +207,45 @@ struct regular_pos
     auto this_size() const { return ((size_ - 1) & ~(~std::size_t{} << (shift_ + bits))) + 1; }
 
     template <typename Visitor, typename... Args>
-    void each(Visitor&& v, Args&&... args)
+    void each(Visitor v, Args&&... args)
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor&& v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh(Visitor v, std::size_t idx,
                               unsigned offset_hint,
                               Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
                                  unsigned offset_hint,
                                  unsigned count_hint,
                                  Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
                                   unsigned offset_hint,
                                   Args&&... args)
     { return towards_sub_oh_regular(*this, v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) last_oh(Visitor&& v, unsigned offset_hint, Args&&... args)
+    decltype(auto) last_oh(Visitor v, unsigned offset_hint, Args&&... args)
     { return last_oh_regular(*this, v, offset_hint, args...); }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
 };
 
 template <typename Pos, typename Visitor, typename... Args>
-void each_regular(Pos&& p, Visitor&& v, Args&&... args)
+void each_regular(Pos&& p, Visitor v, Args&&... args)
 {
     constexpr auto B = bits<Pos>;
     if (p.shift() == B) {
@@ -267,7 +267,7 @@ void each_regular(Pos&& p, Visitor&& v, Args&&... args)
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor&& v, std::size_t idx,
+decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor v, std::size_t idx,
                                      unsigned offset_hint,
                                      unsigned count_hint,
                                      Args&&... args)
@@ -288,7 +288,7 @@ decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor&& v, std::size_t idx,
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor&& v, std::size_t idx,
+decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, std::size_t idx,
                                       unsigned offset_hint,
                                       Args&&... args)
 {
@@ -313,7 +313,7 @@ decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor&& v, std::size_t idx,
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-decltype(auto) last_oh_regular(Pos&& p, Visitor&& v,
+decltype(auto) last_oh_regular(Pos&& p, Visitor v,
                                unsigned offset_hint,
                                Args&&... args)
 {
@@ -385,38 +385,38 @@ struct regular_sub_pos
     }
 
     template <typename Visitor, typename... Args>
-    void each(Visitor&& v, Args&& ...args)
+    void each(Visitor v, Args&& ...args)
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor&& v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh(Visitor v, std::size_t idx,
                               unsigned offset_hint,
                               Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
                                  unsigned offset_hint,
                                  unsigned count_hint,
                                  Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
                                   unsigned offset_hint,
                                   Args&& ...args)
     { return towards_sub_oh_regular(*this, v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) last_oh(Visitor&& v, unsigned offset_hint, Args&&... args)
+    decltype(auto) last_oh(Visitor v, unsigned offset_hint, Args&&... args)
     { return last_oh_regular(*this, v, offset_hint, args...); }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
@@ -447,7 +447,7 @@ struct regular_descent_pos
     auto index(std::size_t idx) const { return (idx >> Shift) & mask<B>; }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor&& v, std::size_t idx)
+    decltype(auto) descend(Visitor v, std::size_t idx)
     {
         auto offset = index(idx);
         auto child  = node_->inner()[offset];
@@ -455,7 +455,7 @@ struct regular_descent_pos
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
@@ -472,7 +472,7 @@ struct regular_descent_pos<NodeT, B, B>
     auto index(std::size_t idx) const { return (idx >> B) & mask<B>; }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor&& v, std::size_t idx)
+    decltype(auto) descend(Visitor v, std::size_t idx)
     {
         auto offset = this->index(idx);
         auto child  = this->node_->inner()[offset];
@@ -480,14 +480,14 @@ struct regular_descent_pos<NodeT, B, B>
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
 };
 
 template <typename NodeT, typename Visitor>
-decltype(auto) visit_regular_descent(NodeT* node, unsigned shift, Visitor&& v,
+decltype(auto) visit_regular_descent(NodeT* node, unsigned shift, Visitor v,
                                      std::size_t idx)
 {
     constexpr auto B = NodeT::bits;
@@ -533,7 +533,7 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    void each(Visitor&& v, Args&&... args)
+    void each(Visitor v, Args&&... args)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
@@ -550,17 +550,17 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor&& v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
     { return towards_oh(v, idx, index(idx), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
                                  unsigned offset_hint, unsigned,
                                  Args&&... args)
     { return towards_oh(v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh(Visitor v, std::size_t idx,
                               unsigned offset_hint,
                               Args&&... args)
     {
@@ -573,7 +573,7 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
                                   unsigned offset_hint,
                                   Args&&... args)
     {
@@ -587,7 +587,7 @@ struct full_pos
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_regular(v, *this, std::forward<Args>(args)...);
     }
@@ -652,7 +652,7 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    void each(Visitor&& v, Args&&... args)
+    void each(Visitor v, Args&&... args)
     {
         if (shift_ == bits) {
             auto p = node_->inner();
@@ -675,11 +675,11 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor&& v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
     { return towards_oh(v, idx, subindex(idx), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh(Visitor v, std::size_t idx,
                               unsigned offset_hint,
                               Args&&... args)
     {
@@ -689,14 +689,14 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_lsh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_oh_lsh(Visitor v, std::size_t idx,
                                   unsigned offset_hint,
                                   std::size_t left_size_hint,
                                   Args&&... args)
     { return towards_sub_oh_lsh(v, idx, offset_hint, left_size_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
                                   unsigned offset_hint,
                                   Args&&... args)
     {
@@ -706,7 +706,7 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh_lsh(Visitor&& v, std::size_t idx,
+    decltype(auto) towards_sub_oh_lsh(Visitor v, std::size_t idx,
                                       unsigned offset_hint,
                                       std::size_t left_size_hint,
                                       Args&&... args)
@@ -726,7 +726,7 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) last_oh_csh(Visitor&& v,
+    decltype(auto) last_oh_csh(Visitor v,
                                unsigned offset_hint,
                                unsigned child_size_hint,
                                Args&&... args)
@@ -742,7 +742,7 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
@@ -761,7 +761,7 @@ relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
 
 template <typename NodeT, typename Visitor, typename... Args>
 decltype(auto) visit_maybe_relaxed_sub(NodeT* node, unsigned shift, std::size_t size,
-                             Visitor&& v, Args&& ...args)
+                             Visitor v, Args&& ...args)
 {
     assert(node);
     auto relaxed = node->relaxed();
@@ -799,7 +799,7 @@ struct relaxed_descent_pos
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor&& v, std::size_t idx)
+    decltype(auto) descend(Visitor v, std::size_t idx)
     {
         auto offset    = index(idx);
         auto child     = node_->inner() [offset];
@@ -812,7 +812,7 @@ struct relaxed_descent_pos
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
@@ -840,7 +840,7 @@ struct relaxed_descent_pos<NodeT, B, B>
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor&& v, std::size_t idx)
+    decltype(auto) descend(Visitor v, std::size_t idx)
     {
         auto offset    = this->index(idx);
         auto child     = this->node_->inner() [offset];
@@ -850,7 +850,7 @@ struct relaxed_descent_pos<NodeT, B, B>
     }
 
     template <typename Visitor, typename ...Args>
-    decltype(auto) visit(Visitor&& v, Args&& ...args)
+    decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
@@ -858,7 +858,7 @@ struct relaxed_descent_pos<NodeT, B, B>
 
 template <typename NodeT, typename Visitor, typename... Args>
 decltype(auto) visit_maybe_relaxed_descent(NodeT* node, unsigned shift,
-                                           Visitor&& v, std::size_t idx)
+                                           Visitor v, std::size_t idx)
 {
     constexpr auto B = NodeT::bits;
     assert(node);
