@@ -114,17 +114,17 @@ struct rrbtree
             /* otherwise */ : 0;
     }
 
-    template <typename ...Visitor>
-    void traverse(Visitor&&... v) const
+    template <typename Visitor, typename... Args>
+    void traverse(Visitor&& v, Args&&... args) const
     {
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) visit_maybe_relaxed_sub(root, shift, tail_off, v...);
-        else make_empty_regular_pos(root).visit(v...);
+        if (tail_off) visit_maybe_relaxed_sub(root, shift, tail_off, v, args...);
+        else make_empty_regular_pos(root).visit(v, args...);
 
-        if (tail_size) make_leaf_sub_pos(tail, tail_size).visit(v...);
-        else make_empty_leaf_pos(tail).visit(v...);
+        if (tail_size) make_leaf_sub_pos(tail, tail_size).visit(v, args...);
+        else make_empty_leaf_pos(tail).visit(v, args...);
     }
 
     template <typename Visitor>
@@ -139,7 +139,7 @@ struct rrbtree
     template <typename Step, typename State>
     State reduce(Step step, State acc) const
     {
-        traverse(reduce_visitor(step, acc));
+        traverse(reduce_visitor{}, step, acc);
         return acc;
     }
 

@@ -56,22 +56,25 @@ struct get_visitor
     { return pos.node()->leaf() [pos.index(idx)]; }
 };
 
-template <typename Step, typename State>
-auto reduce_visitor(Step&& step, State& acc)
+struct reduce_visitor
 {
-    return make_visitor(
-        [] (auto&& v, auto&& pos) {
-            pos.each(v);
-        },
-        [&] (auto&&, auto&& pos) {
-            auto data  = pos.node()->leaf();
-            auto count = pos.count();
-            acc = std::accumulate(data,
-                                  data + count,
-                                  acc,
-                                  step);
-        });
-}
+    using this_t = reduce_visitor;
+
+    template <typename Pos, typename Step, typename State>
+    friend void visit_inner(this_t v, Pos&& pos, Step&& step, State& acc)
+    { pos.each(v, step, acc); }
+
+    template <typename Pos, typename Step, typename State>
+    friend void visit_leaf(this_t v, Pos&& pos, Step&& step, State& acc)
+    {
+        auto data  = pos.node()->leaf();
+        auto count = pos.count();
+        acc = std::accumulate(data,
+                              data + count,
+                              acc,
+                              step);
+    }
+};
 
 template <typename NodeT,  typename FnT>
 auto update_visitor(FnT&& fn)
