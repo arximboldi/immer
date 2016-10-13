@@ -1,6 +1,8 @@
 
 #include <nonius/nonius_single.h++>
 
+#include "util.hpp"
+
 #include <immer/vector.hpp>
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
@@ -25,26 +27,6 @@ extern "C" {
 #endif
 
 NONIUS_PARAM(N, std::size_t{1000})
-
-struct push_back_fn
-{
-    template <typename T, typename U>
-    auto operator() (T&& v, U&& x)
-    {
-        return std::forward<T>(v)
-            .push_back(std::forward<U>(x));
-    }
-};
-
-struct push_front_fn
-{
-    template <typename T, typename U>
-    auto operator() (T&& v, U&& x)
-    {
-        return std::forward<T>(v)
-            .push_front(std::forward<U>(x));
-    }
-};
 
 template <typename T>
 struct get_limit : std::integral_constant<
