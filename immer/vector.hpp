@@ -5,6 +5,10 @@
 #include <immer/detail/rbts/rbtree_iterator.hpp>
 #include <immer/memory_policy.hpp>
 
+#if IMMER_DEBUG_PRINT
+#include <immer/flex_vector.hpp>
+#endif
+
 namespace immer {
 
 template <typename T, int B, typename MemoryPolicy>
@@ -60,10 +64,24 @@ public:
     { return impl_.reduce(std::forward<Step>(step),
                           std::forward<State>(init)); }
 
+#if IMMER_DEBUG_PRINT
+    void debug_print() const
+    { flex_vector<T, B, MemoryPolicy>{*this}.debug_print(); }
+#endif
+
 private:
     friend class flex_vector<T, B, MemoryPolicy>;
 
-    vector(impl_t impl) : impl_(std::move(impl)) {}
+    vector(impl_t impl)
+        : impl_(std::move(impl))
+    {
+#if IMMER_DEBUG_PRINT
+        // force the compiler to generate debug_print, so we can call
+        // it from a debugger
+        [](volatile auto){}(&vector::debug_print);
+#endif
+    }
+
     impl_t impl_ = impl_t::empty;
 };
 

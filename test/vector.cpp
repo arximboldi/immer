@@ -208,6 +208,13 @@ struct non_default
 {
     unsigned value;
     non_default() = delete;
+#if IMMER_DEBUG_PRINT
+    friend std::ostream& operator<< (std::ostream& os, non_default x)
+    {
+        os << "ND{" << x.value << "}";
+        return os;
+    }
+#endif
 };
 
 TEST_CASE("non default")
