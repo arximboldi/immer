@@ -14,45 +14,47 @@ namespace detail {
 namespace rbts {
 
 template <typename T>
-auto array_for_visitor()
+struct array_for_visitor
 {
-    return make_visitor(
-        [] (auto&& v, auto&& pos, std::size_t idx) -> T* {
-            return pos.descend(v, idx);
-        },
-        [] (auto&&, auto&& pos, std::size_t) -> T* {
-            return pos.node()->leaf();
-        });
-}
+    using this_t = array_for_visitor;
+
+    template <typename PosT>
+    friend T* visit_inner(this_t v, PosT&& pos, std::size_t idx)
+    { return pos.descend(v, idx); }
+
+    template <typename PosT>
+    friend T* visit_leaf(this_t, PosT&& pos, std::size_t)
+    { return pos.node()->leaf(); }
+};
 
 template <typename T>
-auto relaxed_array_for_visitor()
+struct relaxed_array_for_visitor
 {
+    using this_t = relaxed_array_for_visitor;
     using result_t = std::tuple<T*, std::size_t, std::size_t>;
-    return make_visitor(
-        [] (auto&& v, auto&& pos, std::size_t idx) -> result_t {
-            return pos.towards(v, idx);
-        },
-        [] (auto&&, auto&& pos, std::size_t idx) -> result_t {
-            return {
-                pos.node()->leaf(),
-                pos.index(idx),
-                pos.count()
-            };
-        });
-}
+
+    template <typename PosT>
+    friend result_t visit_inner(this_t v, PosT&& pos, std::size_t idx)
+    { return pos.towards(v, idx); }
+
+    template <typename PosT>
+    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t idx)
+    { return { pos.node()->leaf(), pos.index(idx), pos.count() }; }
+};
 
 template <typename T>
-auto get_visitor()
+struct get_visitor
 {
-    return make_visitor(
-        [] (auto&& v, auto&& pos, std::size_t idx) -> const T* {
-            return pos.descend(v, idx);
-        },
-        [] (auto&&, auto&& pos, std::size_t idx) -> const T* {
-            return &pos.node()->leaf() [pos.index(idx)];
-        });
-}
+    using this_t = get_visitor;
+
+    template <typename PosT>
+    friend const T* visit_inner(this_t v, PosT&& pos, std::size_t idx)
+    { return pos.descend(v, idx); }
+
+    template <typename PosT>
+    friend const T* visit_leaf(this_t, PosT&& pos, std::size_t idx)
+    { return &pos.node()->leaf() [pos.index(idx)]; }
+};
 
 template <typename Step, typename State>
 auto reduce_visitor(Step&& step, State& acc)
