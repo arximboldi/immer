@@ -218,15 +218,15 @@ struct rrbtree
     rrbtree update(std::size_t idx, FnT&& fn) const
     {
         auto tail_off  = tail_offset();
-        auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
             auto new_tail  = make_leaf_sub_pos(tail, tail_size)
-                .visit(visitor, idx - tail_off);
+                .visit(update_visitor<node_t>{}, idx - tail_off, fn);
             return { size, shift, root->inc(), new_tail };
         } else {
             auto new_root  = visit_maybe_relaxed_sub(
-                root, shift, tail_off, visitor, idx);
+                root, shift, tail_off,
+                update_visitor<node_t>{}, idx, fn);
             return { size, shift, new_root, tail->inc() };
         }
     }

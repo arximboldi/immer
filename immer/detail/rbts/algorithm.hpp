@@ -76,35 +76,44 @@ struct reduce_visitor
     }
 };
 
-template <typename NodeT,  typename FnT>
-auto update_visitor(FnT&& fn)
+template <typename NodeT>
+struct update_visitor
 {
     using node_t = NodeT;
-    return make_visitor(
-        [] (auto&& v, auto&& pos, std::size_t idx) -> NodeT* {
-            auto offset  = pos.index(idx);
-            auto count   = pos.count();
-            auto node    = node_t::copy_inner_r(pos.node(), count);
-            node->inner()[offset]->dec_unsafe();
-            node->inner()[offset] = pos.towards(v, idx, offset);
-            return node;
-        },
-        [] (auto&& v, auto&& pos, std::size_t idx) -> NodeT*  {
-            auto offset  = pos.index(idx);
-            auto count   = pos.count();
-            auto node    = node_t::copy_inner(pos.node(), count);
-            node->inner()[offset]->dec_unsafe();
-            node->inner()[offset] = pos.towards(v, idx, offset, count);
-            return node;
-        },
-        [&] (auto&& v, auto&& pos, std::size_t idx) -> NodeT*  {
-            auto offset  = pos.index(idx);
-            auto node    = node_t::copy_leaf(pos.node(), pos.count());
-            node->leaf()[offset] = std::forward<FnT>(fn) (
-                std::move(node->leaf()[offset]));
-            return node;
-        });
-}
+    using this_t = update_visitor;
+
+    template <typename Pos, typename Fn>
+    friend node_t* visit_relaxed(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    {
+        auto offset  = pos.index(idx);
+        auto count   = pos.count();
+        auto node    = node_t::copy_inner_r(pos.node(), count);
+        node->inner()[offset]->dec_unsafe();
+        node->inner()[offset] = pos.towards_oh(v, idx, offset, fn);
+        return node;
+    }
+
+    template <typename Pos, typename Fn>
+    friend node_t* visit_regular(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    {
+        auto offset  = pos.index(idx);
+        auto count   = pos.count();
+        auto node    = node_t::copy_inner(pos.node(), count);
+        node->inner()[offset]->dec_unsafe();
+        node->inner()[offset] = pos.towards_oh_ch(v, idx, offset, count, fn);
+        return node;
+    }
+
+    template <typename Pos, typename Fn>
+    friend node_t* visit_leaf(this_t v, Pos&& pos, std::size_t idx, Fn&& fn)
+    {
+        auto offset  = pos.index(idx);
+        auto node    = node_t::copy_leaf(pos.node(), pos.count());
+        node->leaf()[offset] = std::forward<Fn>(fn) (
+            std::move(node->leaf()[offset]));
+        return node;
+    };
+};
 
 auto dec_visitor()
 {
@@ -152,7 +161,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
             if (new_idx >= branches<B>)
                 return nullptr;
             else if (idx == new_idx) {
-                new_child = pos.last(v, idx, children);
+                new_child = pos.last_oh_csh(v, idx, children);
                 if (!new_child) {
                     if (++new_idx < branches<B>)
                         new_child = node_t::make_path(level - B, tail);
@@ -174,7 +183,7 @@ auto push_tail_visitor(NodeT* tail, unsigned ts)
             auto new_idx     = pos.index(pos.size() + ts - 1);
             auto new_parent  = node_t::copy_inner(pos.node(), new_idx);
             new_parent->inner()[new_idx] =
-                idx == new_idx   ? pos.last(v, idx)
+                idx == new_idx   ? pos.last_oh(v, idx)
                 /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
             return new_parent;
         },
@@ -198,11 +207,11 @@ struct slice_right_visitor_t
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
-            return pos.towards(v, last, idx);
+            return pos.towards_oh(v, last, idx);
         } else {
             using std::get;
             auto fv   = slice_right_visitor_t<NodeT, false>{};
-            auto subs = pos.towards(fv, last, idx);
+            auto subs = pos.towards_oh(fv, last, idx);
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
@@ -233,11 +242,11 @@ struct slice_right_visitor_t
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
-            return pos.towards(v, last, idx);
+            return pos.towards_oh(v, last, idx);
         } else {
             using std::get;
             auto fv   = slice_right_visitor_t<NodeT, false>();
-            auto subs = pos.towards(fv, last, idx);
+            auto subs = pos.towards_oh(fv, last, idx);
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
@@ -298,12 +307,12 @@ struct slice_left_visitor_t
         auto dropped_size = first;
         auto child_dropped_size = dropped_size - left_size;
         if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
-            return pos.towards_sub(v, first, idx);
+            return pos.towards_sub_oh(v, first, idx);
         } else {
             using std::get;
             auto n     = pos.node();
             auto fv    = slice_left_visitor_t<NodeT, false>{};
-            auto subs  = pos.towards_sub(fv, first, idx);
+            auto subs  = pos.towards_sub_oh(fv, first, idx);
             auto newn  = node_t::make_inner_r();
             auto newr  = newn->relaxed();
             newr->count = count - idx;
