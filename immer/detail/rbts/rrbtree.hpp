@@ -90,7 +90,7 @@ struct rrbtree
 
     static void dec_node(node_t* n, unsigned shift, std::size_t size)
     {
-        visit_maybe_relaxed(n, shift, size, dec_visitor());
+        visit_maybe_relaxed_sub(n, shift, size, dec_visitor());
     }
 
     static void dec_node(node_t* n, unsigned shift)
@@ -120,10 +120,10 @@ struct rrbtree
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) visit_maybe_relaxed(root, shift, tail_off, v...);
+        if (tail_off) visit_maybe_relaxed_sub(root, shift, tail_off, v...);
         else make_empty_regular_pos(root).visit(v...);
 
-        if (tail_size) make_leaf_pos(tail, tail_size).visit(v...);
+        if (tail_size) make_leaf_sub_pos(tail, tail_size).visit(v...);
         else make_empty_leaf_pos(tail).visit(v...);
     }
 
@@ -148,7 +148,7 @@ struct rrbtree
               node_t* tail, unsigned tail_size) const
     {
         if (auto r = root->relaxed()) {
-            auto new_root = visit_maybe_relaxed(
+            auto new_root = visit_maybe_relaxed_sub(
                 root, shift, size,
                 push_tail_visitor(tail, tail_size));
             if (new_root)
@@ -166,7 +166,7 @@ struct rrbtree
             auto new_root = node_t::make_inner(root->inc(), new_path);
             return { shift + B, new_root };
         } else if (size) {
-            auto new_root = make_regular_pos(root, shift, size)
+            auto new_root = make_regular_sub_pos(root, shift, size)
                 .visit(push_tail_visitor(tail, tail_size));
             return { shift, new_root };
         } else {
@@ -196,11 +196,12 @@ struct rrbtree
     {
         using std::get;
         auto tail_off = tail_offset();
-        auto v = relaxed_array_for_visitor<T>();
         if (idx >= tail_off) {
             return { tail->leaf() + (idx - tail_off), tail_off, size };
         } else {
-            auto subs = visit_maybe_relaxed(root, shift, tail_off, v, idx);
+            auto subs = visit_maybe_relaxed_sub(
+                root, shift, tail_off,
+                relaxed_array_for_visitor<T>(), idx);
             auto offset = get<1>(subs);
             auto first  = idx - offset;
             auto end    = first + get<2>(subs);
@@ -220,11 +221,11 @@ struct rrbtree
         auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
-            auto new_tail  = make_leaf_pos(tail, tail_size)
+            auto new_tail  = make_leaf_sub_pos(tail, tail_size)
                 .visit(visitor, idx - tail_off);
             return { size, shift, root->inc(), new_tail };
         } else {
-            auto new_root  = visit_maybe_relaxed(
+            auto new_root  = visit_maybe_relaxed_sub(
                 root, shift, tail_off, visitor, idx);
             return { size, shift, new_root, tail->inc() };
         }
@@ -251,7 +252,7 @@ struct rrbtree
             using std::get;
             auto l = new_size - 1;
             auto v = slice_right_visitor<node_t>();
-            auto r = visit_maybe_relaxed(root, shift, tail_off, v, l);
+            auto r = visit_maybe_relaxed_sub(root, shift, tail_off, v, l);
             auto new_shift = get<0>(r);
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
@@ -281,7 +282,7 @@ struct rrbtree
         } else {
             using std::get;
             auto v = slice_left_visitor<node_t>();
-            auto r = visit_maybe_relaxed(root, shift, tail_offset(), v, elems);
+            auto r = visit_maybe_relaxed_sub(root, shift, tail_offset(), v, elems);
             auto new_root  = get<1>(r);
             auto new_shift = get<0>(r);
             return { size - elems, new_shift, new_root, tail->inc() };

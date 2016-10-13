@@ -33,7 +33,9 @@ struct rbtree
 
     rbtree(std::size_t sz, unsigned sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
-    {}
+    {
+        assert(check_tree());
+    }
 
     rbtree(const rbtree& other)
         : rbtree{other.size, other.shift, other.root, other.tail}
@@ -101,10 +103,10 @@ struct rbtree
         auto tail_off  = tail_offset();
         auto tail_size = size - tail_off;
 
-        if (tail_off) make_regular_pos(root, shift, tail_off).visit(v);
+        if (tail_off) make_regular_sub_pos(root, shift, tail_off).visit(v);
         else make_empty_regular_pos(root).visit(v);
 
-        if (tail_size) make_leaf_pos(tail, tail_size).visit(v);
+        if (tail_size) make_leaf_sub_pos(tail, tail_size).visit(v);
         else make_empty_leaf_pos(tail).visit(v);
     }
 
@@ -140,7 +142,7 @@ struct rbtree
                     node_t::make_path(shift, tail->inc()));
                 return { size + 1, shift + B, new_root, new_tail };
             } else if (tail_off) {
-                auto new_root = make_regular_pos(root, shift, tail_off)
+                auto new_root = make_regular_sub_pos(root, shift, tail_off)
                     .visit(push_tail_visitor(tail->inc(), ts));
                 return { size + 1, shift, new_root, new_tail };
             } else {
@@ -167,11 +169,11 @@ struct rbtree
         auto visitor   = update_visitor<node_t>(std::forward<FnT>(fn));
         if (idx >= tail_off) {
             auto tail_size = size - tail_off;
-            auto new_tail  = make_leaf_pos(tail, tail_size)
+            auto new_tail  = make_leaf_sub_pos(tail, tail_size)
                 .visit(visitor, idx - tail_off);
             return { size, shift, root->inc(), new_tail };
         } else {
-            auto new_root  = make_regular_pos(root, shift, tail_off)
+            auto new_root  = make_regular_sub_pos(root, shift, tail_off)
                 .visit(visitor, idx);
             return { size, shift, new_root, tail->inc() };
         }
@@ -198,7 +200,7 @@ struct rbtree
             using std::get;
             auto l = new_size - 1;
             auto v = slice_right_visitor<node_t>();
-            auto r = make_regular_pos(root, shift, tail_off).visit(v, l);
+            auto r = make_regular_sub_pos(root, shift, tail_off).visit(v, l);
             auto new_shift = get<0>(r);
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
@@ -210,6 +212,39 @@ struct rbtree
                 return { new_size, B, empty.root->inc(), new_tail };
             }
         }
+    }
+
+    bool check_tree() const
+    {
+#if IMMER_DEBUG_DEEP_CHECK
+        assert(shift >= B);
+        assert(tail_offset() <= size);
+        assert(check_root());
+        assert(check_tail());
+#endif
+        return true;
+    }
+
+    bool check_tail() const
+    {
+#if IMMER_DEBUG_DEEP_CHECK
+        if (tail_size() > 0)
+            assert(tail->check(0, tail_size()));
+#endif
+        return true;
+    }
+
+    bool check_root() const
+    {
+#if IMMER_DEBUG_DEEP_CHECK
+        if (tail_offset() > 0)
+            assert(root->check(shift, tail_offset()));
+        else {
+            assert(root->kind() == node_t::inner_kind);
+            assert(shift == B);
+        }
+#endif
+        return true;
     }
 };
 

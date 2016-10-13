@@ -11,6 +11,12 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
+template <typename Pos>
+constexpr auto bits = std::decay_t<Pos>::node_t::bits;
+
+template <typename Pos>
+using node_t = typename std::decay_t<Pos>::node_t;
+
 template <typename NodeT>
 struct empty_regular_pos
 {
@@ -72,6 +78,36 @@ struct leaf_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
+    std::size_t size_;
+
+    auto count() const { return index(size_ - 1) + 1; }
+    auto node()  const { return node_; }
+    auto size()  const { return size_; }
+    auto shift() const { return 0; }
+    auto index(std::size_t idx) const { return idx & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx; }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
+    {
+        return visit_leaf(v, *this, std::forward<Args>(args)...);
+    }
+};
+
+template <typename NodeT>
+leaf_pos<NodeT> make_leaf_pos(NodeT* node, std::size_t size)
+{
+    assert(node);
+    assert(size > 0);
+    return {node, size};
+}
+
+template <typename NodeT>
+struct leaf_sub_pos
+{
+    static constexpr auto bits = NodeT::bits;
+    using node_t = NodeT;
+    node_t* node_;
     unsigned count_;
 
     auto count() const { return count_; }
@@ -89,10 +125,11 @@ struct leaf_pos
 };
 
 template <typename NodeT>
-leaf_pos<NodeT> make_leaf_pos(NodeT* node, unsigned count)
+leaf_sub_pos<NodeT> make_leaf_sub_pos(NodeT* node, unsigned count)
 {
     assert(node);
     assert(count > 0);
+    assert(count <= branches<NodeT::bits>);
     return {node, count};
 }
 
@@ -161,13 +198,150 @@ struct regular_pos
     unsigned shift_;
     std::size_t size_;
 
+    auto count() const { return index(size_ - 1) + 1; }
+    auto node()  const { return node_; }
+    auto size()  const { return size_; }
+    auto shift() const { return shift_; }
+    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(std::size_t idx) const { return idx >> shift_; }
+    auto this_size() const { return ((size_ - 1) & ~(~std::size_t{} << (shift_ + bits))) + 1; }
+
+    template <typename Visitor>
+    void each(Visitor&& v)
+    { return each_regular(*this, v); }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx)
+    { return towards_regular(*this, v, idx, index(idx), count()); }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx, unsigned offset_hint)
+    { return towards_regular(*this, v, idx, offset_hint, count()); }
+
+    template <typename Visitor>
+    auto towards(Visitor&& v, std::size_t idx,
+                 unsigned offset_hint,
+                 unsigned count_hint)
+    { return towards_regular(*this, v, idx, offset_hint, count()); }
+
+    template <typename Visitor>
+    auto towards_sub(Visitor&& v, std::size_t idx,
+                     unsigned offset_hint)
+    { return towards_sub_regular(*this, v, idx, offset_hint, count()); }
+
+    template <typename Visitor>
+    auto last(Visitor&& v, unsigned offset_hint)
+    { return last_regular(*this, v, offset_hint); }
+
+    template <typename Visitor, typename ...Args>
+    auto visit(Visitor&& v, Args&& ...args)
+    {
+        return visit_regular(v, *this, std::forward<Args>(args)...);
+    }
+};
+
+template <typename Pos, typename Visitor>
+void each_regular(Pos&& p, Visitor&& v)
+{
+    constexpr auto B = bits<Pos>;
+    if (p.shift() == B) {
+        auto n = p.node()->inner();
+        auto last = p.count() - 1;
+        auto e = n + last;
+        for (; n != e; ++n)
+            make_full_leaf_pos(*n).visit(v);
+        make_leaf_pos(*n, p.size()).visit(v);
+    } else {
+        auto n = p.node()->inner();
+        auto last = p.count() - 1;
+        auto e = n + last;
+        auto ss = p.shift() - B;
+        for (; n != e; ++n)
+            make_full_pos(*n, ss).visit(v);
+        make_regular_pos(*n, ss, p.size()).visit(v);
+    }
+}
+
+template <typename Pos, typename Visitor>
+auto towards_regular(Pos&& p, Visitor&& v, std::size_t idx,
+                     unsigned offset_hint,
+                     unsigned count_hint)
+{
+    assert(offset_hint == p.index(idx));
+    assert(count_hint  == p.count());
+    constexpr auto B = bits<Pos>;
+    auto is_leaf = p.shift() == B;
+    auto child   = p.node()->inner() [offset_hint];
+    auto is_full = offset_hint + 1 != count_hint;
+    return is_full
+        ? (is_leaf
+           ? make_full_leaf_pos(child).visit(v, idx)
+           : make_full_pos(child, p.shift() - B).visit(v, idx))
+        : (is_leaf
+           ? make_leaf_pos(child, p.size()).visit(v, idx)
+           : make_regular_pos(child, p.shift() - B, p.size()).visit(v, idx));
+}
+
+template <typename Pos, typename Visitor>
+auto towards_sub_regular(Pos&& p, Visitor&& v, std::size_t idx,
+                         unsigned offset_hint)
+{
+    assert(offset_hint == p.index(idx));
+    constexpr auto B = bits<Pos>;
+    auto is_leaf = p.shift() == B;
+    auto child   = p.node()->inner() [offset_hint];
+    auto lsize   = offset_hint << p.shift();
+    auto size    = p.this_size();
+    auto is_full = (size - lsize) >= (1u << p.shift());
+    return is_full
+        ? (is_leaf
+           ? make_full_leaf_pos(child).visit(v, idx - lsize)
+           : make_full_pos(child, p.shift() - B).visit(v, idx - lsize))
+        : (is_leaf
+           ? make_leaf_sub_pos(child, size - lsize).visit(v, idx - lsize)
+           : make_regular_sub_pos(child, p.shift() - B, size - lsize).visit(v, idx - lsize));
+}
+
+template <typename Pos, typename Visitor>
+auto last_regular(Pos&& p, Visitor&& v, unsigned offset_hint)
+{
+    assert(offset_hint == p.count() - 1);
+    constexpr auto B = bits<Pos>;
+    auto child     = p.node()->inner() [offset_hint];
+    auto is_leaf   = p.shift() == B;
+    return is_leaf
+        ? make_leaf_pos(child, p.size()).visit(v)
+        : make_regular_pos(child, p.shift() - B, p.size()).visit(v);
+}
+
+template <typename NodeT>
+regular_pos<NodeT> make_regular_pos(NodeT* node,
+                                    unsigned shift,
+                                    std::size_t size)
+{
+    assert(node);
+    assert(shift >= NodeT::bits);
+    assert(size > 0);
+    return {node, shift, size};
+}
+
+template <typename NodeT>
+struct regular_sub_pos
+{
+    static constexpr auto bits = NodeT::bits;
+    using node_t = NodeT;
+    node_t* node_;
+    unsigned shift_;
+    std::size_t size_;
+
     auto count() const { return subindex(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
     auto shift() const { return shift_; }
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
     auto subindex(std::size_t idx) const { return idx >> shift_; }
-    auto size_before(unsigned offset) { return offset << shift_; }
+    auto size_before(unsigned offset) const { return offset << shift_; }
+    auto this_size() const { return size_; }
 
     auto size(unsigned offset)
     {
@@ -200,69 +374,30 @@ struct regular_pos
 
     template <typename Visitor>
     void each(Visitor&& v)
-    {
-        if (shift_ == bits) {
-            auto p = node_->inner();
-            auto last = subindex(size_ - 1);
-            auto e = p + last;
-            for (; p != e; ++p)
-                make_full_leaf_pos(*p).visit(v);
-            make_leaf_pos(*p, size_ - (last << bits)).visit(v);
-        } else {
-            auto p = node_->inner();
-            auto last = subindex(size_ - 1);
-            auto e = p + last;
-            auto ss = shift_ - bits;
-            for (; p != e; ++p)
-                make_full_pos(*p, ss).visit(v);
-            make_regular_pos(*p, ss, size_ - (last << shift_)).visit(v);
-        }
-    }
+    { return each_regular(*this, v); }
 
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx)
-    {
-        return towards(v, idx, subindex(idx), count());
-    }
+    { return towards_regular(*this, v, idx, index(idx), count()); }
 
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx, unsigned offset_hint)
-    {
-        return towards(v, idx, offset_hint, count());
-    }
+    { return towards_regular(*this, v, idx, offset_hint, count()); }
 
     template <typename Visitor>
-    auto towards(Visitor&& v,
-                 std::size_t idx,
+    auto towards(Visitor&& v, std::size_t idx,
                  unsigned offset_hint,
                  unsigned count_hint)
-    {
-        assert(offset_hint == index(idx));
-        assert(count_hint  == count());
-        auto is_leaf = shift_ == bits;
-        auto child   = node_->inner() [offset_hint];
-        auto lsize   = offset_hint << shift_;
-        auto is_full = (size_ - lsize) >= (1u << shift_);
-        return is_full
-            ? (is_leaf
-               ? make_full_leaf_pos(child).visit(v, idx - lsize)
-               : make_full_pos(child, shift_ - bits).visit(v, idx - lsize))
-            : (is_leaf
-               ? make_leaf_pos(child, size_ - lsize).visit(v, idx - lsize)
-               : make_regular_pos(child, shift_ - bits, size_ - lsize).visit(v, idx - lsize));
-    }
+    { return towards_regular(*this, v, idx, offset_hint, count()); }
+
+    template <typename Visitor>
+    auto towards_sub(Visitor&& v, std::size_t idx,
+                     unsigned offset_hint)
+    { return towards_sub_regular(*this, v, idx, offset_hint); }
 
     template <typename Visitor>
     auto last(Visitor&& v, unsigned offset_hint)
-    {
-        assert(offset_hint == count() - 1);
-        auto child   = node_->inner() [offset_hint];
-        auto is_leaf = shift_ == bits;
-        auto next_size = size_ - (offset_hint << shift_);
-        return is_leaf
-            ? make_leaf_pos(child, next_size).visit(v)
-            : make_regular_pos(child, shift_ - bits, next_size).visit(v);
-    }
+    { return last_regular(*this, v, offset_hint); }
 
     template <typename Visitor, typename ...Args>
     auto visit(Visitor&& v, Args&& ...args)
@@ -272,13 +407,14 @@ struct regular_pos
 };
 
 template <typename NodeT>
-regular_pos<NodeT> make_regular_pos(NodeT* node,
-                                        unsigned shift,
-                                        std::size_t size)
+regular_sub_pos<NodeT> make_regular_sub_pos(NodeT* node,
+                                            unsigned shift,
+                                            std::size_t size)
 {
     assert(node);
     assert(shift >= NodeT::bits);
     assert(size > 0);
+    assert(size <= (branches<NodeT::bits> << shift));
     return {node, shift, size};
 }
 
@@ -399,9 +535,7 @@ struct full_pos
 
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx)
-    {
-        return towards(v, idx, subindex(idx));
-    }
+    { return towards(v, idx, index(idx)); }
 
     template <typename Visitor, typename... OtherHints>
     auto towards(Visitor&& v, std::size_t idx,
@@ -412,8 +546,22 @@ struct full_pos
         auto is_leaf = shift_ == bits;
         auto child   = node_->inner() [offset_hint];
         return is_leaf
-            ? make_full_leaf_pos(child).visit(v, idx - (offset_hint << bits))
-            : make_full_pos(child, shift_ - bits).visit(v, idx - (offset_hint << shift_));
+            ? make_full_leaf_pos(child).visit(v, idx)
+            : make_full_pos(child, shift_ - bits).visit(v, idx);
+    }
+
+    template <typename Visitor, typename... OtherHints>
+    auto towards_sub(Visitor&& v, std::size_t idx,
+                     unsigned offset_hint,
+                     OtherHints&&...)
+    {
+        assert(offset_hint == index(idx));
+        auto is_leaf = shift_ == bits;
+        auto child   = node_->inner() [offset_hint];
+        auto lsize   = offset_hint << shift_;
+        return is_leaf
+            ? make_full_leaf_pos(child).visit(v, idx - lsize)
+            : make_full_pos(child, shift_ - bits).visit(v, idx - lsize);
     }
 
     template <typename Visitor, typename ...Args>
@@ -424,8 +572,7 @@ struct full_pos
 };
 
 template <typename NodeT>
-full_pos<NodeT> make_full_pos(NodeT* node,
-                                  unsigned shift)
+full_pos<NodeT> make_full_pos(NodeT* node, unsigned shift)
 {
     assert(node);
     assert(shift >= NodeT::bits);
@@ -489,7 +636,7 @@ struct relaxed_pos
             auto p = node_->inner();
             auto s = std::size_t{};
             for (auto i = 0u; i < relaxed_->count; ++i) {
-                make_leaf_pos(p[i], relaxed_->sizes[i] - s).visit(v);
+                make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s).visit(v);
                 s = relaxed_->sizes[i];
             }
         } else {
@@ -497,7 +644,7 @@ struct relaxed_pos
             auto s = std::size_t{};
             auto ss = shift_ - bits;
             for (auto i = 0u; i < relaxed_->count; ++i) {
-                visit_maybe_relaxed(p[i], ss, relaxed_->sizes[i] - s, v);
+                visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s, v);
                 s = relaxed_->sizes[i];
             }
         }
@@ -505,13 +652,10 @@ struct relaxed_pos
 
     template <typename Visitor>
     auto towards(Visitor&& v, std::size_t idx)
-    {
-        return towards(v, idx, subindex(idx));
-    }
+    { return towards(v, idx, subindex(idx)); }
 
     template <typename Visitor>
-    auto towards(Visitor&& v,
-                 std::size_t idx,
+    auto towards(Visitor&& v, std::size_t idx,
                  unsigned offset_hint)
     {
         assert(offset_hint == index(idx));
@@ -520,10 +664,24 @@ struct relaxed_pos
     }
 
     template <typename Visitor>
-    auto towards(Visitor&& v,
-                 std::size_t idx,
+    auto towards(Visitor&& v, std::size_t idx,
                  unsigned offset_hint,
                  std::size_t left_size_hint)
+    { return towards_sub(v, idx, offset_hint, left_size_hint); }
+
+    template <typename Visitor>
+    auto towards_sub(Visitor&& v, std::size_t idx,
+                     unsigned offset_hint)
+    {
+        assert(offset_hint == index(idx));
+        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
+        return towards_sub(v, idx, offset_hint, left_size);
+    }
+
+    template <typename Visitor>
+    auto towards_sub(Visitor&& v, std::size_t idx,
+                     unsigned offset_hint,
+                     std::size_t left_size_hint)
     {
         assert(offset_hint == index(idx));
         assert(left_size_hint ==
@@ -533,8 +691,8 @@ struct relaxed_pos
         auto next_size = relaxed_->sizes[offset_hint] - left_size_hint;
         auto next_idx  = idx - left_size_hint;
         return is_leaf
-            ? make_leaf_pos(child, next_size).visit(v, next_idx)
-            : visit_maybe_relaxed(child, shift_ - bits, next_size, v, next_idx);
+            ? make_leaf_sub_pos(child, next_size).visit(v, next_idx)
+            : visit_maybe_relaxed_sub(child, shift_ - bits, next_size, v, next_idx);
     }
 
     template <typename Visitor>
@@ -545,8 +703,8 @@ struct relaxed_pos
         auto child     = node_->inner() [offset_hint];
         auto is_leaf   = shift_ == bits;
         return is_leaf
-            ? make_leaf_pos(child, child_size_hint).visit(v)
-            : visit_maybe_relaxed(child, shift_ - bits, child_size_hint, v);
+            ? make_leaf_sub_pos(child, child_size_hint).visit(v)
+            : visit_maybe_relaxed_sub(child, shift_ - bits, child_size_hint, v);
     }
 
     template <typename Visitor, typename ...Args>
@@ -558,8 +716,8 @@ struct relaxed_pos
 
 template <typename NodeT>
 relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
-                                        unsigned shift,
-                                        typename NodeT::relaxed_t* relaxed)
+                                    unsigned shift,
+                                    typename NodeT::relaxed_t* relaxed)
 {
     assert(node);
     assert(relaxed);
@@ -568,8 +726,8 @@ relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
 }
 
 template <typename NodeT, typename Visitor, typename... Args>
-auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
-                         Visitor&& v, Args&& ...args)
+auto visit_maybe_relaxed_sub(NodeT* node, unsigned shift, std::size_t size,
+                             Visitor&& v, Args&& ...args)
 {
     assert(node);
     auto relaxed = node->relaxed();
@@ -578,7 +736,7 @@ auto visit_maybe_relaxed(NodeT* node, unsigned shift, std::size_t size,
         return make_relaxed_pos(node, shift, relaxed)
             .visit(v, std::forward<Args>(args)...);
     } else {
-        return make_regular_pos(node, shift, size)
+        return make_regular_sub_pos(node, shift, size)
             .visit(v, std::forward<Args>(args)...);
     }
 }
