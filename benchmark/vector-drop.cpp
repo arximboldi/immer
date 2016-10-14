@@ -71,6 +71,7 @@ auto generic()
 };
 
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
+using gcf_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy, false>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
@@ -83,3 +84,4 @@ NONIUS_BENCHMARK("flex/UN", generic<immer::flex_vector<unsigned,5,unsafe_memory>
 
 NONIUS_BENCHMARK("flex/F/5B", generic<immer::flex_vector<unsigned,5>, push_front_fn>())
 NONIUS_BENCHMARK("flex/F/GC", generic<immer::flex_vector<unsigned,5,gc_memory>, push_front_fn>())
+NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,5,gcf_memory>, push_front_fn>())

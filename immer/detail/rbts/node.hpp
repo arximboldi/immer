@@ -130,8 +130,15 @@ struct node
 
     static node_t* make_inner_r_n(unsigned n)
     {
-        auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
-        auto r = new (heap::allocate(sizeof_relaxed_n(n), norefs_tag{})) relaxed_t;
+        node_t* p;
+        relaxed_t* r;
+        if (MemoryPolicy::prefer_fewer_bigger_objects) {
+            p = new (heap::allocate(sizeof_inner_n(n) + sizeof_relaxed_n(n))) node_t;
+            r = new (reinterpret_cast<unsigned char*>(p) + sizeof_inner_n(n)) relaxed_t;
+        } else {
+            p = new (heap::allocate(sizeof_inner_n(n))) node_t;
+            r = new (heap::allocate(sizeof_relaxed_n(n), norefs_tag{})) relaxed_t;
+        }
         r->count = 0u;
         p->impl.data.inner.relaxed = r;
 #if IMMER_RBTS_TAGGED_NODE
@@ -349,7 +356,8 @@ struct node
         assert(p->kind() == node_t::inner_kind);
         auto r = p->relaxed();
         assert(r);
-        heap::deallocate(r);
+        if (!MemoryPolicy::prefer_fewer_bigger_objects)
+            heap::deallocate(r);
         heap::deallocate(p);
     }
 

@@ -55,10 +55,4 @@ struct free_list_heap_policy
     };
 };
 
-#if IMMER_FREE_LIST
-using default_heap_policy = free_list_heap_policy;
-#else
-using default_heap_policy = heap_policy<malloc_heap>;
-#endif
-
 } // namespace immer
