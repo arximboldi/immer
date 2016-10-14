@@ -17,9 +17,6 @@ struct malloc_heap
     {
         std::free(data);
     }
-
-    static void write(void* p) {}
-    static void end_write(void* p) {}
 };
 
 } // namespace immer

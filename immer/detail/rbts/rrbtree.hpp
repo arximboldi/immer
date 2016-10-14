@@ -158,12 +158,12 @@ struct rrbtree
                                                        root->inc(),
                                                        size,
                                                        new_path,
-                                                       tail_size)->freeze();
+                                                       tail_size);
                 return { shift + B, new_root };
             }
         } else if (size >> B >= 1u << shift) {
             auto new_path = node_t::make_path(shift, tail);
-            auto new_root = node_t::make_inner_n(2u, root->inc(), new_path)->freeze();
+            auto new_root = node_t::make_inner_n(2u, root->inc(), new_path);
             return { shift + B, new_root };
         } else if (size) {
             auto new_root = make_regular_sub_pos(root, shift, size)
@@ -183,7 +183,7 @@ struct rrbtree
             return { size + 1, shift, root->inc(), new_tail };
         } else {
             using std::get;
-            auto new_tail = node_t::make_leaf_n(1u, std::move(value))->freeze();
+            auto new_tail = node_t::make_leaf_n(1u, std::move(value));
             auto tail_off = tail_offset();
             auto new_root = push_tail(root, shift, tail_off,
                                       tail->inc(), size - tail_off);
@@ -394,7 +394,7 @@ struct rrbtree
             else {
                 return { B, node_t::make_inner_r_n(2u,
                                                    lnode->inc(), lslots,
-                                                   rnode->inc(), rslots)->freeze() };
+                                                   rnode->inc(), rslots) };
             }
         } else {
             auto lr = lnode->relaxed();
@@ -511,11 +511,11 @@ struct rrbtree
                 assert(result->relaxed()->count == 2);
                 auto r = result->relaxed();
                 r->sizes[1] = r->sizes[0] + size_sum;
-                return { shift + B, result->freeze() };
+                return { shift + B, result };
             } else if (is_top) {
-                return { shift, result->freeze() };
+                return { shift, result };
             } else {
-                return { shift, node_t::make_inner_r_n(1u, result, size_sum)->freeze() };
+                return { shift, node_t::make_inner_r_n(1u, result, size_sum) };
             }
         }
 
@@ -528,7 +528,6 @@ struct rrbtree
                 auto r = parent->relaxed();
                 if (r->count == branches<B>) {
                     assert(result == parent);
-                    parent->freeze();
                     auto new_parent = node_t::make_inner_r_n(slots_n - branches<B>);
                     result = node_t::make_inner_r_n(2u, parent, size_sum, new_parent);
                     parent = new_parent;
@@ -537,7 +536,6 @@ struct rrbtree
                 }
                 auto idx = r->count++;
                 r->sizes[idx] = size_sum += size;
-                parent->inner() [idx]->freeze();
                 parent->inner() [idx] = n;
                 assert(!idx || parent->inner() [idx] != parent->inner() [idx - 1]);
             };
@@ -581,7 +579,7 @@ struct rrbtree
                         to_offset   += to_copy;
                         from_offset += to_copy;
                         if (*slots == to_offset) {
-                            add_child(to->freeze(), policy::size(to, to_offset));
+                            add_child(to, policy::size(to, to_offset));
                             to = nullptr;
                         }
                     } while (from_slots != from_offset);
