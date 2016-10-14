@@ -135,9 +135,10 @@ struct rbtree
                                                       std::move(value));
             return { size + 1, shift, root->inc(), new_tail };
         } else {
-            auto new_tail = node_t::make_leaf(std::move(value));
+            auto new_tail = node_t::make_leaf_n(1u, std::move(value));
             if ((size >> B) > (1u << shift)) {
-                auto new_root = node_t::make_inner(
+                auto new_root = node_t::make_inner_n(
+                    2u,
                     root->inc(),
                     node_t::make_path(shift, tail->inc()));
                 return { size + 1, shift + B, new_root, new_tail };
@@ -251,8 +252,8 @@ template <typename T, int B, typename MP>
 const rbtree<T, B, MP> rbtree<T, B, MP>::empty = {
     0,
     B,
-    node_t::make_inner(),
-    node_t::make_leaf()
+    node_t::make_inner_n(0u),
+    node_t::make_leaf_n(0u)
 };
 
 } // namespace rbts

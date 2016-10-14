@@ -182,11 +182,12 @@ struct push_tail_visitor
             }
         } else
             new_child = node_t::make_path(level - B, tail);
-        auto new_parent  = node_t::copy_inner_r(pos.node(), new_idx);
+        auto count       = new_idx + 1;
+        auto new_parent  = node_t::copy_inner_r_n(count, pos.node(), new_idx);
         auto new_relaxed = new_parent->relaxed();
         new_parent->inner()[new_idx] = new_child;
         new_relaxed->sizes[new_idx] = pos.size() + ts;
-        new_relaxed->count = new_idx + 1;
+        new_relaxed->count = count;
         return new_parent;
     }
 
@@ -196,7 +197,8 @@ struct push_tail_visitor
         assert((pos.size() & mask<B>) == 0);
         auto idx         = pos.index(pos.size() - 1);
         auto new_idx     = pos.index(pos.size() + branches<B> - 1);
-        auto new_parent  = node_t::copy_inner(pos.node(), new_idx);
+        auto count       = new_idx + 1;
+        auto new_parent  = node_t::copy_inner_n(count, pos.node(), new_idx);
         new_parent->inner()[new_idx] =
             idx == new_idx   ? pos.last_oh(this_t{}, idx, tail)
             /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
@@ -232,11 +234,12 @@ struct slice_right_visitor
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
             if (next) {
-                auto newn = node_t::copy_inner_r(pos.node(), idx);
-                auto newr = newn->relaxed();
+                auto count = idx + 1;
+                auto newn  = node_t::copy_inner_r_n(count, pos.node(), idx);
+                auto newr  = newn->relaxed();
                 newn->inner()[idx] = next;
                 newr->sizes[idx] = last + 1 - ts;
-                newr->count++;
+                newr->count = count;
                 return { pos.shift(), newn, ts, tail };
             } else if (idx == 0) {
                 return { pos.shift(), nullptr, ts, tail };
@@ -264,7 +267,8 @@ struct slice_right_visitor
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
             if (next) {
-                auto newn = node_t::copy_inner(pos.node(), idx);
+                auto count = idx + 1;
+                auto newn  = node_t::copy_inner_n(count, pos.node(), idx);
                 newn->inner()[idx] = next;
                 return { pos.shift(), newn, ts, tail };
             } else if (idx == 0) {
@@ -318,7 +322,7 @@ struct slice_left_visitor
             using std::get;
             auto n     = pos.node();
             auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
-            auto newn  = node_t::make_inner_r();
+            auto newn  = node_t::make_inner_r_n(count - idx);
             auto newr  = newn->relaxed();
             newr->count = count - idx;
             newr->sizes[0] = child_size - child_dropped_size;
