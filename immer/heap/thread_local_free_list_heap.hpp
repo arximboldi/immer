@@ -41,7 +41,7 @@ thread_local_free_list_storage<Heap>::head {nullptr};
 template <template<class>class Storage,
           std::size_t Size,
           typename Base>
-class unsafe_free_list_heap_impl : Base
+class unsafe_free_list_heap_impl : public Base
 {
     using storage = Storage<unsafe_free_list_heap_impl>;
 

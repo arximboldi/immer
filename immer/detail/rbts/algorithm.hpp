@@ -87,10 +87,11 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
+        auto next    = pos.towards_oh(this_t{}, idx, offset, fn);
         auto node    = node_t::copy_inner_r(pos.node(), count);
         node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh(this_t{}, idx, offset, fn);
-        return node;
+        node->inner()[offset] = next;
+        return node->freeze();
     }
 
     template <typename Pos, typename Fn>
@@ -98,10 +99,11 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
+        auto next    = pos.towards_oh_ch(this_t{}, idx, offset, count, fn);
         auto node    = node_t::copy_inner(pos.node(), count);
         node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh_ch(this_t{}, idx, offset, count, fn);
-        return node;
+        node->inner()[offset] = next;
+        return node->freeze();
     }
 
     template <typename Pos, typename Fn>
@@ -111,7 +113,7 @@ struct update_visitor
         auto node    = node_t::copy_leaf(pos.node(), pos.count());
         node->leaf()[offset] = std::forward<Fn>(fn) (
             std::move(node->leaf()[offset]));
-        return node;
+        return node->freeze();
     };
 };
 
@@ -188,7 +190,7 @@ struct push_tail_visitor
         new_parent->inner()[new_idx] = new_child;
         new_relaxed->sizes[new_idx] = pos.size() + ts;
         new_relaxed->count = count;
-        return new_parent;
+        return new_parent->freeze();
     }
 
     template <typename Pos, typename... Args>
@@ -198,11 +200,12 @@ struct push_tail_visitor
         auto idx         = pos.index(pos.size() - 1);
         auto new_idx     = pos.index(pos.size() + branches<B> - 1);
         auto count       = new_idx + 1;
+        auto new_child   = idx == new_idx
+            ? pos.last_oh(this_t{}, idx, tail)
+            : node_t::make_path(pos.shift() - B, tail);
         auto new_parent  = node_t::copy_inner_n(count, pos.node(), new_idx);
-        new_parent->inner()[new_idx] =
-            idx == new_idx   ? pos.last_oh(this_t{}, idx, tail)
-            /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
-        return new_parent;
+        new_parent->inner()[new_idx] = new_child;
+        return new_parent->freeze();
     }
 
     template <typename Pos, typename... Args>
@@ -240,7 +243,7 @@ struct slice_right_visitor
                 newn->inner()[idx] = next;
                 newr->sizes[idx] = last + 1 - ts;
                 newr->count = count;
-                return { pos.shift(), newn, ts, tail };
+                return { pos.shift(), newn->freeze(), ts, tail };
             } else if (idx == 0) {
                 return { pos.shift(), nullptr, ts, tail };
             } else if (Collapse && idx == 1 && pos.shift() > B) {
@@ -248,7 +251,7 @@ struct slice_right_visitor
                 return { pos.shift() - B, newn->inc(), ts, tail };
             } else {
                 auto newn = node_t::copy_inner_r(pos.node(), idx);
-                return { pos.shift(), newn, ts, tail };
+                return { pos.shift(), newn->freeze(), ts, tail };
             }
         }
     }
@@ -270,7 +273,7 @@ struct slice_right_visitor
                 auto count = idx + 1;
                 auto newn  = node_t::copy_inner_n(count, pos.node(), idx);
                 newn->inner()[idx] = next;
-                return { pos.shift(), newn, ts, tail };
+                return { pos.shift(), newn->freeze(), ts, tail };
             } else if (idx == 0) {
                 return { pos.shift(), nullptr, ts, tail };
             } else if (Collapse && idx == 1 && pos.shift() > B) {
@@ -278,7 +281,7 @@ struct slice_right_visitor
                 return { pos.shift() - B, newn->inc(), ts, tail };
             } else {
                 auto newn = node_t::copy_inner(pos.node(), idx);
-                return { pos.shift(), newn, ts, tail };
+                return { pos.shift(), newn->freeze(), ts, tail };
             }
         }
     }
@@ -290,7 +293,7 @@ struct slice_right_visitor
         auto new_tail_size = pos.index(last) + 1;
         auto new_tail      = new_tail_size == old_tail_size
             ? pos.node()->inc()
-            : node_t::copy_leaf(pos.node(), new_tail_size);
+            : node_t::copy_leaf(pos.node(), new_tail_size)->freeze();
         return { 0, nullptr, new_tail_size, new_tail };
     };
 };
@@ -334,7 +337,7 @@ struct slice_left_visitor
                                     n->inner() + count,
                                     newn->inner() + 1);
             node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
-            return { pos.shift(), newn };
+            return { pos.shift(), newn->freeze() };
         }
     }
 
@@ -345,7 +348,7 @@ struct slice_left_visitor
             0,
             node_t::copy_leaf(pos.node(),
                               first & mask<B>,
-                              pos.count())
+                              pos.count())->freeze()
         };
     };
 };

@@ -120,7 +120,7 @@ struct node
 
     static node_t* make_inner_n(unsigned n)
     {
-        auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
+        auto p = new (heap::allocate(sizeof_inner_n(n), nowrite_tag{})) node_t;
         p->impl.data.inner.relaxed = nullptr;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::inner_kind;
@@ -130,7 +130,7 @@ struct node
 
     static node_t* make_inner_r_n(unsigned n)
     {
-        auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
+        auto p = new (heap::allocate(sizeof_inner_n(n), nowrite_tag{})) node_t;
         auto r = new (heap::allocate(sizeof_relaxed_n(n), norefs_tag{})) relaxed_t;
         r->count = 0u;
         p->impl.data.inner.relaxed = r;
@@ -241,7 +241,7 @@ struct node
         assert(node->kind() == node_t::leaf_kind);
         return level == 0
             ? node
-            : node_t::make_inner_n(1, make_path(level - B, node));
+            : node_t::make_inner_n(1, make_path(level - B, node))->freeze();
     }
 
     static node_t* copy_inner(node_t* src, unsigned n)
@@ -370,6 +370,12 @@ struct node
     const node_t* inc() const
     {
         refcount::inc(&impl);
+        return this;
+    }
+
+    node_t* freeze()
+    {
+        heap::end_write(this);
         return this;
     }
 

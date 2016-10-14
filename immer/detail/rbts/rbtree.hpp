@@ -132,15 +132,15 @@ struct rbtree
         auto ts = size - tail_off;
         if (ts < branches<B>) {
             auto new_tail = node_t::copy_leaf_emplace(tail, ts,
-                                                      std::move(value));
+                                                      std::move(value))->freeze();
             return { size + 1, shift, root->inc(), new_tail };
         } else {
-            auto new_tail = node_t::make_leaf_n(1u, std::move(value));
+            auto new_tail = node_t::make_leaf_n(1u, std::move(value))->freeze();
             if ((size >> B) > (1u << shift)) {
                 auto new_root = node_t::make_inner_n(
                     2u,
                     root->inc(),
-                    node_t::make_path(shift, tail->inc()));
+                    node_t::make_path(shift, tail->inc()))->freeze();
                 return { size + 1, shift + B, new_root, new_tail };
             } else if (tail_off) {
                 auto new_root = make_regular_sub_pos(root, shift, tail_off)
@@ -194,7 +194,7 @@ struct rbtree
         } else if (new_size >= size) {
             return *this;
         } else if (new_size > tail_off) {
-            auto new_tail = node_t::copy_leaf(tail, new_size - tail_off);
+            auto new_tail = node_t::copy_leaf(tail, new_size - tail_off)->freeze();
             return { new_size, shift, root->inc(), new_tail };
         } else {
             using std::get;
@@ -252,8 +252,8 @@ template <typename T, int B, typename MP>
 const rbtree<T, B, MP> rbtree<T, B, MP>::empty = {
     0,
     B,
-    node_t::make_inner_n(0u),
-    node_t::make_leaf_n(0u)
+    node_t::make_inner_n(0u)->freeze(),
+    node_t::make_leaf_n(0u)->freeze()
 };
 
 } // namespace rbts
