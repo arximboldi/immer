@@ -313,7 +313,7 @@ struct slice_left_visitor
         auto idx    = pos.subindex(first);
         auto count  = pos.count();
         auto left_size  = pos.size_before(idx);
-        auto child_size = pos.size(idx, left_size);
+        auto child_size = pos.size_sbh(idx, left_size);
         auto dropped_size = first;
         auto child_dropped_size = dropped_size - left_size;
         if (Collapse && pos.shift() > B && idx == pos.count() - 1) {

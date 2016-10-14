@@ -362,7 +362,7 @@ struct regular_sub_pos
             : 1 << shift_;
     }
 
-    auto size(unsigned offset, unsigned size_before_hint)
+    auto size_sbh(unsigned offset, unsigned size_before_hint)
     {
         assert(size_before_hint == size_before(offset));
         return offset == subindex(size_ - 1)
@@ -519,7 +519,7 @@ struct full_pos
     auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
     auto subindex(std::size_t idx) const { return idx >> shift_; }
     auto size(unsigned offset) const { return 1 << shift_; }
-    auto size(unsigned offset, unsigned) const { return 1 << shift_; }
+    auto size_sbh(unsigned offset, unsigned) const { return 1 << shift_; }
     auto size_before(unsigned offset) const { return offset << shift_; }
 
     void copy_sizes(unsigned offset,
@@ -622,9 +622,9 @@ struct relaxed_pos
     { return offset ? relaxed_->sizes[offset - 1] : 0u; }
 
     auto size(unsigned offset) const
-    { return size(offset, size_before(offset)); }
+    { return size_sbh(offset, size_before(offset)); }
 
-    auto size(unsigned offset, unsigned size_before_hint) const
+    auto size_sbh(unsigned offset, unsigned size_before_hint) const
     {
         assert(size_before_hint == size_before(offset));
         return relaxed_->sizes[offset] - size_before_hint;
@@ -761,7 +761,7 @@ relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
 
 template <typename NodeT, typename Visitor, typename... Args>
 decltype(auto) visit_maybe_relaxed_sub(NodeT* node, unsigned shift, std::size_t size,
-                             Visitor v, Args&& ...args)
+                                       Visitor v, Args&& ...args)
 {
     assert(node);
     auto relaxed = node->relaxed();
