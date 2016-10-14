@@ -7,7 +7,8 @@ namespace immer {
 
 struct malloc_heap
 {
-    static void* allocate(std::size_t size)
+    template <typename... Tags>
+    static void* allocate(std::size_t size, Tags...)
     {
         return std::malloc(size);
     }

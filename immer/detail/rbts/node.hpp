@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <immer/heap/tags.hpp>
 #include <immer/detail/rbts/bits.hpp>
 
 #include <memory>
@@ -130,7 +131,7 @@ struct node
     static node_t* make_inner_r_n(unsigned n)
     {
         auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
-        auto r = new (heap::allocate(sizeof_relaxed_n(n))) relaxed_t;
+        auto r = new (heap::allocate(sizeof_relaxed_n(n), norefs_tag{})) relaxed_t;
         r->count = 0u;
         p->impl.data.inner.relaxed = r;
 #if IMMER_RBTS_TAGGED_NODE

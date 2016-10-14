@@ -48,7 +48,8 @@ class unsafe_free_list_heap_impl : Base
 public:
     using base_t = Base;
 
-    static void* allocate(std::size_t size)
+    template <typename... Tags>
+    static void* allocate(std::size_t size, Tags...)
     {
         assert(size <= sizeof(free_list_node) + Size);
         assert(size >= sizeof(free_list_node));
@@ -63,7 +64,8 @@ public:
         return n;
     }
 
-    static void deallocate(void* data)
+    template <typename... Tags>
+    static void deallocate(void* data, Tags...)
     {
         auto n = static_cast<free_list_node*>(data);
         n->next = storage::head.data;

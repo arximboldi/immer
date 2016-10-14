@@ -9,17 +9,19 @@ struct with_data : Base
 {
     using base_t = Base;
 
-    static void* allocate(std::size_t size)
+    template <typename... Tags>
+    static void* allocate(std::size_t size, Tags... tags)
     {
-        auto p = base_t::allocate(size + sizeof(T));
+        auto p = base_t::allocate(size + sizeof(T), tags...);
         return new (p) T{} + 1;
     }
 
-    static void deallocate(void* p)
+    template <typename... Tags>
+    static void deallocate(void* p, Tags... tags)
     {
         auto dp = static_cast<T*>(p) - 1;
         dp->~T();
-        base_t::deallocate(dp);
+        base_t::deallocate(dp, tags...);
     }
 };
 
