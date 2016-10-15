@@ -1,6 +1,8 @@
 
 #include <nonius/nonius_single.h++>
 
+#include "util.hpp"
+
 #include <immer/vector.hpp>
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
@@ -65,14 +67,13 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 })
 #endif
 
-template <typename Vektor,
-          std::size_t Limit=std::numeric_limits<std::size_t>::max()>
+template <typename Vektor>
 auto generic()
 {
     return [] (nonius::parameters params)
     {
         auto n = params.get<N>();
-        if (n > Limit) n = 1;
+        if (n > get_limit<Vektor>{}) n = 1;
 
         return [=] {
             auto v = Vektor{};
@@ -88,6 +89,7 @@ using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,5>>())
+NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,5,gc_memory>>())
 
 NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,4>>())
 NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,5>>())
@@ -107,4 +109,4 @@ NONIUS_BENCHMARK("dvektor/NO", generic<immer::dvektor<unsigned,5,basic_memory>>(
 NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,5,unsafe_memory>>())
 #endif
 
-NONIUS_BENCHMARK("array",    generic<immer::array<unsigned>, 10000>())
+NONIUS_BENCHMARK("array",    generic<immer::array<unsigned>>())

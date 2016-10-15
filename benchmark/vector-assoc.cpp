@@ -28,14 +28,6 @@ extern "C" {
 
 NONIUS_PARAM(N, std::size_t{1000})
 
-template <typename T>
-struct get_limit : std::integral_constant<
-    std::size_t, std::numeric_limits<std::size_t>::max()> {};
-
-template <typename T>
-struct get_limit<immer::array<T>> : std::integral_constant<
-    std::size_t, 10000> {};
-
 auto make_generator(std::size_t runs)
 {
     assert(runs > 0);
@@ -165,8 +157,10 @@ using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::un
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,5>>())
 NONIUS_BENCHMARK("flex/F/5B",  generic<immer::flex_vector<unsigned,5>,push_front_fn>())
 NONIUS_BENCHMARK("flex/GC",    generic<immer::flex_vector<unsigned,5,gc_memory>>())
+NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,5,gc_memory>>())
 NONIUS_BENCHMARK("flex/F/GC",  generic<immer::flex_vector<unsigned,5,gc_memory>,push_front_fn>())
 NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,5,gcf_memory>,push_front_fn>())
+NONIUS_BENCHMARK("flex_s/F/GC",generic<immer::flex_vector<std::size_t,5,gc_memory>,push_front_fn>())
 
 NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,4>>())
 NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,5>>())
