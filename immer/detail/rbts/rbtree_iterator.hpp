@@ -10,7 +10,7 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <typename T, int B, typename MP>
+template <typename T, bits_t B, typename MP>
 struct rbtree_iterator : boost::iterator_facade<
     rbtree_iterator<T, B, MP>,
     T,
@@ -40,9 +40,9 @@ private:
     friend class boost::iterator_core_access;
 
     const rbtree<T, B, MP>* v_;
-    std::size_t       i_;
-    std::size_t       base_;
-    const T*          curr_;
+    size_t    i_;
+    size_t    base_;
+    const T*  curr_;
 
     void increment()
     {
@@ -70,8 +70,8 @@ private:
 
     void advance(std::ptrdiff_t n)
     {
-        assert(n <= 0 || i_ + static_cast<std::size_t>(n) <= v_->size);
-        assert(n >= 0 || static_cast<std::size_t>(-n) <= i_);
+        assert(n <= 0 || i_ + static_cast<size_t>(n) <= v_->size);
+        assert(n >= 0 || static_cast<size_t>(-n) <= i_);
 
         i_ += n;
         if (i_ <= base_ && i_ - base_ < branches<B>) {

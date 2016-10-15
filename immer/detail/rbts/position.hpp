@@ -78,14 +78,14 @@ struct leaf_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
-    std::size_t size_;
+    size_t size_;
 
     auto count() const { return index(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
     auto shift() const { return 0; }
-    auto index(std::size_t idx) const { return idx & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx; }
+    auto index(size_t idx) const { return idx & mask<bits>; }
+    auto subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -95,7 +95,7 @@ struct leaf_pos
 };
 
 template <typename NodeT>
-leaf_pos<NodeT> make_leaf_pos(NodeT* node, std::size_t size)
+leaf_pos<NodeT> make_leaf_pos(NodeT* node, size_t size)
 {
     assert(node);
     assert(size > 0);
@@ -108,14 +108,14 @@ struct leaf_sub_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
-    unsigned count_;
+    count_t count_;
 
     auto count() const { return count_; }
     auto node()  const { return node_; }
     auto size()  const { return count_; }
     auto shift() const { return 0; }
-    auto index(std::size_t idx) const { return idx & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx; }
+    auto index(size_t idx) const { return idx & mask<bits>; }
+    auto subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -125,7 +125,7 @@ struct leaf_sub_pos
 };
 
 template <typename NodeT>
-leaf_sub_pos<NodeT> make_leaf_sub_pos(NodeT* node, unsigned count)
+leaf_sub_pos<NodeT> make_leaf_sub_pos(NodeT* node, count_t count)
 {
     assert(node);
     assert(count > 0);
@@ -142,7 +142,7 @@ struct leaf_descent_pos
 
     auto node()  const { return node_; }
     auto shift() const { return 0; }
-    auto index(std::size_t idx) const { return idx & mask<bits>; }
+    auto index(size_t idx) const { return idx & mask<bits>; }
 
     template <typename... Args>
     decltype(auto) descend(Args&&...) {}
@@ -172,8 +172,8 @@ struct full_leaf_pos
     auto node()  const { return node_; }
     auto size()  const { return branches<bits>; }
     auto shift() const { return 0; }
-    auto index(std::size_t idx) const { return idx & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx; }
+    auto index(size_t idx) const { return idx & mask<bits>; }
+    auto subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -195,46 +195,46 @@ struct regular_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
-    unsigned shift_;
-    std::size_t size_;
+    shift_t shift_;
+    size_t size_;
 
     auto count() const { return index(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
     auto shift() const { return shift_; }
-    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx >> shift_; }
-    auto this_size() const { return ((size_ - 1) & ~(~std::size_t{} << (shift_ + bits))) + 1; }
+    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(size_t idx) const { return idx >> shift_; }
+    auto this_size() const { return ((size_ - 1) & ~(~size_t{} << (shift_ + bits))) + 1; }
 
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor v, std::size_t idx,
-                              unsigned offset_hint,
+    decltype(auto) towards_oh(Visitor v, size_t idx,
+                              count_t offset_hint,
                               Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
-                                 unsigned offset_hint,
-                                 unsigned count_hint,
+    decltype(auto) towards_oh_ch(Visitor v, size_t idx,
+                                 count_t offset_hint,
+                                 count_t count_hint,
                                  Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
-                                  unsigned offset_hint,
+    decltype(auto) towards_sub_oh(Visitor v, size_t idx,
+                                  count_t offset_hint,
                                   Args&&... args)
     { return towards_sub_oh_regular(*this, v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) last_oh(Visitor v, unsigned offset_hint, Args&&... args)
+    decltype(auto) last_oh(Visitor v, count_t offset_hint, Args&&... args)
     { return last_oh_regular(*this, v, offset_hint, args...); }
 
     template <typename Visitor, typename ...Args>
@@ -267,9 +267,9 @@ void each_regular(Pos&& p, Visitor v, Args&&... args)
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor v, std::size_t idx,
-                                     unsigned offset_hint,
-                                     unsigned count_hint,
+decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor v, size_t idx,
+                                     count_t offset_hint,
+                                     count_t count_hint,
                                      Args&&... args)
 {
     assert(offset_hint == p.index(idx));
@@ -288,8 +288,8 @@ decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor v, std::size_t idx,
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, std::size_t idx,
-                                      unsigned offset_hint,
+decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, size_t idx,
+                                      count_t offset_hint,
                                       Args&&... args)
 {
     assert(offset_hint == p.index(idx));
@@ -314,7 +314,7 @@ decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, std::size_t idx,
 
 template <typename Pos, typename Visitor, typename... Args>
 decltype(auto) last_oh_regular(Pos&& p, Visitor v,
-                               unsigned offset_hint,
+                               count_t offset_hint,
                                Args&&... args)
 {
     assert(offset_hint == p.count() - 1);
@@ -328,8 +328,8 @@ decltype(auto) last_oh_regular(Pos&& p, Visitor v,
 
 template <typename NodeT>
 regular_pos<NodeT> make_regular_pos(NodeT* node,
-                                    unsigned shift,
-                                    std::size_t size)
+                                    shift_t shift,
+                                    size_t size)
 {
     assert(node);
     assert(shift >= NodeT::bits);
@@ -343,26 +343,26 @@ struct regular_sub_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
-    unsigned shift_;
-    std::size_t size_;
+    shift_t shift_;
+    size_t size_;
 
     auto count() const { return subindex(size_ - 1) + 1; }
     auto node()  const { return node_; }
     auto size()  const { return size_; }
     auto shift() const { return shift_; }
-    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx >> shift_; }
-    auto size_before(unsigned offset) const { return offset << shift_; }
+    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(size_t idx) const { return idx >> shift_; }
+    auto size_before(count_t offset) const { return offset << shift_; }
     auto this_size() const { return size_; }
 
-    auto size(unsigned offset)
+    auto size(count_t offset)
     {
         return offset == subindex(size_ - 1)
             ? size_ - size_before(offset)
             : 1 << shift_;
     }
 
-    auto size_sbh(unsigned offset, unsigned size_before_hint)
+    auto size_sbh(count_t offset, size_t size_before_hint)
     {
         assert(size_before_hint == size_before(offset));
         return offset == subindex(size_ - 1)
@@ -370,10 +370,10 @@ struct regular_sub_pos
             : 1 << shift_;
     }
 
-    void copy_sizes(unsigned offset,
-                    unsigned n,
-                    std::size_t init,
-                    std::size_t* sizes)
+    void copy_sizes(count_t offset,
+                    count_t n,
+                    size_t init,
+                    size_t* sizes)
     {
         if (n) {
             auto last = offset + n - 1;
@@ -389,30 +389,30 @@ struct regular_sub_pos
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor v, std::size_t idx,
-                              unsigned offset_hint,
+    decltype(auto) towards_oh(Visitor v, size_t idx,
+                              count_t offset_hint,
                               Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
-                                 unsigned offset_hint,
-                                 unsigned count_hint,
+    decltype(auto) towards_oh_ch(Visitor v, size_t idx,
+                                 count_t offset_hint,
+                                 count_t count_hint,
                                  Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, offset_hint, count(), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
-                                  unsigned offset_hint,
+    decltype(auto) towards_sub_oh(Visitor v, size_t idx,
+                                  count_t offset_hint,
                                   Args&& ...args)
     { return towards_sub_oh_regular(*this, v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) last_oh(Visitor v, unsigned offset_hint, Args&&... args)
+    decltype(auto) last_oh(Visitor v, count_t offset_hint, Args&&... args)
     { return last_oh_regular(*this, v, offset_hint, args...); }
 
     template <typename Visitor, typename ...Args>
@@ -424,8 +424,8 @@ struct regular_sub_pos
 
 template <typename NodeT>
 regular_sub_pos<NodeT> make_regular_sub_pos(NodeT* node,
-                                            unsigned shift,
-                                            std::size_t size)
+                                            shift_t shift,
+                                            size_t size)
 {
     assert(node);
     assert(shift >= NodeT::bits);
@@ -434,7 +434,7 @@ regular_sub_pos<NodeT> make_regular_sub_pos(NodeT* node,
     return {node, shift, size};
 }
 
-template <typename NodeT, unsigned Shift, unsigned B=NodeT::bits>
+template <typename NodeT, shift_t Shift, bits_t B=NodeT::bits>
 struct regular_descent_pos
 {
     static_assert(Shift > 0, "not leaf...");
@@ -444,10 +444,10 @@ struct regular_descent_pos
 
     auto node()  const { return node_; }
     auto shift() const { return Shift; }
-    auto index(std::size_t idx) const { return (idx >> Shift) & mask<B>; }
+    auto index(size_t idx) const { return (idx >> Shift) & mask<B>; }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx)
+    decltype(auto) descend(Visitor v, size_t idx)
     {
         auto offset = index(idx);
         auto child  = node_->inner()[offset];
@@ -461,7 +461,7 @@ struct regular_descent_pos
     }
 };
 
-template <typename NodeT, unsigned B>
+template <typename NodeT, bits_t B>
 struct regular_descent_pos<NodeT, B, B>
 {
     using node_t = NodeT;
@@ -469,10 +469,10 @@ struct regular_descent_pos<NodeT, B, B>
 
     auto node()  const { return node_; }
     auto shift() const { return B; }
-    auto index(std::size_t idx) const { return (idx >> B) & mask<B>; }
+    auto index(size_t idx) const { return (idx >> B) & mask<B>; }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx)
+    decltype(auto) descend(Visitor v, size_t idx)
     {
         auto offset = this->index(idx);
         auto child  = this->node_->inner()[offset];
@@ -487,8 +487,8 @@ struct regular_descent_pos<NodeT, B, B>
 };
 
 template <typename NodeT, typename Visitor>
-decltype(auto) visit_regular_descent(NodeT* node, unsigned shift, Visitor v,
-                                     std::size_t idx)
+decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
+                                     size_t idx)
 {
     constexpr auto B = NodeT::bits;
     assert(node);
@@ -510,22 +510,22 @@ struct full_pos
     static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
-    unsigned shift_;
+    shift_t shift_;
 
     auto count() const { return branches<bits>; }
     auto node()  const { return node_; }
     auto size()  const { return branches<bits> << shift_; }
     auto shift() const { return shift_; }
-    auto index(std::size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(std::size_t idx) const { return idx >> shift_; }
-    auto size(unsigned offset) const { return 1 << shift_; }
-    auto size_sbh(unsigned offset, unsigned) const { return 1 << shift_; }
-    auto size_before(unsigned offset) const { return offset << shift_; }
+    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    auto subindex(size_t idx) const { return idx >> shift_; }
+    auto size(count_t offset) const { return 1 << shift_; }
+    auto size_sbh(count_t offset, size_t) const { return 1 << shift_; }
+    auto size_before(count_t offset) const { return offset << shift_; }
 
-    void copy_sizes(unsigned offset,
-                    unsigned n,
-                    std::size_t init,
-                    std::size_t* sizes)
+    void copy_sizes(count_t offset,
+                    count_t n,
+                    size_t init,
+                    size_t* sizes)
     {
         auto e = sizes + n;
         for (; sizes != e; ++sizes)
@@ -550,18 +550,18 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh(v, idx, index(idx), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_ch(Visitor v, std::size_t idx,
-                                 unsigned offset_hint, unsigned,
+    decltype(auto) towards_oh_ch(Visitor v, size_t idx,
+                                 count_t offset_hint, count_t,
                                  Args&&... args)
     { return towards_oh(v, idx, offset_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor v, std::size_t idx,
-                              unsigned offset_hint,
+    decltype(auto) towards_oh(Visitor v, size_t idx,
+                              count_t offset_hint,
                               Args&&... args)
     {
         assert(offset_hint == index(idx));
@@ -573,8 +573,8 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
-                                  unsigned offset_hint,
+    decltype(auto) towards_sub_oh(Visitor v, size_t idx,
+                                  count_t offset_hint,
                                   Args&&... args)
     {
         assert(offset_hint == index(idx));
@@ -594,7 +594,7 @@ struct full_pos
 };
 
 template <typename NodeT>
-full_pos<NodeT> make_full_pos(NodeT* node, unsigned shift)
+full_pos<NodeT> make_full_pos(NodeT* node, shift_t shift)
 {
     assert(node);
     assert(shift >= NodeT::bits);
@@ -608,7 +608,7 @@ struct relaxed_pos
     using node_t = NodeT;
     using relaxed_t = typename NodeT::relaxed_t;
     node_t* node_;
-    unsigned shift_;
+    shift_t shift_;
     relaxed_t* relaxed_;
 
     auto count() const { return relaxed_->count; }
@@ -616,31 +616,31 @@ struct relaxed_pos
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
     auto shift() const { return shift_; }
     auto relaxed() const { return relaxed_; }
-    auto subindex(std::size_t idx) const { return index(idx); }
+    auto subindex(size_t idx) const { return index(idx); }
 
-    auto size_before(unsigned offset) const
+    auto size_before(count_t offset) const
     { return offset ? relaxed_->sizes[offset - 1] : 0u; }
 
-    auto size(unsigned offset) const
+    auto size(count_t offset) const
     { return size_sbh(offset, size_before(offset)); }
 
-    auto size_sbh(unsigned offset, unsigned size_before_hint) const
+    auto size_sbh(count_t offset, size_t size_before_hint) const
     {
         assert(size_before_hint == size_before(offset));
         return relaxed_->sizes[offset] - size_before_hint;
     }
 
-    auto index(std::size_t idx) const
+    auto index(size_t idx) const
     {
         auto offset = idx >> shift_;
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
     }
 
-    void copy_sizes(unsigned offset,
-                    unsigned n,
-                    std::size_t init,
-                    std::size_t* sizes)
+    void copy_sizes(count_t offset,
+                    count_t n,
+                    size_t init,
+                    size_t* sizes)
     {
         auto e = sizes + n;
         auto prev = size_before(offset);
@@ -656,7 +656,7 @@ struct relaxed_pos
     {
         if (shift_ == bits) {
             auto p = node_->inner();
-            auto s = std::size_t{};
+            auto s = size_t{};
             for (auto i = 0u; i < relaxed_->count; ++i) {
                 make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
                     .visit(v, args...);
@@ -664,7 +664,7 @@ struct relaxed_pos
             }
         } else {
             auto p = node_->inner();
-            auto s = std::size_t{};
+            auto s = size_t{};
             auto ss = shift_ - bits;
             for (auto i = 0u; i < relaxed_->count; ++i) {
                 visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
@@ -675,12 +675,12 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards(Visitor v, std::size_t idx, Args&&... args)
+    decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh(v, idx, subindex(idx), args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh(Visitor v, std::size_t idx,
-                              unsigned offset_hint,
+    decltype(auto) towards_oh(Visitor v, size_t idx,
+                              count_t offset_hint,
                               Args&&... args)
     {
         assert(offset_hint == index(idx));
@@ -689,15 +689,15 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_lsh(Visitor v, std::size_t idx,
-                                  unsigned offset_hint,
-                                  std::size_t left_size_hint,
+    decltype(auto) towards_oh_lsh(Visitor v, size_t idx,
+                                  count_t offset_hint,
+                                  size_t left_size_hint,
                                   Args&&... args)
     { return towards_sub_oh_lsh(v, idx, offset_hint, left_size_hint, args...); }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh(Visitor v, std::size_t idx,
-                                  unsigned offset_hint,
+    decltype(auto) towards_sub_oh(Visitor v, size_t idx,
+                                  count_t offset_hint,
                                   Args&&... args)
     {
         assert(offset_hint == index(idx));
@@ -706,9 +706,9 @@ struct relaxed_pos
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh_lsh(Visitor v, std::size_t idx,
-                                      unsigned offset_hint,
-                                      std::size_t left_size_hint,
+    decltype(auto) towards_sub_oh_lsh(Visitor v, size_t idx,
+                                      count_t offset_hint,
+                                      size_t left_size_hint,
                                       Args&&... args)
     {
         assert(offset_hint == index(idx));
@@ -727,8 +727,8 @@ struct relaxed_pos
 
     template <typename Visitor, typename... Args>
     decltype(auto) last_oh_csh(Visitor v,
-                               unsigned offset_hint,
-                               unsigned child_size_hint,
+                               count_t offset_hint,
+                               size_t child_size_hint,
                                Args&&... args)
     {
         assert(offset_hint == count() - 1);
@@ -750,7 +750,7 @@ struct relaxed_pos
 
 template <typename NodeT>
 relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
-                                    unsigned shift,
+                                    shift_t shift,
                                     typename NodeT::relaxed_t* relaxed)
 {
     assert(node);
@@ -760,7 +760,7 @@ relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
 }
 
 template <typename NodeT, typename Visitor, typename... Args>
-decltype(auto) visit_maybe_relaxed_sub(NodeT* node, unsigned shift, std::size_t size,
+decltype(auto) visit_maybe_relaxed_sub(NodeT* node, shift_t shift, size_t size,
                                        Visitor v, Args&& ...args)
 {
     assert(node);
@@ -775,7 +775,7 @@ decltype(auto) visit_maybe_relaxed_sub(NodeT* node, unsigned shift, std::size_t 
     }
 }
 
-template <typename NodeT, unsigned Shift, unsigned B=NodeT::bits>
+template <typename NodeT, shift_t Shift, bits_t B=NodeT::bits>
 struct relaxed_descent_pos
 {
     static_assert(Shift > 0, "not leaf...");
@@ -791,7 +791,7 @@ struct relaxed_descent_pos
     auto shift() const { return Shift; }
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
 
-    auto index(std::size_t idx) const
+    auto index(size_t idx) const
     {
         auto offset = idx >> Shift;
         while (relaxed_->sizes[offset] <= idx) ++offset;
@@ -799,7 +799,7 @@ struct relaxed_descent_pos
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx)
+    decltype(auto) descend(Visitor v, size_t idx)
     {
         auto offset    = index(idx);
         auto child     = node_->inner() [offset];
@@ -818,7 +818,7 @@ struct relaxed_descent_pos
     }
 };
 
-template <typename NodeT, unsigned B>
+template <typename NodeT, bits_t B>
 struct relaxed_descent_pos<NodeT, B, B>
 {
     static constexpr auto bits = NodeT::bits;
@@ -832,7 +832,7 @@ struct relaxed_descent_pos<NodeT, B, B>
     auto shift() const { return B; }
     auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
 
-    auto index(std::size_t idx) const
+    auto index(size_t idx) const
     {
         auto offset = (idx >> B) & mask<bits>;
         while (relaxed_->sizes[offset] <= idx) ++offset;
@@ -840,7 +840,7 @@ struct relaxed_descent_pos<NodeT, B, B>
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx)
+    decltype(auto) descend(Visitor v, size_t idx)
     {
         auto offset    = this->index(idx);
         auto child     = this->node_->inner() [offset];
@@ -857,8 +857,8 @@ struct relaxed_descent_pos<NodeT, B, B>
 };
 
 template <typename NodeT, typename Visitor, typename... Args>
-decltype(auto) visit_maybe_relaxed_descent(NodeT* node, unsigned shift,
-                                           Visitor v, std::size_t idx)
+decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
+                                           Visitor v, size_t idx)
 {
     constexpr auto B = NodeT::bits;
     assert(node);

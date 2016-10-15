@@ -19,11 +19,11 @@ struct array_for_visitor
     using this_t = array_for_visitor;
 
     template <typename PosT>
-    friend T* visit_inner(this_t, PosT&& pos, std::size_t idx)
+    friend T* visit_inner(this_t, PosT&& pos, size_t idx)
     { return pos.descend(this_t{}, idx); }
 
     template <typename PosT>
-    friend T* visit_leaf(this_t, PosT&& pos, std::size_t)
+    friend T* visit_leaf(this_t, PosT&& pos, size_t)
     { return pos.node()->leaf(); }
 };
 
@@ -31,14 +31,14 @@ template <typename T>
 struct relaxed_array_for_visitor
 {
     using this_t = relaxed_array_for_visitor;
-    using result_t = std::tuple<T*, std::size_t, std::size_t>;
+    using result_t = std::tuple<T*, size_t, size_t>;
 
     template <typename PosT>
-    friend result_t visit_inner(this_t, PosT&& pos, std::size_t idx)
+    friend result_t visit_inner(this_t, PosT&& pos, size_t idx)
     { return pos.towards(this_t{}, idx); }
 
     template <typename PosT>
-    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t idx)
+    friend result_t visit_leaf(this_t, PosT&& pos, size_t idx)
     { return { pos.node()->leaf(), pos.index(idx), pos.count() }; }
 };
 
@@ -48,11 +48,11 @@ struct get_visitor
     using this_t = get_visitor;
 
     template <typename PosT>
-    friend const T& visit_inner(this_t, PosT&& pos, std::size_t idx)
+    friend const T& visit_inner(this_t, PosT&& pos, size_t idx)
     { return pos.descend(this_t{}, idx); }
 
     template <typename PosT>
-    friend const T& visit_leaf(this_t, PosT&& pos, std::size_t idx)
+    friend const T& visit_leaf(this_t, PosT&& pos, size_t idx)
     { return pos.node()->leaf() [pos.index(idx)]; }
 };
 
@@ -83,7 +83,7 @@ struct update_visitor
     using this_t = update_visitor;
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_relaxed(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_relaxed(this_t, Pos&& pos, size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
@@ -94,7 +94,7 @@ struct update_visitor
     }
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_regular(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_regular(this_t, Pos&& pos, size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
@@ -105,7 +105,7 @@ struct update_visitor
     }
 
     template <typename Pos, typename Fn>
-    friend node_t* visit_leaf(this_t, Pos&& pos, std::size_t idx, Fn&& fn)
+    friend node_t* visit_leaf(this_t, Pos&& pos, size_t idx, Fn&& fn)
     {
         auto offset  = pos.index(idx);
         auto node    = node_t::copy_leaf(pos.node(), pos.count());
@@ -162,7 +162,7 @@ struct push_tail_visitor
     using node_t = NodeT;
 
     template <typename Pos>
-    friend node_t* visit_relaxed(this_t, Pos&& pos, node_t* tail, unsigned ts)
+    friend node_t* visit_relaxed(this_t, Pos&& pos, node_t* tail, count_t ts)
     {
         auto level       = pos.shift();
         auto idx         = pos.count() - 1;
@@ -217,11 +217,11 @@ struct slice_right_visitor
     using this_t = slice_right_visitor;
 
     // returns a new shift, new root, the new tail size and the new tail
-    using result_t = std::tuple<unsigned, NodeT*, unsigned, NodeT*>;
+    using result_t = std::tuple<shift_t, NodeT*, count_t, NodeT*>;
     using no_collapse_t = slice_right_visitor<NodeT, false>;
 
     template <typename PosT>
-    friend result_t visit_relaxed(this_t, PosT&& pos, std::size_t last)
+    friend result_t visit_relaxed(this_t, PosT&& pos, size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
@@ -254,7 +254,7 @@ struct slice_right_visitor
     }
 
     template <typename PosT>
-    friend result_t visit_regular(this_t, PosT&& pos, std::size_t last)
+    friend result_t visit_regular(this_t, PosT&& pos, size_t last)
     {
         constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
@@ -284,7 +284,7 @@ struct slice_right_visitor
     }
 
     template <typename PosT>
-    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t last)
+    friend result_t visit_leaf(this_t, PosT&& pos, size_t last)
     {
         auto old_tail_size = pos.count();
         auto new_tail_size = pos.index(last) + 1;
@@ -302,13 +302,13 @@ struct slice_left_visitor
     using this_t = slice_left_visitor;
 
     // returns a new shift and new root
-    using result_t = std::tuple<unsigned, NodeT*>;
+    using result_t = std::tuple<shift_t, NodeT*>;
     using no_collapse_t = slice_left_visitor<NodeT, false>;
 
     static constexpr auto B = NodeT::bits;
 
     template <typename PosT>
-    friend result_t visit_inner(this_t, PosT&& pos, std::size_t first)
+    friend result_t visit_inner(this_t, PosT&& pos, size_t first)
     {
         auto idx    = pos.subindex(first);
         auto count  = pos.count();
@@ -339,7 +339,7 @@ struct slice_left_visitor
     }
 
     template <typename PosT>
-    friend result_t visit_leaf(this_t, PosT&& pos, std::size_t first)
+    friend result_t visit_leaf(this_t, PosT&& pos, size_t first)
     {
         return {
             0,

@@ -18,7 +18,7 @@ namespace detail {
 namespace rbts {
 
 template <typename T,
-          int B,
+          bits_t   B,
           typename MemoryPolicy>
 struct node
 {
@@ -35,9 +35,8 @@ struct node
 
     struct relaxed_t
     {
-        std::size_t count; // could be unsigned, this is just to
-                           // ensure proper alignment
-        std::size_t sizes[branches<B>];
+        count_t count;
+        size_t  sizes[branches<B>];
     };
 
     struct leaf_t
@@ -100,25 +99,25 @@ struct node
         return impl.data.leaf.items;
     }
 
-    constexpr static std::size_t sizeof_inner_n(unsigned count)
+    constexpr static std::size_t sizeof_inner_n(count_t count)
     {
         return sizeof(node_t)
              - sizeof(node_t*) * (branches<B> - count);
     }
 
-    constexpr static std::size_t sizeof_leaf_n(unsigned count)
+    constexpr static std::size_t sizeof_leaf_n(count_t count)
     {
         return sizeof(node_t)
              - sizeof(T) * (branches<B> - count);
     }
 
-    static std::size_t sizeof_relaxed_n(unsigned count)
+    static std::size_t sizeof_relaxed_n(count_t count)
     {
         return sizeof(relaxed_t)
-             - sizeof(std::size_t) * (branches<B> - count);
+             - sizeof(size_t) * (branches<B> - count);
     }
 
-    static node_t* make_inner_n(unsigned n)
+    static node_t* make_inner_n(count_t n)
     {
         auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
         p->impl.data.inner.relaxed = nullptr;
@@ -128,7 +127,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n)
+    static node_t* make_inner_r_n(count_t n)
     {
         node_t* p;
         relaxed_t* r;
@@ -147,7 +146,7 @@ struct node
         return p;
     }
 
-    static node_t* make_leaf_n(unsigned n)
+    static node_t* make_leaf_n(count_t n)
     {
         auto p = new (heap::allocate(sizeof_leaf_n(n))) node_t;
 #if IMMER_RBTS_TAGGED_NODE
@@ -156,7 +155,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(unsigned n, node_t* x)
+    static node_t* make_inner_n(count_t n, node_t* x)
     {
         assert(n >= 1u);
         auto p = make_inner_n(n);
@@ -164,7 +163,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(unsigned n, node_t* x, node_t* y)
+    static node_t* make_inner_n(count_t n, node_t* x, node_t* y)
     {
         assert(n >= 2u);
         auto p = make_inner_n(n);
@@ -173,7 +172,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n, node_t* x)
+    static node_t* make_inner_r_n(count_t n, node_t* x)
     {
         assert(n >= 1u);
         auto p = make_inner_r_n(n);
@@ -183,7 +182,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n, node_t* x, std::size_t xs)
+    static node_t* make_inner_r_n(count_t n, node_t* x, size_t xs)
     {
         assert(n >= 1u);
         auto p = make_inner_r_n(n);
@@ -194,7 +193,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n, node_t* x, node_t* y)
+    static node_t* make_inner_r_n(count_t n, node_t* x, node_t* y)
     {
         assert(n >= 2u);
         auto p = make_inner_r_n(n);
@@ -205,8 +204,8 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n,
-                                  node_t* x, std::size_t xs,
+    static node_t* make_inner_r_n(count_t n,
+                                  node_t* x, size_t xs,
                                   node_t* y)
     {
         assert(n >= 2u);
@@ -219,9 +218,9 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_r_n(unsigned n,
-                                  node_t* x, std::size_t xs,
-                                  node_t* y, std::size_t ys)
+    static node_t* make_inner_r_n(count_t n,
+                                  node_t* x, size_t xs,
+                                  node_t* y, size_t ys)
     {
         assert(n >= 2u);
         auto p = make_inner_r_n(n);
@@ -235,7 +234,7 @@ struct node
     }
 
     template <typename U>
-    static node_t* make_leaf_n(unsigned n, U&& x)
+    static node_t* make_leaf_n(count_t n, U&& x)
     {
         assert(n >= 1u);
         auto p = make_leaf_n(n);
@@ -243,15 +242,15 @@ struct node
         return p;
     }
 
-    static node_t* make_path(unsigned level, node_t* node)
+    static node_t* make_path(shift_t shift, node_t* node)
     {
         assert(node->kind() == node_t::leaf_kind);
-        return level == 0
+        return shift == 0
             ? node
-            : node_t::make_inner_n(1, make_path(level - B, node));
+            : node_t::make_inner_n(1, make_path(shift - B, node));
     }
 
-    static node_t* copy_inner(node_t* src, unsigned n)
+    static node_t* copy_inner(node_t* src, count_t n)
     {
         assert(src->kind() == node_t::inner_kind);
         auto dst = make_inner_n(n);
@@ -260,7 +259,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_inner_n(unsigned allocn, node_t* src, unsigned n)
+    static node_t* copy_inner_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
         assert(src->kind() == node_t::inner_kind);
@@ -270,7 +269,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_inner_r(node_t* src, unsigned n)
+    static node_t* copy_inner_r(node_t* src, count_t n)
     {
         assert(src->kind() == node_t::inner_kind);
         auto dst = make_inner_r_n(n);
@@ -283,7 +282,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_inner_r_n(unsigned allocn, node_t* src, unsigned n)
+    static node_t* copy_inner_r_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
         assert(src->kind() == node_t::inner_kind);
@@ -297,7 +296,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_leaf(node_t* src, unsigned n)
+    static node_t* copy_leaf(node_t* src, count_t n)
     {
         assert(src->kind() == node_t::leaf_kind);
         auto dst = make_leaf_n(n);
@@ -305,7 +304,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_leaf_n(unsigned allocn, node_t* src, unsigned n)
+    static node_t* copy_leaf_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
         assert(src->kind() == node_t::leaf_kind);
@@ -314,8 +313,8 @@ struct node
         return dst;
     }
 
-    static node_t* copy_leaf(node_t* src1, unsigned n1,
-                             node_t* src2, unsigned n2)
+    static node_t* copy_leaf(node_t* src1, count_t n1,
+                             node_t* src2, count_t n2)
     {
         assert(src1->kind() == node_t::leaf_kind);
         assert(src2->kind() == node_t::leaf_kind);
@@ -337,7 +336,7 @@ struct node
     }
 
     template <typename U>
-    static node_t* copy_leaf_emplace(node_t* src, unsigned n, U&& x)
+    static node_t* copy_leaf_emplace(node_t* src, count_t n, U&& x)
     {
         auto dst = copy_leaf_n(n + 1, src, n);
         new (dst->leaf() + n) T{std::forward<U>(x)};
@@ -391,14 +390,14 @@ struct node
         refcount::dec_unsafe(&impl);
     }
 
-    static void inc_nodes(node_t** p, unsigned n)
+    static void inc_nodes(node_t** p, count_t n)
     {
         for (auto i = p, e = i + n; i != e; ++i)
             refcount::inc(&(*i)->impl);
     }
 
 #if IMMER_RBTS_TAGGED_NODE
-    unsigned compute_shift()
+    shift_t compute_shift()
     {
         if (kind() == node_t::leaf_kind)
             return 0;
@@ -407,7 +406,7 @@ struct node
     }
 #endif
 
-    bool check(unsigned shift, std::size_t size)
+    bool check(shift_t shift, size_t size)
     {
 #if IMMER_DEBUG_DEEP_CHECK
         assert(size > 0);
@@ -426,7 +425,7 @@ struct node
             assert(r->sizes[count - 1] == size);
             for (auto i = 1; i < count; ++i)
                 assert(r->sizes[i - 1] < r->sizes[i]);
-            auto last_size = std::size_t{};
+            auto last_size = size_t{};
             for (auto i = 0; i < count; ++i) {
                 assert(inner()[i]->check(
                            shift - B,

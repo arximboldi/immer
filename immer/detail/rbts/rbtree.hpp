@@ -14,7 +14,7 @@ namespace detail {
 namespace rbts {
 
 template <typename T,
-          int B,
+          bits_t B,
           typename MemoryPolicy>
 struct rbtree
 {
@@ -24,14 +24,14 @@ struct rbtree
     using node_t = node<T, B, MemoryPolicy>;
     using heap   = typename node_t::heap;
 
-    std::size_t size;
-    unsigned    shift;
-    node_t*     root;
-    node_t*     tail;
+    size_t   size;
+    shift_t  shift;
+    node_t*  root;
+    node_t*  tail;
 
     static const rbtree empty;
 
-    rbtree(std::size_t sz, unsigned sh, node_t* r, node_t* t)
+    rbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {
         assert(check_tree());
@@ -111,7 +111,7 @@ struct rbtree
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx) const
+    decltype(auto) descend(Visitor v, size_t idx) const
     {
         auto tail_off  = tail_offset();
         return idx >= tail_off
@@ -153,18 +153,18 @@ struct rbtree
         }
     }
 
-    const T* array_for(std::size_t index) const
+    const T* array_for(size_t index) const
     {
         return descend(array_for_visitor<T>(), index);
     }
 
-    const T& get(std::size_t index) const
+    const T& get(size_t index) const
     {
         return descend(get_visitor<T>(), index);
     }
 
     template <typename FnT>
-    rbtree update(std::size_t idx, FnT&& fn) const
+    rbtree update(size_t idx, FnT&& fn) const
     {
         auto tail_off  = tail_offset();
         if (idx >= tail_off) {
@@ -179,14 +179,14 @@ struct rbtree
         }
     }
 
-    rbtree assoc(std::size_t idx, T value) const
+    rbtree assoc(size_t idx, T value) const
     {
         return update(idx, [&] (auto&&) {
                 return std::move(value);
             });
     }
 
-    rbtree take(std::size_t new_size) const
+    rbtree take(size_t new_size) const
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
@@ -248,7 +248,7 @@ struct rbtree
     }
 };
 
-template <typename T, int B, typename MP>
+template <typename T, bits_t B, typename MP>
 const rbtree<T, B, MP> rbtree<T, B, MP>::empty = {
     0,
     B,

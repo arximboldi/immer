@@ -11,12 +11,14 @@
 
 namespace immer {
 
-template <typename T, int B, typename MemoryPolicy>
+template <typename T,
+          detail::rbts::bits_t B,
+          typename MemoryPolicy>
 class flex_vector;
 
 template <typename T,
-          int B = default_bits,
-          typename MemoryPolicy = default_memory_policy>
+          detail::rbts::bits_t B = default_bits,
+          typename MemoryPolicy  = default_memory_policy>
 class vector
 {
     using impl_t = detail::rbts::rbtree<T, B, MemoryPolicy>;

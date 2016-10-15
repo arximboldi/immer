@@ -15,7 +15,7 @@ namespace detail {
 namespace rbts {
 
 template <typename T,
-          int B,
+          bits_t   B,
           typename MemoryPolicy>
 struct rrbtree
 {
@@ -25,14 +25,14 @@ struct rrbtree
     using node_t = node<T, B, MemoryPolicy>;
     using heap   = typename node_t::heap;
 
-    std::size_t size;
-    unsigned    shift;
-    node_t*     root;
-    node_t*     tail;
+    size_t  size;
+    shift_t shift;
+    node_t* root;
+    node_t* tail;
 
     static const rrbtree empty;
 
-    rrbtree(std::size_t sz, unsigned sh, node_t* r, node_t* t)
+    rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {
         assert(check_tree());
@@ -88,12 +88,12 @@ struct rrbtree
         traverse(dec_visitor());
     }
 
-    static void dec_node(node_t* n, unsigned shift, std::size_t size)
+    static void dec_node(node_t* n, shift_t shift, size_t size)
     {
         visit_maybe_relaxed_sub(n, shift, size, dec_visitor());
     }
 
-    static void dec_node(node_t* n, unsigned shift)
+    static void dec_node(node_t* n, shift_t shift)
     {
         assert(n->relaxed());
         make_relaxed_pos(n, shift, n->relaxed()).visit(dec_visitor());
@@ -128,7 +128,7 @@ struct rrbtree
     }
 
     template <typename Visitor>
-    decltype(auto) descend(Visitor v, std::size_t idx) const
+    decltype(auto) descend(Visitor v, size_t idx) const
     {
         auto tail_off  = tail_offset();
         return idx >= tail_off
@@ -143,9 +143,9 @@ struct rrbtree
         return acc;
     }
 
-    std::tuple<unsigned, node_t*>
-    push_tail(node_t* root, unsigned shift, std::size_t size,
-              node_t* tail, unsigned tail_size) const
+    std::tuple<shift_t, node_t*>
+    push_tail(node_t* root, shift_t shift, size_t size,
+              node_t* tail, count_t tail_size) const
     {
         if (auto r = root->relaxed()) {
             auto new_root = make_relaxed_pos(root, shift, r)
@@ -191,8 +191,8 @@ struct rrbtree
         }
     }
 
-    std::tuple<const T*, std::size_t, std::size_t>
-    array_for(std::size_t idx) const
+    std::tuple<const T*, size_t, size_t>
+    array_for(size_t idx) const
     {
         using std::get;
         auto tail_off = tail_offset();
@@ -209,13 +209,13 @@ struct rrbtree
         }
     }
 
-    const T& get(std::size_t index) const
+    const T& get(size_t index) const
     {
         return descend(get_visitor<T>(), index);
     }
 
     template <typename FnT>
-    rrbtree update(std::size_t idx, FnT&& fn) const
+    rrbtree update(size_t idx, FnT&& fn) const
     {
         auto tail_off  = tail_offset();
         if (idx >= tail_off) {
@@ -231,14 +231,14 @@ struct rrbtree
         }
     }
 
-    rrbtree assoc(std::size_t idx, T value) const
+    rrbtree assoc(size_t idx, T value) const
     {
         return update(idx, [&] (auto&&) {
                 return std::move(value);
             });
     }
 
-    rrbtree take(std::size_t new_size) const
+    rrbtree take(size_t new_size) const
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
@@ -266,7 +266,7 @@ struct rrbtree
         }
     }
 
-    rrbtree drop(std::size_t elems) const
+    rrbtree drop(size_t elems) const
     {
         if (elems == 0) {
             return *this;
@@ -340,9 +340,9 @@ struct rrbtree
         }
     }
 
-    static std::tuple<unsigned, node_t*> concat_sub_tree(
-        std::size_t lsize, unsigned lshift, node_t* lnode,
-        std::size_t rsize, unsigned rshift, node_t* rnode,
+    static std::tuple<shift_t, node_t*> concat_sub_tree(
+        size_t lsize, shift_t lshift, node_t* lnode,
+        size_t rsize, shift_t rshift, node_t* rnode,
         bool is_top)
     {
         IMMER_TRACE("concat_sub_tree: " << lshift << " <> " << rshift);
@@ -371,7 +371,7 @@ struct rrbtree
             auto rr = rnode->relaxed();
             auto rrsize = rr
                 ? rr->sizes[0]
-                : std::min(rsize, std::size_t{1} << rshift);
+                : std::min(rsize, size_t{1} << rshift);
             auto cnode  = get<1>(
                 concat_sub_tree(
                     lsize, lshift, lnode,
@@ -407,7 +407,7 @@ struct rrbtree
             auto rr = rnode->relaxed();
             auto rrsize = rr
                 ? rr->sizes[0]
-                : std::min(rsize, std::size_t{1} << rshift);
+                : std::min(rsize, size_t{1} << rshift);
             auto cnode  = get<1>(
                 concat_sub_tree(
                     llsize, lshift - B, lnode->inner() [lidx],
@@ -426,33 +426,33 @@ struct rrbtree
     struct leaf_policy
     {
         using data_t = T;
-        static node_t* make(unsigned n) { return node_t::make_leaf_n(n); }
+        static node_t* make(count_t n) { return node_t::make_leaf_n(n); }
         static data_t* data(node_t* n) { return n->leaf(); }
         static typename node_t::relaxed_t* relaxed(node_t*) {
             return nullptr;
         }
-        static std::size_t size(node_t*, unsigned slots) {
+        static size_t size(node_t*, count_t slots) {
             return slots;
         }
-        static void copied(node_t*, unsigned, std::size_t,
-                           unsigned, unsigned,
-                           node_t*, unsigned) {}
+        static void copied(node_t*, shift_t, size_t,
+                           count_t, count_t,
+                           node_t*, count_t) {}
     };
 
     struct inner_r_policy
     {
         using data_t = node_t*;
-        static node_t* make(unsigned n) { return node_t::make_inner_r_n(n); }
+        static node_t* make(count_t n) { return node_t::make_inner_r_n(n); }
         static data_t* data(node_t* n) { return n->inner(); }
         static typename node_t::relaxed_t* relaxed(node_t* n) {
             return n->relaxed();
         }
-        static std::size_t size(node_t* n, unsigned slots) {
+        static size_t size(node_t* n, count_t slots) {
             return n->relaxed()->sizes[slots - 1];
         }
-        static void copied(node_t* from, unsigned shift, std::size_t size,
-                           unsigned from_offset, unsigned copy_count,
-                           node_t* to, unsigned to_offset)
+        static void copied(node_t* from, shift_t shift, size_t size,
+                           count_t from_offset, count_t copy_count,
+                           node_t* to, count_t to_offset)
         {
             auto tor = to->relaxed();
             tor->count += copy_count;
@@ -488,23 +488,23 @@ struct rrbtree
         using policy = ChildrenPolicy;
         using data_t = typename policy::data_t;
 
-        unsigned* slots;
-        unsigned  slots_n;
+        count_t* slots;
+        count_t  slots_n;
 
-        node_t*     result    = node_t::make_inner_r_n(std::min<unsigned>(
+        node_t*     result    = node_t::make_inner_r_n(std::min<count_t>(
                                                            slots_n,
                                                            branches<B>));
         node_t*     parent    = result;
         node_t*     to        = nullptr;
-        unsigned    to_offset = 0;
-        std::size_t size_sum  = 0;
+        count_t    to_offset = 0;
+        size_t size_sum  = 0;
 
-        node_merger(unsigned* s, unsigned n)
+        node_merger(count_t* s, count_t n)
             : slots{s}, slots_n{n}
         {}
 
-        std::tuple<unsigned, node_t*>
-        finish(unsigned shift, bool is_top)
+        std::tuple<shift_t, node_t*>
+        finish(shift_t shift, bool is_top)
         {
             assert(!to);
             if (parent != result) {
@@ -519,10 +519,10 @@ struct rrbtree
             }
         }
 
-        void merge(node_t* node, unsigned shift, std::size_t size,
-                   unsigned nslots, unsigned offset, unsigned endoff)
+        void merge(node_t* node, shift_t shift, size_t size,
+                   count_t nslots, count_t offset, count_t endoff)
         {
-            auto add_child = [&] (node_t* n, std::size_t size)
+            auto add_child = [&] (node_t* n, size_t size)
             {
                 ++slots;
                 auto r = parent->relaxed();
@@ -552,7 +552,7 @@ struct rrbtree
                     idx < nslots - 1 ? 1 << shift
                     /* otherwise */  : size - (idx << shift);
                 assert(from_size);
-                auto from_slots = static_cast<unsigned>(
+                auto from_slots = static_cast<count_t>(
                     fromr           ? fromr->count
                     /* otherwise */ : ((from_size - 1) >> nshift) + 1);
                 if (!to && *slots == from_slots) {
@@ -590,28 +590,28 @@ struct rrbtree
 
     struct concat_rebalance_plan_t
     {
-        unsigned slots [3 * branches<B>];
-        unsigned total_slots = 0u;
-        unsigned count = 0u;
+        count_t slots [3 * branches<B>];
+        count_t total_slots = 0u;
+        count_t count = 0u;
     };
 
-    static std::tuple<unsigned, node_t*>
-    concat_rebalance(std::size_t lsize, node_t* lnode,
-                     std::size_t csize, node_t* cnode,
-                     std::size_t rsize, node_t* rnode,
-                     unsigned shift,
+    static std::tuple<shift_t, node_t*>
+    concat_rebalance(size_t lsize, node_t* lnode,
+                     size_t csize, node_t* cnode,
+                     size_t rsize, node_t* rnode,
+                     shift_t shift,
                      bool is_top)
     {
         assert(cnode);
         assert(lnode || rnode);
 
         // list all children and their slot counts
-        unsigned all_slots [3 * branches<B>];
+        count_t all_slots [3 * branches<B>];
         auto total_all_slots = 0u;
         auto all_n = 0u;
 
-        auto add_slots = [&] (node_t* node, unsigned shift, std::size_t size,
-                              unsigned offset, unsigned endoff, unsigned& slots)
+        auto add_slots = [&] (node_t* node, shift_t shift, size_t size,
+                              count_t offset, count_t endoff, count_t& slots)
         {
             if (node) {
                 auto nshift = shift - B;
@@ -673,7 +673,7 @@ struct rrbtree
             auto remaining = all_slots[i];
             do {
                 auto min_size = std::min(remaining + all_slots[i+1],
-                                         branches<B, unsigned>);
+                                         branches<B, count_t>);
                 all_slots[i] = min_size;
                 remaining += all_slots[i+1] - min_size;
                 ++i;
@@ -761,8 +761,8 @@ struct rrbtree
     }
 
     void debug_print_node(node_t* node,
-                          unsigned shift,
-                          std::size_t size,
+                          shift_t shift,
+                          size_t size,
                           unsigned indent = 8) const
     {
         const auto indent_step = 4;
@@ -778,7 +778,7 @@ struct rrbtree
             std::cerr << "# {" << size << "} "
                       << pretty_print_array(r->sizes, r->count)
                       << std::endl;
-            auto last_size = std::size_t{};
+            auto last_size = size_t{};
             for (auto i = 0; i < count; ++i) {
                 debug_print_node(node->inner()[i],
                                  shift - B,
@@ -807,7 +807,7 @@ struct rrbtree
 #endif // IMMER_DEBUG_PRINT
 };
 
-template <typename T, int B, typename MP>
+template <typename T, bits_t B, typename MP>
 const rrbtree<T, B, MP> rrbtree<T, B, MP>::empty = {
     0,
     B,

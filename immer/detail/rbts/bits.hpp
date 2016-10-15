@@ -7,10 +7,15 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <int B, typename T=std::size_t>
+using bits_t  = unsigned;
+using shift_t = unsigned;
+using count_t = unsigned;
+using size_t  = std::size_t;
+
+template <bits_t B, typename T=size_t>
 constexpr T branches = T{1} << B;
 
-template <int B, typename T=std::size_t>
+template <bits_t B, typename T=size_t>
 constexpr T mask = branches<B, T> - 1;
 
 } // namespace rbts

@@ -7,12 +7,14 @@
 
 namespace immer {
 
-template <typename T, int B, typename MP>
+template <typename T,
+          detail::rbts::bits_t B,
+          typename MP>
 class vector;
 
 template <typename T,
-          int B = default_bits,
-          typename MemoryPolicy = default_memory_policy>
+          detail::rbts::bits_t B = default_bits,
+          typename MemoryPolicy  = default_memory_policy>
 class flex_vector
 {
     using impl_t = detail::rbts::rrbtree<T, B, MemoryPolicy>;
