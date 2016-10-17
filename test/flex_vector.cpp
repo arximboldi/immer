@@ -195,7 +195,17 @@ TEST_CASE("concat")
     auto all_lhs = make_many_test_flex_vector<3>(n);
     auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n);
 
-    SECTION("anywhere")
+    SECTION("regular plus regular")
+    {
+        for (auto i : test_irange(0u, n)) {
+            auto c = all_lhs[i] + all_lhs[i];
+            CHECK_VECTOR_EQUALS(c, boost::join(
+                                    boost::irange(0u, i),
+                                    boost::irange(0u, i)));
+        }
+    }
+
+    SECTION("regular plus relaxed")
     {
         for (auto i : test_irange(0u, n)) {
             auto c = all_lhs[i] + all_rhs[n - i - 1];
