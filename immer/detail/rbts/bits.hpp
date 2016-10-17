@@ -12,7 +12,7 @@ using shift_t = unsigned;
 using count_t = unsigned;
 using size_t  = std::size_t;
 
-template <bits_t B, typename T=size_t>
+template <bits_t B, typename T=count_t>
 constexpr T branches = T{1} << B;
 
 template <bits_t B, typename T=size_t>

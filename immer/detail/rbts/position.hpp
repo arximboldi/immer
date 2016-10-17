@@ -24,10 +24,10 @@ struct empty_regular_pos
     using node_t = NodeT;
     node_t* node_;
 
-    auto count() const { return 0; }
-    auto node()  const { return node_; }
-    auto shift() const { return 0; }
-    auto size()  const { return 0; }
+    count_t count() const { return 0; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return 0; }
+    size_t  size()  const { return 0; }
 
     template <typename Visitor, typename... Args>
     void each(Visitor, Args&&...) {}
@@ -53,10 +53,10 @@ struct empty_leaf_pos
     using node_t = NodeT;
     node_t* node_;
 
-    auto count() const { return 0; }
-    auto node()  const { return node_; }
-    auto shift() const { return 0; }
-    auto size()  const { return 0; }
+    count_t count() const { return 0; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return 0; }
+    size_t  size()  const { return 0; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -80,12 +80,12 @@ struct leaf_pos
     node_t* node_;
     size_t size_;
 
-    auto count() const { return index(size_ - 1) + 1; }
-    auto node()  const { return node_; }
-    auto size()  const { return size_; }
-    auto shift() const { return 0; }
-    auto index(size_t idx) const { return idx & mask<bits>; }
-    auto subindex(size_t idx) const { return idx; }
+    count_t count() const { return index(size_ - 1) + 1; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return size_; }
+    shift_t shift() const { return 0; }
+    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -110,12 +110,12 @@ struct leaf_sub_pos
     node_t* node_;
     count_t count_;
 
-    auto count() const { return count_; }
-    auto node()  const { return node_; }
-    auto size()  const { return count_; }
-    auto shift() const { return 0; }
-    auto index(size_t idx) const { return idx & mask<bits>; }
-    auto subindex(size_t idx) const { return idx; }
+    count_t count() const { return count_; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return count_; }
+    shift_t shift() const { return 0; }
+    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -140,9 +140,9 @@ struct leaf_descent_pos
     using node_t = NodeT;
     node_t* node_;
 
-    auto node()  const { return node_; }
-    auto shift() const { return 0; }
-    auto index(size_t idx) const { return idx & mask<bits>; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return 0; }
+    count_t index(size_t idx) const { return idx & mask<bits>; }
 
     template <typename... Args>
     decltype(auto) descend(Args&&...) {}
@@ -168,12 +168,12 @@ struct full_leaf_pos
     using node_t = NodeT;
     node_t* node_;
 
-    auto count() const { return branches<bits>; }
-    auto node()  const { return node_; }
-    auto size()  const { return branches<bits>; }
-    auto shift() const { return 0; }
-    auto index(size_t idx) const { return idx & mask<bits>; }
-    auto subindex(size_t idx) const { return idx; }
+    count_t count() const { return branches<bits>; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return branches<bits>; }
+    shift_t shift() const { return 0; }
+    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
@@ -198,13 +198,13 @@ struct regular_pos
     shift_t shift_;
     size_t size_;
 
-    auto count() const { return index(size_ - 1) + 1; }
-    auto node()  const { return node_; }
-    auto size()  const { return size_; }
-    auto shift() const { return shift_; }
-    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(size_t idx) const { return idx >> shift_; }
-    auto this_size() const { return ((size_ - 1) & ~(~size_t{} << (shift_ + bits))) + 1; }
+    count_t count() const { return index(size_ - 1) + 1; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return size_; }
+    shift_t shift() const { return shift_; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx >> shift_; }
+    size_t  this_size() const { return ((size_ - 1) & ~(~size_t{} << (shift_ + bits))) + 1; }
 
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
@@ -346,14 +346,14 @@ struct regular_sub_pos
     shift_t shift_;
     size_t size_;
 
-    auto count() const { return subindex(size_ - 1) + 1; }
-    auto node()  const { return node_; }
-    auto size()  const { return size_; }
-    auto shift() const { return shift_; }
-    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(size_t idx) const { return idx >> shift_; }
-    auto size_before(count_t offset) const { return offset << shift_; }
-    auto this_size() const { return size_; }
+    count_t count() const { return subindex(size_ - 1) + 1; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return size_; }
+    shift_t shift() const { return shift_; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx >> shift_; }
+    size_t  size_before(count_t offset) const { return offset << shift_; }
+    size_t  this_size() const { return size_; }
 
     auto size(count_t offset)
     {
@@ -442,9 +442,9 @@ struct regular_descent_pos
     using node_t = NodeT;
     node_t* node_;
 
-    auto node()  const { return node_; }
-    auto shift() const { return Shift; }
-    auto index(size_t idx) const { return (idx >> Shift) & mask<B>; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return Shift; }
+    count_t index(size_t idx) const { return (idx >> Shift) & mask<B>; }
 
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx)
@@ -467,9 +467,9 @@ struct regular_descent_pos<NodeT, B, B>
     using node_t = NodeT;
     node_t* node_;
 
-    auto node()  const { return node_; }
-    auto shift() const { return B; }
-    auto index(size_t idx) const { return (idx >> B) & mask<B>; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return B; }
+    count_t index(size_t idx) const { return (idx >> B) & mask<B>; }
 
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx)
@@ -512,15 +512,15 @@ struct full_pos
     node_t* node_;
     shift_t shift_;
 
-    auto count() const { return branches<bits>; }
-    auto node()  const { return node_; }
-    auto size()  const { return branches<bits> << shift_; }
-    auto shift() const { return shift_; }
-    auto index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
-    auto subindex(size_t idx) const { return idx >> shift_; }
-    auto size(count_t offset) const { return 1 << shift_; }
-    auto size_sbh(count_t offset, size_t) const { return 1 << shift_; }
-    auto size_before(count_t offset) const { return offset << shift_; }
+    count_t count() const { return branches<bits>; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return branches<bits> << shift_; }
+    shift_t shift() const { return shift_; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t subindex(size_t idx) const { return idx >> shift_; }
+    size_t  size(count_t offset) const { return 1 << shift_; }
+    size_t  size_sbh(count_t offset, size_t) const { return 1 << shift_; }
+    size_t  size_before(count_t offset) const { return offset << shift_; }
 
     void copy_sizes(count_t offset,
                     count_t n,
@@ -611,26 +611,26 @@ struct relaxed_pos
     shift_t shift_;
     relaxed_t* relaxed_;
 
-    auto count() const { return relaxed_->count; }
-    auto node()  const { return node_; }
-    auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
-    auto shift() const { return shift_; }
-    auto relaxed() const { return relaxed_; }
-    auto subindex(size_t idx) const { return index(idx); }
+    count_t count() const { return relaxed_->count; }
+    node_t* node()  const { return node_; }
+    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    shift_t shift() const { return shift_; }
+    count_t subindex(size_t idx) const { return index(idx); }
+    relaxed_t* relaxed() const { return relaxed_; }
 
-    auto size_before(count_t offset) const
+    size_t size_before(count_t offset) const
     { return offset ? relaxed_->sizes[offset - 1] : 0u; }
 
-    auto size(count_t offset) const
+    size_t size(count_t offset) const
     { return size_sbh(offset, size_before(offset)); }
 
-    auto size_sbh(count_t offset, size_t size_before_hint) const
+    size_t size_sbh(count_t offset, size_t size_before_hint) const
     {
         assert(size_before_hint == size_before(offset));
         return relaxed_->sizes[offset] - size_before_hint;
     }
 
-    auto index(size_t idx) const
+    count_t index(size_t idx) const
     {
         auto offset = idx >> shift_;
         while (relaxed_->sizes[offset] <= idx) ++offset;
@@ -786,12 +786,12 @@ struct relaxed_descent_pos
     node_t* node_;
     relaxed_t* relaxed_;
 
-    auto count() const { return relaxed_->count; }
-    auto node()  const { return node_; }
-    auto shift() const { return Shift; }
-    auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    count_t count() const { return relaxed_->count; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return Shift; }
+    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
 
-    auto index(size_t idx) const
+    count_t index(size_t idx) const
     {
         auto offset = idx >> Shift;
         while (relaxed_->sizes[offset] <= idx) ++offset;
@@ -827,12 +827,12 @@ struct relaxed_descent_pos<NodeT, B, B>
     node_t* node_;
     relaxed_t* relaxed_;
 
-    auto count() const { return relaxed_->count; }
-    auto node()  const { return node_; }
-    auto shift() const { return B; }
-    auto size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    count_t count() const { return relaxed_->count; }
+    node_t* node()  const { return node_; }
+    shift_t shift() const { return B; }
+    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
 
-    auto index(size_t idx) const
+    count_t index(size_t idx) const
     {
         auto offset = (idx >> B) & mask<bits>;
         while (relaxed_->sizes[offset] <= idx) ++offset;

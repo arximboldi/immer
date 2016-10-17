@@ -167,7 +167,7 @@ struct push_tail_visitor
         auto level       = pos.shift();
         auto idx         = pos.count() - 1;
         auto children    = pos.size(idx);
-        auto new_idx     = children == 1 << level || level == B
+        auto new_idx     = children == size_t{1} << level || level == B
             ? idx + 1 : idx;
         auto new_child   = (node_t*){};
         if (new_idx >= branches<B>)
