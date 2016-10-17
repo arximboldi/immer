@@ -34,14 +34,12 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 })
 #endif
 
-template <typename Vektor,
-          std::size_t Limit=std::numeric_limits<std::size_t>::max()>
+template <typename Vektor>
 auto generic()
 {
     return [] (nonius::parameters params)
     {
         auto n = params.get<N>();
-        if (n > Limit) n = 1;
 
         return [=] {
             auto v = Vektor{};
