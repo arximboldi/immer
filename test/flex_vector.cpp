@@ -177,7 +177,6 @@ TEST_CASE("push_front")
     auto v = flex_vector<unsigned, 3>{};
 
     for (auto i = 0u; i < n; ++i) {
-        IMMER_TRACE("\n-- push_front: " << i);
         v = v.push_front(i);
         CHECK(v.size() == i + 1);
         for (auto j = 0u; j < v.size(); ++j)
@@ -200,7 +199,6 @@ TEST_CASE("concat")
     {
         for (auto i : test_irange(0u, n)) {
             auto c = all_lhs[i] + all_rhs[n - i - 1];
-            IMMER_TRACE("\n-- concat: " << i);
             CHECK_VECTOR_EQUALS(c, boost::irange(0u, n - 1));
         }
     }
@@ -255,7 +253,6 @@ TEST_CASE("reduce")
 
         auto v  = flex_vector<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
-            IMMER_TRACE("\n-- sum relaxed complex: " << i << " | " << v.size());
             v = v.push_front(i) + v;
         }
         /*
@@ -290,7 +287,6 @@ TEST_CASE("take")
         auto v = make_test_flex_vector_front<3>(0, n);
 
         for (auto i : test_irange(0u, n)) {
-            IMMER_TRACE("-- take relaxed: " << i);
             auto vv = v.take(i);
             CHECK_VECTOR_EQUALS_RANGE(vv, v.begin(), v.begin() + i);
         }
