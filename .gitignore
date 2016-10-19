@@ -1,8 +1,8 @@
 build/
 reports/
 
-benchmark/clojure/target/
-benchmark/js/out
-benchmark/js/boost
+tools/clojure/target/
+extra/js/out
+extra/js/boost
 
 .gdb_history
