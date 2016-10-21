@@ -1,6 +1,7 @@
 build/
 reports/
 
+tools/ssh-key
 tools/clojure/target/
 extra/js/out
 extra/js/boost

@@ -73,3 +73,10 @@ before_script:
 
 script:
   - make check
+
+before_install:
+  - |
+    openssl aes-256-cbc -K $encrypted_1c8d51d72e41_key \
+        -iv $encrypted_1c8d51d72e41_iv \
+        -in ssh-key.enc \
+        -out tools/ssh-key -d
