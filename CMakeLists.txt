@@ -61,27 +61,27 @@ function(immer_external_dep_nobuild target name)
 endfunction()
 
 immer_external_dep_nobuild(deps-test doctest
-  GIT_REPOSITORY git@github.com:onqtam/doctest.git)
+  GIT_REPOSITORY https://github.com/onqtam/doctest.git)
 
 immer_external_dep_nobuild(deps-test catch
   # GIT_REPOSITORY git@github.com:philsquared/Catch.git
   # This fork has --break for GDB
-  GIT_REPOSITORY git@github.com:lorenzhs/Catch.git)
+  GIT_REPOSITORY https://github.com/lorenzhs/Catch.git)
 
 immer_external_dep_nobuild(deps-debug prettyprint
-  GIT_REPOSITORY git@github.com:louisdx/cxx-prettyprint.git)
+  GIT_REPOSITORY https://github.com/louisdx/cxx-prettyprint.git)
 
 immer_external_dep_nobuild(deps-benchmark nonius
-  GIT_REPOSITORY git@github.com:arximboldi/nonius.git
+  GIT_REPOSITORY https://github.com/arximboldi/nonius.git
   GIT_TAG devel)
 
 immer_external_dep_nobuild(deps-benchmark libatomic_ops
-  GIT_REPOSITORY git://github.com/ivmai/libatomic_ops.git
+  GIT_REPOSITORY https://github.com/ivmai/libatomic_ops.git
   UPDATE_COMMAND "")
 
 immer_external_dep(deps-benchmark libgc
   DEPENDS libatomic_ops
-  GIT_REPOSITORY git://github.com/ivmai/bdwgc.git
+  GIT_REPOSITORY https://github.com/ivmai/bdwgc.git
   CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3
   BUILD_COMMAND make
   INSTALL_COMMAND make install)
@@ -96,7 +96,7 @@ ExternalProject_Add_Step(libgc ln-libatomic_ops
 
 immer_external_dep(deps-benchmark librrb
   DEPENDS libgc
-  GIT_REPOSITORY git@github.com:hyPiRion/c-rrb.git
+  GIT_REPOSITORY https://github.com/hyPiRion/c-rrb.git
   GIT_TAG development
   BUILD_IN_SOURCE 1
   UPDATE_COMMAND ""
