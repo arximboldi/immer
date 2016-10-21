@@ -41,41 +41,45 @@ set(LIBRRB_LIBS
 #  =====================================================================
 
 include(ExternalProject)
-add_custom_target(deps
-  COMMENT "Download and prepare dependencies")
 
-function(immer_external_dep name)
+add_custom_target(deps COMMENT "Download and prepare dependencies")
+add_custom_target(deps-test COMMENT "Get test dependencies")
+add_custom_target(deps-debug COMMENT "Get debug dependencies")
+add_custom_target(deps-benchmark COMMENT "Get benchmarking dependencies")
+add_dependencies(deps deps-test deps-benchmark deps-debug)
+
+function(immer_external_dep target name)
   ExternalProject_Add(${name} EXCLUDE_FROM_ALL 1 "${ARGN}")
-  add_dependencies(deps ${name})
+  add_dependencies(${target} ${name})
 endfunction()
 
-function(immer_external_dep_nobuild name)
-  immer_external_dep(${name} "${ARGN}"
+function(immer_external_dep_nobuild target name)
+  immer_external_dep(${target} ${name} "${ARGN}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND "")
 endfunction()
 
-immer_external_dep_nobuild(doctest
+immer_external_dep_nobuild(deps-test doctest
   GIT_REPOSITORY git@github.com:onqtam/doctest.git)
 
-immer_external_dep_nobuild(catch
+immer_external_dep_nobuild(deps-test catch
   # GIT_REPOSITORY git@github.com:philsquared/Catch.git
   # This fork has --break for GDB
   GIT_REPOSITORY git@github.com:lorenzhs/Catch.git)
 
-immer_external_dep_nobuild(prettyprint
+immer_external_dep_nobuild(deps-debug prettyprint
   GIT_REPOSITORY git@github.com:louisdx/cxx-prettyprint.git)
 
-immer_external_dep_nobuild(nonius
+immer_external_dep_nobuild(deps-benchmark nonius
   GIT_REPOSITORY git@github.com:arximboldi/nonius.git
   GIT_TAG devel)
 
-immer_external_dep_nobuild(libatomic_ops
+immer_external_dep_nobuild(deps-benchmark libatomic_ops
   GIT_REPOSITORY git://github.com/ivmai/libatomic_ops.git
   UPDATE_COMMAND "")
 
-immer_external_dep(libgc
+immer_external_dep(deps-benchmark libgc
   DEPENDS libatomic_ops
   GIT_REPOSITORY git://github.com/ivmai/bdwgc.git
   CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3
@@ -90,7 +94,7 @@ ExternalProject_Add_Step(libgc ln-libatomic_ops
   DEPENDERS configure
   COMMAND ln -sf ${CMAKE_BINARY_DIR}/libatomic_ops-prefix/src/libatomic_ops <SOURCE_DIR>/libatomic_ops)
 
-immer_external_dep(librrb
+immer_external_dep(deps-benchmark librrb
   DEPENDS libgc
   GIT_REPOSITORY git@github.com:hyPiRion/c-rrb.git
   GIT_TAG development
