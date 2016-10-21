@@ -78,7 +78,7 @@ script:
 after_success:
   - |
     if [["${COVERAGE} == true"]]; then
-        gcov-6 `find . -name "*.gcno"`
+        gcov-6 -abcprs `dirname ${PWD}` `find . -name "*.gcno"`
         bash <(curl -s https://codecov.io/bash)
     fi
   - |
