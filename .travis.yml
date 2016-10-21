@@ -23,6 +23,13 @@ matrix:
     - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true
       addons: *gcc6
 
+before_install:
+  - |
+    openssl aes-256-cbc -K $encrypted_1c8d51d72e41_key \
+        -iv $encrypted_1c8d51d72e41_iv \
+        -in tools/ssh-key.enc \
+        -out tools/ssh-key -d
+
 install:
   # All the dependencies are installed in ${TRAVIS_BUILD_DIR}/deps/
   - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
@@ -88,10 +95,3 @@ after_success:
             -r ../reports/* \
             raskolnikov@sinusoid.es:public/misc/immer/reports/
     fi
-
-before_install:
-  - |
-    openssl aes-256-cbc -K $encrypted_1c8d51d72e41_key \
-        -iv $encrypted_1c8d51d72e41_iv \
-        -in tools/ssh-key.enc \
-        -out tools/ssh-key -d
