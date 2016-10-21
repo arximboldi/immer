@@ -13,6 +13,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #  Options
 #  =====================================================================
 
+option(CHECK_COVERAGE "compile with test coverage support")
+
 option(CHECK_BENCHMARKS "run benchmarks on make check")
 option(CHECK_BENCHMARKS_LONG "run benchmarks for more inputs")
 option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
@@ -131,6 +133,10 @@ endif()
 
 if (CHECK_SLOW_TESTS)
   add_definitions(-DIMMER_SLOW_TESTS=1)
+endif()
+
+if (CHECK_COVERAGE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
 
 #  Tests
