@@ -25,8 +25,8 @@
 #include <limits>
 
 namespace immer {
-template <typename T> struct array;
-}
+template <typename T> class array;
+} // namespace immer
 
 namespace {
 
