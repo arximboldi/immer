@@ -20,9 +20,10 @@
 
 #pragma once
 
-#include <utility>
-#include <numeric>
+#include <algorithm>
 #include <memory>
+#include <numeric>
+#include <utility>
 
 #include <immer/config.hpp>
 #include <immer/detail/rbts/position.hpp>
