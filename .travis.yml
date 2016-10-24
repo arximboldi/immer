@@ -78,7 +78,7 @@ before_script:
              -DBOOST_ROOT=${BOOST_PATH}
   - make deps-test
   - |
-    if [["${BENCHMARK}" == true ]]; then
+    if [[ "${BENCHMARK}" == true ]]; then
         make deps-benchmark
     fi
 
@@ -87,12 +87,12 @@ script:
 
 after_success:
   - |
-    if [["${COVERAGE} == true"]]; then
+    if [[ "${COVERAGE}" == true ]]; then
         gcov-6 -abcprs `dirname ${PWD}` `find . -name "*.gcno"`
         bash <(curl -s https://codecov.io/bash)
     fi
   - |
-    if [["${BENCHMARK}" == true ]]; then
+    if [[ "${BENCHMARK}" == true ]]; then
        	chmod 600 ../tools/ssh-key
         scp -o StrictHostKeyChecking=no -i ../tools/ssh-key \
             -r ../reports/* \
