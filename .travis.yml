@@ -75,6 +75,7 @@ before_script:
              -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
              -DCHECK_BENCHMARKS=${BENCHMARK} \
              -DCHECK_COVERAGE=${COVERAGE} \
+             -DCHECK_SLOW_TESTS=true \
              -DBOOST_ROOT=${BOOST_PATH}
   - make deps-test
   - |
