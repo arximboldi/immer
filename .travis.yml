@@ -94,7 +94,5 @@ after_success:
   - |
     if [[ "${BENCHMARK}" == true ]]; then
        	chmod 600 ../tools/ssh-key
-        scp -o StrictHostKeyChecking=no -i ../tools/ssh-key \
-            -r ../reports/* \
-            raskolnikov@sinusoid.es:public/misc/immer/reports/
+        make upload-benchmark-reports
     fi

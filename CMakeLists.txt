@@ -207,8 +207,9 @@ site_name(immer_hostname)
 
 get_filename_component(immer_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
 
+set(immer_benchmark_report_base_dir "${CMAKE_SOURCE_DIR}/reports")
 set(immer_benchmark_report_dir
-  "../reports/report_${immer_git_commit_hash}_${immer_hostname}_${immer_compiler_name}")
+  "${immer_benchmark_report_base_dir}/report_${immer_git_commit_hash}_${immer_hostname}_${immer_compiler_name}")
 
 if (CHECK_FREE_LIST)
   set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_free-list")
@@ -253,3 +254,10 @@ foreach(_file IN LISTS immer_benchmarks)
       -o ${immer_benchmark_report_dir}/${_target}.html)
   endif()
 endforeach()
+
+add_custom_target(upload-benchmark-reports
+  COMMAND
+  scp -o StrictHostKeyChecking=no
+      -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
+      -r ${immer_benchmark_report_base_dir}/*
+      raskolnikov@sinusoid.es:public/misc/immer/reports/)
