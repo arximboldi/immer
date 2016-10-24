@@ -200,13 +200,15 @@ add_custom_target(benchmarks
 execute_process(
   COMMAND git log -1 --format=%h
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_VARIABLE immer_git_commit_hash
   OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+site_name(immer_hostname)
 
 get_filename_component(immer_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
 
 set(immer_benchmark_report_dir
-  "../reports/report_${GIT_COMMIT_HASH}_${immer_compiler_name}")
+  "../reports/report_${immer_git_commit_hash}_${immer_hostname}_${immer_compiler_name}")
 
 if (CHECK_FREE_LIST)
   set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_free-list")
