@@ -356,6 +356,45 @@ TEST_CASE("drop")
     }
 }
 
+#if IMMER_SLOW_TESTS
+TEST_CASE("reconcat")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = all_lhs[i] + all_rhs[n - i];
+        CHECK_VECTOR_EQUALS(vv, v);
+    }
+}
+
+TEST_CASE("reconcat drop")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_lhs = make_many_test_flex_vector_front<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = all_lhs[i] + v.drop(i);
+        CHECK_VECTOR_EQUALS(vv, v);
+    }
+}
+
+TEST_CASE("reconcat take")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector_front<3>(0, n);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<3>(n + 1);
+
+    for (auto i = 0u; i < n; ++i) {
+        auto vv = v.take(i) + all_rhs[n - i];
+        CHECK_VECTOR_EQUALS(vv, v);
+    }
+}
+#endif
+
 TEST_CASE("reconcat take drop")
 {
     const auto n = 666u;
