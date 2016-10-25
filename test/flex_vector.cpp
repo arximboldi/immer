@@ -176,6 +176,15 @@ TEST_CASE("update")
         }
     }
 
+    SECTION("assoc relaxed")
+    {
+        auto v = make_test_flex_vector_front<3>(0, 666u);
+        for (auto i = 0u; i < v.size(); ++i) {
+            v = v.assoc(i, i+1);
+            CHECK(v[i] == i+1);
+        }
+    }
+
     SECTION("update")
     {
         const auto u = v.update(10u, [] (auto x) { return x + 10; });
