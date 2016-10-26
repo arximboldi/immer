@@ -153,7 +153,8 @@ auto generic()
     return [] (nonius::chronometer meter)
     {
         auto n = meter.param<N>();
-        if (n > get_limit<Vektor>{}) n = 1;
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
 
         auto v = Vektor{};
         for (auto i = 0u; i < n; ++i)
@@ -207,7 +208,8 @@ auto generic_random()
     return [] (nonius::parameters params)
     {
         auto n = params.get<N>();
-        if (n > get_limit<Vektor>{}) n = 1;
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
 
         auto g = make_generator(n);
         auto v = Vektor{};

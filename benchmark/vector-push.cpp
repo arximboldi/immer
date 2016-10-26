@@ -92,7 +92,8 @@ auto generic()
     return [] (nonius::parameters params)
     {
         auto n = params.get<N>();
-        if (n > get_limit<Vektor>{}) n = 1;
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
 
         return [=] {
             auto v = Vektor{};
