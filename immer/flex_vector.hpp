@@ -32,7 +32,11 @@ template <typename T,
 class vector;
 
 /*!
- * This a nice flexible vector that is yet to be documented.
+ * This a nice flexible vector that is yet to be documented.  It
+ * includes **bold** and _emphasized_ stuff that can be `typed`.
+ * ```
+ *    And blocks of code, for example!
+ * ```
  */
 template <typename T,
           detail::rbts::bits_t B = default_bits,
