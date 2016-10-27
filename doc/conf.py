@@ -31,7 +31,11 @@
 # ones.
 extensions = [
     'sphinx.ext.mathjax',
+    'breathe',
 ]
+
+breathe_projects = { "immer": "_doxygen/xml" }
+breathe_default_project = "immer"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

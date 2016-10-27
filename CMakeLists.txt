@@ -261,3 +261,15 @@ add_custom_target(upload-benchmark-reports
       -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
       -r ${immer_benchmark_report_base_dir}/*
       raskolnikov@sinusoid.es:public/misc/immer/reports/)
+
+#  documentation
+#  =====================================================================
+
+add_custom_target(doxygen
+  COMMAND doxygen doxygen.config
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/doc")
+
+add_custom_target(docs
+  COMMAND make html
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/doc")
+add_dependencies(docs doxygen)

@@ -1,6 +1,7 @@
 build/
 reports/
 doc/_build
+doc/_doxygen
 
 tools/ssh-key
 tools/clojure/target/

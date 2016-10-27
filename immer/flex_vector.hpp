@@ -31,6 +31,9 @@ template <typename T,
           typename MP>
 class vector;
 
+/*!
+ * This a nice flexible vector that is yet to be documented.
+ */
 template <typename T,
           detail::rbts::bits_t B = default_bits,
           typename MemoryPolicy  = default_memory_policy>
