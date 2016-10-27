@@ -1,4 +1,4 @@
 sphinx
-breathe
+git+https://github.com/michaeljones/breathe
 recommonmark
 sphinx_rtd_theme

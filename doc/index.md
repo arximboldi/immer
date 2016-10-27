@@ -12,8 +12,10 @@ Hello my friend.
 ```
 
 ```eval_rst
-.. doxygenfile:: flex_vector.hpp
+.. doxygenclass:: immer::flex_vector
     :project: immer
+    :members:
+    :undoc-members:
 ```
 
 Indices and tables
