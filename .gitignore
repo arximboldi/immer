@@ -1,5 +1,6 @@
 build/
 reports/
+doc/_build
 
 tools/ssh-key
 tools/clojure/target/
