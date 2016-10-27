@@ -20,7 +20,7 @@ matrix:
           sources: ubuntu-toolchain-r-test
           packages: g++-6
 
-    - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true
+    - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true DOCS=true
       addons: *gcc6
 
 before_install:
@@ -65,6 +65,16 @@ install:
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/build/lib"
     fi
 
+  # Install documentation deps
+  - |
+    if [[ "${DOCS}" == "true" ]]; then
+         DOXYGEN_URL="http://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.11.linux.bin.tar.gz"
+         mkdir doxygen && travis_retry wget --quiet -O - ${DOXYGEN_URL} | tar --strip-components=1 -xz -C doxygen
+         export PATH=${DEPS_DIR}/doxygen/bin:${PATH}
+         pip install --user -r ${TRAVIS_BUILD_DIR}/doc/requirements.txt
+         export PATH=~/bin:${PATH}
+    fi
+
 before_script:
   - cd ${TRAVIS_BUILD_DIR}
   - mkdir build && cd build
@@ -96,4 +106,10 @@ after_success:
     if [[ "${BENCHMARK}" == true ]]; then
        	chmod 600 ../tools/ssh-key
         make upload-benchmark-reports
+    fi
+  - |
+    if [[ "${DOCS}" == true ]]; then
+       	chmod 600 ../tools/ssh-key
+        make docs
+        make upload-docs
     fi
