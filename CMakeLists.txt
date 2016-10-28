@@ -278,5 +278,5 @@ add_custom_target(upload-docs
   COMMAND
   scp -o StrictHostKeyChecking=no -p
       -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
-      -r ${CMAKE_SOURCE_DIR}/doc/_build/html
-      raskolnikov@sinusoid.es:public/immer)
+      -r ${CMAKE_SOURCE_DIR}/doc/_build/html/*
+      raskolnikov@sinusoid.es:public/immer/)
