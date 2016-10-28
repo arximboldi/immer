@@ -31,13 +31,13 @@
 namespace immer {
 
 template <typename T,
-          detail::rbts::bits_t B,
-          typename MemoryPolicy>
+          typename MemoryPolicy,
+          detail::rbts::bits_t B>
 class flex_vector;
 
 template <typename T,
-          detail::rbts::bits_t B = default_bits,
-          typename MemoryPolicy  = default_memory_policy>
+          typename MemoryPolicy  = default_memory_policy,
+          detail::rbts::bits_t B = default_bits>
 class vector
 {
     using impl_t = detail::rbts::rbtree<T, B, MemoryPolicy>;
@@ -91,7 +91,7 @@ public:
 #endif
 
 private:
-    friend class flex_vector<T, B, MemoryPolicy>;
+    friend class flex_vector<T, MemoryPolicy, B>;
 
     vector(impl_t impl)
         : impl_(std::move(impl))

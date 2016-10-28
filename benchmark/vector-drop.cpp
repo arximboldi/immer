@@ -89,20 +89,21 @@ auto generic()
     };
 };
 
+using def_memory    = immer::default_memory_policy;
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
 using gcf_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy, false>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("flex/4B", generic<immer::flex_vector<unsigned,4>>())
-NONIUS_BENCHMARK("flex/5B", generic<immer::flex_vector<unsigned,5>>())
-NONIUS_BENCHMARK("flex/6B", generic<immer::flex_vector<unsigned,6>>())
-NONIUS_BENCHMARK("flex/GC", generic<immer::flex_vector<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("flex/NO", generic<immer::flex_vector<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("flex/UN", generic<immer::flex_vector<unsigned,5,unsafe_memory>>())
-NONIUS_BENCHMARK("flex_s/GC", generic<immer::flex_vector<std::size_t,5,gc_memory>>())
+NONIUS_BENCHMARK("flex/4B", generic<immer::flex_vector<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("flex/5B", generic<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("flex/6B", generic<immer::flex_vector<unsigned,def_memory,6>>())
+NONIUS_BENCHMARK("flex/GC", generic<immer::flex_vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("flex/NO", generic<immer::flex_vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("flex/UN", generic<immer::flex_vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("flex_s/GC", generic<immer::flex_vector<std::size_t,gc_memory,5>>())
 
-NONIUS_BENCHMARK("flex/F/5B", generic<immer::flex_vector<unsigned,5>, push_front_fn>())
-NONIUS_BENCHMARK("flex/F/GC", generic<immer::flex_vector<unsigned,5,gc_memory>, push_front_fn>())
-NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,5,gcf_memory>, push_front_fn>())
-NONIUS_BENCHMARK("flex_s/F/GC", generic<immer::flex_vector<std::size_t,5,gc_memory>, push_front_fn>())
+NONIUS_BENCHMARK("flex/F/5B", generic<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
+NONIUS_BENCHMARK("flex/F/GC", generic<immer::flex_vector<unsigned,gc_memory,5>, push_front_fn>())
+NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,gcf_memory,5>, push_front_fn>())
+NONIUS_BENCHMARK("flex_s/F/GC", generic<immer::flex_vector<std::size_t,gc_memory,5>, push_front_fn>())

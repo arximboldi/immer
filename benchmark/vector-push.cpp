@@ -104,29 +104,30 @@ auto generic()
     };
 };
 
+using def_memory    = immer::default_memory_policy;
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,5>>())
-NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,5,gc_memory>>())
+NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())
 
-NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,4>>())
-NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,5>>())
-NONIUS_BENCHMARK("vector/6B",  generic<immer::vector<unsigned,6>>())
+NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("vector/6B",  generic<immer::vector<unsigned,def_memory,6>>())
 
-NONIUS_BENCHMARK("vector/GC",  generic<immer::vector<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("vector/NO",  generic<immer::vector<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("vector/UN",  generic<immer::vector<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("vector/GC",  generic<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("vector/NO",  generic<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("vector/UN",  generic<immer::vector<unsigned,unsafe_memory,5>>())
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
-NONIUS_BENCHMARK("dvektor/4B", generic<immer::dvektor<unsigned,4>>())
-NONIUS_BENCHMARK("dvektor/5B", generic<immer::dvektor<unsigned,5>>())
-NONIUS_BENCHMARK("dvektor/6B", generic<immer::dvektor<unsigned,6>>())
+NONIUS_BENCHMARK("dvektor/4B", generic<immer::dvektor<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("dvektor/5B", generic<immer::dvektor<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("dvektor/6B", generic<immer::dvektor<unsigned,def_memory,6>>())
 
-NONIUS_BENCHMARK("dvektor/GC", generic<immer::dvektor<unsigned,5,gc_memory>>())
-NONIUS_BENCHMARK("dvektor/NO", generic<immer::dvektor<unsigned,5,basic_memory>>())
-NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,5,unsafe_memory>>())
+NONIUS_BENCHMARK("dvektor/GC", generic<immer::dvektor<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("dvektor/NO", generic<immer::dvektor<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,unsafe_memory,5>>())
 #endif
 
 NONIUS_BENCHMARK("array",    generic<immer::array<unsigned>>())

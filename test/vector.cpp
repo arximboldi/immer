@@ -31,10 +31,13 @@
 
 using namespace immer;
 
+template <typename T, detail::rbts::bits_t B = default_bits>
+using test_vector_t = vector<T, default_memory_policy, B>;
+
 template <unsigned B = default_bits>
 auto make_test_vector(std::size_t min, std::size_t max)
 {
-    auto v = vector<unsigned, B>{};
+    auto v = test_vector_t<unsigned, B>{};
     for (auto i = min; i < max; ++i)
         v = v.push_back(i);
     return v;
@@ -42,7 +45,7 @@ auto make_test_vector(std::size_t min, std::size_t max)
 
 TEST_CASE("instantiation")
 {
-    auto v = vector<int>{};
+    auto v = test_vector_t<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -50,7 +53,7 @@ TEST_CASE("push back one element")
 {
     SECTION("one element")
     {
-        const auto v1 = vector<int>{};
+        const auto v1 = test_vector_t<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -60,7 +63,7 @@ TEST_CASE("push back one element")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = vector<unsigned>{};
+        auto v = test_vector_t<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -207,7 +210,7 @@ TEST_CASE("vector of strings")
 {
     // check with valgrind
     const auto n = 666u;
-    auto v = vector<std::string>{};
+    auto v = test_vector_t<std::string>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(std::to_string(i));
 
@@ -239,7 +242,7 @@ struct non_default
 TEST_CASE("non default")
 {
     const auto n = 666u;
-    auto v = vector<non_default>{};
+    auto v = test_vector_t<non_default>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back({ i });
 

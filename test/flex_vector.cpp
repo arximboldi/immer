@@ -36,10 +36,16 @@ using namespace immer;
 
 namespace {
 
+template <typename T, detail::rbts::bits_t B = default_bits>
+using test_flex_vector_t = flex_vector<T, default_memory_policy, B>;
+
+template <typename T, detail::rbts::bits_t B = default_bits>
+using test_vector_t = flex_vector<T, default_memory_policy, B>;
+
 template <unsigned B = default_bits>
 auto make_test_flex_vector(std::size_t min, std::size_t max)
 {
-    auto v = flex_vector<unsigned, B>{};
+    auto v = test_flex_vector_t<unsigned, B>{};
     for (auto i = min; i < max; ++i)
         v = v.push_back(i);
     return v;
@@ -48,7 +54,7 @@ auto make_test_flex_vector(std::size_t min, std::size_t max)
 template <unsigned B = default_bits>
 auto make_test_flex_vector_front(std::size_t min, std::size_t max)
 {
-    auto v = flex_vector<unsigned, B>{};
+    auto v = test_flex_vector_t<unsigned, B>{};
     for (auto i = max; i > min;)
         v = v.push_front(--i);
     return v;
@@ -57,7 +63,7 @@ auto make_test_flex_vector_front(std::size_t min, std::size_t max)
 template <unsigned B = default_bits>
 auto make_many_test_flex_vector(std::size_t n)
 {
-    using vektor_t = flex_vector<unsigned, B>;
+    using vektor_t = test_flex_vector_t<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
@@ -73,7 +79,7 @@ auto make_many_test_flex_vector(std::size_t n)
 template <unsigned B = default_bits>
 auto make_many_test_flex_vector_front(std::size_t n)
 {
-    using vektor_t = flex_vector<unsigned, B>;
+    using vektor_t = test_flex_vector_t<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
@@ -87,7 +93,7 @@ auto make_many_test_flex_vector_front(std::size_t n)
 template <unsigned B = default_bits>
 auto make_many_test_flex_vector_front_remainder(std::size_t n)
 {
-    using vektor_t = flex_vector<unsigned, B>;
+    using vektor_t = test_flex_vector_t<unsigned, B>;
     auto many = std::vector<vektor_t>{};
     many.reserve(n);
     std::generate_n(std::back_inserter(many), n,
@@ -104,7 +110,7 @@ auto make_many_test_flex_vector_front_remainder(std::size_t n)
 
 TEST_CASE("instantiation")
 {
-    auto v = flex_vector<int>{};
+    auto v = test_flex_vector_t<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -112,7 +118,7 @@ TEST_CASE("push_back")
 {
     SECTION("one element")
     {
-        const auto v1 = flex_vector<int>{};
+        const auto v1 = test_flex_vector_t<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -122,7 +128,7 @@ TEST_CASE("push_back")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = flex_vector<unsigned, 3>{};
+        auto v = test_flex_vector_t<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -202,7 +208,7 @@ TEST_CASE("update")
 TEST_CASE("push_front")
 {
     const auto n = 666u;
-    auto v = flex_vector<unsigned, 3>{};
+    auto v = test_flex_vector_t<unsigned, 3>{};
 
     for (auto i = 0u; i < n; ++i) {
         v = v.push_front(i);
@@ -245,7 +251,7 @@ TEST_CASE("concat")
 template <unsigned B = default_bits>
 auto make_flex_vector_concat(std::size_t min, std::size_t max)
 {
-    using vektor_t = flex_vector<unsigned, B>;
+    using vektor_t = test_flex_vector_t<unsigned, B>;
     if (max == min)
         return vektor_t{};
     else if (max == min + 1)
@@ -289,7 +295,7 @@ TEST_CASE("reduce")
     {
         const auto n = 20u;
 
-        auto v  = flex_vector<unsigned, 3>{};
+        auto v  = test_flex_vector_t<unsigned, 3>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_front(i) + v;
         }
@@ -540,10 +546,10 @@ TEST_CASE("iterator relaxed")
 TEST_CASE("adopt regular vector contents")
 {
     const auto n = 666u;
-    auto v = vector<unsigned, 3>{};
+    auto v = test_vector_t<unsigned, 3>{};
     for (auto i = 0u; i < n; ++i) {
         v = v.push_back(i);
-        auto fv = flex_vector<unsigned, 3>{v};
+        auto fv = test_flex_vector_t<unsigned, 3>{v};
         CHECK_VECTOR_EQUALS_X(v, fv, [] (auto&& v) { return &v; });
     }
 }
