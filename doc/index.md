@@ -1,21 +1,16 @@
-Welcome to immer's documentation!
-=================================
+immer documentation
+===================
 
 Contents
 --------
 
 Hello my friend.
+Oh yeah.
 
 ```eval_rst
 .. toctree::
-    :maxdepth: 2
-```
-
-```eval_rst
-.. doxygenclass:: immer::flex_vector
-    :project: immer
-    :members:
-    :undoc-members:
+    tutorial
+    reference
 ```
 
 Indices and tables
