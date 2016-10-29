@@ -33,14 +33,15 @@ namespace detail {
 namespace rbts {
 
 template <typename T,
+          typename MemoryPolicy,
           bits_t B,
-          typename MemoryPolicy>
+          bits_t BL>
 struct rbtree
 {
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
 
-    using node_t = node<T, B, MemoryPolicy>;
+    using node_t = node<T, MemoryPolicy, B, BL>;
     using heap   = typename node_t::heap;
 
     size_t   size;
@@ -267,8 +268,8 @@ struct rbtree
     }
 };
 
-template <typename T, bits_t B, typename MP>
-const rbtree<T, B, MP> rbtree<T, B, MP>::empty = {
+template <typename T, typename MP, bits_t B, bits_t BL>
+const rbtree<T, MP, B, BL> rbtree<T, MP, B, BL>::empty = {
     0,
     B,
     node_t::make_inner_n(0u),

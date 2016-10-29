@@ -32,15 +32,17 @@ namespace immer {
 
 template <typename T,
           typename MemoryPolicy,
-          detail::rbts::bits_t B>
+          detail::rbts::bits_t B,
+          detail::rbts::bits_t BL>
 class flex_vector;
 
 template <typename T,
-          typename MemoryPolicy  = default_memory_policy,
-          detail::rbts::bits_t B = default_bits>
+          typename MemoryPolicy   = default_memory_policy,
+          detail::rbts::bits_t B  = default_bits,
+          detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
 class vector
 {
-    using impl_t = detail::rbts::rbtree<T, B, MemoryPolicy>;
+    using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
 
 public:
     using value_type = T;
@@ -49,7 +51,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::rbts::rbtree_iterator<T, B, MemoryPolicy>;
+    using iterator         = detail::rbts::rbtree_iterator<T, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
@@ -87,11 +89,11 @@ public:
 
 #if IMMER_DEBUG_PRINT
     void debug_print() const
-    { flex_vector<T, B, MemoryPolicy>{*this}.debug_print(); }
+    { flex_vector<T, MemoryPolicy, B, BL>{*this}.debug_print(); }
 #endif
 
 private:
-    friend class flex_vector<T, MemoryPolicy, B>;
+    friend class flex_vector<T, MemoryPolicy, B, BL>;
 
     vector(impl_t impl)
         : impl_(std::move(impl))

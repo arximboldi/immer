@@ -29,14 +29,14 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <typename T, bits_t B, typename MP>
+template <typename T, typename MP, bits_t B, bits_t BL>
 struct rrbtree_iterator : boost::iterator_facade<
-    rrbtree_iterator<T, B, MP>,
+    rrbtree_iterator<T, MP, B, BL>,
     T,
     boost::random_access_traversal_tag,
     const T&>
 {
-    using tree_t   = rrbtree<T, B, MP>;
+    using tree_t   = rrbtree<T, MP, B, BL>;
     using region_t = std::tuple<const T*, size_t, size_t>;
 
     struct end_t {};

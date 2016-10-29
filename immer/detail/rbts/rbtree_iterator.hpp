@@ -29,18 +29,20 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <typename T, bits_t B, typename MP>
+template <typename T, typename MP, bits_t B, bits_t BL>
 struct rbtree_iterator : boost::iterator_facade<
-    rbtree_iterator<T, B, MP>,
+    rbtree_iterator<T, MP, B, BL>,
     T,
     boost::random_access_traversal_tag,
     const T&>
 {
+    using tree_t = rbtree<T, MP, B, BL>;
+
     struct end_t {};
 
     rbtree_iterator() = default;
 
-    rbtree_iterator(const rbtree<T, B, MP>& v)
+    rbtree_iterator(const tree_t& v)
         : v_    { &v }
         , i_    { 0 }
         , base_ { 0 }
@@ -48,7 +50,7 @@ struct rbtree_iterator : boost::iterator_facade<
     {
     }
 
-    rbtree_iterator(const rbtree<T, B, MP>& v, end_t)
+    rbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
         , base_ { i_ - (i_ & mask<B>) }
@@ -58,7 +60,7 @@ struct rbtree_iterator : boost::iterator_facade<
 private:
     friend class boost::iterator_core_access;
 
-    const rbtree<T, B, MP>* v_;
+    const tree_t* v_;
     size_t    i_;
     size_t    base_;
     const T*  curr_;

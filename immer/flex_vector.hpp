@@ -28,7 +28,8 @@ namespace immer {
 
 template <typename T,
           typename MP,
-          detail::rbts::bits_t B>
+          detail::rbts::bits_t B,
+          detail::rbts::bits_t BL>
 class vector;
 
 /*!
@@ -39,11 +40,12 @@ class vector;
  * ```
  */
 template <typename T,
-          typename MemoryPolicy  = default_memory_policy,
-          detail::rbts::bits_t B = default_bits>
+          typename MemoryPolicy   = default_memory_policy,
+          detail::rbts::bits_t B  = default_bits,
+          detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
 class flex_vector
 {
-    using impl_t = detail::rbts::rrbtree<T, B, MemoryPolicy>;
+    using impl_t = detail::rbts::rrbtree<T, MemoryPolicy, B, BL>;
 
 public:
     using value_type = T;
@@ -52,12 +54,12 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::rbts::rrbtree_iterator<T, B, MemoryPolicy>;
+    using iterator         = detail::rbts::rrbtree_iterator<T, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
     flex_vector() = default;
-    flex_vector(vector<T, MemoryPolicy, B> v)
+    flex_vector(vector<T, MemoryPolicy, B, BL> v)
         : impl_ { v.impl_.size, v.impl_.shift,
                   v.impl_.root->inc(), v.impl_.tail->inc() }
     {}

@@ -43,8 +43,9 @@ using aligned_storage_for =
     typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
 template <typename T,
+          typename MemoryPolicy,
           bits_t   B,
-          typename MemoryPolicy>
+          bits_t   BL>
 struct node
 {
     static constexpr auto bits = B;
@@ -504,6 +505,9 @@ struct node
         return true;
     }
 };
+
+template <typename T, typename MP, bits_t B>
+constexpr bits_t derive_bits_leaf = B;
 
 } // namespace rbts
 } // namespace detail
