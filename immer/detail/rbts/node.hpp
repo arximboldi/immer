@@ -23,8 +23,10 @@
 #include <immer/heap/tags.hpp>
 #include <immer/detail/rbts/bits.hpp>
 
-#include <memory>
 #include <cassert>
+#include <cstddef>
+#include <memory>
+#include <type_traits>
 
 #ifdef NDEBUG
 #define IMMER_RBTS_TAGGED_NODE 0
@@ -36,6 +38,10 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
+template <typename T>
+using aligned_storage_for =
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
 template <typename T,
           bits_t   B,
           typename MemoryPolicy>
@@ -43,8 +49,10 @@ struct node
 {
     static constexpr auto bits = B;
 
+    using node_t      = node;
     using heap_policy = typename MemoryPolicy::heap;
     using refcount    = typename MemoryPolicy::refcount;
+    using refs_t      = typename refcount::data;
 
     enum class kind_t
     {
@@ -54,44 +62,83 @@ struct node
 
     struct relaxed_t
     {
-        count_t count;
-        size_t  sizes[branches<B>];
+        count_t     count;
+        std::size_t sizes[branches<B>];
     };
 
     struct leaf_t
     {
-        T           items[branches<B>];
+        aligned_storage_for<T> buffer;
     };
 
     struct inner_t
     {
         relaxed_t*  relaxed;
-        node*       children[branches<B>];
+        aligned_storage_for<node_t*> buffer;
     };
 
-    struct impl_t : refcount::data
+    union data_t
+    {
+        inner_t inner;
+        leaf_t  leaf;
+    };
+
+    struct impl_refs_t
+    {
+        refs_t refs;
+#if IMMER_RBTS_TAGGED_NODE
+        kind_t kind;
+#endif
+        data_t data;
+    };
+
+    struct impl_no_refs_t : refs_t
     {
 #if IMMER_RBTS_TAGGED_NODE
         kind_t kind;
 #endif
-        union data_t
-        {
-            inner_t inner;
-            leaf_t  leaf;
-
-            data_t() {}
-            ~data_t() {}
-        };
-
         data_t data;
     };
 
-    using node_t = node;
-    using heap   = typename heap_policy::template apply<
-        sizeof(impl_t)
-    >::type;
+    using impl_t = std::conditional_t<
+        std::is_empty<refs_t>{},
+        impl_no_refs_t,
+        impl_refs_t>;
+
+    static_assert(
+        std::is_standard_layout<impl_t>::value,
+        "payload must be of standard layout so we can use offsetof");
 
     impl_t impl;
+
+    constexpr static std::size_t sizeof_inner_n(count_t count)
+    {
+        return offsetof(impl_t, data.inner.buffer)
+            +  sizeof(node_t*) * count;
+    }
+
+    constexpr static std::size_t sizeof_leaf_n(count_t count)
+    {
+        return offsetof(impl_t, data.inner.buffer)
+            +  sizeof(T) * count;
+    }
+
+    constexpr static std::size_t sizeof_relaxed_n(count_t count)
+    {
+        return offsetof(relaxed_t, sizes)
+            +  sizeof(size_t) * count;
+    }
+
+    constexpr static std::size_t max_sizeof_leaf  = sizeof_leaf_n(branches<B>);
+    constexpr static std::size_t max_sizeof_inner =
+        MemoryPolicy::prefer_fewer_bigger_objects
+        ? sizeof_inner_n(branches<B>) + sizeof_relaxed_n(branches<B>)
+        : sizeof_inner_n(branches<B>);
+
+    using heap = typename heap_policy::template apply<
+        sizeof_inner_n(branches<B>),
+        sizeof_leaf_n(branches<B>)
+    >::type;
 
 #if IMMER_RBTS_TAGGED_NODE
     kind_t kind() const
@@ -108,32 +155,14 @@ struct node
 
     node_t** inner()
     {
-        return impl.data.inner.children;
         assert(kind() == kind_t::inner);
+        return reinterpret_cast<node_t**>(&impl.data.inner.buffer);
     }
 
     T* leaf()
     {
-        return impl.data.leaf.items;
         assert(kind() == kind_t::leaf);
-    }
-
-    constexpr static std::size_t sizeof_inner_n(count_t count)
-    {
-        return sizeof(node_t)
-             - sizeof(node_t*) * (branches<B> - count);
-    }
-
-    constexpr static std::size_t sizeof_leaf_n(count_t count)
-    {
-        return sizeof(node_t)
-             - sizeof(T) * (branches<B> - count);
-    }
-
-    static std::size_t sizeof_relaxed_n(count_t count)
-    {
-        return sizeof(relaxed_t)
-             - sizeof(size_t) * (branches<B> - count);
+        return reinterpret_cast<T*>(&impl.data.leaf.buffer);
     }
 
     static node_t* make_inner_n(count_t n)
@@ -387,32 +416,37 @@ struct node
         heap::deallocate(p);
     }
 
+    refs_t* refs() const
+    {
+        return reinterpret_cast<refs_t*>(const_cast<impl_t*>(&impl));
+    }
+
     node_t* inc()
     {
-        refcount::inc(&impl);
+        refcount::inc(refs());
         return this;
     }
 
     const node_t* inc() const
     {
-        refcount::inc(&impl);
+        refcount::inc(refs());
         return this;
     }
 
     bool dec() const
     {
-        return refcount::dec(&impl);
+        return refcount::dec(refs());
     }
 
     void dec_unsafe() const
     {
-        refcount::dec_unsafe(&impl);
+        refcount::dec_unsafe(refs());
     }
 
     static void inc_nodes(node_t** p, count_t n)
     {
         for (auto i = p, e = i + n; i != e; ++i)
-            refcount::inc(&(*i)->impl);
+            refcount::inc((*i)->refs());
     }
 
 #if IMMER_RBTS_TAGGED_NODE
