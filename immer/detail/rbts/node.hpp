@@ -21,6 +21,7 @@
 #pragma once
 
 #include <immer/heap/tags.hpp>
+#include <immer/detail/math.hpp>
 #include <immer/detail/rbts/bits.hpp>
 
 #include <cassert>
@@ -48,7 +49,8 @@ template <typename T,
           bits_t   BL>
 struct node
 {
-    static constexpr auto bits = B;
+    static constexpr auto bits      = B;
+    static constexpr auto bits_leaf = BL;
 
     using node_t      = node;
     using heap_policy = typename MemoryPolicy::heap;
@@ -115,13 +117,13 @@ struct node
     constexpr static std::size_t sizeof_inner_n(count_t count)
     {
         return offsetof(impl_t, data.inner.buffer)
-            +  sizeof(node_t*) * count;
+            +  sizeof(inner_t::buffer) * count;
     }
 
     constexpr static std::size_t sizeof_leaf_n(count_t count)
     {
         return offsetof(impl_t, data.inner.buffer)
-            +  sizeof(T) * count;
+            +  sizeof(leaf_t::buffer) * count;
     }
 
     constexpr static std::size_t sizeof_relaxed_n(count_t count)
@@ -130,15 +132,17 @@ struct node
             +  sizeof(size_t) * count;
     }
 
-    constexpr static std::size_t max_sizeof_leaf  = sizeof_leaf_n(branches<B>);
+    constexpr static std::size_t max_sizeof_leaf  =
+        sizeof_leaf_n(branches<BL>);
+
     constexpr static std::size_t max_sizeof_inner =
         MemoryPolicy::prefer_fewer_bigger_objects
         ? sizeof_inner_n(branches<B>) + sizeof_relaxed_n(branches<B>)
         : sizeof_inner_n(branches<B>);
 
     using heap = typename heap_policy::template apply<
-        sizeof_inner_n(branches<B>),
-        sizeof_leaf_n(branches<B>)
+        max_sizeof_inner,
+        max_sizeof_leaf
     >::type;
 
 #if IMMER_RBTS_TAGGED_NODE
@@ -168,6 +172,7 @@ struct node
 
     static node_t* make_inner_n(count_t n)
     {
+        assert(n <= branches<B>);
         auto p = new (heap::allocate(sizeof_inner_n(n))) node_t;
         p->impl.data.inner.relaxed = nullptr;
 #if IMMER_RBTS_TAGGED_NODE
@@ -178,6 +183,7 @@ struct node
 
     static node_t* make_inner_r_n(count_t n)
     {
+        assert(n <= branches<B>);
         node_t* p;
         relaxed_t* r;
         if (MemoryPolicy::prefer_fewer_bigger_objects) {
@@ -197,6 +203,7 @@ struct node
 
     static node_t* make_leaf_n(count_t n)
     {
+        assert(n <= branches<BL>);
         auto p = new (heap::allocate(sizeof_leaf_n(n))) node_t;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::kind_t::leaf;
@@ -294,7 +301,7 @@ struct node
     static node_t* make_path(shift_t shift, node_t* node)
     {
         assert(node->kind() == kind_t::leaf);
-        return shift == 0
+        return shift == endshift<B, BL>
             ? node
             : node_t::make_inner_n(1, make_path(shift - B, node));
     }
@@ -454,7 +461,7 @@ struct node
     shift_t compute_shift()
     {
         if (kind() == kind_t::leaf)
-            return 0;
+            return endshift<B, BL>;
         else
             return B + inner() [0]->compute_shift();
     }
@@ -464,9 +471,9 @@ struct node
     {
 #if IMMER_DEBUG_DEEP_CHECK
         assert(size > 0);
-        if (shift == 0) {
+        if (shift == endshift<B, BL>) {
             assert(kind() == kind_t::leaf);
-            assert(size <= branches<B>);
+            assert(size <= branches<BL>);
         } else if (auto r = relaxed()) {
             auto count = r->count;
             assert(count > 0);
@@ -507,7 +514,17 @@ struct node
 };
 
 template <typename T, typename MP, bits_t B>
-constexpr bits_t derive_bits_leaf = B;
+constexpr bits_t derive_bits_leaf_aux()
+{
+    using node_t = node<T, MP, B, B>;
+    auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
+    auto space = node_t::max_sizeof_inner - node_t::sizeof_leaf_n(0u);
+    auto full_elems = space / sizeof_elem;
+    return log2(full_elems);
+}
+
+template <typename T, typename MP, bits_t B>
+constexpr bits_t derive_bits_leaf = derive_bits_leaf_aux<T, MP, B>();
 
 } // namespace rbts
 } // namespace detail

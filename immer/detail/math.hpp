@@ -21,25 +21,17 @@
 #pragma once
 
 #include <cstddef>
+#include <type_traits>
 
 namespace immer {
 namespace detail {
-namespace rbts {
 
-using bits_t  = unsigned;
-using shift_t = unsigned;
-using count_t = unsigned;
-using size_t  = std::size_t;
+constexpr auto log2(std::size_t x)
+{
+    static_assert(std::is_same<std::size_t, unsigned long>{},
+                  "fix me");
+    return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
+}
 
-template <bits_t B, typename T=count_t>
-constexpr T branches = T{1} << B;
-
-template <bits_t B, typename T=size_t>
-constexpr T mask = branches<B, T> - 1;
-
-template <bits_t B, bits_t BL>
-constexpr shift_t endshift = shift_t{BL} - shift_t{B};
-
-} // namespace rbts
 } // namespace detail
 } // namespace immer

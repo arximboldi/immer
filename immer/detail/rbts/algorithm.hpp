@@ -176,7 +176,8 @@ struct dec_visitor
 template <typename NodeT>
 struct push_tail_visitor
 {
-    static constexpr auto B = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
 
     using this_t = push_tail_visitor;
     using node_t = NodeT;
@@ -187,7 +188,7 @@ struct push_tail_visitor
         auto level       = pos.shift();
         auto idx         = pos.count() - 1;
         auto children    = pos.size(idx);
-        auto new_idx     = children == size_t{1} << level || level == B
+        auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
         auto new_child   = (node_t*){};
         if (new_idx >= branches<B>)
@@ -214,9 +215,9 @@ struct push_tail_visitor
     template <typename Pos, typename... Args>
     friend node_t* visit_regular(this_t, Pos&& pos, node_t* tail, Args&&...)
     {
-        assert((pos.size() & mask<B>) == 0);
+        assert((pos.size() & mask<BL>) == 0);
         auto idx         = pos.index(pos.size() - 1);
-        auto new_idx     = pos.index(pos.size() + branches<B> - 1);
+        auto new_idx     = pos.index(pos.size() + branches<BL> - 1);
         auto count       = new_idx + 1;
         auto new_parent  = node_t::copy_inner_n(count, pos.node(), new_idx);
         new_parent->inner()[new_idx] =
@@ -240,10 +241,12 @@ struct slice_right_visitor
     using result_t = std::tuple<shift_t, NodeT*, count_t, NodeT*>;
     using no_collapse_t = slice_right_visitor<NodeT, false>;
 
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     template <typename PosT>
     friend result_t visit_relaxed(this_t, PosT&& pos, size_t last)
     {
-        constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
             return pos.towards_oh(this_t{}, last, idx);
@@ -263,7 +266,7 @@ struct slice_right_visitor
                 return { pos.shift(), newn, ts, tail };
             } else if (idx == 0) {
                 return { pos.shift(), nullptr, ts, tail };
-            } else if (Collapse && idx == 1 && pos.shift() > B) {
+            } else if (Collapse && idx == 1 && pos.shift() > BL) {
                 auto newn = pos.node()->inner()[0];
                 return { pos.shift() - B, newn->inc(), ts, tail };
             } else {
@@ -276,7 +279,6 @@ struct slice_right_visitor
     template <typename PosT>
     friend result_t visit_regular(this_t, PosT&& pos, size_t last)
     {
-        constexpr auto B = NodeT::bits;
         auto idx = pos.index(last);
         if (Collapse && idx == 0) {
             return pos.towards_oh(this_t{}, last, idx);
@@ -293,7 +295,7 @@ struct slice_right_visitor
                 return { pos.shift(), newn, ts, tail };
             } else if (idx == 0) {
                 return { pos.shift(), nullptr, ts, tail };
-            } else if (Collapse && idx == 1 && pos.shift() > B) {
+            } else if (Collapse && idx == 1 && pos.shift() > BL) {
                 auto newn = pos.node()->inner()[0];
                 return { pos.shift() - B, newn->inc(), ts, tail };
             } else {
@@ -325,7 +327,8 @@ struct slice_left_visitor
     using result_t = std::tuple<shift_t, NodeT*>;
     using no_collapse_t = slice_left_visitor<NodeT, false>;
 
-    static constexpr auto B = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
 
     template <typename PosT>
     friend result_t visit_inner(this_t, PosT&& pos, size_t first)
@@ -336,7 +339,7 @@ struct slice_left_visitor
         auto child_size = pos.size_sbh(idx, left_size);
         auto dropped_size = first;
         auto child_dropped_size = dropped_size - left_size;
-        if (Collapse && pos.shift() > B && idx == pos.count() - 1) {
+        if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
             return pos.towards_sub_oh(this_t{}, first, idx);
         } else {
             using std::get;
@@ -361,12 +364,8 @@ struct slice_left_visitor
     template <typename PosT>
     friend result_t visit_leaf(this_t, PosT&& pos, size_t first)
     {
-        return {
-            0,
-            node_t::copy_leaf(pos.node(),
-                              first & mask<B>,
-                              pos.count())
-        };
+        auto n = node_t::copy_leaf(pos.node(), pos.index(first), pos.count());
+        return { 0, n };
     };
 };
 
@@ -374,7 +373,8 @@ template <typename Node>
 struct concat_merger
 {
     using node_t = Node;
-    static constexpr auto B = Node::bits;
+    static constexpr auto B  = Node::bits;
+    static constexpr auto BL = Node::bits_leaf;
 
     count_t* curr;
     count_t  n;
@@ -525,7 +525,7 @@ struct concat_rebalance_plan_fill_visitor
     }
 };
 
-template <bits_t B>
+template <bits_t B, bits_t BL>
 struct concat_rebalance_plan
 {
     static constexpr auto max_children = 2 * branches<B>;
@@ -545,19 +545,21 @@ struct concat_rebalance_plan
         rpos.each_right_sub(visitor_t{}, *this);
     }
 
-    void shuffle()
+    void shuffle(shift_t shift)
     {
         constexpr auto rrb_extras    = 2u;
         constexpr auto rrb_invariant = 1u;
-        const auto optimal = ((total - 1) / branches<B>) + 1;
+        const auto bits     = shift == BL ? BL : B;
+        const auto branches = count_t{1} << bits;
+        const auto optimal  = ((total - 1) >> bits) + 1;
         auto i = 0u;
         while (n >= optimal + rrb_extras) {
             // skip ok nodes
-            while (counts[i] > branches<B> - rrb_invariant) i++;
+            while (counts[i] > branches - rrb_invariant) i++;
             // short node, redistribute
             auto remaining = counts[i];
             do {
-                auto count = std::min(remaining + counts[i+1], branches<B>);
+                auto count = std::min(remaining + counts[i+1], branches);
                 counts[i] = count;
                 remaining +=  counts[i + 1] - count;
                 ++i;
@@ -588,10 +590,9 @@ template <typename Node, typename LPos, typename CPos, typename RPos>
 relaxed_pos<Node>
 concat_rebalance(LPos&& lpos, CPos&& cpos, RPos&& rpos, bool is_top)
 {
-    constexpr auto B = Node::bits;
-    auto plan = concat_rebalance_plan<B>{};
+    auto plan = concat_rebalance_plan<Node::bits, Node::bits_leaf>{};
     plan.fill(lpos, cpos, rpos);
-    plan.shuffle();
+    plan.shuffle(cpos.shift());
     return plan.merge(lpos, cpos, rpos, is_top);
 }
 
@@ -608,7 +609,7 @@ concat_leafs(LPos&& lpos, RPos&& rpos, bool is_top)
     auto node   = node_t::make_inner_r_n(2u,
                                          lpos.node()->inc(), lcount,
                                          rpos.node()->inc(), rcount);
-    return { node, node_t::bits, node->relaxed() };
+    return { node, node_t::bits_leaf, node->relaxed() };
 }
 
 template <typename Node>

@@ -124,7 +124,7 @@ struct rrbtree
         assert(r == nullptr || r->count);
         return
             r               ? r->sizes[r->count - 1] :
-            size            ? (size - 1) & ~mask<B>
+            size            ? (size - 1) & ~mask<BL>
             /* otherwise */ : 0;
     }
 
@@ -175,7 +175,7 @@ struct rrbtree
                                                        tail_size);
                 return { shift + B, new_root };
             }
-        } else if (size >> B >= 1u << shift) {
+        } else if (size == size_t{branches<B>} << shift) {
             auto new_path = node_t::make_path(shift, tail);
             auto new_root = node_t::make_inner_n(2u, root->inc(), new_path);
             return { shift + B, new_root };
@@ -191,7 +191,7 @@ struct rrbtree
     rrbtree push_back(T value) const
     {
         auto ts = tail_size();
-        if (ts < branches<B>) {
+        if (ts < branches<BL>) {
             auto new_tail = node_t::copy_leaf_emplace(tail, ts,
                                                       std::move(value));
             return { size + 1, shift, root->inc(), new_tail };
@@ -275,7 +275,7 @@ struct rrbtree
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
-                return { new_size, B, empty.root->inc(), new_tail };
+                return { new_size, BL, empty.root->inc(), new_tail };
             }
         }
     }
@@ -287,12 +287,12 @@ struct rrbtree
         } else if (elems >= size) {
             return empty;
         } else if (elems == tail_offset()) {
-            return { size - elems, B, empty.root->inc(), tail->inc() };
+            return { size - elems, BL, empty.root->inc(), tail->inc() };
         } else if (elems > tail_offset()) {
             auto tail_off = tail_offset();
             auto new_tail = node_t::copy_leaf(tail, elems - tail_off,
                                               size - tail_off);
-            return { size - elems, B, empty.root->inc(), new_tail };
+            return { size - elems, BL, empty.root->inc(), new_tail };
         } else {
             using std::get;
             auto v = slice_left_visitor<node_t>();
@@ -315,22 +315,22 @@ struct rrbtree
             // just concat the tail, similar to push_back
             auto tail_offst = tail_offset();
             auto tail_size  = size - tail_offst;
-            if (tail_size == branches<B>) {
+            if (tail_size == branches<BL>) {
                 auto new_root = push_tail(root, shift, tail_offst,
                                           tail->inc(), tail_size);
                 return { size + r.size, get<0>(new_root), get<1>(new_root),
                          r.tail->inc() };
-            } else if (tail_size + r.size <= branches<B>) {
+            } else if (tail_size + r.size <= branches<BL>) {
                 auto new_tail = node_t::copy_leaf(tail, tail_size,
                                                   r.tail, r.size);
                 return { size + r.size, shift, root->inc(), new_tail };
             } else {
-                auto remaining = branches<B> - tail_size;
+                auto remaining = branches<BL> - tail_size;
                 auto add_tail  = node_t::copy_leaf(tail, tail_size,
                                                    r.tail, remaining);
                 auto new_tail  = node_t::copy_leaf(r.tail, remaining, r.size);
                 auto new_root  = push_tail(root, shift, tail_offst,
-                                           add_tail, branches<B>);
+                                           add_tail, branches<BL>);
                 return { size + r.size, get<0>(new_root), get<1>(new_root),
                          new_tail };
             }
@@ -355,7 +355,7 @@ struct rrbtree
     bool check_tree() const
     {
 #if IMMER_DEBUG_DEEP_CHECK
-        assert(shift >= B);
+        assert(shift >= BL);
         assert(tail_offset() <= size);
         assert(check_root());
         assert(check_tail());
@@ -367,7 +367,7 @@ struct rrbtree
     {
 #if IMMER_DEBUG_DEEP_CHECK
         if (tail_size() > 0)
-            assert(tail->check(0, tail_size()));
+            assert(tail->check(endshift<B, BL>, tail_size()));
 #endif
         return true;
     }
@@ -378,8 +378,8 @@ struct rrbtree
         if (tail_offset() > 0)
             assert(root->check(shift, tail_offset()));
         else {
-            assert(root->kind() == node_t::inner_kind);
-            assert(shift == B);
+            assert(root->kind() == node_t::kind_t::inner);
+            assert(shift == BL);
         }
 #endif
         return true;
@@ -396,7 +396,7 @@ struct rrbtree
             << "  root  = " << std::endl;
         debug_print_node(root, shift, tail_offset());
         std::cerr << "  tail  = " << std::endl;
-        debug_print_node(tail, 0, tail_size());
+        debug_print_node(tail, endshift<B, BL>, tail_size());
         std::cerr << "}" << std::endl;
     }
 
@@ -413,7 +413,7 @@ struct rrbtree
     {
         const auto indent_step = 4;
 
-        if (shift == 0) {
+        if (shift == endshift<B, BL>) {
             debug_print_indent(indent);
             std::cerr << "- {" << size << "} "
                       << pretty_print_array(node->leaf(), size)
@@ -456,7 +456,7 @@ struct rrbtree
 template <typename T, typename MP, bits_t B, bits_t BL>
 const rrbtree<T, MP, B, BL> rrbtree<T, MP, B, BL>::empty = {
     0,
-    B,
+    BL,
     node_t::make_inner_n(0u),
     node_t::make_leaf_n(0u)
 };

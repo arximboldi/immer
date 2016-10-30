@@ -53,7 +53,7 @@ struct rbtree_iterator : boost::iterator_facade<
     rbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , base_ { i_ - (i_ & mask<B>) }
+        , base_ { i_ - (i_ & mask<BL>) }
         , curr_ { v.array_for(i_ - 1) + (i_ - base_) }
     {}
 
@@ -69,10 +69,10 @@ private:
     {
         assert(i_ < v_->size);
         ++i_;
-        if (i_ - base_ < branches<B>) {
+        if (i_ - base_ < branches<BL>) {
             ++curr_;
         } else {
-            base_ += branches<B>;
+            base_ += branches<BL>;
             curr_ = v_->array_for(i_);
         }
     }
@@ -84,8 +84,8 @@ private:
         if (i_ >= base_) {
             --curr_;
         } else {
-            base_ -= branches<B>;
-            curr_ = v_->array_for(i_) + (branches<B> - 1);
+            base_ -= branches<BL>;
+            curr_ = v_->array_for(i_) + (branches<BL> - 1);
         }
     }
 
@@ -95,10 +95,10 @@ private:
         assert(n >= 0 || static_cast<size_t>(-n) <= i_);
 
         i_ += n;
-        if (i_ <= base_ && i_ - base_ < branches<B>) {
+        if (i_ <= base_ && i_ - base_ < branches<BL>) {
             curr_ += n;
         } else {
-            base_ = i_ - (i_ & mask<B>);
+            base_ = i_ - (i_ & mask<BL>);
             curr_ = v_->array_for(i_) + (i_ - base_);
         }
     }

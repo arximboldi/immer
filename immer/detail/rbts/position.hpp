@@ -35,12 +35,14 @@ template <typename Pos>
 constexpr auto bits = std::decay_t<Pos>::node_t::bits;
 
 template <typename Pos>
+constexpr auto bits_leaf = std::decay_t<Pos>::node_t::bits_leaf;
+
+template <typename Pos>
 using node_type = typename std::decay<Pos>::type::node_t;
 
 template <typename NodeT>
 struct empty_regular_pos
 {
-    static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
 
@@ -68,7 +70,6 @@ empty_regular_pos<NodeT> make_empty_regular_pos(NodeT* node)
 template <typename NodeT>
 struct empty_leaf_pos
 {
-    static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     node_t* node_;
 
@@ -94,7 +95,9 @@ empty_leaf_pos<NodeT> make_empty_leaf_pos(NodeT* node)
 template <typename NodeT>
 struct leaf_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
     size_t size_;
@@ -103,7 +106,7 @@ struct leaf_pos
     node_t* node()  const { return node_; }
     size_t  size()  const { return size_; }
     shift_t shift() const { return 0; }
-    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t index(size_t idx) const { return idx & mask<BL>; }
     count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
@@ -124,7 +127,9 @@ leaf_pos<NodeT> make_leaf_pos(NodeT* node, size_t size)
 template <typename NodeT>
 struct leaf_sub_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
     count_t count_;
@@ -133,7 +138,7 @@ struct leaf_sub_pos
     node_t* node()  const { return node_; }
     size_t  size()  const { return count_; }
     shift_t shift() const { return 0; }
-    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t index(size_t idx) const { return idx & mask<BL>; }
     count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
@@ -148,20 +153,22 @@ leaf_sub_pos<NodeT> make_leaf_sub_pos(NodeT* node, count_t count)
 {
     assert(node);
     assert(count > 0);
-    assert(count <= branches<NodeT::bits>);
+    assert(count <= branches<NodeT::bits_leaf>);
     return {node, count};
 }
 
 template <typename NodeT>
 struct leaf_descent_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
 
     node_t* node()  const { return node_; }
     shift_t shift() const { return 0; }
-    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t index(size_t idx) const { return idx & mask<BL>; }
 
     template <typename... Args>
     decltype(auto) descend(Args&&...) {}
@@ -183,15 +190,17 @@ leaf_descent_pos<NodeT> make_leaf_descent_pos(NodeT* node)
 template <typename NodeT>
 struct full_leaf_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
 
-    count_t count() const { return branches<bits>; }
+    count_t count() const { return branches<BL>; }
     node_t* node()  const { return node_; }
-    size_t  size()  const { return branches<bits>; }
+    size_t  size()  const { return branches<BL>; }
     shift_t shift() const { return 0; }
-    count_t index(size_t idx) const { return idx & mask<bits>; }
+    count_t index(size_t idx) const { return idx & mask<BL>; }
     count_t subindex(size_t idx) const { return idx; }
 
     template <typename Visitor, typename ...Args>
@@ -211,7 +220,9 @@ full_leaf_pos<NodeT> make_full_leaf_pos(NodeT* node)
 template <typename NodeT>
 struct regular_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
     shift_t shift_;
@@ -221,9 +232,9 @@ struct regular_pos
     node_t* node()  const { return node_; }
     size_t  size()  const { return size_; }
     shift_t shift() const { return shift_; }
-    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<B>; }
     count_t subindex(size_t idx) const { return idx >> shift_; }
-    size_t  this_size() const { return ((size_ - 1) & ~(~size_t{} << (shift_ + bits))) + 1; }
+    size_t  this_size() const { return ((size_ - 1) & ~(~size_t{} << (shift_ + B))) + 1; }
 
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
@@ -266,8 +277,10 @@ struct regular_pos
 template <typename Pos, typename Visitor, typename... Args>
 void each_regular(Pos&& p, Visitor v, Args&&... args)
 {
-    constexpr auto B = bits<Pos>;
-    if (p.shift() == B) {
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
+
+    if (p.shift() == BL) {
         auto n = p.node()->inner();
         auto last = p.count() - 1;
         auto e = n + last;
@@ -291,10 +304,11 @@ decltype(auto) towards_oh_ch_regular(Pos&& p, Visitor v, size_t idx,
                                      count_t count_hint,
                                      Args&&... args)
 {
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
     assert(offset_hint == p.index(idx));
     assert(count_hint  == p.count());
-    constexpr auto B = bits<Pos>;
-    auto is_leaf = p.shift() == B;
+    auto is_leaf = p.shift() == BL;
     auto child   = p.node()->inner() [offset_hint];
     auto is_full = offset_hint + 1 != count_hint;
     return is_full
@@ -311,9 +325,10 @@ decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, size_t idx,
                                       count_t offset_hint,
                                       Args&&... args)
 {
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
     assert(offset_hint == p.index(idx));
-    constexpr auto B = bits<Pos>;
-    auto is_leaf = p.shift() == B;
+    auto is_leaf = p.shift() == BL;
     auto child   = p.node()->inner() [offset_hint];
     auto lsize   = offset_hint << p.shift();
     auto size    = p.this_size();
@@ -337,9 +352,10 @@ decltype(auto) last_oh_regular(Pos&& p, Visitor v,
                                Args&&... args)
 {
     assert(offset_hint == p.count() - 1);
-    constexpr auto B = bits<Pos>;
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
     auto child     = p.node()->inner() [offset_hint];
-    auto is_leaf   = p.shift() == B;
+    auto is_leaf   = p.shift() == BL;
     return is_leaf
         ? make_leaf_pos(child, p.size()).visit(v, args...)
         : make_regular_pos(child, p.shift() - B, p.size()).visit(v, args...);
@@ -351,7 +367,7 @@ regular_pos<NodeT> make_regular_pos(NodeT* node,
                                     size_t size)
 {
     assert(node);
-    assert(shift >= NodeT::bits);
+    assert(shift >= NodeT::bits_leaf);
     assert(size > 0);
     return {node, shift, size};
 }
@@ -371,7 +387,9 @@ struct null_sub_pos
 template <typename NodeT>
 struct regular_sub_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
     shift_t shift_;
@@ -381,7 +399,7 @@ struct regular_sub_pos
     node_t* node()  const { return node_; }
     size_t  size()  const { return size_; }
     shift_t shift() const { return shift_; }
-    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<B>; }
     count_t subindex(size_t idx) const { return idx >> shift_; }
     size_t  size_before(count_t offset) const { return offset << shift_; }
     size_t  this_size() const { return size_; }
@@ -426,12 +444,12 @@ struct regular_sub_pos
         auto lsize = size_ - (last << shift_);
         auto n = node()->inner() + i;
         auto e = node()->inner() + last;
-        if (shift() == bits) {
+        if (shift() == BL) {
             for (; n != e; ++n)
                 make_full_leaf_pos(*n).visit(v, args...);
             make_leaf_sub_pos(*n, lsize).visit(v, args...);
         } else {
-            auto ss = shift_ - bits;
+            auto ss = shift_ - B;
             for (; n != e; ++n)
                 make_full_pos(*n, ss).visit(v, args...);
             make_regular_sub_pos(*n, ss, lsize).visit(v, args...);
@@ -452,11 +470,11 @@ struct regular_sub_pos
         auto last  = count() - 1;
         auto n = node_->inner();
         auto e = n + last;
-        if (shift_ == bits) {
+        if (shift_ == BL) {
             for (; n != e; ++n)
                 make_full_leaf_pos(*n).visit(v, args...);
         } else {
-            auto ss = shift_ - bits;
+            auto ss = shift_ - B;
             for (; n != e; ++n)
                 make_full_pos(*n, ss).visit(v, args...);
         }
@@ -494,34 +512,34 @@ struct regular_sub_pos
     {
         auto offset    = count() - 1;
         auto child     = node_->inner() [offset];
-        auto is_leaf   = shift_ == bits;
+        auto is_leaf   = shift_ == BL;
         auto lsize     = size_ - (offset << shift_);
         return is_leaf
             ? make_leaf_sub_pos(child, lsize).visit(v, args...)
-            : make_regular_sub_pos(child, shift_ - bits, lsize).visit(v, args...);
+            : make_regular_sub_pos(child, shift_ - B, lsize).visit(v, args...);
     }
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub(Visitor v, Args&&... args)
     {
-        auto is_leaf = shift_ == bits;
+        auto is_leaf = shift_ == BL;
         auto child   = node_->inner() [0];
         auto is_full = size_ >= (1u << shift_);
         return is_full
             ? (is_leaf
                ? make_full_leaf_pos(child).visit(v, args...)
-               : make_full_pos(child, shift_ - bits).visit(v, args...))
+               : make_full_pos(child, shift_ - B).visit(v, args...))
             : (is_leaf
                ? make_leaf_sub_pos(child, size_).visit(v, args...)
-               : make_regular_sub_pos(child, shift_ - bits, size_).visit(v, args...));
+               : make_regular_sub_pos(child, shift_ - B, size_).visit(v, args...));
     }
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub_leaf(Visitor v, Args&&... args)
     {
-        assert(shift_ == bits);
+        assert(shift_ == BL);
         auto child   = node_->inner() [0];
-        auto is_full = size_ >= branches<bits>;
+        auto is_full = size_ >= branches<BL>;
         return is_full
             ? make_full_leaf_pos(child).visit(v, args...)
             : make_leaf_sub_pos(child, size_).visit(v, args...);
@@ -540,13 +558,15 @@ regular_sub_pos<NodeT> make_regular_sub_pos(NodeT* node,
                                             size_t size)
 {
     assert(node);
-    assert(shift >= NodeT::bits);
+    assert(shift >= NodeT::bits_leaf);
     assert(size > 0);
     assert(size <= (branches<NodeT::bits> << shift));
     return {node, shift, size};
 }
 
-template <typename NodeT, shift_t Shift, bits_t B=NodeT::bits>
+template <typename NodeT, shift_t Shift,
+          bits_t B  = NodeT::bits,
+          bits_t BL = NodeT::bits_leaf>
 struct regular_descent_pos
 {
     static_assert(Shift > 0, "not leaf...");
@@ -573,21 +593,21 @@ struct regular_descent_pos
     }
 };
 
-template <typename NodeT, bits_t B>
-struct regular_descent_pos<NodeT, B, B>
+template <typename NodeT, bits_t B, bits_t BL>
+struct regular_descent_pos<NodeT, BL, B, BL>
 {
     using node_t = NodeT;
     node_t* node_;
 
     node_t* node()  const { return node_; }
-    shift_t shift() const { return B; }
-    count_t index(size_t idx) const { return (idx >> B) & mask<B>; }
+    shift_t shift() const { return BL; }
+    count_t index(size_t idx) const { return (idx >> BL) & mask<B>; }
 
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx)
     {
-        auto offset = this->index(idx);
-        auto child  = this->node_->inner()[offset];
+        auto offset = index(idx);
+        auto child  = node_->inner()[offset];
         return make_leaf_descent_pos(child).visit(v, idx);
     }
 
@@ -602,33 +622,36 @@ template <typename NodeT, typename Visitor>
 decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
                                      size_t idx)
 {
-    constexpr auto B = NodeT::bits;
+    constexpr auto B  = NodeT::bits;
+    constexpr auto BL = NodeT::bits_leaf;
     assert(node);
-    assert(shift >= B);
+    assert(shift >= BL);
     switch (shift) {
-    case B * 1: return regular_descent_pos<NodeT, B * 1>{node}.visit(v, idx);
-    case B * 2: return regular_descent_pos<NodeT, B * 2>{node}.visit(v, idx);
-    case B * 3: return regular_descent_pos<NodeT, B * 3>{node}.visit(v, idx);
-    case B * 4: return regular_descent_pos<NodeT, B * 4>{node}.visit(v, idx);
-    case B * 5: return regular_descent_pos<NodeT, B * 5>{node}.visit(v, idx);
-    case B * 6: return regular_descent_pos<NodeT, B * 6>{node}.visit(v, idx);
-    default:    return leaf_descent_pos<NodeT>{node}.visit(v, idx);
+    case BL + B * 0: return regular_descent_pos<NodeT, BL + B * 0>{node}.visit(v, idx);
+    case BL + B * 1: return regular_descent_pos<NodeT, BL + B * 1>{node}.visit(v, idx);
+    case BL + B * 2: return regular_descent_pos<NodeT, BL + B * 2>{node}.visit(v, idx);
+    case BL + B * 3: return regular_descent_pos<NodeT, BL + B * 3>{node}.visit(v, idx);
+    case BL + B * 4: return regular_descent_pos<NodeT, BL + B * 4>{node}.visit(v, idx);
+    case BL + B * 5: return regular_descent_pos<NodeT, BL + B * 5>{node}.visit(v, idx);
+    default        : return leaf_descent_pos<NodeT>{node}.visit(v, idx);
     }
 }
 
 template <typename NodeT>
 struct full_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     node_t* node_;
     shift_t shift_;
 
-    count_t count() const { return branches<bits>; }
+    count_t count() const { return branches<B>; }
     node_t* node()  const { return node_; }
-    size_t  size()  const { return branches<bits> << shift_; }
+    size_t  size()  const { return branches<B> << shift_; }
     shift_t shift() const { return shift_; }
-    count_t index(size_t idx) const { return (idx >> shift_) & mask<bits>; }
+    count_t index(size_t idx) const { return (idx >> shift_) & mask<B>; }
     count_t subindex(size_t idx) const { return idx >> shift_; }
     size_t  size(count_t offset) const { return 1 << shift_; }
     size_t  size_sbh(count_t offset, size_t) const { return 1 << shift_; }
@@ -647,15 +670,15 @@ struct full_pos
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
     {
-        if (shift_ == bits) {
+        if (shift_ == BL) {
             auto p = node_->inner();
-            auto e = p + branches<bits>;
+            auto e = p + branches<B>;
             for (; p != e; ++p)
                 make_full_leaf_pos(*p).visit(v, args...);
         } else {
             auto p = node_->inner();
-            auto e = p + branches<bits>;
-            auto ss = shift_ - bits;
+            auto e = p + branches<B>;
+            auto ss = shift_ - B;
             for (; p != e; ++p)
                 make_full_pos(*p, ss).visit(v, args...);
         }
@@ -666,11 +689,11 @@ struct full_pos
     {
         auto p = node_->inner() + i;
         auto e = node_->inner() + n;
-        if (shift_ == bits) {
+        if (shift_ == BL) {
             for (; p != e; ++p)
                 make_full_leaf_pos(*p).visit(v, args...);
         } else {
-            auto ss = shift_ - bits;
+            auto ss = shift_ - B;
             for (; p != e; ++p)
                 make_full_pos(*p, ss).visit(v, args...);
         }
@@ -682,11 +705,11 @@ struct full_pos
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&&... args)
-    { each_(v, 0, branches<bits> - 1, args...); }
+    { each_(v, 0, branches<B> - 1, args...); }
 
     template <typename Visitor, typename... Args>
     void each_right_sub(Visitor v, Args&&... args)
-    { each_(v, 1, branches<bits>, args...); }
+    { each_(v, 1, branches<B>, args...); }
 
     template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
@@ -704,11 +727,11 @@ struct full_pos
                               Args&&... args)
     {
         assert(offset_hint == index(idx));
-        auto is_leaf = shift_ == bits;
+        auto is_leaf = shift_ == BL;
         auto child   = node_->inner() [offset_hint];
         return is_leaf
             ? make_full_leaf_pos(child).visit(v, idx, args...)
-            : make_full_pos(child, shift_ - bits).visit(v, idx, args...);
+            : make_full_pos(child, shift_ - B).visit(v, idx, args...);
     }
 
     template <typename Visitor, typename... Args>
@@ -717,29 +740,29 @@ struct full_pos
                                   Args&&... args)
     {
         assert(offset_hint == index(idx));
-        auto is_leaf = shift_ == bits;
+        auto is_leaf = shift_ == BL;
         auto child   = node_->inner() [offset_hint];
         auto lsize   = offset_hint << shift_;
         return is_leaf
             ? make_full_leaf_pos(child).visit(v, idx - lsize, args...)
-            : make_full_pos(child, shift_ - bits).visit(v, idx - lsize, args...);
+            : make_full_pos(child, shift_ - B).visit(v, idx - lsize, args...);
     }
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub(Visitor v, Args&&... args)
     {
-        auto is_leaf = shift_ == bits;
+        auto is_leaf = shift_ == BL;
         auto child   = node_->inner() [0];
         return is_leaf
             ? make_full_leaf_pos(child).visit(v, args...)
-            : make_full_pos(child, shift_ - bits).visit(v, args...);
+            : make_full_pos(child, shift_ - B).visit(v, args...);
     }
 
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub_leaf(Visitor v, Args&&... args)
     {
-        assert(shift_ == bits);
+        assert(shift_ == BL);
         auto child   = node_->inner() [0];
         return make_full_leaf_pos(child).visit(v, args...);
     }
@@ -755,14 +778,16 @@ template <typename NodeT>
 full_pos<NodeT> make_full_pos(NodeT* node, shift_t shift)
 {
     assert(node);
-    assert(shift >= NodeT::bits);
+    assert(shift >= NodeT::bits_leaf);
     return {node, shift};
 }
 
 template <typename NodeT>
 struct relaxed_pos
 {
-    static constexpr auto bits = NodeT::bits;
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
     using node_t = NodeT;
     using relaxed_t = typename NodeT::relaxed_t;
     node_t* node_;
@@ -824,7 +849,7 @@ struct relaxed_pos
     template <typename Visitor, typename... Args>
     void each_(Visitor v, count_t n, Args&&... args)
     {
-        if (shift_ == bits) {
+        if (shift_ == BL) {
             auto p = node_->inner();
             auto s = size_t{};
             for (auto i = 0u; i < n; ++i) {
@@ -835,7 +860,7 @@ struct relaxed_pos
         } else {
             auto p = node_->inner();
             auto s = size_t{};
-            auto ss = shift_ - bits;
+            auto ss = shift_ - B;
             for (auto i = 0u; i < n; ++i) {
                 visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
                                         v, args...);
@@ -849,14 +874,14 @@ struct relaxed_pos
     {
         auto s = relaxed_->sizes[0];
         auto p = node_->inner();
-        if (shift_ == bits) {
+        if (shift_ == BL) {
             for (auto i = 1u; i < relaxed_->count; ++i) {
                 make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->sizes[i];
             }
         } else {
-            auto ss = shift_ - bits;
+            auto ss = shift_ - B;
             for (auto i = 1u; i < relaxed_->count; ++i) {
                 visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
                                         v, args...);
@@ -906,13 +931,13 @@ struct relaxed_pos
         assert(left_size_hint ==
                (offset_hint ? relaxed_->sizes[offset_hint - 1] : 0));
         auto child     = node_->inner() [offset_hint];
-        auto is_leaf   = shift_ == bits;
+        auto is_leaf   = shift_ == BL;
         auto next_size = relaxed_->sizes[offset_hint] - left_size_hint;
         auto next_idx  = idx - left_size_hint;
         return is_leaf
             ? make_leaf_sub_pos(child, next_size).visit(
                 v, next_idx, args...)
-            : visit_maybe_relaxed_sub(child, shift_ - bits, next_size,
+            : visit_maybe_relaxed_sub(child, shift_ - B, next_size,
                                       v, next_idx, args...);
     }
 
@@ -925,10 +950,10 @@ struct relaxed_pos
         assert(offset_hint == count() - 1);
         assert(child_size_hint == size(offset_hint));
         auto child     = node_->inner() [offset_hint];
-        auto is_leaf   = shift_ == bits;
+        auto is_leaf   = shift_ == BL;
         return is_leaf
             ? make_leaf_sub_pos(child, child_size_hint).visit(v, args...)
-            : visit_maybe_relaxed_sub(child, shift_ - bits, child_size_hint,
+            : visit_maybe_relaxed_sub(child, shift_ - B, child_size_hint,
                                       v, args...);
     }
 
@@ -938,10 +963,10 @@ struct relaxed_pos
         auto offset     = relaxed_->count - 1;
         auto child      = node_->inner() [offset];
         auto child_size = size(offset);
-        auto is_leaf    = shift_ == bits;
+        auto is_leaf    = shift_ == BL;
         return is_leaf
             ? make_leaf_sub_pos(child, child_size).visit(v, args...)
-            : visit_maybe_relaxed_sub(child, shift_ - bits, child_size, v, args...);
+            : visit_maybe_relaxed_sub(child, shift_ - B, child_size, v, args...);
     }
 
     template <typename Visitor, typename... Args>
@@ -949,16 +974,16 @@ struct relaxed_pos
     {
         auto child      = node_->inner() [0];
         auto child_size = relaxed_->sizes[0];
-        auto is_leaf    = shift_ == bits;
+        auto is_leaf    = shift_ == BL;
         return is_leaf
             ? make_leaf_sub_pos(child, child_size).visit(v, args...)
-            : visit_maybe_relaxed_sub(child, shift_ - bits, child_size, v, args...);
+            : visit_maybe_relaxed_sub(child, shift_ - B, child_size, v, args...);
     }
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub_leaf(Visitor v, Args&&... args)
     {
-        assert(shift_ == bits);
+        assert(shift_ == BL);
         auto child      = node_->inner() [0];
         auto child_size = relaxed_->sizes[0];
         return make_leaf_sub_pos(child, child_size).visit(v, args...);
@@ -978,7 +1003,7 @@ relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,
 {
     assert(node);
     assert(relaxed);
-    assert(shift >= NodeT::bits);
+    assert(shift >= NodeT::bits_leaf);
     return {node, shift, relaxed};
 }
 
@@ -998,12 +1023,13 @@ decltype(auto) visit_maybe_relaxed_sub(NodeT* node, shift_t shift, size_t size,
     }
 }
 
-template <typename NodeT, shift_t Shift, bits_t B=NodeT::bits>
+template <typename NodeT, shift_t Shift,
+          bits_t B  = NodeT::bits,
+          bits_t BL = NodeT::bits_leaf>
 struct relaxed_descent_pos
 {
     static_assert(Shift > 0, "not leaf...");
 
-    static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     using relaxed_t = typename NodeT::relaxed_t;
     node_t* node_;
@@ -1041,10 +1067,9 @@ struct relaxed_descent_pos
     }
 };
 
-template <typename NodeT, bits_t B>
-struct relaxed_descent_pos<NodeT, B, B>
+template <typename NodeT, bits_t B, bits_t BL>
+struct relaxed_descent_pos<NodeT, BL, B, BL>
 {
-    static constexpr auto bits = NodeT::bits;
     using node_t = NodeT;
     using relaxed_t = typename NodeT::relaxed_t;
     node_t* node_;
@@ -1052,12 +1077,12 @@ struct relaxed_descent_pos<NodeT, B, B>
 
     count_t count() const { return relaxed_->count; }
     node_t* node()  const { return node_; }
-    shift_t shift() const { return B; }
+    shift_t shift() const { return BL; }
     size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
 
     count_t index(size_t idx) const
     {
-        auto offset = (idx >> B) & mask<bits>;
+        auto offset = (idx >> BL) & mask<B>;
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
     }
@@ -1065,9 +1090,9 @@ struct relaxed_descent_pos<NodeT, B, B>
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx)
     {
-        auto offset    = this->index(idx);
-        auto child     = this->node_->inner() [offset];
-        auto left_size = offset ? this->relaxed_->sizes[offset - 1] : 0;
+        auto offset    = index(idx);
+        auto child     = node_->inner() [offset];
+        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
         auto next_idx  = idx - left_size;
         return leaf_descent_pos<NodeT>{child}.visit(v, next_idx);
     }
@@ -1083,19 +1108,20 @@ template <typename NodeT, typename Visitor, typename... Args>
 decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
                                            Visitor v, size_t idx)
 {
-    constexpr auto B = NodeT::bits;
+    constexpr auto B  = NodeT::bits;
+    constexpr auto BL = NodeT::bits_leaf;
     assert(node);
-    assert(shift >= B);
+    assert(shift >= BL);
     auto r = node->relaxed();
     if (r) {
         switch (shift) {
-        case B * 1: return relaxed_descent_pos<NodeT, B * 1>{node, r}.visit(v, idx);
-        case B * 2: return relaxed_descent_pos<NodeT, B * 2>{node, r}.visit(v, idx);
-        case B * 3: return relaxed_descent_pos<NodeT, B * 3>{node, r}.visit(v, idx);
-        case B * 4: return relaxed_descent_pos<NodeT, B * 4>{node, r}.visit(v, idx);
-        case B * 5: return relaxed_descent_pos<NodeT, B * 5>{node, r}.visit(v, idx);
-        case B * 6: return relaxed_descent_pos<NodeT, B * 6>{node, r}.visit(v, idx);
-        default:    return leaf_descent_pos<NodeT>{node}.visit(v, idx);
+        case BL + B * 0: return relaxed_descent_pos<NodeT, BL + B * 0>{node, r}.visit(v, idx);
+        case BL + B * 1: return relaxed_descent_pos<NodeT, BL + B * 1>{node, r}.visit(v, idx);
+        case BL + B * 2: return relaxed_descent_pos<NodeT, BL + B * 2>{node, r}.visit(v, idx);
+        case BL + B * 3: return relaxed_descent_pos<NodeT, BL + B * 3>{node, r}.visit(v, idx);
+        case BL + B * 4: return relaxed_descent_pos<NodeT, BL + B * 4>{node, r}.visit(v, idx);
+        case BL + B * 5: return relaxed_descent_pos<NodeT, BL + B * 5>{node, r}.visit(v, idx);
+        default        : return leaf_descent_pos<NodeT>{node}.visit(v, idx);
         }
     } else {
         return visit_regular_descent(node, shift, v, idx);

@@ -109,12 +109,12 @@ struct rbtree
 
     auto tail_size() const
     {
-        return size - tail_offset();
+        return size ? ((size - 1) & mask<BL>) + 1 : 0;
     }
 
     auto tail_offset() const
     {
-        return size ? (size-1) & ~mask<B> : 0;
+        return size ? (size - 1) & ~mask<BL> : 0;
     }
 
     template <typename Visitor, typename... Args>
@@ -150,13 +150,13 @@ struct rbtree
     {
         auto tail_off = tail_offset();
         auto ts = size - tail_off;
-        if (ts < branches<B>) {
+        if (ts < branches<BL>) {
             auto new_tail = node_t::copy_leaf_emplace(tail, ts,
                                                       std::move(value));
             return { size + 1, shift, root->inc(), new_tail };
         } else {
             auto new_tail = node_t::make_leaf_n(1u, std::move(value));
-            if ((size >> B) > (1u << shift)) {
+            if (tail_off == size_t{branches<B>} << shift) {
                 auto new_root = node_t::make_inner_n(
                     2u,
                     root->inc(),
@@ -229,7 +229,7 @@ struct rbtree
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
-                return { new_size, B, empty.root->inc(), new_tail };
+                return { new_size, BL, empty.root->inc(), new_tail };
             }
         }
     }
@@ -237,7 +237,7 @@ struct rbtree
     bool check_tree() const
     {
 #if IMMER_DEBUG_DEEP_CHECK
-        assert(shift >= B);
+        assert(shift >= BL);
         assert(tail_offset() <= size);
         assert(check_root());
         assert(check_tail());
@@ -260,8 +260,8 @@ struct rbtree
         if (tail_offset() > 0)
             assert(root->check(shift, tail_offset()));
         else {
-            assert(root->kind() == node_t::inner_kind);
-            assert(shift == B);
+            assert(root->kind() == node_t::kind_t::inner);
+            assert(shift == BL);
         }
 #endif
         return true;
@@ -271,7 +271,7 @@ struct rbtree
 template <typename T, typename MP, bits_t B, bits_t BL>
 const rbtree<T, MP, B, BL> rbtree<T, MP, B, BL>::empty = {
     0,
-    B,
+    BL,
     node_t::make_inner_n(0u),
     node_t::make_leaf_n(0u)
 };
