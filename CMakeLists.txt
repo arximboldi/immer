@@ -264,6 +264,11 @@ add_custom_target(upload-benchmark-reports
       -r ${immer_benchmark_report_base_dir}/*
       raskolnikov@sinusoid.es:public/misc/immer/reports/)
 
+add_custom_target(copy-benchmark-reports
+  COMMAND
+  cp -p -r ${immer_benchmark_report_base_dir}/*
+      ~/public/misc/immer/reports/)
+
 #  documentation
 #  =====================================================================
 
