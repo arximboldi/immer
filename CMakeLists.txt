@@ -229,10 +229,12 @@ if(immer_benchmark_param)
   add_dependencies(check benchmarks)
 endif()
 
-add_custom_target(make-benchmark-report-dir ALL
+add_custom_target(make-benchmark-report-dir
   COMMAND ${CMAKE_COMMAND}
   -E make_directory ${immer_benchmark_report_dir})
-add_dependencies(benchmarks make-benchmark-report-dir)
+if(immer_benchmark_param)
+  add_dependencies(check make-benchmark-report-dir)
+endif()
 
 file(GLOB immer_benchmarks "benchmark/*.cpp")
 foreach(_file IN LISTS immer_benchmarks)
