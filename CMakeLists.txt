@@ -203,6 +203,16 @@ execute_process(
   OUTPUT_VARIABLE immer_git_commit_hash
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+execute_process(
+  COMMAND git status --porcelain
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE immer_git_status
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if (NOT immer_git_status STREQUAL "")
+  set(immer_git_commit_hash "${immer_git_commit_hash}*")
+endif()
+
 site_name(immer_hostname)
 
 get_filename_component(immer_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
