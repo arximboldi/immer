@@ -60,8 +60,9 @@ install:
       export CXXFLAGS="-Wno-reserved-id-macro \
                        -I ${DEPS_DIR}/llvm/build/include \
                        -I ${DEPS_DIR}/llvm/build/include/c++/v1 \
-                       -stdlib=libc++"
-      export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi -lsupc++"
+                       -stdlib=libc++ \
+                       -DIMMER_ENABLE_CXA_THREAD_ATEXIT_HACK=1"
+      export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi"
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/build/lib"
     fi
 
@@ -94,7 +95,7 @@ before_script:
     fi
 
 script:
-  - make check
+  - make check VERBOSE=1
 
 after_success:
   - |
