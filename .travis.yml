@@ -41,7 +41,7 @@ install:
   - export PATH=${DEPS_DIR}/cmake/bin:${PATH}
 
   # Install boost
-  - BOOST_URL="http://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.gz"
+  - BOOST_URL="http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz"
   - mkdir boost && travis_retry wget --quiet -O - ${BOOST_URL} | tar --strip-components=1 -xz -C boost
   - export BOOST_PATH=${DEPS_DIR}/boost
 
