@@ -406,7 +406,6 @@ struct concat_merger
         auto idx = r->count++;
         r->sizes[idx] = size_sum += size;
         parent->inner() [idx] = p;
-        assert(!idx || parent->inner() [idx] != parent->inner() [idx - 1]);
     };
 
     template <typename Pos>
@@ -635,9 +634,9 @@ concat_inners(LPos&& lpos, RPos&& rpos, bool is_top)
         auto r = concat_rebalance<Node>(null_sub_pos{}, cpos, rpos, is_top);
         cpos.visit(dec_visitor{});
         return r;
-    } else if (lshift == 0) {
-        IMMER_UNREACHABLE;
     } else {
+        assert(lshift == rshift);
+        assert(Node::bits_leaf == 0u || lshift > 0);
         auto cpos = lpos.last_sub(concat_both_visitor<Node>{}, rpos, false);
         auto r = concat_rebalance<Node>(lpos, cpos, rpos, is_top);
         cpos.visit(dec_visitor{});
