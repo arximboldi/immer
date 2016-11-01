@@ -61,7 +61,7 @@ install:
                        -I ${DEPS_DIR}/llvm/build/include \
                        -I ${DEPS_DIR}/llvm/build/include/c++/v1 \
                        -stdlib=libc++"
-      export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi"
+      export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi -lsupc++"
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/build/lib"
     fi
 

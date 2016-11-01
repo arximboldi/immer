@@ -39,7 +39,7 @@ struct unsafe_free_list_storage
 
 template <typename Heap>
 typename unsafe_free_list_storage<Heap>::head_t
-unsafe_free_list_storage<Heap>::head {{nullptr}};
+unsafe_free_list_storage<Heap>::head {nullptr};
 
 template <typename Heap>
 struct thread_local_free_list_storage

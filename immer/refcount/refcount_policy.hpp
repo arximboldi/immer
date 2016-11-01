@@ -24,6 +24,7 @@
 
 #include <atomic>
 #include <utility>
+#include <cassert>
 
 namespace immer {
 

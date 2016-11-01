@@ -33,7 +33,7 @@ struct free_list_heap : Base
 {
     using base_t = Base;
 
-    template <typename Tags>
+    template <typename... Tags>
     static void* allocate(std::size_t size, Tags...)
     {
         assert(size <= sizeof(free_list_node) + Size);
@@ -50,7 +50,7 @@ struct free_list_heap : Base
         return n;
     }
 
-    template <typename Tags>
+    template <typename... Tags>
     static void deallocate(void* data, Tags...)
     {
         auto n = static_cast<free_list_node*>(data);
