@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #  Options
@@ -151,7 +151,6 @@ set(immer_include_dirs
   ${LIBGC_INCLUDE_DIR})
 
 set(immer_test_include_dirs
-  ${immer_include_dirs}
   ${CATCH_INCLUDE_DIR}
   ${DOCTEST_INCLUDE_DIR})
 set(immer_test_libs
@@ -159,7 +158,6 @@ set(immer_test_libs
   ${CMAKE_THREAD_LIBS_INIT})
 
 set(immer_benchmark_include_dirs
-  ${immer_include_dirs}
   ${NONIUS_INCLUDE_DIR}
   ${LIBRRB_INCLUDE_DIR})
 set(immer_benchmark_libs
@@ -194,7 +192,8 @@ foreach(_file IN LISTS immer_unit_tests)
   target_compile_definitions(${_target} PUBLIC
     DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
     CATCH_CONFIG_MAIN)
-  target_include_directories(${_target} PUBLIC ${immer_test_include_dirs})
+  target_include_directories(${_target} PUBLIC ${immer_include_dirs})
+  target_include_directories(${_target} SYSTEM PUBLIC ${immer_test_include_dirs})
   add_test(${_target} ${_target})
 endforeach()
 
@@ -263,7 +262,8 @@ foreach(_file IN LISTS immer_benchmarks)
     NONIUS_RUNNER
     IMMER_BENCHMARK_LIBRRB=1
     IMMER_BENCHMARK_EXPERIMENTAL=0)
-  target_include_directories(${_target} PUBLIC ${immer_benchmark_include_dirs})
+  target_include_directories(${_target} PUBLIC ${immer_include_dirs})
+  target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
   if (immer_benchmark_param)
     add_test(${_target} ${_target} -v
       -t ${_target}

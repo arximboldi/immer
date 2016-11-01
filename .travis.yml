@@ -57,9 +57,10 @@ install:
       travis_retry wget --quiet -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx
       travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
       (cd llvm/build && cmake .. -DCMAKE_CXX_COMPILER=clang++ && make cxxabi cxx -j2)
-      export CXXFLAGS="-Wno-reserved-id-macro \
-                       -I ${DEPS_DIR}/llvm/build/include \
-                       -I ${DEPS_DIR}/llvm/build/include/c++/v1 \
+      export CXXFLAGS="-Qunused-arguments \
+                       -Wno-reserved-id-macro \
+                       -I${DEPS_DIR}/llvm/build/include \
+                       -I${DEPS_DIR}/llvm/build/include/c++/v1 \
                        -stdlib=libc++ \
                        -DIMMER_ENABLE_CXA_THREAD_ATEXIT_HACK=1"
       export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi"
