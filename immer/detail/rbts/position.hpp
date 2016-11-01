@@ -633,7 +633,7 @@ decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
     case BL + B * 3: return regular_descent_pos<NodeT, BL + B * 3>{node}.visit(v, idx);
     case BL + B * 4: return regular_descent_pos<NodeT, BL + B * 4>{node}.visit(v, idx);
     case BL + B * 5: return regular_descent_pos<NodeT, BL + B * 5>{node}.visit(v, idx);
-    default        : return leaf_descent_pos<NodeT>{node}.visit(v, idx);
+    default        : IMMER_UNREACHABLE;
     }
 }
 
@@ -1121,7 +1121,7 @@ decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
         case BL + B * 3: return relaxed_descent_pos<NodeT, BL + B * 3>{node, r}.visit(v, idx);
         case BL + B * 4: return relaxed_descent_pos<NodeT, BL + B * 4>{node, r}.visit(v, idx);
         case BL + B * 5: return relaxed_descent_pos<NodeT, BL + B * 5>{node, r}.visit(v, idx);
-        default        : return leaf_descent_pos<NodeT>{node}.visit(v, idx);
+        default        : IMMER_UNREACHABLE;
         }
     } else {
         return visit_regular_descent(node, shift, v, idx);

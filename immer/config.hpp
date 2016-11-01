@@ -46,6 +46,8 @@
 #define IMMER_TRACE_E(expr)                             \
     IMMER_TRACE("    " << #expr << " = " << (expr))
 
+#define IMMER_UNREACHABLE __builtin_unreachable()
+
 namespace immer {
 
 const auto default_bits = 5;

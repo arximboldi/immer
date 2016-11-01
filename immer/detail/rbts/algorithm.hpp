@@ -228,7 +228,7 @@ struct push_tail_visitor
 
     template <typename Pos, typename... Args>
     friend node_t* visit_leaf(this_t, Pos&& pos, node_t* tail, Args&&...)
-    { return tail; };
+    { IMMER_UNREACHABLE; };
 };
 
 template <typename NodeT, bool Collapse=true>
@@ -636,9 +636,7 @@ concat_inners(LPos&& lpos, RPos&& rpos, bool is_top)
         cpos.visit(dec_visitor{});
         return r;
     } else if (lshift == 0) {
-        assert(rshift == 0);
-        assert(false);
-        return {};
+        IMMER_UNREACHABLE;
     } else {
         auto cpos = lpos.last_sub(concat_both_visitor<Node>{}, rpos, false);
         auto r = concat_rebalance<Node>(lpos, cpos, rpos, is_top);
@@ -660,7 +658,7 @@ struct concat_left_visitor
     template <typename LPos, typename RPos>
     friend relaxed_pos<Node>
     visit_leaf(this_t, LPos&& lpos, RPos&& rpos, bool is_top)
-    { return concat_leafs<Node>(lpos, rpos, is_top); }
+    { IMMER_UNREACHABLE; }
 };
 
 template <typename Node>

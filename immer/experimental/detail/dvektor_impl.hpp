@@ -217,7 +217,7 @@ struct ref
         if (d == 0) {
             display[0] = copy_of_leaf(display[0]);
         } else {
-            assert(false);
+            IMMER_UNREACHABLE;
             display[d] = copy_of_inner(display[d]);
             auto shift = B * d;
             while (--d) {
