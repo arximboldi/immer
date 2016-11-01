@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <array>
 
 #ifndef FLEX_VECTOR_T
 #error "define the vector template to use in FLEX_VECTOR_T"
@@ -52,46 +53,49 @@ auto make_test_flex_vector_front(std::size_t min, std::size_t max)
     return v;
 }
 
-auto make_many_test_flex_vector(std::size_t n)
+template <std::size_t N>
+auto make_many_test_flex_vector()
 {
     using vektor_t = FLEX_VECTOR_T<unsigned>;
-    auto many = std::vector<vektor_t>{};
-    many.reserve(n);
-    std::generate_n(std::back_inserter(many), n,
-                    [v = vektor_t{}, i = 0u] () mutable
-                    {
-                        auto r = v;
-                        v = v.push_back(i++);
-                        return r;
-                    });
+    auto many = std::array<vektor_t, N>{};
+    std::generate_n(
+        many.begin(), N,
+        [v = vektor_t{}, i = 0u] () mutable
+        {
+            auto r = v;
+            v = v.push_back(i++);
+            return r;
+        });
     return many;
 }
 
-auto make_many_test_flex_vector_front(std::size_t n)
+template <std::size_t N>
+auto make_many_test_flex_vector_front()
 {
     using vektor_t = FLEX_VECTOR_T<unsigned>;
-    auto many = std::vector<vektor_t>{};
-    many.reserve(n);
-    std::generate_n(std::back_inserter(many), n,
-                    [i = 0u] () mutable
-                    {
-                        return make_test_flex_vector_front(0, i++);
-                    });
+    auto many = std::array<vektor_t, N>{};
+    std::generate_n(
+        many.begin(), N,
+        [i = 0u] () mutable
+        {
+            return make_test_flex_vector_front(0, i++);
+        });
     return many;
 }
 
-auto make_many_test_flex_vector_front_remainder(std::size_t n)
+template <std::size_t N>
+auto make_many_test_flex_vector_front_remainder()
 {
     using vektor_t = FLEX_VECTOR_T<unsigned>;
-    auto many = std::vector<vektor_t>{};
-    many.reserve(n);
-    std::generate_n(std::back_inserter(many), n,
-                    [v = vektor_t{}, i = n-1] () mutable
-                    {
-                        auto r = v;
-                        v = v.push_front(--i);
-                        return r;
-                    });
+    auto many = std::array<vektor_t, N>{};
+    std::generate_n(
+        many.begin(), N,
+        [v = vektor_t{}, i = N-1] () mutable
+        {
+            auto r = v;
+            v = v.push_front(--i);
+            return r;
+        });
     return many;
 }
 
@@ -120,13 +124,13 @@ TEST_CASE("push_front")
 TEST_CASE("concat")
 {
 #if IMMER_SLOW_TESTS
-    const auto n = 666u;
+    constexpr auto n = 666u;
 #else
-    const auto n = 101u;
+    constexpr auto n = 101u;
 #endif
 
-    auto all_lhs = make_many_test_flex_vector(n);
-    auto all_rhs = make_many_test_flex_vector_front_remainder(n);
+    auto all_lhs = make_many_test_flex_vector<n>();
+    auto all_rhs = make_many_test_flex_vector_front_remainder<n>();
 
     SECTION("regular plus regular")
     {
@@ -234,10 +238,10 @@ TEST_CASE("drop")
 #if IMMER_SLOW_TESTS
 TEST_CASE("reconcat")
 {
-    const auto n = 666u;
+    constexpr auto n = 666u;
     auto v = make_test_flex_vector_front(0, n);
-    auto all_lhs = make_many_test_flex_vector_front(n + 1);
-    auto all_rhs = make_many_test_flex_vector_front_remainder(n + 1);
+    auto all_lhs = make_many_test_flex_vector_front<n + 1>();
+    auto all_rhs = make_many_test_flex_vector_front_remainder<n + 1>();
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + all_rhs[n - i];
@@ -247,9 +251,9 @@ TEST_CASE("reconcat")
 
 TEST_CASE("reconcat drop")
 {
-    const auto n = 666u;
+    constexpr auto n = 666u;
     auto v = make_test_flex_vector_front(0, n);
-    auto all_lhs = make_many_test_flex_vector_front(n + 1);
+    auto all_lhs = make_many_test_flex_vector_front<n + 1>();
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + v.drop(i);
@@ -259,9 +263,9 @@ TEST_CASE("reconcat drop")
 
 TEST_CASE("reconcat take")
 {
-    const auto n = 666u;
+    constexpr auto n = 666u;
     auto v = make_test_flex_vector_front(0, n);
-    auto all_rhs = make_many_test_flex_vector_front_remainder(n + 1);
+    auto all_rhs = make_many_test_flex_vector_front_remainder<n + 1>();
 
     for (auto i = 0u; i < n; ++i) {
         auto vv = v.take(i) + all_rhs[n - i];
