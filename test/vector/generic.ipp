@@ -18,9 +18,7 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <immer/vector.hpp>
-
-#include "util.hpp"
+#include "../util.hpp"
 
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
@@ -29,15 +27,13 @@
 #include <numeric>
 #include <vector>
 
-using namespace immer;
+#ifndef VECTOR_T
+#error "define the vector template to use in VECTOR_T"
+#endif
 
-template <typename T, detail::rbts::bits_t B = default_bits>
-using test_vector_t = vector<T, default_memory_policy, B>;
-
-template <unsigned B = default_bits>
 auto make_test_vector(std::size_t min, std::size_t max)
 {
-    auto v = test_vector_t<unsigned, B>{};
+    auto v = VECTOR_T<unsigned>{};
     for (auto i = min; i < max; ++i)
         v = v.push_back(i);
     return v;
@@ -45,7 +41,7 @@ auto make_test_vector(std::size_t min, std::size_t max)
 
 TEST_CASE("instantiation")
 {
-    auto v = test_vector_t<int>{};
+    auto v = VECTOR_T<int>{};
     CHECK(v.size() == 0u);
 }
 
@@ -53,7 +49,7 @@ TEST_CASE("push back one element")
 {
     SECTION("one element")
     {
-        const auto v1 = test_vector_t<int>{};
+        const auto v1 = VECTOR_T<int>{};
         auto v2 = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
@@ -63,7 +59,7 @@ TEST_CASE("push back one element")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = test_vector_t<unsigned>{};
+        auto v = VECTOR_T<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -111,7 +107,7 @@ TEST_CASE("update")
 
     SECTION("assoc further more")
     {
-        auto v = make_test_vector<4>(0, 1000);
+        auto v = make_test_vector(0, 666u);
 
         for (auto i = 0u; i < v.size(); ++i) {
             v = v.assoc(i, i+1);
@@ -208,9 +204,9 @@ TEST_CASE("reduce")
 
 TEST_CASE("vector of strings")
 {
-    // check with valgrind
     const auto n = 666u;
-    auto v = test_vector_t<std::string>{};
+
+    auto v = VECTOR_T<std::string>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(std::to_string(i));
 
@@ -242,7 +238,8 @@ struct non_default
 TEST_CASE("non default")
 {
     const auto n = 666u;
-    auto v = test_vector_t<non_default>{};
+
+    auto v = VECTOR_T<non_default>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back({ i });
 
@@ -258,14 +255,13 @@ TEST_CASE("non default")
     }
 }
 
-
 TEST_CASE("take")
 {
     const auto n = 666u;
 
     SECTION("anywhere")
     {
-        auto v = make_test_vector<3>(0, n);
+        auto v = make_test_vector(0, n);
 
         for (auto i : test_irange(0u, n)) {
             auto vv = v.take(i);

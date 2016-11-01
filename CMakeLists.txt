@@ -35,9 +35,11 @@ set(LIBRRB_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/librrb-prefix/include")
 set(LIBGC_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/libgc-prefix/include")
+set(LIBGC_LIBS
+  "${CMAKE_BINARY_DIR}/libgc-prefix/lib/libgc.a")
 set(LIBRRB_LIBS
   "${CMAKE_BINARY_DIR}/librrb-prefix/lib/librrb.a"
-  "${CMAKE_BINARY_DIR}/libgc-prefix/lib/libgc.a")
+  ${LIBGC_LIBS})
 
 #  Deps
 #  =====================================================================
@@ -81,7 +83,7 @@ immer_external_dep_nobuild(deps-benchmark libatomic_ops
   GIT_REPOSITORY https://github.com/ivmai/libatomic_ops.git
   UPDATE_COMMAND "")
 
-immer_external_dep(deps-benchmark libgc
+immer_external_dep(deps-test libgc
   DEPENDS libatomic_ops
   GIT_REPOSITORY https://github.com/ivmai/bdwgc.git
   CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3
@@ -147,10 +149,15 @@ set(immer_include_dirs
   ${PRETTYPRINT_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
   ${LIBGC_INCLUDE_DIR})
+
 set(immer_test_include_dirs
   ${immer_include_dirs}
   ${CATCH_INCLUDE_DIR}
   ${DOCTEST_INCLUDE_DIR})
+set(immer_test_libs
+  ${LIBGC_LIBS}
+  ${CMAKE_THREAD_LIBS_INIT})
+
 set(immer_benchmark_include_dirs
   ${immer_include_dirs}
   ${NONIUS_INCLUDE_DIR}
@@ -158,7 +165,6 @@ set(immer_benchmark_include_dirs
 set(immer_benchmark_libs
   ${LIBRRB_LIBS}
   ${CMAKE_THREAD_LIBS_INIT})
-set(immer_definitions)
 
 enable_testing()
 
@@ -184,6 +190,7 @@ foreach(_file IN LISTS immer_unit_tests)
   immer_target_name_for(_target "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(tests ${_target})
+  target_link_libraries(${_target} PUBLIC ${immer_test_libs})
   target_compile_definitions(${_target} PUBLIC
     DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
     CATCH_CONFIG_MAIN)
