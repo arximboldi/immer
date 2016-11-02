@@ -22,7 +22,7 @@
 
 #include <immer/detail/rbts/node.hpp>
 #include <immer/detail/rbts/position.hpp>
-#include <immer/detail/rbts/algorithm.hpp>
+#include <immer/detail/rbts/operations.hpp>
 
 #include <cassert>
 #include <memory>
