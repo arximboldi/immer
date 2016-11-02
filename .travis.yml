@@ -3,7 +3,7 @@ sudo: false
 
 matrix:
   include:
-    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Debug FLAGS="-fsanitize=address"
+    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Debug FLAGS="-fsanitize=address -fsanitize=leak -fsanitize=undefined"
       addons: &clang38
         apt:
           sources:
