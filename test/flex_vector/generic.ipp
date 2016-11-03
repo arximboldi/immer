@@ -18,6 +18,7 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "../dada.hpp"
 #include "../util.hpp"
 
 #include <catch.hpp>
@@ -45,11 +46,12 @@ auto make_test_flex_vector(std::size_t min, std::size_t max)
     return v;
 }
 
-auto make_test_flex_vector_front(std::size_t min, std::size_t max)
+template <typename V=FLEX_VECTOR_T<unsigned>>
+auto make_test_flex_vector_front(unsigned min, unsigned max)
 {
-    auto v = FLEX_VECTOR_T<unsigned>{};
+    auto v = V{};
     for (auto i = max; i > min;)
-        v = v.push_front(--i);
+        v = v.push_front({--i});
     return v;
 }
 
@@ -364,5 +366,29 @@ TEST_CASE("adopt regular vector contents")
         v = v.push_back(i);
         auto fv = FLEX_VECTOR_T<unsigned>{v};
         CHECK_VECTOR_EQUALS_X(v, fv, [] (auto&& v) { return &v; });
+    }
+}
+
+
+TEST_CASE("exception safety relaxed")
+{
+    using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
+    constexpr auto n = 666u;
+
+    SECTION("push back")
+    {
+        auto half = n / 2;
+        auto v = make_test_flex_vector_front<dadaist_vector_t>(0, half);
+        auto d = dadaism{};
+        for (auto i = half; v.size() < n;) {
+            d.next();
+            try {
+                v = v.push_back({i});
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
     }
 }

@@ -203,13 +203,23 @@ struct push_tail_visitor
             }
         } else
             new_child = node_t::make_path(level - B, tail);
-        auto count       = new_idx + 1;
-        auto new_parent  = node_t::copy_inner_r_n(count, pos.node(), new_idx);
-        auto new_relaxed = new_parent->relaxed();
-        new_parent->inner()[new_idx] = new_child;
-        new_relaxed->sizes[new_idx] = pos.size() + ts;
-        new_relaxed->count = count;
-        return new_parent;
+        try {
+            auto count       = new_idx + 1;
+            auto new_parent  = node_t::copy_inner_r_n(count, pos.node(), new_idx);
+            auto new_relaxed = new_parent->relaxed();
+            new_parent->inner()[new_idx] = new_child;
+            new_relaxed->sizes[new_idx] = pos.size() + ts;
+            new_relaxed->count = count;
+            return new_parent;
+        } catch (...) {
+            auto shift = pos.shift();
+            auto size  = new_idx == idx ? children + ts : ts;
+            if (shift > BL) {
+                tail->inc();
+                visit_maybe_relaxed_sub(new_child, shift - B, size, dec_visitor{});
+            }
+            throw;
+        }
     }
 
     template <typename Pos, typename... Args>

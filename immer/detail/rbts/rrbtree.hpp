@@ -167,12 +167,18 @@ struct rrbtree
             if (new_root)
                 return { shift, new_root };
             else {
-                auto new_path = node_t::make_path(shift, tail);
-                auto new_root = node_t::make_inner_r_n(2u,
-                                                       root->inc(),
-                                                       size,
-                                                       new_path,
-                                                       tail_size);
+                auto new_root = node_t::make_inner_r_n(2u);
+                try {
+                    auto new_path = node_t::make_path(shift, tail);
+                    new_root->inner() [0] = root->inc();
+                    new_root->inner() [1] = new_path;
+                    new_root->relaxed()->sizes [0] = size;
+                    new_root->relaxed()->sizes [1] = size + tail_size;
+                    new_root->relaxed()->count = 2u;
+                } catch (...) {
+                    node_t::delete_inner_r(new_root);
+                    throw;
+                }
                 return { shift + B, new_root };
             }
         } else if (size == size_t{branches<B>} << shift) {
