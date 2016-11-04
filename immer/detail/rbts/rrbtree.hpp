@@ -108,11 +108,6 @@ struct rrbtree
         traverse(dec_visitor());
     }
 
-    static void dec_node(node_t* n, shift_t shift, size_t size)
-    {
-        visit_maybe_relaxed_sub(n, shift, size, dec_visitor());
-    }
-
     auto tail_size() const
     {
         return size - tail_offset();
@@ -366,7 +361,7 @@ struct rrbtree
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, size + r.tail_offset()));
-            dec_node(lroot, lshift, size);
+            dec_inner_r(lroot, lshift, size);
             return { size + r.size, new_shift, new_root, r.tail->inc() };
         }
     }

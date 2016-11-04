@@ -313,4 +313,22 @@ TEST_CASE("exception safety")
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
     }
+
+    SECTION("take")
+    {
+        auto v = make_test_vector<dadaist_vector_t>(0, n);
+        auto d = dadaism{};
+        for (auto i = 0u; i < n;) {
+            d.next();
+            auto r = dadaist_vector_t{};
+            try {
+                r = v.take(i);
+                CHECK_VECTOR_EQUALS(r, boost::irange(0u, i++));
+            } catch (dada_error) {
+                CHECK_VECTOR_EQUALS(r, boost::irange(0u, 0u));
+            }
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
 }

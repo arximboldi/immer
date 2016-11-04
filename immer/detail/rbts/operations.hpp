@@ -193,6 +193,24 @@ struct dec_visitor
 };
 
 template <typename NodeT>
+void dec_leaf(NodeT* node, size_t size)
+{
+    make_leaf_pos(node, size).visit(dec_visitor{});
+}
+
+template <typename NodeT>
+void dec_inner_r(NodeT* node, shift_t shift, size_t size)
+{
+    visit_maybe_relaxed_sub(node, shift, size, dec_visitor());
+}
+
+template <typename NodeT>
+void dec_inner(NodeT* node, shift_t shift, size_t size)
+{
+    make_regular_pos(node, shift, size).visit(dec_visitor());
+}
+
+template <typename NodeT>
 struct push_tail_visitor
 {
     static constexpr auto B  = NodeT::bits;
@@ -235,7 +253,7 @@ struct push_tail_visitor
             auto size  = new_idx == idx ? children + ts : ts;
             if (shift > BL) {
                 tail->inc();
-                visit_maybe_relaxed_sub(new_child, shift - B, size, dec_visitor{});
+                dec_inner_r(new_child, shift - B, size);
             }
             throw;
         }
@@ -290,22 +308,30 @@ struct slice_right_visitor
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
-            if (next) {
-                auto count = idx + 1;
-                auto newn  = node_t::copy_inner_r_n(count, pos.node(), idx);
-                auto newr  = newn->relaxed();
-                newn->inner()[idx] = next;
-                newr->sizes[idx] = last + 1 - ts;
-                newr->count = count;
-                return { pos.shift(), newn, ts, tail };
-            } else if (idx == 0) {
-                return { pos.shift(), nullptr, ts, tail };
-            } else if (Collapse && idx == 1 && pos.shift() > BL) {
-                auto newn = pos.node()->inner()[0];
-                return { pos.shift() - B, newn->inc(), ts, tail };
-            } else {
-                auto newn = node_t::copy_inner_r(pos.node(), idx);
-                return { pos.shift(), newn, ts, tail };
+            try {
+                if (next) {
+                    auto count = idx + 1;
+                    auto newn  = node_t::copy_inner_r_n(count, pos.node(), idx);
+                    auto newr  = newn->relaxed();
+                    newn->inner()[idx] = next;
+                    newr->sizes[idx] = last + 1 - ts;
+                    newr->count = count;
+                    return { pos.shift(), newn, ts, tail };
+                } else if (idx == 0) {
+                    return { pos.shift(), nullptr, ts, tail };
+                } else if (Collapse && idx == 1 && pos.shift() > BL) {
+                    auto newn = pos.node()->inner()[0];
+                    return { pos.shift() - B, newn->inc(), ts, tail };
+                } else {
+                    auto newn = node_t::copy_inner_r(pos.node(), idx);
+                    return { pos.shift(), newn, ts, tail };
+                }
+            } catch (...) {
+                assert(!next || pos.shift() > BL);
+                if (next) dec_inner_r(next, pos.shift() - B,
+                                      last + 1 - ts - pos.size_before(idx));
+                if (tail) dec_leaf(tail, ts);
+                throw;
             }
         }
     }
@@ -322,19 +348,26 @@ struct slice_right_visitor
             auto next = get<1>(subs);
             auto ts   = get<2>(subs);
             auto tail = get<3>(subs);
-            if (next) {
-                auto count = idx + 1;
-                auto newn  = node_t::copy_inner_n(count, pos.node(), idx);
-                newn->inner()[idx] = next;
-                return { pos.shift(), newn, ts, tail };
-            } else if (idx == 0) {
-                return { pos.shift(), nullptr, ts, tail };
-            } else if (Collapse && idx == 1 && pos.shift() > BL) {
-                auto newn = pos.node()->inner()[0];
-                return { pos.shift() - B, newn->inc(), ts, tail };
-            } else {
-                auto newn = node_t::copy_inner(pos.node(), idx);
-                return { pos.shift(), newn, ts, tail };
+            try {
+                if (next) {
+                    auto count = idx + 1;
+                    auto newn  = node_t::copy_inner_n(count, pos.node(), idx);
+                    newn->inner()[idx] = next;
+                    return { pos.shift(), newn, ts, tail };
+                } else if (idx == 0) {
+                    return { pos.shift(), nullptr, ts, tail };
+                } else if (Collapse && idx == 1 && pos.shift() > BL) {
+                    auto newn = pos.node()->inner()[0];
+                    return { pos.shift() - B, newn->inc(), ts, tail };
+                } else {
+                    auto newn = node_t::copy_inner(pos.node(), idx);
+                    return { pos.shift(), newn, ts, tail };
+                }
+            } catch (...) {
+                assert(!next || pos.shift() > BL);
+                if (next) dec_inner(next, pos.shift() - B, last + 1 - ts);
+                if (tail) dec_leaf(tail, ts);
+                throw;
             }
         }
     }
