@@ -1,0 +1,127 @@
+//
+// immer - immutable data structures for C++
+// Copyright (C) 2016 Juan Pedro Bolivar Puente
+//
+// This file is part of immer.
+//
+// immer is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// immer is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+#pragma once
+
+#include <cstddef>
+#include <utility>
+
+namespace {
+
+struct dada_error {};
+
+struct dadaism;
+dadaism* g_dadaism = nullptr;
+
+constexpr static unsigned magic[] = {
+    7, 11, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 };
+constexpr static unsigned magic_length =
+    sizeof(magic) / sizeof(*magic);
+
+struct dadaism
+{
+    unsigned index      = 0;
+    unsigned count      = 0;
+    unsigned happenings = 0;
+    unsigned last       = 0;
+    bool     toggle     = false;
+
+    dadaism* save_      = g_dadaism;
+
+    dadaism()  { g_dadaism = this; }
+    ~dadaism() { g_dadaism = save_; }
+
+    void next()
+    {
+        toggle = last == happenings;
+        last   = happenings;
+        index  = toggle ? index : (index + 1) % magic_length;
+    }
+
+    void dada()
+    {
+        if (toggle && ++count % magic[index] == 0) {
+            ++happenings;
+            throw dada_error{};
+        }
+    }
+};
+
+inline void dada()
+{
+    if (g_dadaism)
+        g_dadaism->dada();
+}
+
+template <typename Heap>
+struct dadaist_heap : Heap
+{
+    template <typename... Tags>
+    static auto allocate(std::size_t s, Tags... tags)
+    {
+        dada();
+        return Heap::allocate(s, tags...);
+    }
+};
+
+template <typename MP>
+struct dadaist_memory_policy : MP
+{
+    struct heap
+    {
+        template <std::size_t... Sizes>
+        struct apply
+        {
+            using base = typename MP::heap::template apply<Sizes...>::type;
+            using type = dadaist_heap<base>;
+        };
+    };
+};
+
+struct tristan_tzara
+{
+    tristan_tzara() { dada(); }
+    tristan_tzara(const tristan_tzara&) { dada(); }
+    tristan_tzara(tristan_tzara&&) { dada(); }
+    tristan_tzara& operator= (const tristan_tzara&) { dada(); return *this; }
+    tristan_tzara& operator= (tristan_tzara&&) { dada(); return *this; }
+};
+
+template <typename T>
+struct dadaist : tristan_tzara
+{
+    T value;
+    dadaist(T v) : value{std::move(v)} {}
+    operator T() const { return value; }
+};
+
+template <typename T>
+struct dadaist_vector;
+
+using bits_t = unsigned;
+
+template <template <class, class, bits_t, bits_t> class V,
+          typename T, typename MP, bits_t B, bits_t BL>
+struct dadaist_vector<V<T, MP, B, BL>>
+{
+    using type = V<dadaist<T>, dadaist_memory_policy<MP>, B, BL>;
+};
+
+} // anonymous namespace

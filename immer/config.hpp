@@ -48,6 +48,9 @@
 
 #define IMMER_UNREACHABLE __builtin_unreachable()
 
+#define IMMER_LIKELY(cond)   (__builtin_expect(!!(cond), 1))
+#define IMMER_UNLIKELY(cond) (__builtin_expect(!!(cond), 0))
+
 namespace immer {
 
 const auto default_bits = 5;

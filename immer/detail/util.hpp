@@ -20,11 +20,29 @@
 
 #pragma once
 
+#include <immer/config.hpp>
+
 #include <cstddef>
+#include <new>
 #include <type_traits>
 
 namespace immer {
 namespace detail {
+
+template <class T, class Size>
+void destroy_n(T* p, Size n)
+{
+    auto e = p + n;
+    for (; p != e; ++p)
+        p->~T();
+}
+
+inline void* check_alloc(void* p)
+{
+    if (IMMER_UNLIKELY(!p))
+        throw std::bad_alloc{};
+    return p;
+}
 
 constexpr auto log2(std::size_t x)
 {

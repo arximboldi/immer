@@ -45,6 +45,10 @@ class vector
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
 
 public:
+    static constexpr auto bits = B;
+    static constexpr auto bits_leaf = BL;
+    using memory_policy = MemoryPolicy;
+
     using value_type = T;
     using reference = const T&;
     using size_type = std::size_t;

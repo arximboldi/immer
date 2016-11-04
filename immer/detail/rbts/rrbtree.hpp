@@ -176,8 +176,15 @@ struct rrbtree
                 return { shift + B, new_root };
             }
         } else if (size == size_t{branches<B>} << shift) {
-            auto new_path = node_t::make_path(shift, tail);
-            auto new_root = node_t::make_inner_n(2u, root->inc(), new_path);
+            auto new_root = node_t::make_inner_n(2u);
+            try {
+                auto new_path = node_t::make_path(shift, tail);
+                new_root->inner() [0] = root->inc();
+                new_root->inner() [1] = new_path;
+            } catch (...) {
+                node_t::delete_inner(new_root);
+                throw;
+            }
             return { shift + B, new_root };
         } else if (size) {
             auto new_root = make_regular_sub_pos(root, shift, size)
@@ -199,9 +206,15 @@ struct rrbtree
             using std::get;
             auto new_tail = node_t::make_leaf_n(1u, std::move(value));
             auto tail_off = tail_offset();
-            auto new_root = push_tail(root, shift, tail_off,
-                                      tail->inc(), size - tail_off);
-            return { size + 1, get<0>(new_root), get<1>(new_root), new_tail };
+            try {
+                auto new_root = push_tail(root, shift, tail_off,
+                                          tail, size - tail_off);
+                tail->inc();
+                return { size + 1, get<0>(new_root), get<1>(new_root), new_tail };
+            } catch (...) {
+                node_t::delete_leaf(new_tail, 1u);
+                throw;
+            }
         }
     }
 

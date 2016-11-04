@@ -19,6 +19,7 @@
 //
 
 #include "../util.hpp"
+#include "../dada.hpp"
 
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
@@ -226,6 +227,8 @@ struct non_default
 {
     unsigned value;
     non_default() = delete;
+    operator unsigned() const { return value; }
+
 #if IMMER_DEBUG_PRINT
     friend std::ostream& operator<< (std::ostream& os, non_default x)
     {
@@ -243,15 +246,14 @@ TEST_CASE("non default")
     for (auto i = 0u; i < n; ++i)
         v = v.push_back({ i });
 
-    for (auto i = 0u; i < v.size(); ++i)
-        CHECK(v[i].value == i);
+    CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 
     SECTION("assoc")
     {
         for (auto i = 0u; i < n; ++i)
             v = v.assoc(i, {i + 1});
-        for (auto i = 0u; i < n; ++i)
-            CHECK(v[i].value == i + 1);
+
+        CHECK_VECTOR_EQUALS(v, boost::irange(1u, n + 1u));
     }
 }
 
@@ -268,5 +270,28 @@ TEST_CASE("take")
             CHECK(vv.size() == i);
             CHECK_VECTOR_EQUALS_RANGE(vv, v.begin(), v.begin() + i);
         }
+    }
+}
+
+TEST_CASE("exception safety")
+{
+    constexpr auto n = 666u;
+
+    using dadaist_vector_t = typename dadaist_vector<VECTOR_T<unsigned>>::type;
+
+    SECTION("push back")
+    {
+        auto v = dadaist_vector_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; v.size() < n;) {
+            d.next();
+            try {
+                v = v.push_back({i});
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
     }
 }

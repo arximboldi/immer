@@ -156,19 +156,33 @@ struct rbtree
             return { size + 1, shift, root->inc(), new_tail };
         } else {
             auto new_tail = node_t::make_leaf_n(1u, std::move(value));
-            if (tail_off == size_t{branches<B>} << shift) {
-                auto new_root = node_t::make_inner_n(
-                    2u,
-                    root->inc(),
-                    node_t::make_path(shift, tail->inc()));
-                return { size + 1, shift + B, new_root, new_tail };
-            } else if (tail_off) {
-                auto new_root = make_regular_sub_pos(root, shift, tail_off)
-                    .visit(push_tail_visitor<node_t>{}, tail->inc());
-                return { size + 1, shift, new_root, new_tail };
-            } else {
-                auto new_root = node_t::make_path(shift, tail->inc());
-                return { size + 1, shift, new_root, new_tail };
+            try {
+                if (tail_off == size_t{branches<B>} << shift) {
+                    auto new_root = node_t::make_inner_n(2u);
+                    try {
+                        auto path = node_t::make_path(shift, tail);
+                        new_root->inner() [0] = root;
+                        new_root->inner() [1] = path;
+                        root->inc();
+                        tail->inc();
+                        return { size + 1, shift + B, new_root, new_tail };
+                    } catch (...) {
+                        node_t::delete_inner(new_root);
+                        throw;
+                    }
+                } else if (tail_off) {
+                    auto new_root = make_regular_sub_pos(root, shift, tail_off)
+                        .visit(push_tail_visitor<node_t>{}, tail);
+                    tail->inc();
+                    return { size + 1, shift, new_root, new_tail };
+                } else {
+                    auto new_root = node_t::make_path(shift, tail);
+                    tail->inc();
+                    return { size + 1, shift, new_root, new_tail };
+                }
+            } catch (...) {
+                node_t::delete_leaf(new_tail, 1u);
+                throw;
             }
         }
     }

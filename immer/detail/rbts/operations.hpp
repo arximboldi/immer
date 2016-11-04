@@ -219,11 +219,16 @@ struct push_tail_visitor
         auto idx         = pos.index(pos.size() - 1);
         auto new_idx     = pos.index(pos.size() + branches<BL> - 1);
         auto count       = new_idx + 1;
-        auto new_parent  = node_t::copy_inner_n(count, pos.node(), new_idx);
-        new_parent->inner()[new_idx] =
-            idx == new_idx   ? pos.last_oh(this_t{}, idx, tail)
-            /* otherwise */  : node_t::make_path(pos.shift() - B, tail);
-        return new_parent;
+        auto new_parent  = node_t::make_inner_n(count);
+        try {
+            new_parent->inner()[new_idx] =
+                idx == new_idx  ? pos.last_oh(this_t{}, idx, tail)
+                /* otherwise */ : node_t::make_path(pos.shift() - B, tail);
+        } catch (...) {
+            node_t::delete_inner(new_parent);
+            throw;
+        }
+        return node_t::do_copy_inner(new_parent, pos.node(), new_idx);
     }
 
     template <typename Pos, typename... Args>
