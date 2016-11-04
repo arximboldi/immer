@@ -107,10 +107,17 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
-        auto node    = node_t::copy_inner_r(pos.node(), count);
-        node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh(this_t{}, idx, offset, fn);
-        return node;
+        auto node    = node_t::make_inner_r_n(count);
+        try {
+            auto child = pos.towards_oh(this_t{}, idx, offset, fn);
+            node_t::do_copy_inner_r(node, pos.node(), count);
+            node->inner()[offset]->dec_unsafe();
+            node->inner()[offset] = child;
+            return node;
+        } catch (...) {
+            node_t::delete_inner_r(node);
+            throw;
+        }
     }
 
     template <typename Pos, typename Fn>
@@ -118,10 +125,17 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
-        auto node    = node_t::copy_inner(pos.node(), count);
-        node->inner()[offset]->dec_unsafe();
-        node->inner()[offset] = pos.towards_oh_ch(this_t{}, idx, offset, count, fn);
-        return node;
+        auto node    = node_t::make_inner_n(count);
+        try {
+            auto child = pos.towards_oh_ch(this_t{}, idx, offset, count, fn);
+            node_t::do_copy_inner(node, pos.node(), count);
+            node->inner()[offset]->dec_unsafe();
+            node->inner()[offset] = child;
+            return node;
+        } catch (...) {
+            node_t::delete_inner(node);
+            throw;
+        }
     }
 
     template <typename Pos, typename Fn>
@@ -129,9 +143,14 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto node    = node_t::copy_leaf(pos.node(), pos.count());
-        node->leaf()[offset] = std::forward<Fn>(fn) (
-            std::move(node->leaf()[offset]));
-        return node;
+        try {
+            node->leaf()[offset] = std::forward<Fn>(fn) (
+                std::move(node->leaf()[offset]));
+            return node;
+        } catch (...) {
+            node_t::delete_leaf(node, pos.count());
+            throw;
+        }
     };
 };
 

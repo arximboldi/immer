@@ -391,4 +391,22 @@ TEST_CASE("exception safety relaxed")
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
     }
+
+    SECTION("update")
+    {
+        auto v = make_test_flex_vector_front<dadaist_vector_t>(0, n);
+        auto d = dadaism{};
+        for (auto i = 0u; i < n;) {
+            d.next();
+            try {
+                v = v.update(i, [] (auto x) { return dada(), x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::join(
+                                    boost::irange(1u, 1u + i),
+                                    boost::irange(i, n)));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
 }

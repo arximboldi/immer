@@ -360,13 +360,7 @@ struct node
     {
         assert(src->kind() == kind_t::inner);
         auto dst = make_inner_r_n(n);
-        auto src_r = src->relaxed();
-        auto dst_r = dst->relaxed();
-        inc_nodes(src->inner(), n);
-        std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
-        std::uninitialized_copy(src_r->sizes, src_r->sizes + n, dst_r->sizes);
-        dst_r->count = n;
-        return dst;
+        return do_copy_inner_r(dst, src, n);
     }
 
     static node_t* copy_inner_r_n(count_t allocn, node_t* src, count_t n)
@@ -374,6 +368,13 @@ struct node
         assert(allocn >= n);
         assert(src->kind() == kind_t::inner);
         auto dst = make_inner_r_n(allocn);
+        return do_copy_inner_r(dst, src, n);
+    }
+
+    static node_t* do_copy_inner_r(node_t* dst, node_t* src, count_t n)
+    {
+        assert(dst->kind() == kind_t::inner);
+        assert(src->kind() == kind_t::inner);
         auto src_r = src->relaxed();
         auto dst_r = dst->relaxed();
         inc_nodes(src->inner(), n);

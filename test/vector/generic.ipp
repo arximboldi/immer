@@ -32,11 +32,12 @@
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-auto make_test_vector(std::size_t min, std::size_t max)
+template <typename V=VECTOR_T<unsigned>>
+auto make_test_vector(unsigned min, unsigned max)
 {
-    auto v = VECTOR_T<unsigned>{};
+    auto v = V{};
     for (auto i = min; i < max; ++i)
-        v = v.push_back(i);
+        v = v.push_back({i});
     return v;
 }
 
@@ -290,6 +291,24 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update")
+    {
+        auto v = make_test_vector<dadaist_vector_t>(0, n);
+        auto d = dadaism{};
+        for (auto i = 0u; i < n;) {
+            d.next();
+            try {
+                v = v.update(i, [] (auto x) { return dada(), x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::join(
+                                    boost::irange(1u, 1u + i),
+                                    boost::irange(i, n)));
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
