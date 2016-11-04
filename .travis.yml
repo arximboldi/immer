@@ -102,7 +102,7 @@ after_success:
   - |
     if [[ "${COVERAGE}" == true ]]; then
         gcov-6 -bcprs `dirname ${PWD}` `find . -name "*.gcno"`
-        bash <(curl -s https://codecov.io/bash)
+        bash <(curl -s https://codecov.io/bash) -x gcov-6
     fi
   - |
     if [[ "${BENCHMARK}" == true ]]; then
