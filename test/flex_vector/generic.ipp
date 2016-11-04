@@ -38,11 +38,12 @@
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-auto make_test_flex_vector(std::size_t min, std::size_t max)
+template <typename V=FLEX_VECTOR_T<unsigned>>
+auto make_test_flex_vector(unsigned min, unsigned max)
 {
-    auto v = FLEX_VECTOR_T<unsigned>{};
+    auto v = V{};
     for (auto i = min; i < max; ++i)
-        v = v.push_back(i);
+        v = v.push_back({i});
     return v;
 }
 
@@ -420,6 +421,25 @@ TEST_CASE("exception safety relaxed")
             try {
                 r = v.take(i);
                 CHECK_VECTOR_EQUALS(r, boost::irange(0u, i++));
+            } catch (dada_error) {
+                CHECK_VECTOR_EQUALS(r, boost::irange(0u, 0u));
+            }
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("drop")
+    {
+        auto v = make_test_flex_vector<dadaist_vector_t>(0, n / 2)
+               + make_test_flex_vector_front<dadaist_vector_t>(n / 2, n);
+        auto d = dadaism{};
+        for (auto i = 0u; i < n;) {
+            d.next();
+            auto r = dadaist_vector_t{};
+            try {
+                r = v.drop(i);
+                CHECK_VECTOR_EQUALS(r, boost::irange(i++, n));
             } catch (dada_error) {
                 CHECK_VECTOR_EQUALS(r, boost::irange(0u, 0u));
             }

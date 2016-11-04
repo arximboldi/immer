@@ -411,20 +411,25 @@ struct slice_left_visitor
         } else {
             using std::get;
             auto n     = pos.node();
-            auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
             auto newn  = node_t::make_inner_r_n(count - idx);
-            auto newr  = newn->relaxed();
-            newr->count = count - idx;
-            newr->sizes[0] = child_size - child_dropped_size;
-            pos.copy_sizes(idx + 1, newr->count - 1,
-                           newr->sizes[0], newr->sizes + 1);
-            assert(newr->sizes[newr->count - 1] == pos.size() - dropped_size);
-            newn->inner()[0] = get<1>(subs);
-            std::uninitialized_copy(n->inner() + idx + 1,
-                                    n->inner() + count,
-                                    newn->inner() + 1);
-            node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
-            return { pos.shift(), newn };
+            try {
+                auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
+                auto newr  = newn->relaxed();
+                newr->count = count - idx;
+                newr->sizes[0] = child_size - child_dropped_size;
+                pos.copy_sizes(idx + 1, newr->count - 1,
+                               newr->sizes[0], newr->sizes + 1);
+                assert(newr->sizes[newr->count - 1] == pos.size() - dropped_size);
+                newn->inner()[0] = get<1>(subs);
+                std::uninitialized_copy(n->inner() + idx + 1,
+                                        n->inner() + count,
+                                        newn->inner() + 1);
+                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
+                return { pos.shift(), newn };
+            } catch (...) {
+                node_t::delete_inner_r(newn);
+                throw;
+            }
         }
     }
 
