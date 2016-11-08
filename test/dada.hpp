@@ -43,16 +43,21 @@ struct dadaism
     unsigned last       = 0;
     bool     toggle     = false;
 
-    dadaism* save_      = g_dadaism;
+    struct scope
+    {
+        bool moved = false;
+        dadaism* save_ = g_dadaism;
+        scope(scope&& s) { save_ = s.save_; s.moved = true; }
+        scope(dadaism& self)  { g_dadaism = &self; }
+        ~scope() { if (!moved) g_dadaism = save_; }
+    };
 
-    dadaism()  { g_dadaism = this; }
-    ~dadaism() { g_dadaism = save_; }
-
-    void next()
+    scope next()
     {
         toggle = last == happenings;
         last   = happenings;
         index  = toggle ? index : (index + 1) % magic_length;
+        return { *this };
     }
 
     void dada()

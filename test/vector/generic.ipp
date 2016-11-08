@@ -285,7 +285,7 @@ TEST_CASE("exception safety")
         auto v = dadaist_vector_t{};
         auto d = dadaism{};
         for (auto i = 0u; v.size() < n;) {
-            d.next();
+            auto s = d.next();
             try {
                 v = v.push_back({i});
                 ++i;
@@ -301,7 +301,7 @@ TEST_CASE("exception safety")
         auto v = make_test_vector<dadaist_vector_t>(0, n);
         auto d = dadaism{};
         for (auto i = 0u; i < n;) {
-            d.next();
+            auto s = d.next();
             try {
                 v = v.update(i, [] (auto x) { return dada(), x + 1; });
                 ++i;
@@ -319,7 +319,7 @@ TEST_CASE("exception safety")
         auto v = make_test_vector<dadaist_vector_t>(0, n);
         auto d = dadaism{};
         for (auto i = 0u; i < n;) {
-            d.next();
+            auto s = d.next();
             auto r = dadaist_vector_t{};
             try {
                 r = v.take(i);

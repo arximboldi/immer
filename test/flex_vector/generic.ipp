@@ -370,7 +370,6 @@ TEST_CASE("adopt regular vector contents")
     }
 }
 
-
 TEST_CASE("exception safety relaxed")
 {
     using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
@@ -382,7 +381,7 @@ TEST_CASE("exception safety relaxed")
         auto v = make_test_flex_vector_front<dadaist_vector_t>(0, half);
         auto d = dadaism{};
         for (auto i = half; v.size() < n;) {
-            d.next();
+            auto s = d.next();
             try {
                 v = v.push_back({i});
                 ++i;
@@ -398,7 +397,7 @@ TEST_CASE("exception safety relaxed")
         auto v = make_test_flex_vector_front<dadaist_vector_t>(0, n);
         auto d = dadaism{};
         for (auto i = 0u; i < n;) {
-            d.next();
+            auto s = d.next();
             try {
                 v = v.update(i, [] (auto x) { return dada(), x + 1; });
                 ++i;
@@ -416,7 +415,7 @@ TEST_CASE("exception safety relaxed")
         auto v = make_test_flex_vector_front<dadaist_vector_t>(0, n);
         auto d = dadaism{};
         for (auto i = 0u; i < n;) {
-            d.next();
+            auto s = d.next();
             auto r = dadaist_vector_t{};
             try {
                 r = v.take(i);
@@ -429,20 +428,19 @@ TEST_CASE("exception safety relaxed")
         IMMER_TRACE_E(d.happenings);
     }
 
-    SECTION("drop")
+    SECTION("concat")
     {
-        auto v = make_test_flex_vector<dadaist_vector_t>(0, n / 2)
-               + make_test_flex_vector_front<dadaist_vector_t>(n / 2, n);
+        auto v = make_test_flex_vector<dadaist_vector_t>(0, n);
         auto d = dadaism{};
         for (auto i = 0u; i < n;) {
-            d.next();
-            auto r = dadaist_vector_t{};
+            auto lhs = v.take(i);
+            auto rhs = v.drop(i);
+            auto s = d.next();
             try {
-                r = v.drop(i);
-                CHECK_VECTOR_EQUALS(r, boost::irange(i++, n));
-            } catch (dada_error) {
-                CHECK_VECTOR_EQUALS(r, boost::irange(0u, 0u));
-            }
+                v = lhs + rhs;
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);

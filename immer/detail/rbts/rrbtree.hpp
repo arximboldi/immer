@@ -331,7 +331,8 @@ struct rrbtree
             auto tail_size  = size - tail_offst;
             if (tail_size == branches<BL>) {
                 auto new_root = push_tail(root, shift, tail_offst,
-                                          tail->inc(), tail_size);
+                                          tail, tail_size);
+                tail->inc();
                 return { size + r.size, get<0>(new_root), get<1>(new_root),
                          r.tail->inc() };
             } else if (tail_size + r.size <= branches<BL>) {
@@ -342,27 +343,44 @@ struct rrbtree
                 auto remaining = branches<BL> - tail_size;
                 auto add_tail  = node_t::copy_leaf(tail, tail_size,
                                                    r.tail, remaining);
-                auto new_tail  = node_t::copy_leaf(r.tail, remaining, r.size);
-                auto new_root  = push_tail(root, shift, tail_offst,
-                                           add_tail, branches<BL>);
-                return { size + r.size, get<0>(new_root), get<1>(new_root),
-                         new_tail };
+                try {
+                    auto new_tail = node_t::copy_leaf(r.tail, remaining, r.size);
+                    try {
+                        auto new_root  = push_tail(root, shift, tail_offst,
+                                                   add_tail, branches<BL>);
+                        return { size + r.size,
+                                 get<0>(new_root), get<1>(new_root),
+                                 new_tail };
+                    } catch (...) {
+                        node_t::delete_leaf(new_tail, r.size - remaining);
+                        throw;
+                    }
+                } catch (...) {
+                    node_t::delete_leaf(add_tail, branches<BL>);
+                    throw;
+                }
             }
         } else {
             auto tail_offst = tail_offset();
             auto with_tail  = push_tail(root, shift, tail_offst,
-                                        tail->inc(), size - tail_offst);
+                                        tail, size - tail_offst);
+            tail->inc();
             auto lshift     = get<0>(with_tail);
             auto lroot      = get<1>(with_tail);
             assert(lroot->check(lshift, size));
-            auto concated   = concat_trees(lroot, lshift, size,
+            try {
+                auto concated   = concat_trees(lroot, lshift, size,
                                            r.root, r.shift, r.tail_offset());
-            auto new_shift  = concated.shift();
-            auto new_root   = concated.node();
-            assert(new_shift == new_root->compute_shift());
-            assert(new_root->check(new_shift, size + r.tail_offset()));
-            dec_inner_r(lroot, lshift, size);
-            return { size + r.size, new_shift, new_root, r.tail->inc() };
+                auto new_shift  = concated.shift();
+                auto new_root   = concated.node();
+                assert(new_shift == new_root->compute_shift());
+                assert(new_root->check(new_shift, size + r.tail_offset()));
+                dec_inner(lroot, lshift, size);
+                return { size + r.size, new_shift, new_root, r.tail->inc() };
+            } catch (...) {
+                dec_inner(lroot, lshift, size);
+                throw;
+            }
         }
     }
 

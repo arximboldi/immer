@@ -199,13 +199,19 @@ void dec_leaf(NodeT* node, size_t size)
 }
 
 template <typename NodeT>
-void dec_inner_r(NodeT* node, shift_t shift, size_t size)
+void dec_inner(NodeT* node, shift_t shift, size_t size)
 {
     visit_maybe_relaxed_sub(node, shift, size, dec_visitor());
 }
 
 template <typename NodeT>
-void dec_inner(NodeT* node, shift_t shift, size_t size)
+void dec_relaxed(NodeT* node, shift_t shift)
+{
+    make_relaxed_pos(node, shift, node->relaxed()).visit(dec_visitor());
+}
+
+template <typename NodeT>
+void dec_regular(NodeT* node, shift_t shift, size_t size)
 {
     make_regular_pos(node, shift, size).visit(dec_visitor());
 }
@@ -253,7 +259,7 @@ struct push_tail_visitor
             auto size  = new_idx == idx ? children + ts : ts;
             if (shift > BL) {
                 tail->inc();
-                dec_inner_r(new_child, shift - B, size);
+                dec_inner(new_child, shift - B, size);
             }
             throw;
         }
@@ -328,8 +334,8 @@ struct slice_right_visitor
                 }
             } catch (...) {
                 assert(!next || pos.shift() > BL);
-                if (next) dec_inner_r(next, pos.shift() - B,
-                                      last + 1 - ts - pos.size_before(idx));
+                if (next) dec_inner(next, pos.shift() - B,
+                                    last + 1 - ts - pos.size_before(idx));
                 if (tail) dec_leaf(tail, ts);
                 throw;
             }
@@ -365,7 +371,7 @@ struct slice_right_visitor
                 }
             } catch (...) {
                 assert(!next || pos.shift() > BL);
-                if (next) dec_inner(next, pos.shift() - B, last + 1 - ts);
+                if (next) dec_regular(next, pos.shift() - B, last + 1 - ts);
                 if (tail) dec_leaf(tail, ts);
                 throw;
             }
@@ -470,7 +476,12 @@ struct concat_merger
         if (r->count == branches<B>) {
             assert(result == parent);
             auto new_parent = node_t::make_inner_r_n(n - branches<B>);
-            result = node_t::make_inner_r_n(2u, parent, size_sum, new_parent);
+            try {
+                result = node_t::make_inner_r_n(2u, parent, size_sum);
+            } catch (...) {
+                node_t::delete_inner_r(new_parent);
+                throw;
+            }
             parent = new_parent;
             r = new_parent->relaxed();
             size_sum = 0;
@@ -488,7 +499,8 @@ struct concat_merger
         auto from_count = p.count();
         assert(from_size);
         if (!to && *curr == from_count) {
-            add_child(from->inc(), from_size);
+            add_child(from, from_size);
+            from->inc();
         } else {
             auto from_offset = count_t{};
             auto from_data   = from->leaf();
@@ -521,7 +533,8 @@ struct concat_merger
         auto from_count = p.count();
         assert(from_size);
         if (!to && *curr == from_count) {
-            add_child(from->inc(), from_size);
+            add_child(from, from_size);
+            from->inc();
         } else {
             auto from_offset = count_t{};
             auto from_data  = from->inner();
@@ -557,9 +570,10 @@ struct concat_merger
     {
         assert(!to);
         if (parent != result) {
-            assert(result->relaxed()->count == 2);
             auto r = result->relaxed();
+            r->count = 2u;
             r->sizes[1] = r->sizes[0] + size_sum;
+            result->inner() [1] = parent;
             return { result, shift + B, r };
         } else if (is_top) {
             return { result, shift, result->relaxed() };
@@ -567,6 +581,21 @@ struct concat_merger
             auto n = node_t::make_inner_r_n(1u, result, size_sum);
             return { n, shift + B, n->relaxed() };
         }
+    }
+
+    void abort(shift_t shift)
+    {
+        if (to) {
+            if (shift == BL)
+                node_t::delete_leaf(to, to_offset);
+            else {
+                to->relaxed()->count = to_offset;
+                dec_relaxed(to, shift);
+            }
+        }
+        if (parent != result)
+            dec_relaxed(result, shift + B);
+        dec_relaxed(parent, shift);
     }
 };
 
@@ -650,10 +679,15 @@ struct concat_rebalance_plan
         using merger_t  = concat_merger<node_t>;
         using visitor_t = concat_merger_visitor;
         auto merger = merger_t{counts, n};
-        lpos.each_left_sub(visitor_t{}, merger);
-        cpos.each_sub(visitor_t{}, merger);
-        rpos.each_right_sub(visitor_t{}, merger);
-        return merger.finish(cpos.shift(), is_top);
+        try {
+            lpos.each_left_sub(visitor_t{}, merger);
+            cpos.each_sub(visitor_t{}, merger);
+            rpos.each_right_sub(visitor_t{}, merger);
+            return merger.finish(cpos.shift(), is_top);
+        } catch (...) {
+            merger.abort(cpos.shift());
+            throw;
+        }
     }
 };
 
@@ -678,8 +712,10 @@ concat_leafs(LPos&& lpos, RPos&& rpos, bool is_top)
     auto lcount = lpos.count();
     auto rcount = rpos.count();
     auto node   = node_t::make_inner_r_n(2u,
-                                         lpos.node()->inc(), lcount,
-                                         rpos.node()->inc(), rcount);
+                                         lpos.node(), lcount,
+                                         rpos.node(), rcount);
+    lpos.node()->inc();
+    rpos.node()->inc();
     return { node, node_t::bits_leaf, node->relaxed() };
 }
 
@@ -698,21 +734,36 @@ concat_inners(LPos&& lpos, RPos&& rpos, bool is_top)
     auto rshift = rpos.shift();
     if (lshift > rshift) {
         auto cpos = lpos.last_sub(concat_left_visitor<Node>{}, rpos, false);
-        auto r = concat_rebalance<Node>(lpos, cpos, null_sub_pos{}, is_top);
-        cpos.visit(dec_visitor{});
-        return r;
+        try {
+            auto r = concat_rebalance<Node>(lpos, cpos, null_sub_pos{}, is_top);
+            cpos.visit(dec_visitor{});
+            return r;
+        } catch (...) {
+            cpos.visit(dec_visitor{});
+            throw;
+        }
     } else if (lshift < rshift) {
         auto cpos = rpos.first_sub(concat_right_visitor<Node>{}, lpos, false);
-        auto r = concat_rebalance<Node>(null_sub_pos{}, cpos, rpos, is_top);
-        cpos.visit(dec_visitor{});
-        return r;
+        try {
+            auto r = concat_rebalance<Node>(null_sub_pos{}, cpos, rpos, is_top);
+            cpos.visit(dec_visitor{});
+            return r;
+        } catch (...) {
+            cpos.visit(dec_visitor{});
+            throw;
+        }
     } else {
         assert(lshift == rshift);
         assert(Node::bits_leaf == 0u || lshift > 0);
         auto cpos = lpos.last_sub(concat_both_visitor<Node>{}, rpos, false);
-        auto r = concat_rebalance<Node>(lpos, cpos, rpos, is_top);
-        cpos.visit(dec_visitor{});
-        return r;
+        try {
+            auto r = concat_rebalance<Node>(lpos, cpos, rpos, is_top);
+            cpos.visit(dec_visitor{});
+            return r;
+        } catch (...) {
+            cpos.visit(dec_visitor{});
+            throw;
+        }
     }
 }
 
