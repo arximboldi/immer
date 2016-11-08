@@ -43,16 +43,8 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
-source_parsers = { '.md': CommonMarkParser, }
+extensions.append('m2r')
 source_suffix = ['.rst', '.md']
-
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-        'enable_eval_rst': True,
-    }, True)
-    app.add_transform(AutoStructify)
 
 # The encoding of source files.
 #

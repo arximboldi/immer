@@ -1,4 +1,4 @@
 sphinx
 git+https://github.com/michaeljones/breathe
-recommonmark
+m2r
 guzzle_sphinx_theme

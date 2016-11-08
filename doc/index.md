@@ -1,23 +1,18 @@
-immer documentation
-===================
+.. mdinclude:: ../README.md
 
 Contents
 --------
 
-Hello my friend.
-Oh yeah.
+# Hey
 
-```eval_rst
+## My friend
+
 .. toctree::
     tutorial
     reference
-```
 
-Indices and tables
-==================
+---
 
-```eval_rst
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-```
