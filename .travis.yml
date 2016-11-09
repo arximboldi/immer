@@ -110,8 +110,11 @@ after_success:
         make upload-benchmark-reports
     fi
   - |
-    if [[ "${DOCS}" == true ]]; then
-       	chmod 600 ../tools/ssh-key
+    if [[ "${DOCS}" == true && \
+          "${TRAVIS_PULL_REQUEST}" == "false" && \
+          "${TRAVIS_BRANCH}" == "master" ]];
+    then
+        chmod 600 ../tools/ssh-key
         make docs
         make upload-docs
     fi
