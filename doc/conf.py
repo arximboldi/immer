@@ -66,6 +66,8 @@ project = u'immer'
 copyright = u'2016, Juan Pedro Bolivar Puente'
 author = u'Juan Pedro Bolivar Puente'
 
+raw_enabled = True
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
