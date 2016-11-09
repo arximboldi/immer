@@ -35,9 +35,37 @@ class vector;
 /*!
  * This a nice flexible vector that is yet to be documented.  It
  * includes **bold** and _emphasized_ stuff that can be `typed`.
+ * See also @ref vector
+ *
+ * @tparam T This is the type. @see vector
+ *           @rst{Read here :doc:`tutorial`}
+ *
+ * ```python
+ *   def some_non_highlighted_code(hello):
+ *       print "hello world"
  * ```
- *    And blocks of code, for example!
- * ```
+ * This is a formula @f$ f(x) = a + b @f$
+ * @rst
+ *   A link to a document: :doc:`tutorial`
+ *
+ *   .. note:: Hello my friend
+ *
+ *   .. code-block:: python
+ *
+ *      def some_code(hello):
+ *          print "hello world"
+ *
+ *   .. code-block:: c++
+ *
+ *      class x {
+ *         public: caca
+ *      }
+ * @endrst
+ * @code{.cpp}
+ *      class x {
+ *         public: caca
+ *      }
+ * @endcode
  */
 template <typename T,
           typename MemoryPolicy   = default_memory_policy,
