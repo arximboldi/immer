@@ -1,6 +1,14 @@
 Containers
 ==========
 
+array
+-----
+
+.. doxygenclass:: immer::array
+    :project: immer
+    :members:
+    :undoc-members:
+
 vector
 ------
 
