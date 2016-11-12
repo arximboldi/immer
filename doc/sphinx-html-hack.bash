@@ -17,6 +17,13 @@ src='<em class="property">using </em><em class="property">using </em>'
 dst='<em class="property">using </em>'
 sed -i "s@$src@$dst@g" $location/_build/html/*.html
 
-src='<code class="descclassname">\([^&]*\)&lt;\([^&]*\)&gt;::</code>'
-dst='<code class="descclassname">\1::</code>'
+# src='<code class="descclassname">\([^&]*\)&lt;\([^&]*\)&gt;::</code>'
+# dst='<code class="descclassname">\1::</code>'
+
+src='<code class="descclassname">\([^<]*\)</code>'
+dst=''
+sed -i "s@$src@$dst@g" $location/_build/html/*.html
+
+src='breathe-sectiondef container'
+dst=''
 sed -i "s@$src@$dst@g" $location/_build/html/*.html
