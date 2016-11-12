@@ -286,6 +286,27 @@ add_custom_target(copy-benchmark-reports
   cp -p -r ${immer_benchmark_report_base_dir}/*
       ~/public/misc/immer/reports/)
 
+#  examples
+#  =====================================================================
+
+add_custom_target(examples
+  COMMENT "Build all examples.")
+add_dependencies(check examples)
+
+file(GLOB_RECURSE immer_examples "example/*.cpp")
+foreach(_file IN LISTS immer_examples)
+  immer_target_name_for(_target "${_file}")
+  add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
+  add_dependencies(examples ${_target})
+  target_link_libraries(${_target} PUBLIC ${immer_test_libs})
+  target_compile_definitions(${_target} PUBLIC
+    DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+    CATCH_CONFIG_MAIN)
+  target_include_directories(${_target} PUBLIC ${immer_include_dirs})
+  target_include_directories(${_target} SYSTEM PUBLIC ${immer_test_include_dirs})
+  add_test(${_target} ${_target})
+endforeach()
+
 #  documentation
 #  =====================================================================
 
