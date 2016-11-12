@@ -1,7 +1,4 @@
 
-Introduction
-============
-
 .. include:: ../README.rst
 
 Contents
@@ -11,8 +8,10 @@ Contents
     :maxdepth: 2
 
     Introduction<self>
-    tutorial
     containers
+    memory
+    transients
+    implementation
 
 ----
 
