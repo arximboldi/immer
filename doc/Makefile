@@ -51,6 +51,7 @@ clean:
 .PHONY: html
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	./sphinx-html-hack.bash
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
