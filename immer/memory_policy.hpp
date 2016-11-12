@@ -26,6 +26,9 @@
 
 namespace immer {
 
+/*!
+ * A memory policy.
+ */
 template <typename HeapPolicy,
           typename RefcountPolicy,
           bool PreferFewerBiggerObjects = !std::is_same<

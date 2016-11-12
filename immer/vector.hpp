@@ -36,6 +36,41 @@ template <typename T,
           detail::rbts::bits_t BL>
 class flex_vector;
 
+/**
+ * Immutable sequential container supporting both random access and
+ * structural sharing.
+ *
+ * @tparam T The type of the values to be stored in the container.
+ * @tparam MemoryPolicy Memory management policy. See @ref
+ *         memory_policy.
+ *
+ * @rst
+ *
+ * This cotainer provides a good trade of between cache locality,
+ * random access, update performance and structural sharing.  It does
+ * so by storing the data in contiguous chunks of :math:`2^{BL}`
+ * elements.  By default, when ``sizeof(T) == sizeof(void*)`` then
+ * :math:`B=BL=5`, such that data would be stored in contiguous
+ * chunks of :math:`32` elements.
+ *
+ * You may learn more about the meaning and implications of ``B`` and
+ * ``BL`` parameters in the :doc:`implementation` section.
+ *
+ * .. note:: In several methods we say that their complexity is
+ *    *effectively* :math:`O(...)`. Do not confuse this with the word
+ *    *amortized*, which has a very different meaning.  In this
+ *    context, *effective* means that while the
+ *    mathematically rigurous
+ *    complexity might be higher, for all practical matters the
+ *    provided complexity is more useful to think about the actual
+ *    cost of the operation.
+ *
+ * **Example**
+ *   .. literalinclude:: ../example/vector/intro.cpp
+ *      :language: c++
+ *
+ * @endrst
+ */
 template <typename T,
           typename MemoryPolicy   = default_memory_policy,
           detail::rbts::bits_t B  = default_bits,
@@ -59,33 +94,96 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
+    /*!
+     * Default constructor.  It creates a vector of `size() == 0`.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     vector() = default;
 
+    /*!
+     * Returns an iterator pointing at the first element of the
+     * collection. It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
+     */
     iterator begin() const { return {impl_}; }
+
+    /*!
+     * Returns an iterator pointing just after the last element of the
+     * collection. It does not allocate and its complexity is @f$ O(1) @f$.
+     */
     iterator end()   const { return {impl_, typename iterator::end_t{}}; }
 
+    /*!
+     * Returns an iterator that traverses the collection backwards,
+     * pointing at the first element of the reversed collection. It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+
+    /*!
+     * Returns an iterator that traverses the collection backwards,
+     * pointing after the last element of the reversed collection. It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     reverse_iterator rend()   const { return reverse_iterator{begin()}; }
 
+    /*!
+     * Returns the number of elements in the container.  It does
+     * not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     std::size_t size() const { return impl_.size; }
+
+    /*!
+     * Returns `true` if there are no elements in the container.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     bool empty() const { return impl_.size == 0; }
 
+    /*!
+     * Returns a `const` reference to the element at position `index`.
+     * It does not allocate memory and its complexity is *effectively*
+     * @f$ O(1) @f$.
+     */
     reference operator[] (size_type index) const
     { return impl_.get(index); }
 
+    /*!
+     * Returns a vector with `value` inserted at the end.  It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
     vector push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
-    vector assoc(std::size_t idx, value_type value) const
-    { return { impl_.assoc(idx, std::move(value)) }; }
+    /*!
+     * Returns a vector containing value `value` at position `idx`.
+     * Undefined for `index >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    vector assoc(std::size_t index, value_type value) const
+    { return { impl_.assoc(index, std::move(value)) }; }
 
+    /*!
+     * Returns a vector containing the result of the expression
+     * `fn((*this)[idx])` at position `idx`.
+     * Undefined for `0 >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
     template <typename FnT>
-    vector update(std::size_t idx, FnT&& fn) const
-    { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
+    vector update(std::size_t index, FnT&& fn) const
+    { return { impl_.update(index, std::forward<FnT>(fn)) }; }
 
+    /*!
+     * Returns a vector containing `min(elems, size())` elements. It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
     vector take(std::size_t elems) const
     { return { impl_.take(elems) }; }
 
+    /*!
+     * Fold the vector.
+     */
     template <typename Step, typename State>
     State reduce(Step&& step, State&& init) const
     { return impl_.reduce(std::forward<Step>(step),
