@@ -139,11 +139,10 @@ struct rbtree
             : visit_regular_descent(root, shift, v, idx);
     }
 
-    template <typename Step, typename State>
-    State reduce(Step step, State acc) const
+    template <typename Fn>
+    void for_each_chunk(Fn&& fn) const
     {
-        traverse(reduce_visitor{}, step, acc);
-        return acc;
+        traverse(for_each_chunk_visitor{}, std::forward<Fn>(fn));
     }
 
     rbtree push_back(T value) const

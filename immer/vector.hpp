@@ -183,12 +183,22 @@ public:
     { return { impl_.take(elems) }; }
 
     /*!
-     * Fold the vector.
+     * Apply operation `fn` for every *chunk* of data in the vector
+     * sequentially.  Each time, `Fn` is passed two `value_type`
+     * pointers describing a range over a part of the vector.  This
+     * allows iterating over the elements in the most efficient way.
+     *
+     * @rst
+     *
+     * .. tip:: This is a low level method. Most of the time,
+     *    :doc:`wrapper algorithms <algorithms>` should be used
+     *    instead.
+     *
+     * @endrst
      */
-    template <typename Step, typename State>
-    State reduce(Step&& step, State&& init) const
-    { return impl_.reduce(std::forward<Step>(step),
-                          std::forward<State>(init)); }
+    template <typename Fn>
+    void for_each_chunk(Fn&& fn) const
+    { impl_.for_each_chunk(std::forward<Fn>(fn)); }
 
 #if IMMER_DEBUG_PRINT
     void debug_print() const

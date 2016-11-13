@@ -145,11 +145,10 @@ struct rrbtree
             : visit_maybe_relaxed_descent(root, shift, v, idx);
     }
 
-    template <typename Step, typename State>
-    State reduce(Step step, State acc) const
+    template <typename Fn>
+    void for_each_chunk(Fn&& fn) const
     {
-        traverse(reduce_visitor{}, step, acc);
-        return acc;
+        traverse(for_each_chunk_visitor{}, std::forward<Fn>(fn));
     }
 
     std::tuple<shift_t, node_t*>

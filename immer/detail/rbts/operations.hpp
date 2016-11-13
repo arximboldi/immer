@@ -76,23 +76,19 @@ struct get_visitor
     { return pos.node()->leaf() [pos.index(idx)]; }
 };
 
-struct reduce_visitor
+struct for_each_chunk_visitor
 {
-    using this_t = reduce_visitor;
+    using this_t = for_each_chunk_visitor;
 
-    template <typename Pos, typename Step, typename State>
-    friend void visit_inner(this_t, Pos&& pos, Step&& step, State& acc)
-    { pos.each(this_t{}, step, acc); }
+    template <typename Pos, typename Fn>
+    friend void visit_inner(this_t, Pos&& pos, Fn&& fn)
+    { pos.each(this_t{}, std::forward<Fn>(fn)); }
 
-    template <typename Pos, typename Step, typename State>
-    friend void visit_leaf(this_t, Pos&& pos, Step&& step, State& acc)
+    template <typename Pos, typename Fn>
+    friend void visit_leaf(this_t, Pos&& pos, Fn&& fn)
     {
-        auto data  = pos.node()->leaf();
-        auto count = pos.count();
-        acc = std::accumulate(data,
-                              data + count,
-                              acc,
-                              step);
+        auto data = pos.node()->leaf();
+        std::forward<Fn>(fn)(data, data + pos.count());
     }
 };
 

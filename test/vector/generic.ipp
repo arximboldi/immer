@@ -21,6 +21,8 @@
 #include "../util.hpp"
 #include "../dada.hpp"
 
+#include <immer/algorithm.hpp>
+
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
 
@@ -191,14 +193,14 @@ TEST_CASE("iterator")
     }
 }
 
-TEST_CASE("reduce")
+TEST_CASE("accumulate")
 {
     const auto n = 666u;
     auto v = make_test_vector(0, n);
 
     SECTION("sum collection")
     {
-        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto sum = immer::accumulate(v, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
         CHECK(sum == expected);
     }

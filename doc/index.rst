@@ -12,6 +12,7 @@ Contents
     quickstart
     containers
     memory
+    algorithms
     transients
     implementation
 

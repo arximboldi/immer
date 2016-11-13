@@ -22,9 +22,10 @@
 
 #include "util.hpp"
 
-#include <immer/vector.hpp>
+#include <immer/algorithm.hpp>
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
+#include <immer/vector.hpp>
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
 #include <immer/experimental/dvektor.hpp>
@@ -270,7 +271,7 @@ auto generic_reduce()
             v = PushFn{}(std::move(v), i);
 
         return [=] {
-            auto volatile x = v.reduce(std::plus<unsigned>{}, 0u);
+            auto volatile x = immer::accumulate(v, 0u);
             return x;
         };
     };

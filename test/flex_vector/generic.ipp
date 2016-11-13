@@ -21,6 +21,8 @@
 #include "../dada.hpp"
 #include "../util.hpp"
 
+#include <immer/algorithm.hpp>
+
 #include <catch.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/irange.hpp>
@@ -176,14 +178,14 @@ TEST_CASE("concat recursive")
     CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 }
 
-TEST_CASE("reduce relaxed")
+TEST_CASE("accumulate relaxed")
 {
     SECTION("sum")
     {
         const auto n = 666u;
         auto v = make_test_flex_vector_front(0, n);
 
-        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto sum = immer::accumulate(v, 0u);
         auto expected = v.size() * (v.size() - 1) / 2;
         CHECK(sum == expected);
     }
@@ -196,7 +198,7 @@ TEST_CASE("reduce relaxed")
         for (auto i = 0u; i < n; ++i)
             v = v.push_front(i) + v;
 
-        auto sum = v.reduce(std::plus<unsigned>{}, 0u);
+        auto sum = immer::accumulate(v, 0u);
         auto expected = (1 << n) - n - 1;
         CHECK(sum == expected);
     }
