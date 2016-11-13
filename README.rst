@@ -187,6 +187,8 @@ License
 
 This software is licensed under the `GPLv3 license`_.
 
+.. admonition:: License header
+
     Copyright (C) 2016 Juan Pedro Bolivar Puente
 
     This file is part of immer.
