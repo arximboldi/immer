@@ -103,6 +103,9 @@ public:
 
 } // namespace detail
 
+/*!
+ * todo
+ */
 template <std::size_t Size, typename Base>
 struct thread_local_free_list_heap : detail::unsafe_free_list_heap_impl<
     detail::thread_local_free_list_storage,
@@ -110,6 +113,9 @@ struct thread_local_free_list_heap : detail::unsafe_free_list_heap_impl<
     Base>
 {};
 
+/*!
+ * todo
+ */
 template <std::size_t Size, typename Base>
 struct unsafe_free_list_heap : detail::unsafe_free_list_heap_impl<
     detail::unsafe_free_list_storage,

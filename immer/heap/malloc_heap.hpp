@@ -24,6 +24,9 @@
 
 namespace immer {
 
+/*!
+ * todo
+ */
 struct malloc_heap
 {
     template <typename... Tags>

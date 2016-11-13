@@ -32,6 +32,9 @@
 
 namespace immer {
 
+/*!
+ * todo
+ */
 struct gc_heap
 {
     static void* allocate(std::size_t n)

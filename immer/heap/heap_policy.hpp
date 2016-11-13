@@ -30,6 +30,9 @@
 
 namespace immer {
 
+/*!
+ * todo
+ */
 template <typename Heap>
 struct heap_policy
 {

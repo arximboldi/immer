@@ -28,6 +28,9 @@
 
 namespace immer {
 
+/*!
+ * todo
+ */
 template <std::size_t Size, typename Base>
 struct free_list_heap : Base
 {
