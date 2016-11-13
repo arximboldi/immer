@@ -182,12 +182,18 @@ public:
     { return { impl_.update(index, std::forward<FnT>(fn)) }; }
 
     /*!
-     * Returns a vector containing `min(elems, size())` elements. It may
-     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     * Returns a vector containing only the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
      */
     flex_vector take(std::size_t elems) const
     { return { impl_.take(elems) }; }
 
+    /*!
+     * Returns a vector without the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
     flex_vector drop(std::size_t elems) const
     { return { impl_.drop(elems) }; }
 

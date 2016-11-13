@@ -46,7 +46,7 @@ class flex_vector;
  *
  * @rst
  *
- * This cotainer provides a good trade of between cache locality,
+ * This cotainer provides a good trade-off between cache locality,
  * random access, update performance and structural sharing.  It does
  * so by storing the data in contiguous chunks of :math:`2^{BL}`
  * elements.  By default, when ``sizeof(T) == sizeof(void*)`` then
@@ -175,8 +175,9 @@ public:
     { return { impl_.update(index, std::forward<FnT>(fn)) }; }
 
     /*!
-     * Returns a vector containing `min(elems, size())` elements. It may
-     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     * Returns a vector containing only the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
      */
     vector take(std::size_t elems) const
     { return { impl_.take(elems) }; }

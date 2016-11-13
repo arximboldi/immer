@@ -37,10 +37,10 @@ namespace immer {
  * manipulations are :math:`O(size)`.
  *
  * .. tip:: Don't be fooled by the bad complexity of this data
- *    structure.  It is a great choice when it is seldom or never
- *    changed, or when not many elements are stored.  his depends on
- *    the ``sizeof(T)`` and the expensiveness of its copy constructor,
- *    in case of doubt, measure.  For basic types using an `array`
+ *    structure.  It is a great choice for short sequence or when it
+ *    is seldom or never changed.  This depends on the ``sizeof(T)``
+ *    and the expensiveness of its ``T``'s copy constructor, in case
+ *    of doubt, measure.  For basic types, using an `array` when
  *    :math:`n < 100` is a good heuristic.
  *
  * .. warning:: The current implementation depends on
