@@ -66,9 +66,9 @@ TEST_CASE("update")
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
-    SUBCASE("assoc")
+    SUBCASE("set")
     {
-        const auto u = v.assoc(3u, 13u);
+        const auto u = v.set(3u, 13u);
         CHECK(u.size() == v.size());
         CHECK(u[2u] == 2u);
         CHECK(u[3u] == 13u);

@@ -163,7 +163,7 @@ auto generic()
         meter.measure([&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = v.assoc(i, n - i);
+                r = v.set(i, n - i);
             return r;
         });
     };
@@ -220,7 +220,7 @@ auto generic_random()
         return [=] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = v.assoc(g[i], i);
+                r = v.set(g[i], i);
             return r;
         };
     };

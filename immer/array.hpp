@@ -129,7 +129,7 @@ public:
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is @f$ O(size) @f$.
      */
-    array assoc(std::size_t index, value_type value) const
+    array set(std::size_t index, value_type value) const
     { return { impl_.assoc(index, std::move(value)) }; }
 
     /*!

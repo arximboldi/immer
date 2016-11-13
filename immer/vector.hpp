@@ -160,7 +160,7 @@ public:
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    vector assoc(std::size_t index, value_type value) const
+    vector set(std::size_t index, value_type value) const
     { return { impl_.assoc(index, std::move(value)) }; }
 
     /*!

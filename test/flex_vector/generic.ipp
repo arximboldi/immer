@@ -102,11 +102,11 @@ auto make_many_test_flex_vector_front_remainder()
     return many;
 }
 
-TEST_CASE("assoc relaxed")
+TEST_CASE("set relaxed")
 {
     auto v = make_test_flex_vector_front(0, 666u);
     for (auto i = 0u; i < v.size(); ++i) {
-        v = v.assoc(i, i+1);
+        v = v.set(i, i+1);
         CHECK(v[i] == i+1);
     }
 }

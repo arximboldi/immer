@@ -76,9 +76,9 @@ TEST_CASE("update")
     const auto n = 42u;
     auto v = make_test_vector(0, n);
 
-    SECTION("assoc")
+    SECTION("set")
     {
-        const auto u = v.assoc(3u, 13u);
+        const auto u = v.set(3u, 13u);
         CHECK(u.size() == v.size());
         CHECK(u[2u] == 2u);
         CHECK(u[3u] == 13u);
@@ -87,12 +87,12 @@ TEST_CASE("update")
         CHECK(v[3u] == 3u);
     }
 
-    SECTION("assoc further")
+    SECTION("set further")
     {
         auto v = make_test_vector(0, 666);
 
-        auto u = v.assoc(3u, 13u);
-        u = u.assoc(200u, 7u);
+        auto u = v.set(3u, 13u);
+        u = u.set(200u, 7u);
         CHECK(u.size() == v.size());
 
         CHECK(u[2u] == 2u);
@@ -107,12 +107,12 @@ TEST_CASE("update")
         CHECK(v[200u] == 200u);
     }
 
-    SECTION("assoc further more")
+    SECTION("set further more")
     {
         auto v = make_test_vector(0, 666u);
 
         for (auto i = 0u; i < v.size(); ++i) {
-            v = v.assoc(i, i+1);
+            v = v.set(i, i+1);
             CHECK(v[i] == i+1);
         }
     }
@@ -215,10 +215,10 @@ TEST_CASE("vector of strings")
     for (auto i = 0u; i < v.size(); ++i)
         CHECK(v[i] == std::to_string(i));
 
-    SECTION("assoc")
+    SECTION("set")
     {
         for (auto i = 0u; i < n; ++i)
-            v = v.assoc(i, "foo " + std::to_string(i));
+            v = v.set(i, "foo " + std::to_string(i));
         for (auto i = 0u; i < n; ++i)
             CHECK(v[i] == "foo " + std::to_string(i));
     }
@@ -249,10 +249,10 @@ TEST_CASE("non default")
 
     CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 
-    SECTION("assoc")
+    SECTION("set")
     {
         for (auto i = 0u; i < n; ++i)
-            v = v.assoc(i, {i + 1});
+            v = v.set(i, {i + 1});
 
         CHECK_VECTOR_EQUALS(v, boost::irange(1u, n + 1u));
     }

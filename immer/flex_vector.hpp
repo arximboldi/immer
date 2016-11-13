@@ -167,7 +167,7 @@ public:
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    flex_vector assoc(std::size_t index, value_type value) const
+    flex_vector set(std::size_t index, value_type value) const
     { return { impl_.assoc(index, std::move(value)) }; }
 
     /*!
