@@ -1,5 +1,6 @@
 
 .. include:: ../README.rst
+   :end-before: .. INDEX PAGE END
 
 Contents
 --------
@@ -7,7 +8,8 @@ Contents
 .. toctree::
     :maxdepth: 3
 
-    Introduction<self>
+    Welcome<self>
+    quickstart
     containers
     memory
     transients

@@ -7,8 +7,11 @@
    :target: http://codecov.io/github/arximboldi/immer?branch=master
    :alt: CodeCov Badge
 
-Introduction
-============
+.. raw:: html
+
+    <a href="https://github.com/arximboldi/mittagessen"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+
+----
 
 **immer** is a library of persistent_ and immutable_ data structures
 written in C++.
@@ -42,6 +45,8 @@ written in C++.
 
    **Should you our your organization be interested in supporting it,
    contact:** raskolnikov@gnu.org.
+
+.. INDEX PAGE END
 
 Example
 -------
@@ -101,8 +106,8 @@ specially in combination with modern UI frameworks like React_.
 .. _share by communicating: https://blog.golang.org/share-memory-by-communicating
 .. _parallelization algorithms: http://docs.scala-lang.org/overviews/parallel-collections/overview.html
 
-Properties
-----------
+Goals
+-----
 
 Idiomatic
     This library doesn't pretend that it is written in Haskell.  It
@@ -204,7 +209,3 @@ This software is licensed under the `GPLv3 license`_.
 .. image:: https://www.gnu.org/graphics/gplv3-127x51.png
    :alt: GPL3 logo
    :target: https://www.gnu.org/licenses/gpl-3.0.en.html
-
-.. raw:: html
-
-    <a href="https://github.com/arximboldi/mittagessen"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
