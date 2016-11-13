@@ -104,7 +104,14 @@ public:
 } // namespace detail
 
 /*!
- * todo
+ * Adaptor that does not release the memory to the parent heap but
+ * instead it keeps the memory in a `thread_local` global free
+ * list. Must be preceded by a `with_data<free_list_node, ...>` heap
+ * adaptor.  When the current thread finishes, the memory is returned
+ * to the parent heap.
+ *
+ * @tparam Size Maximum size of the objects to be allocated.
+ * @tparam Base Type of the parent heap.
  */
 template <std::size_t Size, typename Base>
 struct thread_local_free_list_heap : detail::unsafe_free_list_heap_impl<
@@ -114,7 +121,13 @@ struct thread_local_free_list_heap : detail::unsafe_free_list_heap_impl<
 {};
 
 /*!
- * todo
+ * Adaptor that does not release the memory to the parent heap but
+ * instead it keeps the memory in a global free list that **is not
+ * thread-safe**. Must be preceded by a `with_data<free_list_node,
+ * ...>` heap adaptor.
+ *
+ * @tparam Size Maximum size of the objects to be allocated.
+ * @tparam Base Type of the parent heap.
  */
 template <std::size_t Size, typename Base>
 struct unsafe_free_list_heap : detail::unsafe_free_list_heap_impl<

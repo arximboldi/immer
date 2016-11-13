@@ -28,10 +28,12 @@
 
 namespace immer {
 
+/*!
+ * A reference counting policy implemented using an *atomic* `int`
+ * count.  It is **thread-safe**.
+ */
 struct refcount_policy
 {
-    static constexpr bool enabled = true;
-
     struct data
     {
         mutable std::atomic<int> refcount;

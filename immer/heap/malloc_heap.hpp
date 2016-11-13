@@ -25,16 +25,25 @@
 namespace immer {
 
 /*!
- * todo
+ * A heap that uses `std::malloc` and `std::free` to manage memory.
  */
 struct malloc_heap
 {
+    /*!
+     * Returns a pointer to a memory region of size `size`, if the
+     * allocation was successful, or `nullptr` otherwise.
+     */
     template <typename... Tags>
     static void* allocate(std::size_t size, Tags...)
     {
         return std::malloc(size);
     }
 
+    /*!
+     * Releases a memory region `data` that was previously returned by
+     * `allocate`.  One must not use nor deallocate again a memory
+     * region that once it has been deallocated.
+     */
     static void deallocate(void* data)
     {
         std::free(data);

@@ -24,6 +24,13 @@
 
 namespace immer {
 
+/*!
+ * Appends a default constructed extra object of type `T` at the
+ * *before* the requested region.
+ *
+ * @tparam T Type of the appended data.
+ * @tparam Base Type of the parent heap.
+ */
 template <typename T, typename Base>
 struct with_data : Base
 {

@@ -27,10 +27,12 @@
 
 namespace immer {
 
+/*!
+ * A reference counting policy implemented using a raw `int` count.
+ * It is **not thread-safe**.
+ */
 struct unsafe_refcount_policy
 {
-    static constexpr bool refcounting = true;
-
     struct data
     {
         mutable int refcount;

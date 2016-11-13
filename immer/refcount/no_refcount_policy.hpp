@@ -24,10 +24,12 @@ namespace immer {
 
 struct disowned {};
 
+/*!
+ * Disables reference counting, to be used with an alternative garbage
+ * collection strategy like a `gc_heap`.
+ */
 struct no_refcount_policy
 {
-    static constexpr bool enabled = false;
-
     struct data
     {
         data() {};
