@@ -33,39 +33,32 @@ template <typename T,
 class vector;
 
 /*!
- * This a nice flexible vector that is yet to be documented.  It
- * includes **bold** and _emphasized_ stuff that can be `typed`.
- * See also @ref vector
+ * Immutable sequential container supporting both random access,
+ * structural sharing and efficient concatenation and slicing.
  *
- * @tparam T This is the type. @see vector
- *           @rst{Read here :doc:`tutorial`}
+ * @tparam T The type of the values to be stored in the container.
+ * @tparam MemoryPolicy Memory management policy. See @ref
+ *         memory_policy.
  *
- * ```python
- *   def some_non_highlighted_code(hello):
- *       print "hello world"
- * ```
- * This is a formula @f$ f(x) = a + b @f$
  * @rst
- *   A link to a document: :doc:`tutorial`
  *
- *   .. note:: Hello my friend
+ * This container is very similar to `vector`_ but also supports
+ * :math:`O(log(size))` *concatenation*, *slicing* and *insertion* at
+ * any point. Its performance characteristics are almost identical
+ * until one of these operations is performed.  After that,
+ * performance is degraded by a constant factor that usually oscilates
+ * in the range :math:`[1, 2)` depending on the operation and the
+ * amount of flexible operations that have been performed.
  *
- *   .. code-block:: python
+ * .. tip:: A `vector`_ can be converted to a `flex_vector`_ in
+ *    constant time without any allocation.  This is so because the
+ *    internal structure of a *vector* is a strict subset of the
+ *    internal structure of a *flexible vector*.  You can take
+ *    advantage of this property by creating normal vectors as long as
+ *    the flexible operations are not needed, and convert later in
+ *    your processing pipeline once and if these are needed.
  *
- *      def some_code(hello):
- *          print "hello world"
- *
- *   .. code-block:: c++
- *
- *      class x {
- *         public: caca
- *      }
  * @endrst
- * @code{.cpp}
- *      class x {
- *         public: caca
- *      }
- * @endcode
  */
 template <typename T,
           typename MemoryPolicy   = default_memory_policy,
@@ -90,50 +83,129 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
+    /*!
+     * Default constructor.  It creates a flex_vector of `size() == 0`.
+     * It does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     flex_vector() = default;
+
+    /*!
+     * Default constructor.  It creates a flex_vector with the same
+     * contents as `v`.  It does not allocate memory and is
+     * @f$ O(1) @f$.
+     */
     flex_vector(vector<T, MemoryPolicy, B, BL> v)
         : impl_ { v.impl_.size, v.impl_.shift,
                   v.impl_.root->inc(), v.impl_.tail->inc() }
     {}
 
+    /*!
+     * Returns an iterator pointing at the first element of the
+     * collection. It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
+     */
     iterator begin() const { return {impl_}; }
+
+    /*!
+     * Returns an iterator pointing just after the last element of the
+     * collection. It does not allocate and its complexity is @f$ O(1) @f$.
+     */
     iterator end()   const { return {impl_, typename iterator::end_t{}}; }
 
+    /*!
+     * Returns an iterator that traverses the collection backwards,
+     * pointing at the first element of the reversed collection. It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+
+    /*!
+     * Returns an iterator that traverses the collection backwards,
+     * pointing after the last element of the reversed collection. It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     reverse_iterator rend()   const { return reverse_iterator{begin()}; }
 
+    /*!
+     * Returns the number of elements in the container.  It does
+     * not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     std::size_t size() const { return impl_.size; }
+
+    /*!
+     * Returns `true` if there are no elements in the container.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     bool empty() const { return impl_.size == 0; }
 
+    /*!
+     * Returns a `const` reference to the element at position `index`.
+     * Undefined for `index >= size()`.
+     * It does not allocate memory and its complexity
+     * is *effectively* @f$ O(1) @f$.
+     */
     reference operator[] (size_type index) const
     { return impl_.get(index); }
 
+    /*!
+     * Returns a flex_vector with `value` inserted at the end.  It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
     flex_vector push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
 
-    flex_vector assoc(std::size_t idx, value_type value) const
-    { return { impl_.assoc(idx, std::move(value)) }; }
+    /*!
+     * Returns a flex_vector with `value` inserted at the frony.  It may
+     * allocate memory and its complexity is @f$ O(log(size)) @f$.
+     */
+    flex_vector push_front(value_type value) const
+    { return flex_vector{}.push_back(value) + *this; }
 
+    /*!
+     * Returns a flex_vector containing value `value` at position `index`.
+     * Undefined for `index >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    flex_vector assoc(std::size_t index, value_type value) const
+    { return { impl_.assoc(index, std::move(value)) }; }
+
+    /*!
+     * Returns a vector containing the result of the expression
+     * `fn((*this)[idx])` at position `idx`.
+     * Undefined for `index >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
     template <typename FnT>
-    flex_vector update(std::size_t idx, FnT&& fn) const
-    { return { impl_.update(idx, std::forward<FnT>(fn)) }; }
+    flex_vector update(std::size_t index, FnT&& fn) const
+    { return { impl_.update(index, std::forward<FnT>(fn)) }; }
 
+    /*!
+     * Returns a vector containing `min(elems, size())` elements. It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
     flex_vector take(std::size_t elems) const
     { return { impl_.take(elems) }; }
 
     flex_vector drop(std::size_t elems) const
     { return { impl_.drop(elems) }; }
 
+    /*!
+     * Fold the vector.
+     */
     template <typename Step, typename State>
     State reduce(Step&& step, State&& init) const
     { return impl_.reduce(std::forward<Step>(step),
                           std::forward<State>(init)); }
 
+    /*!
+     * Concatenation operator. Returns a flex_vector with the contents
+     * of `l` followed by those of `r`.  It may allocate memory
+     * and its complexity is @f$ O(log(max(size_r, size_l))) @f$
+     */
     friend flex_vector operator+ (const flex_vector& l, const flex_vector& r)
     { return l.impl_.concat(r.impl_); }
-
-    flex_vector push_front(value_type value) const
-    { return flex_vector{}.push_back(value) + *this; }
 
 #if IMMER_DEBUG_PRINT
     void debug_print() const
