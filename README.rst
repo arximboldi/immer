@@ -29,6 +29,13 @@ written in C++.
   change, the new value can transparently keep references to common
   parts of it.  This property is called *structural sharing*.
 
+----
+
+**Read the docs**
+  https://sinusoid.es/immer
+**Check the code**
+  https://github.com/arximboldi/immer
+
 .. attention::
    This library is *work in progress* and its API is not complete
    enough yet.
