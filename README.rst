@@ -35,6 +35,11 @@ written in C++.
   https://sinusoid.es/immer
 **Check the code**
   https://github.com/arximboldi/immer
+**Talks**
+  `[Video (7min)] <https://www.youtube.com/watch?v=9nupb1SNo3Q>`_
+  `[Slides] <https://sinusoid.es/talks/meetingcpp16>`_
+  *The tragedy of the value based architecture* (MeetingC++ 2016)
+
 
 .. attention::
    This library is *work in progress* and its API is not complete
