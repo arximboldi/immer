@@ -45,7 +45,8 @@ written in C++.
    This library is *work in progress* and its API is not complete
    enough yet.
 
-   A **stable release** is scheduled for early Q2 2017.
+   A **stable release** is scheduled for early Q2 2017.  This release
+   will use a more liberal license, which is yet to be determined.
 
 .. admonition:: Sponsorship
    :class: tip
