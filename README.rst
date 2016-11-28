@@ -56,7 +56,7 @@ written in C++.
    long term sustainability, we will be launching a sponsoring program
    in early 2017.
 
-   **Should you our your organization be interested in supporting it,
+   **Should your organization be interested in supporting it,
    contact:** raskolnikov@gnu.org.
 
 .. INDEX PAGE END
