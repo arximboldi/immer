@@ -72,7 +72,7 @@ Example
    #include <immer/vector.hpp>
    int main()
    {
-       const auto v0 = immer::vector<int>{}
+       const auto v0 = immer::vector<int>{};
        const auto v1 = v0.push_back(13);
        assert(v0.size() == 0 && v1.size() == 1 && v1[0] == 13);
 
