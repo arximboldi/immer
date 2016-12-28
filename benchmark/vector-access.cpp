@@ -31,6 +31,11 @@
 #include <immer/experimental/dvektor.hpp>
 #endif
 
+#if IMMER_BENCHMARK_STEADY
+#define QUARK_ASSERT_ON 0
+#include <steady_vector.h>
+#endif
+
 #if IMMER_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
@@ -247,6 +252,10 @@ auto generic_idx()
     };
 };
 
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady/idx",      generic_idx<steady::vector<unsigned>>())
+#endif
+
 NONIUS_BENCHMARK("flex/5B/idx",     generic_idx<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex/F/5B/idx",   generic_idx<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
 NONIUS_BENCHMARK("vector/4B/idx",   generic_idx<immer::vector<unsigned,def_memory,4>>())
@@ -305,6 +314,10 @@ auto generic_random()
         };
     };
 };
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady/random",      generic_random<steady::vector<unsigned>>())
+#endif
 
 NONIUS_BENCHMARK("flex/5B/random",     generic_random<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex/F/5B/random",   generic_random<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())

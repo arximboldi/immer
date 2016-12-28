@@ -37,6 +37,11 @@
 #include <vector>
 #include <list>
 
+#if IMMER_BENCHMARK_STEADY
+#define QUARK_ASSERT_ON 0
+#include <steady_vector.h>
+#endif
+
 #if IMMER_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
@@ -146,8 +151,23 @@ NONIUS_BENCHMARK("librrb/random", [] (nonius::chronometer meter)
 })
 #endif
 
+struct set_fn
+{
+    template <typename T, typename I, typename U>
+    decltype(auto) operator() (T&& v, I i, U&& x)
+    { return std::forward<T>(v).set(i, std::forward<U>(x)); }
+};
+
+struct store_fn
+{
+    template <typename T, typename I, typename U>
+    decltype(auto) operator() (T&& v, I i, U&& x)
+    { return std::forward<T>(v).store(i, std::forward<U>(x)); }
+};
+
 template <typename Vektor,
-          typename PushFn=push_back_fn>
+          typename PushFn=push_back_fn,
+          typename SetFn=set_fn>
 auto generic()
 {
     return [] (nonius::chronometer meter)
@@ -163,7 +183,7 @@ auto generic()
         meter.measure([&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = v.set(i, n - i);
+                r = SetFn{}(v, i, n - i);
             return r;
         });
     };
@@ -174,6 +194,10 @@ using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, i
 using gcf_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy, false>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady",     generic<steady::vector<unsigned>, push_back_fn, store_fn>())
+#endif
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex/F/5B",  generic<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
@@ -203,7 +227,8 @@ NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,unsafe_memory,5>>
 
 NONIUS_BENCHMARK("array",      generic<immer::array<unsigned>>())
 
-template <typename Vektor>
+template <typename Vektor,
+          typename SetFn=set_fn>
 auto generic_random()
 {
     return [] (nonius::parameters params)
@@ -220,11 +245,15 @@ auto generic_random()
         return [=] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = v.set(g[i], i);
+                r = SetFn{}(v, g[i], i);
             return r;
         };
     };
 };
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady/random",      generic_random<steady::vector<unsigned>, store_fn>())
+#endif
 
 NONIUS_BENCHMARK("flex/5B/random",     generic_random<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("vector/4B/random",   generic_random<immer::vector<unsigned,def_memory,4>>())

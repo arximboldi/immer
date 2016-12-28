@@ -38,6 +38,11 @@
 #include <list>
 #include <numeric>
 
+#if IMMER_BENCHMARK_STEADY
+#define QUARK_ASSERT_ON 0
+#include <steady_vector.h>
+#endif
+
 #if IMMER_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
@@ -108,6 +113,10 @@ using def_memory    = immer::default_memory_policy;
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady",     generic<steady::vector<unsigned>>())
+#endif
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())

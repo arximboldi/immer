@@ -31,6 +31,8 @@ set(CATCH_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/catch-prefix/src/catch/single_include")
 set(NONIUS_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
+set(STEADY_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/steady-prefix/src/steady/steady")
 set(LIBRRB_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/librrb-prefix/include")
 set(LIBGC_INCLUDE_DIR
@@ -78,6 +80,9 @@ immer_external_dep_nobuild(deps-debug prettyprint
 immer_external_dep_nobuild(deps-benchmark nonius
   GIT_REPOSITORY https://github.com/arximboldi/nonius.git
   GIT_TAG devel)
+
+immer_external_dep_nobuild(deps-benchmark steady
+  GIT_REPOSITORY https://github.com/marcusz/steady)
 
 immer_external_dep_nobuild(deps-benchmark libatomic_ops
   GIT_REPOSITORY https://github.com/ivmai/libatomic_ops.git
@@ -159,7 +164,8 @@ set(immer_test_libs
 
 set(immer_benchmark_include_dirs
   ${NONIUS_INCLUDE_DIR}
-  ${LIBRRB_INCLUDE_DIR})
+  ${LIBRRB_INCLUDE_DIR}
+  ${STEADY_INCLUDE_DIR})
 set(immer_benchmark_libs
   ${LIBRRB_LIBS}
   ${CMAKE_THREAD_LIBS_INIT})
@@ -261,6 +267,7 @@ foreach(_file IN LISTS immer_benchmarks)
   target_compile_definitions(${_target} PUBLIC
     NONIUS_RUNNER
     IMMER_BENCHMARK_LIBRRB=1
+    IMMER_BENCHMARK_STEADY=1
     IMMER_BENCHMARK_EXPERIMENTAL=0)
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})
   target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
