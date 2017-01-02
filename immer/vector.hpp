@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -35,6 +35,12 @@ template <typename T,
           detail::rbts::bits_t B,
           detail::rbts::bits_t BL>
 class flex_vector;
+
+template <typename T,
+          typename MemoryPolicy,
+          detail::rbts::bits_t B,
+          detail::rbts::bits_t BL>
+class transient_vector;
 
 /**
  * Immutable sequential container supporting both random access and
@@ -78,6 +84,7 @@ template <typename T,
 class vector
 {
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
+    using flex_t = flex_vector<T, MemoryPolicy, B, BL>;
 
 public:
     static constexpr auto bits = B;
@@ -93,6 +100,8 @@ public:
     using iterator         = detail::rbts::rbtree_iterator<T, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
+
+    using transient_type   = transient_vector<T, MemoryPolicy, B, BL>;
 
     /*!
      * Default constructor.  It creates a vector of `size() == 0`.  It
@@ -200,13 +209,22 @@ public:
     void for_each_chunk(Fn&& fn) const
     { impl_.for_each_chunk(std::forward<Fn>(fn)); }
 
+    /*!
+     * Returns a `transient` form of this container.
+     */
+    transient_type transient() const&
+    { return transient_type{ impl_ }; }
+    transient_type transient() &&
+    { return transient_type{ std::move(impl_) }; }
+
 #if IMMER_DEBUG_PRINT
     void debug_print() const
-    { flex_vector<T, MemoryPolicy, B, BL>{*this}.debug_print(); }
+    { flex_t{*this}.debug_print(); }
 #endif
 
 private:
-    friend class flex_vector<T, MemoryPolicy, B, BL>;
+    friend flex_t;
+    friend transient_type;
 
     vector(impl_t impl)
         : impl_(std::move(impl))
