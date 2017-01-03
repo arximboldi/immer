@@ -20,19 +20,42 @@
 
 #pragma once
 
+#include <memory>
+
 namespace immer {
 
-struct no_transience_policy
+struct gc_transience_policy
 {
-    template <typename>
+    template <typename HeapPolicy>
     struct apply
     {
         struct type
         {
-            struct owner {};
+            using heap = typename HeapPolicy::template apply<1>::type;
+
+            struct owner
+            {
+                void* token_ = heap::allocate(1, norefs_tag{});
+
+                owner() {}
+                owner(const owner&) {}
+                owner(owner&& o) : token_{o.token_} {}
+                owner& operator=(const owner&) { return *this; }
+                owner& operator=(owner&& o)
+                {
+                    token_ = o.token_;
+                    return *this;
+                }
+            };
+
             struct ownee
             {
-                bool can_mutate(owner) const { return false; }
+                void* token_ = nullptr;
+
+                void set(const owner& o) { token_ = o; }
+
+                bool can_mutate(const owner& o) const
+                { return token_ == o.token_; }
             };
         };
     };

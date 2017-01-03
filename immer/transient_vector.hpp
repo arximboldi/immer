@@ -37,6 +37,7 @@ template <typename T,
           detail::rbts::bits_t B  = default_bits,
           detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
 class transient_vector
+    : MemoryPolicy::transience::owner
 {
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
 
@@ -121,14 +122,11 @@ public:
 private:
     friend persistent_type;
 
-    using owner_t = typename memory_policy::transience::owner;
-
     transient_vector(impl_t impl)
         : impl_(std::move(impl))
     {}
 
     impl_t  impl_  = impl_t::empty;
-    owner_t owner_;
 };
 
 } // namespace immer

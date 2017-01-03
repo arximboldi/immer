@@ -24,7 +24,7 @@
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/transience/no_transience_policy.hpp>
-#include <immer/transience/transience_policy.hpp>
+#include <immer/transience/gc_transience_policy.hpp>
 #include <type_traits>
 
 namespace immer {
@@ -51,13 +51,13 @@ template <typename HeapPolicy,
               free_list_heap_policy<malloc_heap>>::value,
           typename TransiencePolicy = std::conditional_t<
               std::is_same<RefcountPolicy, no_refcount_policy>::value,
-              transience_policy,
+              gc_transience_policy,
               no_transience_policy>>
 struct memory_policy
 {
     using heap       = HeapPolicy;
     using refcount   = RefcountPolicy;
-    using transience = TransiencePolicy;
+    using transience = typename TransiencePolicy::template apply<heap>::type;
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;
