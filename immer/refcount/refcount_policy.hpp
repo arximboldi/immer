@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -34,30 +34,31 @@ namespace immer {
  */
 struct refcount_policy
 {
-    struct data
-    {
-        mutable std::atomic<int> refcount;
+    mutable std::atomic<int> refcount;
 
-        data() : refcount{1} {};
-        data(disowned) : refcount{0} {}
-    };
+    refcount_policy() : refcount{1} {};
+    refcount_policy(disowned) : refcount{0} {}
 
-    static void inc(const data* p)
+    void inc()
     {
-        p->refcount.fetch_add(1, std::memory_order_relaxed);
-    };
+        refcount.fetch_add(1, std::memory_order_relaxed);
+    }
 
-    static bool dec(const data* p)
+    bool dec()
     {
-        return 1 == p->refcount.fetch_sub(1, std::memory_order_acq_rel);
-    };
+        return 1 == refcount.fetch_sub(1, std::memory_order_acq_rel);
+    }
 
-    template <typename T>
-    static void dec_unsafe(const T* p)
+    void dec_unsafe()
     {
-        assert(p->refcount.load() > 1);
-        p->refcount.fetch_sub(1, std::memory_order_relaxed);
-    };
+        assert(refcount.load() > 1);
+        refcount.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    bool unique()
+    {
+        return refcount == 1;
+    }
 };
 
 } // namespace immer

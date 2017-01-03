@@ -18,30 +18,24 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#pragma once
+#include <immer/vector.hpp>
+#include <immer/transient_vector.hpp>
 
+#include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 
-#include <atomic>
-#include <utility>
+using gc_memory = immer::memory_policy<
+    immer::heap_policy<immer::gc_heap>,
+    immer::no_refcount_policy,
+    false>;
 
-namespace immer {
+template <typename T>
+using test_vector_t = immer::vector<T, gc_memory, 3u>;
 
-/*!
- * A reference counting policy implemented using a raw `int` count.
- * It is **not thread-safe**.
- */
-struct unsafe_refcount_policy
-{
-    mutable int refcount;
+template <typename T>
+using test_transient_vector_t = immer::transient_vector<T, gc_memory, 3u>;
 
-    unsafe_refcount_policy() : refcount{1} {};
-    unsafe_refcount_policy(disowned) : refcount{0} {}
+#define VECTOR_T           test_vector_t
+#define TRANSIENT_VECTOR_T test_transient_vector
 
-    void inc() { ++refcount; }
-    bool dec() { return --refcount == 0; }
-    void dec_unsafe() { --refcount; }
-    bool unique() { return refcount == 1; }
-};
-
-} // namespace immer
+#include "generic.ipp"

@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -54,8 +54,10 @@ struct node
 
     using node_t      = node;
     using heap_policy = typename MemoryPolicy::heap;
-    using refcount    = typename MemoryPolicy::refcount;
-    using refs_t      = typename refcount::data;
+    using transience  = typename MemoryPolicy::transience;
+    using refs_t      = typename MemoryPolicy::refcount;
+    using ownee_t     = typename transience::ownee;
+    using owner_t     = typename transience::owner;
 
     enum class kind_t
     {
@@ -86,16 +88,21 @@ struct node
         leaf_t  leaf;
     };
 
-    struct impl_refs_t
+    struct meta_t
+        : refs_t
+        , ownee_t
+    {};
+
+    struct impl_meta_t
     {
-        refs_t refs;
+        meta_t meta;
 #if IMMER_RBTS_TAGGED_NODE
         kind_t kind;
 #endif
         data_t data;
     };
 
-    struct impl_no_refs_t : refs_t
+    struct impl_no_meta_t : meta_t
     {
 #if IMMER_RBTS_TAGGED_NODE
         kind_t kind;
@@ -104,9 +111,9 @@ struct node
     };
 
     using impl_t = std::conditional_t<
-        std::is_empty<refs_t>{},
-        impl_no_refs_t,
-        impl_refs_t>;
+        std::is_empty<meta_t>{},
+        impl_no_meta_t,
+        impl_meta_t>;
 
     static_assert(
         std::is_standard_layout<impl_t>::value,
@@ -487,37 +494,45 @@ struct node
         heap::deallocate(p);
     }
 
-    refs_t* refs() const
+    refs_t& refs() const
     {
-        return reinterpret_cast<refs_t*>(const_cast<impl_t*>(&impl));
+        return reinterpret_cast<meta_t&>(const_cast<impl_t&>(impl));
+    }
+
+    const ownee_t& ownee() const
+    {
+        return reinterpret_cast<meta_t&>(const_cast<impl_t&>(impl));
+    }
+
+    bool can_mutate() const
+    {
+        return refs().unique();
+    }
+
+    bool can_mutate(const owner_t& o) const
+    {
+        return can_mutate() || ownee().can_mutate(o);
     }
 
     node_t* inc()
     {
-        refcount::inc(refs());
+        refs().inc();
         return this;
     }
 
     const node_t* inc() const
     {
-        refcount::inc(refs());
+        refs().inc();
         return this;
     }
 
-    bool dec() const
-    {
-        return refcount::dec(refs());
-    }
-
-    void dec_unsafe() const
-    {
-        refcount::dec_unsafe(refs());
-    }
+    bool dec() const { return refs().dec(); }
+    void dec_unsafe() const { refs().dec_unsafe(); }
 
     static void inc_nodes(node_t** p, count_t n)
     {
         for (auto i = p, e = i + n; i != e; ++i)
-            refcount::inc((*i)->refs());
+            (*i)->refs().inc();
     }
 
 #if IMMER_RBTS_TAGGED_NODE

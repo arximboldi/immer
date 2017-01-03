@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -26,44 +26,43 @@
 
 TEST_CASE("no refcount has no data")
 {
-    static_assert(std::is_empty<immer::no_refcount_policy::data>{}, "");
+    static_assert(std::is_empty<immer::no_refcount_policy>{}, "");
 }
 
 template <typename RefcountPolicy>
 void test_refcount()
 {
     using refcount = RefcountPolicy;
-    using data_t = typename refcount::data;
 
     SECTION("starts at one")
     {
-        data_t elem{};
-        CHECK(refcount::dec(&elem));
+        refcount elem{};
+        CHECK(elem.dec());
     }
 
     SECTION("disowned starts at zero")
     {
-        data_t elem{immer::disowned{}};
-        refcount::inc(&elem);
-        CHECK(refcount::dec(&elem));
+        refcount elem{immer::disowned{}};
+        elem.inc();
+        CHECK(elem.dec());
     }
 
     SECTION("inc dec")
     {
-        data_t elem{};
-        refcount::inc(&elem);
-        CHECK(!refcount::dec(&elem));
-        CHECK(refcount::dec(&elem));
+        refcount elem{};
+        elem.inc();
+        CHECK(!elem.dec());
+        CHECK(elem.dec());
     }
 
     SECTION("inc dec unsafe")
     {
-        data_t elem{};
-        refcount::inc(&elem);
-        CHECK(!refcount::dec(&elem));
-        refcount::inc(&elem);
-        refcount::dec_unsafe(&elem);
-        CHECK(refcount::dec(&elem));
+        refcount elem{};
+        elem.inc();
+        CHECK(!elem.dec());
+        elem.inc();
+        elem.dec_unsafe();
+        CHECK(elem.dec());
     }
 }
 

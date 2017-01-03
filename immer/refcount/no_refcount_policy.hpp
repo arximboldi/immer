@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -30,17 +30,13 @@ struct disowned {};
  */
 struct no_refcount_policy
 {
-    struct data
-    {
-        data() {};
-        data(disowned) {}
-    };
+    no_refcount_policy() {};
+    no_refcount_policy(disowned) {}
 
-    static void inc(const data*) {};
-
-    static bool dec(const data*) { return false; };
-
-    static void dec_unsafe(const data*) {};
+    void inc() {}
+    bool dec() { return false; }
+    void dec_unsafe() {}
+    bool unique() { return false; }
 };
 
 } // namespace immer

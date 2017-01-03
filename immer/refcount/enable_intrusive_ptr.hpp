@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -25,22 +25,23 @@
 namespace immer {
 
 template <typename Deriv, typename RefcountPolicy>
-struct enable_intrusive_ptr : RefcountPolicy::data
+class enable_intrusive_ptr
 {
-    using policy = RefcountPolicy;
+    mutable RefcountPolicy refcount_data_;
 
+public:
     enable_intrusive_ptr()
-        : policy::data{disowned{}}
+        : refcount_data_{disowned{}}
     {}
 
     friend void intrusive_ptr_add_ref(const Deriv* x)
     {
-        policy::inc(x);
+        x->refcount_data_.inc();
     }
 
     friend void intrusive_ptr_release(const Deriv* x)
     {
-        if (policy::dec(x))
+        if (x->refcount_data_.dec())
             delete x;
     }
 };

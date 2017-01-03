@@ -20,28 +20,27 @@
 
 #pragma once
 
-#include <immer/refcount/no_refcount_policy.hpp>
-
-#include <atomic>
-#include <utility>
-
 namespace immer {
 
-/*!
- * A reference counting policy implemented using a raw `int` count.
- * It is **not thread-safe**.
- */
-struct unsafe_refcount_policy
+struct transience_policy
 {
-    mutable int refcount;
+    struct owner
+    {
+        owner* token_ = this;
 
-    unsafe_refcount_policy() : refcount{1} {};
-    unsafe_refcount_policy(disowned) : refcount{0} {}
+        owner() {}
+        owner(const owner&) {}
+        owner(owner&& o) : token_{o.token_} {}
+        owner& operator=(const owner&) { return *this; }
+        owner& operator=(owner&& o) { token_ = o.token_; return *this; }
+    };
 
-    void inc() { ++refcount; }
-    bool dec() { return --refcount == 0; }
-    void dec_unsafe() { --refcount; }
-    bool unique() { return refcount == 1; }
+    struct ownee
+    {
+        owner* token_ = nullptr;
+
+        bool can_mutate(const owner& o) const { return token_ == o.token_; }
+    };
 };
 
 } // namespace immer

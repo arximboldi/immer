@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -22,6 +22,9 @@
 
 #include <immer/heap/heap_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
+#include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/transience/no_transience_policy.hpp>
+#include <immer/transience/transience_policy.hpp>
 #include <type_traits>
 
 namespace immer {
@@ -34,6 +37,8 @@ namespace immer {
  * @tparam HeapPolicy A *heap policy*, for example, @ref heap_policy.
  * @tparam RefcountPolicy A *reference counting policy*, for example,
  *         @ref refcount_policy.
+ * @tparam TransiencePolicy A *transience policy*, for example,
+ *         @ref transience_policy.
  * @tparam PreferFewerBiggerObjects Boolean flag indicating whether
  *         the user should prefer to allocate memory in bigger chungs
  *         --e.g. by putting various objects in the same memory
@@ -43,11 +48,16 @@ template <typename HeapPolicy,
           typename RefcountPolicy,
           bool PreferFewerBiggerObjects = !std::is_same<
               HeapPolicy,
-              free_list_heap_policy<malloc_heap>>()>
+              free_list_heap_policy<malloc_heap>>::value,
+          typename TransiencePolicy = std::conditional_t<
+              std::is_same<RefcountPolicy, no_refcount_policy>::value,
+              transience_policy,
+              no_transience_policy>>
 struct memory_policy
 {
-    using heap     = HeapPolicy;
-    using refcount = RefcountPolicy;
+    using heap       = HeapPolicy;
+    using refcount   = RefcountPolicy;
+    using transience = TransiencePolicy;
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;

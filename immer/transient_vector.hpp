@@ -121,11 +121,14 @@ public:
 private:
     friend persistent_type;
 
+    using owner_t = typename memory_policy::transience::owner;
+
     transient_vector(impl_t impl)
         : impl_(std::move(impl))
     {}
 
-    impl_t impl_ = impl_t::empty;
+    impl_t  impl_  = impl_t::empty;
+    owner_t owner_;
 };
 
 } // namespace immer
