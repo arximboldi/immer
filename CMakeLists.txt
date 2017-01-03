@@ -283,7 +283,7 @@ endforeach()
 
 add_custom_target(upload-benchmark-reports
   COMMAND
-  scp -o StrictHostKeyChecking=no -p
+  scp -P 5488 -o StrictHostKeyChecking=no -p
       -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
       -r ${immer_benchmark_report_base_dir}/*
       raskolnikov@sinusoid.es:public/misc/immer/reports/)
