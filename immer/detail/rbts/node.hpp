@@ -147,6 +147,9 @@ struct node
         ? sizeof_inner_n(branches<B>) + sizeof_relaxed_n(branches<B>)
         : sizeof_inner_n(branches<B>);
 
+    constexpr static std::size_t max_sizeof_relaxed =
+        sizeof_relaxed_n(branches<B>);
+
     using heap = typename heap_policy::template apply<
         max_sizeof_inner,
         max_sizeof_leaf
@@ -222,6 +225,33 @@ struct node
         auto p = new (mp) node_t;
         auto r = new (mr) relaxed_t;
         r->count = 0u;
+        p->impl.data.inner.relaxed = r;
+#if IMMER_RBTS_TAGGED_NODE
+        p->impl.kind = node_t::kind_t::inner;
+#endif
+        return p;
+    }
+
+    static node_t* make_inner_r_e(edit_t e)
+    {
+        void *mp, *mr;
+        if (MemoryPolicy::prefer_fewer_bigger_objects) {
+            mp = check_alloc(heap::allocate(max_sizeof_inner));
+            mr = reinterpret_cast<unsigned char*>(mp) + max_sizeof_inner;
+
+        } else {
+            mp = check_alloc(heap::allocate(max_sizeof_inner));
+            try {
+                mr = check_alloc(heap::allocate(max_sizeof_relaxed, norefs_tag{}));
+            } catch (...) {
+                heap::deallocate(mp);
+                throw;
+            }
+        }
+        auto p = new (mp) node_t;
+        auto r = new (mr) relaxed_t;
+        r->count = 0u;
+        p->ownee() = e;
         p->impl.data.inner.relaxed = r;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::kind_t::inner;

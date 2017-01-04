@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -73,6 +73,16 @@ inline void dada()
 {
     if (g_dadaism)
         g_dadaism->dada();
+}
+
+inline bool soft_dada()
+{
+    try {
+        dada();
+        return false;
+    } catch (dada_error) {
+        return true;
+    }
 }
 
 template <typename Heap>

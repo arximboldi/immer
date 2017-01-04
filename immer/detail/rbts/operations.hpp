@@ -224,7 +224,47 @@ struct push_tail_mut_visitor
 
     template <typename Pos>
     friend node_t* visit_relaxed(this_t, Pos&& pos, edit_t e, node_t* tail, count_t ts)
-    { IMMER_UNREACHABLE; /* todo */ }
+    {
+        auto node        = pos.node();
+        auto relaxed     = node->relaxed();
+        auto level       = pos.shift();
+        auto idx         = pos.count() - 1;
+        auto children    = pos.size(idx);
+        auto new_idx     = children == size_t{1} << level || level == BL
+            ? idx + 1 : idx;
+        auto new_child   = (node_t*){};
+        if (new_idx >= branches<B>)
+            return nullptr;
+        else if (idx == new_idx) {
+            new_child = pos.last_oh_csh(this_t{}, idx, children, e, tail, ts);
+            if (!new_child) {
+                if (++new_idx < branches<B>)
+                    new_child = node_t::make_path_e(e, level - B, tail);
+                else
+                    return nullptr;
+            }
+        } else
+            new_child = node_t::make_path_e(e, level - B, tail);
+        try {
+            auto count = new_idx + 1;
+            if (!node->can_mutate(e)) {
+                node    = node_t::copy_inner_r_n(count, pos.node(), new_idx);
+                relaxed = node->relaxed();
+            }
+            node->inner()[new_idx] = new_child;
+            relaxed->sizes[new_idx] = pos.size() + ts;
+            relaxed->count = count;
+            return node;
+        } catch (...) {
+            auto shift = pos.shift();
+            auto size  = new_idx == idx ? children + ts : ts;
+            if (shift > BL) {
+                tail->inc();
+                dec_inner(new_child, shift - B, size);
+            }
+            throw;
+        }
+    }
 
     template <typename Pos, typename... Args>
     friend node_t* visit_regular(this_t, Pos&& pos, edit_t e, node_t* tail, Args&&...)

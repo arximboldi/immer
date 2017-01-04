@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -39,11 +39,8 @@ template <typename T,
           bits_t   BL>
 struct rrbtree
 {
-    using heap_policy = typename MemoryPolicy::heap;
-    using refcount    = typename MemoryPolicy::refcount;
-
     using node_t = node<T, MemoryPolicy, B, BL>;
-    using heap   = typename node_t::heap;
+    using edit_t = typename MemoryPolicy::transience::edit;
 
     size_t  size;
     shift_t shift;
@@ -193,6 +190,83 @@ struct rrbtree
         } else {
             return { shift, node_t::make_path(shift, tail) };
         }
+    }
+
+    std::tuple<shift_t, node_t*>
+    push_tail_mut(edit_t e,
+                  node_t* root, shift_t shift, size_t size,
+                  node_t* tail, count_t tail_size) const
+    {
+        if (auto r = root->relaxed()) {
+            auto new_root = make_relaxed_pos(root, shift, r)
+                .visit(push_tail_mut_visitor<node_t>{}, e, tail, tail_size);
+            if (new_root)
+                return { shift, new_root };
+            else {
+                auto new_root = node_t::make_inner_r_e(e);
+                try {
+                    auto new_path = node_t::make_path_e(e, shift, tail);
+                    new_root->inner() [0] = root->inc();
+                    new_root->inner() [1] = new_path;
+                    new_root->relaxed()->sizes [0] = size;
+                    new_root->relaxed()->sizes [1] = size + tail_size;
+                    new_root->relaxed()->count = 2u;
+                } catch (...) {
+                    node_t::delete_inner_r(new_root);
+                    throw;
+                }
+                return { shift + B, new_root };
+            }
+        } else if (size == size_t{branches<B>} << shift) {
+            auto new_root = node_t::make_inner_e(e);
+            try {
+                auto new_path = node_t::make_path_e(e, shift, tail);
+                new_root->inner() [0] = root->inc();
+                new_root->inner() [1] = new_path;
+            } catch (...) {
+                node_t::delete_inner(new_root);
+                throw;
+            }
+            return { shift + B, new_root };
+        } else if (size) {
+            auto new_root = make_regular_sub_pos(root, shift, size)
+                .visit(push_tail_mut_visitor<node_t>{}, e, tail);
+            return { shift, new_root };
+        } else {
+            return { shift, node_t::make_path_e(e, shift, tail) };
+        }
+    }
+
+    void ensure_mutable_tail(edit_t e, count_t n)
+    {
+        if (!tail->can_mutate(e)) {
+            auto new_tail = node_t::copy_leaf_e(e, tail, n);
+            if (tail->dec())
+                node_t::delete_leaf(tail, n);
+            tail = new_tail;
+        }
+    }
+
+    void push_back_mut(edit_t e, T value)
+    {
+        auto ts = tail_size();
+        if (ts < branches<BL>) {
+            ensure_mutable_tail(e, ts);
+            new (&tail->leaf()[ts]) T{std::move(value)};
+        } else {
+            using std::tie;
+            auto new_tail = node_t::make_leaf_e(e, std::move(value));
+            auto tail_off = tail_offset();
+            try {
+                tie(shift, root) = push_tail_mut(e, root, shift, tail_off,
+                                                 tail, size - tail_off);
+                tail = new_tail;
+            } catch (...) {
+                node_t::delete_leaf(new_tail, 1u);
+                throw;
+            }
+        }
+        ++size;
     }
 
     rrbtree push_back(T value) const

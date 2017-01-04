@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -19,6 +19,8 @@
 //
 
 #pragma once
+
+#include "dada.hpp"
 
 #include <boost/range/irange.hpp>
 #include <boost/range/join.hpp>
@@ -122,5 +124,40 @@ struct push_front_fn
             .push_front(std::forward<U>(x));
     }
 };
+
+template <typename VP, typename VT>
+struct transient_tester
+{
+    VP vp;
+    VT vt;
+    dadaism d = {};
+    bool transient = false;
+
+    transient_tester(VP vp)
+        : vp{vp}
+        , vt{vp.transient()}
+    {}
+
+    bool step()
+    {
+        auto s = d.next();
+        if (soft_dada()) {
+            transient = !transient;
+            if (transient)
+                vt = vp.transient();
+            else
+                vp = vt.persistent();
+            return true;
+        } else
+            return false;
+    }
+};
+
+template <typename VP>
+transient_tester<VP, typename VP::transient_type>
+as_transient_tester(VP p)
+{
+    return { std::move(p) };
+}
 
 } // anonymous namespace

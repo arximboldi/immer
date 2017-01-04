@@ -18,20 +18,34 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "../dada.hpp"
 #include "../util.hpp"
 
+#include <immer/algorithm.hpp>
+
 #include <catch.hpp>
+#include <boost/range/adaptors.hpp>
+#include <boost/range/irange.hpp>
+
+#include <algorithm>
+#include <numeric>
+#include <vector>
+#include <array>
+
+#ifndef FLEX_VECTOR_T
+#error "define the vector template to use in FLEX_VECTOR_T"
+#endif
+
+#ifndef FLEX_VECTOR_TRANSIENT_T
+#error "define the vector template to use in FLEX_VECTOR_TRANSIENT_T"
+#endif
 
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-#ifndef VECTOR_TRANSIENT_T
-#error "define the vector template to use in VECTOR_TRANSIENT_T"
-#endif
-
 template <typename V=VECTOR_T<unsigned>>
-auto make_test_vector(unsigned min, unsigned max)
+auto make_test_flex_vector(unsigned min, unsigned max)
 {
     auto v = V{};
     for (auto i = min; i < max; ++i)
@@ -39,43 +53,49 @@ auto make_test_vector(unsigned min, unsigned max)
     return v;
 }
 
-TEST_CASE("from vector and to vector")
+template <typename V=FLEX_VECTOR_T<unsigned>>
+auto make_test_flex_vector_front(unsigned min, unsigned max)
+{
+    auto v = V{};
+    for (auto i = max; i > min;)
+        v = v.push_front({--i});
+    return v;
+}
+
+TEST_CASE("from flex_vector and to flex_vector")
 {
     constexpr auto n = 100u;
 
-    auto v = make_test_vector(0, n).transient();
+    auto v = make_test_flex_vector(0, n).transient();
     CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 
     auto p = v.persistent();
     CHECK_VECTOR_EQUALS(p, boost::irange(0u, n));
 }
 
-TEST_CASE("push back")
+TEST_CASE("adopt regular vector contents")
 {
-    SECTION("many elements")
-    {
-        const auto n = 666u;
-        auto v = VECTOR_TRANSIENT_T<unsigned>{};
-        for (auto i = 0u; i < n; ++i) {
-            v.push_back(i * 42);
-            CHECK(v.size() == i + 1);
-            for (auto j = 0u; j < v.size(); ++j)
-                CHECK(v[j] == j * 42);
-        }
+    const auto n = 666u;
+    auto v = VECTOR_T<unsigned>{};
+    for (auto i = 0u; i < n; ++i) {
+        v = v.push_back(i);
+        auto fv = FLEX_VECTOR_TRANSIENT_T<unsigned>{v.transient()};
+        CHECK_VECTOR_EQUALS_X(v, fv, [] (auto&& v) { return &v; });
     }
 }
 
-TEST_CASE("exception safety")
+TEST_CASE("exception safety relaxed")
 {
+    using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
     constexpr auto n = 666u;
-
-    using dadaist_vector_t = typename dadaist_vector<VECTOR_T<unsigned>>::type;
 
     SECTION("push back")
     {
-        auto t = as_transient_tester(dadaist_vector_t{});
+        auto half = n / 2;
+        auto t = as_transient_tester(
+            make_test_flex_vector_front<dadaist_vector_t>(0, half));
         auto d = dadaism{};
-        for (auto li = 0u, i = 0u; i < n;) {
+        for (auto li = half, i = half; i < n;) {
             auto s = d.next();
             try {
                 if (t.transient)

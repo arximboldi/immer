@@ -66,6 +66,18 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
         return v;
     };
 })
+
+NONIUS_BENCHMARK("t/librrb", [] (nonius::parameters params)
+{
+    auto n = params.get<N>();
+
+    return [=] {
+        auto v = rrb_to_transient(rrb_create());
+        for (auto i = 0u; i < n; ++i)
+            v = transient_rrb_push(v, reinterpret_cast<void*>(i));
+        return v;
+    };
+})
 #endif
 
 template <typename Vektor>
