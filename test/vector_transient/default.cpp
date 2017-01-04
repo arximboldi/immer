@@ -19,9 +19,9 @@
 //
 
 #include <immer/vector.hpp>
-#include <immer/transient_vector.hpp>
+#include <immer/vector_transient.hpp>
 
 #define VECTOR_T           ::immer::vector
-#define TRANSIENT_VECTOR_T ::immer::transient_vector
+#define VECTOR_TRANSIENT_T ::immer::vector_transient
 
 #include "generic.ipp"

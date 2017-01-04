@@ -19,7 +19,7 @@
 //
 
 #include <immer/vector.hpp>
-#include <immer/transient_vector.hpp>
+#include <immer/vector_transient.hpp>
 
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
@@ -33,9 +33,9 @@ template <typename T>
 using test_vector_t = immer::vector<T, gc_memory, 3u>;
 
 template <typename T>
-using test_transient_vector_t = immer::transient_vector<T, gc_memory, 3u>;
+using test_vector_transient_t = immer::vector_transient<T, gc_memory, 3u>;
 
 #define VECTOR_T           test_vector_t
-#define TRANSIENT_VECTOR_T test_transient_vector_t
+#define VECTOR_TRANSIENT_T test_vector_transient_t
 
 #include "generic.ipp"

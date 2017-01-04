@@ -24,7 +24,7 @@
 
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
-#include <immer/transient_vector.hpp>
+#include <immer/vector_transient.hpp>
 #include <immer/vector.hpp>
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
@@ -94,10 +94,10 @@ using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, i
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
 using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
 
-NONIUS_BENCHMARK("tvector/5B", generic_mut<immer::transient_vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("tvector/GC", generic_mut<immer::transient_vector<unsigned,gc_memory,5>>())
-NONIUS_BENCHMARK("tvector/NO", generic_mut<immer::transient_vector<unsigned,basic_memory,5>>())
-NONIUS_BENCHMARK("tvector/UN", generic_mut<immer::transient_vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("t/vector/5B", generic_mut<immer::vector_transient<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/vector/GC", generic_mut<immer::vector_transient<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/vector/NO", generic_mut<immer::vector_transient<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/vector/UN", generic_mut<immer::vector_transient<unsigned,unsafe_memory,5>>())
 
 template <typename Vektor>
 auto generic()

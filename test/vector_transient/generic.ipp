@@ -26,8 +26,8 @@
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-#ifndef TRANSIENT_VECTOR_T
-#error "define the vector template to use in TRANSIENT_VECTOR_T"
+#ifndef VECTOR_TRANSIENT_T
+#error "define the vector template to use in VECTOR_TRANSIENT_T"
 #endif
 
 template <typename V=VECTOR_T<unsigned>>
@@ -50,13 +50,12 @@ TEST_CASE("from vector and to vector")
     CHECK_VECTOR_EQUALS(p, boost::irange(0u, n));
 }
 
-
 TEST_CASE("push back")
 {
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = TRANSIENT_VECTOR_T<unsigned>{};
+        auto v = VECTOR_TRANSIENT_T<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v.push_back(i * 42);
             CHECK(v.size() == i + 1);

@@ -33,13 +33,20 @@ template <typename T,
 class vector;
 
 template <typename T,
+          typename MemoryPolicy,
+          detail::rbts::bits_t B,
+          detail::rbts::bits_t BL>
+class flex_vector_transient;
+
+template <typename T,
           typename MemoryPolicy   = default_memory_policy,
           detail::rbts::bits_t B  = default_bits,
           detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
-class transient_vector
+class vector_transient
     : MemoryPolicy::transience::owner
 {
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
+    using flex_t = flex_vector_transient<T, MemoryPolicy, B, BL>;
 
 public:
     static constexpr auto bits = B;
@@ -62,7 +69,7 @@ public:
      * Default constructor.  It creates a vector of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    transient_vector() = default;
+    vector_transient() = default;
 
     /*!
      * Returns an iterator pointing at the first element of the
@@ -127,9 +134,10 @@ public:
     { return persistent_type{ std::move(impl_) }; }
 
 private:
+    friend flex_t;
     friend persistent_type;
 
-    transient_vector(impl_t impl)
+    vector_transient(impl_t impl)
         : impl_(std::move(impl))
     {}
 

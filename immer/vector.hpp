@@ -40,7 +40,7 @@ template <typename T,
           typename MemoryPolicy,
           detail::rbts::bits_t B,
           detail::rbts::bits_t BL>
-class transient_vector;
+class vector_transient;
 
 /**
  * Immutable sequential container supporting both random access and
@@ -101,7 +101,7 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    using transient_type   = transient_vector<T, MemoryPolicy, B, BL>;
+    using transient_type   = vector_transient<T, MemoryPolicy, B, BL>;
 
     /*!
      * Default constructor.  It creates a vector of `size() == 0`.  It
