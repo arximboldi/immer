@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -152,7 +152,6 @@ template <typename NodeT>
 leaf_sub_pos<NodeT> make_leaf_sub_pos(NodeT* node, count_t count)
 {
     assert(node);
-    assert(count > 0);
     assert(count <= branches<NodeT::bits_leaf>);
     return {node, count};
 }

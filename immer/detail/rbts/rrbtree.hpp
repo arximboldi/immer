@@ -192,48 +192,52 @@ struct rrbtree
         }
     }
 
-    std::tuple<shift_t, node_t*>
-    push_tail_mut(edit_t e,
-                  node_t* root, shift_t shift, size_t size,
-                  node_t* tail, count_t tail_size) const
+    void push_tail_mut(edit_t e, size_t tail_off,
+                       node_t* tail, count_t tail_size)
     {
         if (auto r = root->relaxed()) {
             auto new_root = make_relaxed_pos(root, shift, r)
                 .visit(push_tail_mut_visitor<node_t>{}, e, tail, tail_size);
-            if (new_root)
-                return { shift, new_root };
-            else {
+            if (new_root) {
+                if (root != new_root) dec_relaxed(root, shift);
+                root = new_root;
+            } else {
                 auto new_root = node_t::make_inner_r_e(e);
                 try {
                     auto new_path = node_t::make_path_e(e, shift, tail);
-                    new_root->inner() [0] = root->inc();
+                    new_root->inner() [0] = root;
                     new_root->inner() [1] = new_path;
-                    new_root->relaxed()->sizes [0] = size;
-                    new_root->relaxed()->sizes [1] = size + tail_size;
+                    new_root->relaxed()->sizes [0] = tail_off;
+                    new_root->relaxed()->sizes [1] = tail_off + tail_size;
                     new_root->relaxed()->count = 2u;
+                    root = new_root;
+                    shift += B;
                 } catch (...) {
                     node_t::delete_inner_r(new_root);
                     throw;
                 }
-                return { shift + B, new_root };
             }
-        } else if (size == size_t{branches<B>} << shift) {
+        } else if (tail_off == size_t{branches<B>} << shift) {
             auto new_root = node_t::make_inner_e(e);
             try {
                 auto new_path = node_t::make_path_e(e, shift, tail);
-                new_root->inner() [0] = root->inc();
+                new_root->inner() [0] = root;
                 new_root->inner() [1] = new_path;
+                root = new_root;
+                shift += B;
             } catch (...) {
                 node_t::delete_inner(new_root);
                 throw;
             }
-            return { shift + B, new_root };
-        } else if (size) {
-            auto new_root = make_regular_sub_pos(root, shift, size)
+        } else if (tail_off) {
+            auto new_root = make_regular_sub_pos(root, shift, tail_off)
                 .visit(push_tail_mut_visitor<node_t>{}, e, tail);
-            return { shift, new_root };
+            if (root != new_root) dec_regular(root, shift, tail_off);
+            root = new_root;
         } else {
-            return { shift, node_t::make_path_e(e, shift, tail) };
+            auto new_root = node_t::make_path_e(e, shift, tail);
+            dec_empty_regular(root);
+            root = new_root;
         }
     }
 
@@ -241,8 +245,7 @@ struct rrbtree
     {
         if (!tail->can_mutate(e)) {
             auto new_tail = node_t::copy_leaf_e(e, tail, n);
-            if (tail->dec())
-                node_t::delete_leaf(tail, n);
+            dec_leaf(tail, n);
             tail = new_tail;
         }
     }
@@ -254,12 +257,11 @@ struct rrbtree
             ensure_mutable_tail(e, ts);
             new (&tail->leaf()[ts]) T{std::move(value)};
         } else {
-            using std::tie;
+            using std::get;
             auto new_tail = node_t::make_leaf_e(e, std::move(value));
             auto tail_off = tail_offset();
             try {
-                tie(shift, root) = push_tail_mut(e, root, shift, tail_off,
-                                                 tail, size - tail_off);
+                push_tail_mut(e, tail_off, tail, ts);
                 tail = new_tail;
             } catch (...) {
                 node_t::delete_leaf(new_tail, 1u);

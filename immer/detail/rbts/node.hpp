@@ -121,34 +121,59 @@ struct node
 
     impl_t impl;
 
-    constexpr static std::size_t sizeof_inner_n(count_t count)
-    {
-        return offsetof(impl_t, data.inner.buffer)
-            +  sizeof(inner_t::buffer) * count;
-    }
+    // assume that we need to keep headroom space in the node when we
+    // are doing reference counting, since any node may become
+    // transient when it has only one reference
+    constexpr static bool keep_headroom = !std::is_empty<refs_t>{};
 
-    constexpr static std::size_t sizeof_leaf_n(count_t count)
+    constexpr static std::size_t sizeof_packed_leaf_n(count_t count)
     {
         return offsetof(impl_t, data.inner.buffer)
             +  sizeof(leaf_t::buffer) * count;
     }
 
-    constexpr static std::size_t sizeof_relaxed_n(count_t count)
+    constexpr static std::size_t sizeof_packed_inner_n(count_t count)
+    {
+        return offsetof(impl_t, data.inner.buffer)
+            +  sizeof(inner_t::buffer) * count;
+    }
+
+    constexpr static std::size_t sizeof_packed_relaxed_n(count_t count)
     {
         return offsetof(relaxed_t, sizes)
             +  sizeof(size_t) * count;
     }
 
+    constexpr static std::size_t sizeof_packed_inner_r_n(count_t count)
+    {
+        return MemoryPolicy::prefer_fewer_bigger_objects
+            ? sizeof_packed_inner_n(count) + sizeof_packed_relaxed_n(count)
+            : sizeof_packed_inner_n(count);
+    }
+
     constexpr static std::size_t max_sizeof_leaf  =
-        sizeof_leaf_n(branches<BL>);
+        sizeof_packed_leaf_n(branches<BL>);
 
     constexpr static std::size_t max_sizeof_inner =
-        MemoryPolicy::prefer_fewer_bigger_objects
-        ? sizeof_inner_n(branches<B>) + sizeof_relaxed_n(branches<B>)
-        : sizeof_inner_n(branches<B>);
+        sizeof_packed_inner_n(branches<B>);
 
     constexpr static std::size_t max_sizeof_relaxed =
-        sizeof_relaxed_n(branches<B>);
+        sizeof_packed_relaxed_n(branches<B>);
+
+    constexpr static std::size_t max_sizeof_inner_r =
+        sizeof_packed_inner_r_n(branches<B>);
+
+    constexpr static std::size_t sizeof_inner_n(count_t n)
+    { return keep_headroom ? max_sizeof_inner : sizeof_packed_inner_n(n); }
+
+    constexpr static std::size_t sizeof_inner_r_n(count_t n)
+    { return keep_headroom ? max_sizeof_inner_r : sizeof_packed_inner_r_n(n); }
+
+    constexpr static std::size_t sizeof_relaxed_n(count_t n)
+    { return keep_headroom ? max_sizeof_inner : sizeof_packed_relaxed_n(n); }
+
+    constexpr static std::size_t sizeof_leaf_n(count_t n)
+    { return keep_headroom ? max_sizeof_leaf : sizeof_packed_leaf_n(n); }
 
     using heap = typename heap_policy::template apply<
         max_sizeof_inner,
@@ -207,14 +232,11 @@ struct node
     static node_t* make_inner_r_n(count_t n)
     {
         assert(n <= branches<B>);
-        void *mp, *mr;
+        auto mp = check_alloc(heap::allocate(sizeof_inner_r_n(n)));
+        auto mr = (void*){};
         if (MemoryPolicy::prefer_fewer_bigger_objects) {
-            mp = check_alloc(heap::allocate(sizeof_inner_n(n) +
-                                            sizeof_relaxed_n(n)));
             mr = reinterpret_cast<unsigned char*>(mp) + sizeof_inner_n(n);
-
         } else {
-            mp = check_alloc(heap::allocate(sizeof_inner_n(n)));
             try {
                 mr = check_alloc(heap::allocate(sizeof_relaxed_n(n), norefs_tag{}));
             } catch (...) {
@@ -234,13 +256,11 @@ struct node
 
     static node_t* make_inner_r_e(edit_t e)
     {
-        void *mp, *mr;
+        auto mp = check_alloc(heap::allocate(max_sizeof_inner_r));
+        auto mr = (void*){};
         if (MemoryPolicy::prefer_fewer_bigger_objects) {
-            mp = check_alloc(heap::allocate(max_sizeof_inner));
             mr = reinterpret_cast<unsigned char*>(mp) + max_sizeof_inner;
-
         } else {
-            mp = check_alloc(heap::allocate(max_sizeof_inner));
             try {
                 mr = check_alloc(heap::allocate(max_sizeof_relaxed, norefs_tag{}));
             } catch (...) {
@@ -704,7 +724,7 @@ constexpr bits_t derive_bits_leaf_aux()
 {
     using node_t = node<T, MP, B, B>;
     auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
-    auto space = node_t::max_sizeof_inner - node_t::sizeof_leaf_n(0u);
+    auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0u);
     auto full_elems = space / sizeof_elem;
     return log2(full_elems);
 }

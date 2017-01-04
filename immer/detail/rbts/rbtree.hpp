@@ -123,8 +123,7 @@ struct rbtree
         if (tail_off) make_regular_sub_pos(root, shift, tail_off).visit(v, args...);
         else make_empty_regular_pos(root).visit(v, args...);
 
-        if (tail_size) make_leaf_sub_pos(tail, tail_size).visit(v, args...);
-        else make_empty_leaf_pos(tail).visit(v, args...);
+        make_leaf_sub_pos(tail, tail_size).visit(v, args...);
     }
 
     template <typename Visitor>
@@ -146,8 +145,7 @@ struct rbtree
     {
         if (!tail->can_mutate(e)) {
             auto new_tail = node_t::copy_leaf_e(e, tail, n);
-            if (tail->dec())
-                node_t::delete_leaf(tail, n);
+            dec_leaf(tail, n);
             tail = new_tail;
         }
     }
@@ -176,11 +174,16 @@ struct rbtree
                         throw;
                     }
                 } else if (tail_off) {
-                    root = make_regular_sub_pos(root, shift, tail_off)
+                    auto new_root = make_regular_sub_pos(root, shift, tail_off)
                         .visit(push_tail_mut_visitor<node_t>{}, e, tail);
+                    if (root != new_root) dec_regular(root, shift, tail_off);
+                    root = new_root;
                     tail = new_tail;
                 } else {
-                    root = node_t::make_path_e(e, shift, tail);
+                    auto new_root = node_t::make_path_e(e, shift, tail);
+                    assert(tail_off == 0u);
+                    dec_empty_regular(root);
+                    root = new_root;
                     tail = new_tail;
                 }
             } catch (...) {
