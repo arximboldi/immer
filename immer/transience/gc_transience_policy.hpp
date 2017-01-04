@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <immer/heap/tags.hpp>
+
 #include <memory>
 
 namespace immer {
@@ -31,11 +33,15 @@ struct gc_transience_policy
     {
         struct type
         {
-            using heap = typename HeapPolicy::template apply<1>::type;
+            using heap_ = typename HeapPolicy::template apply<1>::type;
+
+            using edit = void*;
 
             struct owner
             {
-                void* token_ = heap::allocate(1, norefs_tag{});
+                edit token_ = heap_::allocate(1, norefs_tag{});
+
+                operator edit () { return token_; }
 
                 owner() {}
                 owner(const owner&) {}
@@ -50,12 +56,16 @@ struct gc_transience_policy
 
             struct ownee
             {
-                void* token_ = nullptr;
+                edit token_ = nullptr;
 
-                void set(const owner& o) { token_ = o; }
+                ownee& operator=(edit e)
+                {
+                    assert(token_ == nullptr);
+                    token_ = e;
+                    return *this;
+                }
 
-                bool can_mutate(const owner& o) const
-                { return token_ == o.token_; }
+                bool can_mutate(edit t) const { return token_ == t; }
             };
         };
     };

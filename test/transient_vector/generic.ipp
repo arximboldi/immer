@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -48,4 +48,20 @@ TEST_CASE("from vector and to vector")
 
     auto p = v.persistent();
     CHECK_VECTOR_EQUALS(p, boost::irange(0u, n));
+}
+
+
+TEST_CASE("push back")
+{
+    SECTION("many elements")
+    {
+        const auto n = 666u;
+        auto v = TRANSIENT_VECTOR_T<unsigned>{};
+        for (auto i = 0u; i < n; ++i) {
+            v.push_back(i * 42);
+            CHECK(v.size() == i + 1);
+            for (auto j = 0u; j < v.size(); ++j)
+                CHECK(v[j] == j * 42);
+        }
+    }
 }

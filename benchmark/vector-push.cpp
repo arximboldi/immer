@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -22,9 +22,10 @@
 
 #include "util.hpp"
 
-#include <immer/vector.hpp>
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
+#include <immer/transient_vector.hpp>
+#include <immer/vector.hpp>
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
 #include <immer/experimental/dvektor.hpp>
@@ -53,30 +54,6 @@ extern "C" {
 
 NONIUS_PARAM(N, std::size_t{1000})
 
-NONIUS_BENCHMARK("std::vector", [] (nonius::parameters params)
-{
-    auto n = params.get<N>();
-
-    return [=] {
-        auto v = std::vector<unsigned>{};
-        for (auto i = 0u; i < n; ++i)
-            v.push_back(i);
-        return v;
-    };
-})
-
-NONIUS_BENCHMARK("std::list", [] (nonius::parameters params)
-{
-    auto n = params.get<N>();
-
-    return [=] {
-        auto v = std::list<unsigned>{};
-        for (auto i = 0u; i < n; ++i)
-            v.push_back(i);
-        return v;
-    };
-})
-
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
 {
@@ -90,6 +67,37 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
     };
 })
 #endif
+
+template <typename Vektor>
+auto generic_mut()
+{
+    return [] (nonius::parameters params)
+    {
+        auto n = params.get<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        return [=] {
+            auto v = Vektor{};
+            for (auto i = 0u; i < n; ++i)
+                v.push_back(i);
+            return v;
+        };
+    };
+};
+
+NONIUS_BENCHMARK("std::vector", generic_mut<std::vector<unsigned>>())
+NONIUS_BENCHMARK("std::list",   generic_mut<std::list<unsigned>>())
+
+using def_memory    = immer::default_memory_policy;
+using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
+using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
+using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
+
+NONIUS_BENCHMARK("tvector/5B", generic_mut<immer::transient_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("tvector/GC", generic_mut<immer::transient_vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("tvector/NO", generic_mut<immer::transient_vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("tvector/UN", generic_mut<immer::transient_vector<unsigned,unsafe_memory,5>>())
 
 template <typename Vektor>
 auto generic()
@@ -108,15 +116,6 @@ auto generic()
         };
     };
 };
-
-using def_memory    = immer::default_memory_policy;
-using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
-using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
-using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
-
-#if IMMER_BENCHMARK_STEADY
-NONIUS_BENCHMARK("steady",     generic<steady::vector<unsigned>>())
-#endif
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())
@@ -139,4 +138,8 @@ NONIUS_BENCHMARK("dvektor/NO", generic<immer::dvektor<unsigned,basic_memory,5>>(
 NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,unsafe_memory,5>>())
 #endif
 
-NONIUS_BENCHMARK("array",    generic<immer::array<unsigned>>())
+NONIUS_BENCHMARK("array",      generic<immer::array<unsigned>>())
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady",     generic<steady::vector<unsigned>>())
+#endif

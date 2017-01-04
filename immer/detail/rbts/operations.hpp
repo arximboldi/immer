@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -211,6 +211,51 @@ void dec_regular(NodeT* node, shift_t shift, size_t size)
 {
     make_regular_pos(node, shift, size).visit(dec_visitor());
 }
+
+template <typename NodeT>
+struct push_tail_mut_visitor
+{
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
+    using this_t = push_tail_mut_visitor;
+    using node_t = NodeT;
+    using edit_t = typename NodeT::edit_t;
+
+    template <typename Pos>
+    friend node_t* visit_relaxed(this_t, Pos&& pos, edit_t e, node_t* tail, count_t ts)
+    { IMMER_UNREACHABLE; /* todo */ }
+
+    template <typename Pos, typename... Args>
+    friend node_t* visit_regular(this_t, Pos&& pos, edit_t e, node_t* tail, Args&&...)
+    {
+        assert((pos.size() & mask<BL>) == 0);
+        auto node        = pos.node();
+        auto idx         = pos.index(pos.size() - 1);
+        auto new_idx     = pos.index(pos.size() + branches<BL> - 1);
+        if (node->can_mutate(e)) {
+            node->inner()[new_idx] =
+                idx == new_idx  ? pos.last_oh(this_t{}, idx, e, tail)
+                /* otherwise */ : node_t::make_path_e(e, pos.shift() - B, tail);
+            return node;
+        } else {
+            auto new_parent  = node_t::make_inner_e(e);
+            try {
+                new_parent->inner()[new_idx] =
+                    idx == new_idx  ? pos.last_oh(this_t{}, idx, e, tail)
+                    /* otherwise */ : node_t::make_path_e(e, pos.shift() - B, tail);;
+            } catch (...) {
+                node_t::delete_inner(new_parent);
+                throw;
+            }
+            return node_t::do_copy_inner(new_parent, pos.node(), new_idx);
+        }
+    }
+
+    template <typename Pos, typename... Args>
+    friend node_t* visit_leaf(this_t, Pos&& pos, edit_t e, node_t* tail, Args&&...)
+    { IMMER_UNREACHABLE; };
+};
 
 template <typename NodeT>
 struct push_tail_visitor

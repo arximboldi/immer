@@ -57,7 +57,7 @@ struct node
     using transience  = typename MemoryPolicy::transience;
     using refs_t      = typename MemoryPolicy::refcount;
     using ownee_t     = typename transience::ownee;
-    using owner_t     = typename transience::owner;
+    using edit_t      = typename transience::edit;
 
     enum class kind_t
     {
@@ -189,6 +189,18 @@ struct node
         return p;
     }
 
+    static node_t* make_inner_e(edit_t e)
+    {
+        auto m = detail::check_alloc(heap::allocate(max_sizeof_inner));
+        auto p = new (m) node_t;
+        p->ownee() = e;
+        p->impl.data.inner.relaxed = nullptr;
+#if IMMER_RBTS_TAGGED_NODE
+        p->impl.kind = node_t::kind_t::inner;
+#endif
+        return p;
+    }
+
     static node_t* make_inner_r_n(count_t n)
     {
         assert(n <= branches<B>);
@@ -227,7 +239,25 @@ struct node
         return p;
     }
 
+    static node_t* make_leaf_e(edit_t e)
+    {
+        auto p = new (heap::allocate(max_sizeof_leaf)) node_t;
+        p->ownee() = e;
+#if IMMER_RBTS_TAGGED_NODE
+        p->impl.kind = node_t::kind_t::leaf;
+#endif
+        return p;
+    }
+
     static node_t* make_inner_n(count_t n, node_t* x)
+    {
+        assert(n >= 1u);
+        auto p = make_inner_n(n);
+        p->inner() [0] = x;
+        return p;
+    }
+
+    static node_t* make_inner_n(edit_t n, node_t* x)
     {
         assert(n >= 1u);
         auto p = make_inner_n(n);
@@ -319,6 +349,19 @@ struct node
         return p;
     }
 
+    template <typename U>
+    static node_t* make_leaf_e(edit_t e, U&& x)
+    {
+        auto p = make_leaf_e(e);
+        try {
+            new (p->leaf()) T{ std::forward<U>(x) };
+        } catch (...) {
+            heap::deallocate(p);
+            throw;
+        }
+        return p;
+    }
+
     static node_t* make_path(shift_t shift, node_t* node)
     {
         assert(node->kind() == kind_t::leaf);
@@ -328,6 +371,23 @@ struct node
             auto n = node_t::make_inner_n(1);
             try {
                 n->inner() [0] = make_path(shift - B, node);
+            } catch (...) {
+                heap::deallocate(n);
+                throw;
+            }
+            return n;
+        }
+    }
+
+    static node_t* make_path_e(edit_t e, shift_t shift, node_t* node)
+    {
+        assert(node->kind() == kind_t::leaf);
+        if (shift == endshift<B, BL>)
+            return node;
+        else {
+            auto n = node_t::make_inner_e(e);
+            try {
+                n->inner() [0] = make_path_e(e, shift - B, node);
             } catch (...) {
                 heap::deallocate(n);
                 throw;
@@ -395,6 +455,19 @@ struct node
     {
         assert(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(n);
+        try {
+            std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
+        } catch (...) {
+            heap::deallocate(dst);
+            throw;
+        }
+        return dst;
+    }
+
+    static node_t* copy_leaf_e(edit_t e, node_t* src, count_t n)
+    {
+        assert(src->kind() == kind_t::leaf);
+        auto dst = make_leaf_e(e);
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
         } catch (...) {
@@ -501,7 +574,12 @@ struct node
 
     const ownee_t& ownee() const
     {
-        return reinterpret_cast<meta_t&>(const_cast<impl_t&>(impl));
+        return reinterpret_cast<const meta_t&>(impl);
+    }
+
+    ownee_t& ownee()
+    {
+        return reinterpret_cast<meta_t&>(impl);
     }
 
     bool can_mutate() const
@@ -509,9 +587,9 @@ struct node
         return refs().unique();
     }
 
-    bool can_mutate(const owner_t& o) const
+    bool can_mutate(edit_t e) const
     {
-        return can_mutate() || ownee().can_mutate(o);
+        return can_mutate() || ownee().can_mutate(e);
     }
 
     node_t* inc()

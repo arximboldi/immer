@@ -36,6 +36,6 @@ template <typename T>
 using test_transient_vector_t = immer::transient_vector<T, gc_memory, 3u>;
 
 #define VECTOR_T           test_vector_t
-#define TRANSIENT_VECTOR_T test_transient_vector
+#define TRANSIENT_VECTOR_T test_transient_vector_t
 
 #include "generic.ipp"

@@ -112,6 +112,13 @@ public:
     { return impl_.get(index); }
 
     /*!
+     * Inserts `value` at the end.  It may allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
+    void push_back(value_type value)
+    { impl_.push_back_mut(*this, std::move(value)); }
+
+    /*!
      * Returns a `persistent` form of this container.
      */
     persistent_type persistent() const&

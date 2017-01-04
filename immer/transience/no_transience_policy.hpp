@@ -29,10 +29,17 @@ struct no_transience_policy
     {
         struct type
         {
-            struct owner {};
+            struct edit {};
+
+            struct owner
+            {
+                operator edit () const { return {}; }
+            };
+
             struct ownee
             {
-                bool can_mutate(owner) const { return false; }
+                ownee& operator=(edit) { return *this; };
+                bool can_mutate(edit) const { return false; }
             };
         };
     };
