@@ -181,12 +181,8 @@ struct rbtree
     {
         if (index >= tail_offset())
             return tail->leaf();
-        else {
-            auto node = root;
-            for (auto level = shift; level != endshift<B, BL>; level -= B)
-                node = node->inner() [(index >> level) & mask<B>];
-            return node->leaf();
-        }
+        else
+            return find_leaf_regular(root, shift, index)->leaf();
     }
 
     const T& get(size_t index) const

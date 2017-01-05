@@ -241,9 +241,7 @@ struct rrbtree
                     }
                     node = node->inner() [node_index];
                 } else {
-                    do {
-                        node = node->inner() [(index >> level) & mask<B>];
-                    } while ((level -= B) != endshift<B, BL>);
+                    node = find_leaf_regular(node, level, index);
                     break;
                 }
             }
@@ -272,10 +270,8 @@ struct rrbtree
                     if (node_index) index -= r->sizes[node_index - 1];
                     node = node->inner() [node_index];
                 } else {
-                    do {
-                        node = node->inner() [(index >> level) & mask<B>];
-                    } while ((level -= B) != endshift<B, BL>);
-                    return node->leaf() [index & mask<BL>];
+                    node = find_leaf_regular(node, level, index);
+                    break;
                 }
             }
             return node->leaf() [index & mask<BL>];

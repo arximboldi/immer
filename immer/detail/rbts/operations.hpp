@@ -33,6 +33,37 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
+template <typename NodeT>
+NodeT* find_leaf_regular(NodeT* node, shift_t shift, size_t index)
+{
+    constexpr auto B  = NodeT::bits;
+    constexpr auto BL = NodeT::bits_leaf;
+
+#define L_(n)    (BL + B * (n))
+#define D_(n)    (BL + (n) * B)
+#define X_(n)    ->inner()[(index >> L_(n)) & mask<B>]
+
+    switch (shift) {
+    case D_(0): return node X_(0);
+    case D_(1): return node X_(1) X_(0);
+    case D_(2): return node X_(2) X_(1) X_(0);
+    case D_(3): return node X_(3) X_(2) X_(1) X_(0);
+    case D_(4): return node X_(4) X_(3) X_(2) X_(1) X_(0);
+    case D_(5): return node X_(5) X_(4) X_(3) X_(2) X_(1) X_(0);
+#ifdef IMMER_DEEPER_TREES
+    default: // enabling this makes it slower
+        return find_leaf_regular(
+            node X_(5) X_(4) X_(3) X_(2) X_(1) X_(0),
+            shift - B * 5,
+            index);
+#endif
+    }
+    IMMER_UNREACHABLE;
+
+#undef L_
+#undef X_
+}
+
 struct for_each_chunk_visitor
 {
     using this_t = for_each_chunk_visitor;
