@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -50,6 +50,8 @@
 
 #define IMMER_LIKELY(cond)   (__builtin_expect(!!(cond), 1))
 #define IMMER_UNLIKELY(cond) (__builtin_expect(!!(cond), 0))
+
+#define IMMER_FORCEINLINE inline __attribute__ ((always_inline))
 
 namespace immer {
 
