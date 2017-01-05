@@ -219,26 +219,67 @@ struct rrbtree
     }
 
     std::tuple<const T*, size_t, size_t>
-    array_for(size_t idx) const
+    array_for(size_t original_index) const
     {
-        using std::get;
+        auto index    = original_index;
         auto tail_off = tail_offset();
-        if (idx >= tail_off) {
-            return { tail->leaf() + (idx - tail_off), tail_off, size };
+        if (index >= tail_off) {
+            auto offset = index - tail_off;
+            return { tail->leaf() + offset, tail_off, size };
         } else {
-            auto subs = visit_maybe_relaxed_sub(
-                root, shift, tail_off,
-                relaxed_array_for_visitor<T>(), idx);
-            auto offset = get<1>(subs);
-            auto first  = idx - offset;
-            auto end    = first + get<2>(subs);
-            return { get<0>(subs) + offset, first, end };
+            auto node = root;
+            for (auto level = shift; level != endshift<B, BL>; level -= B) {
+                auto r = node->relaxed();
+                if (r) {
+                    auto node_index = (index >> level) & mask<B>;
+                    while (r->sizes[node_index] <= index) ++node_index;
+                    tail_off = r->sizes[node_index];
+                    if (node_index) {
+                        auto prev = r->sizes[node_index - 1];
+                        tail_off -= prev;
+                        index    -= prev;
+                    }
+                    node = node->inner() [node_index];
+                } else {
+                    do {
+                        node = node->inner() [(index >> level) & mask<B>];
+                    } while ((level -= B) != endshift<B, BL>);
+                    break;
+                }
+            }
+            auto offset = index & mask<BL>;
+            auto first  = original_index - offset;
+            auto count  = tail_off - (index & ~mask<BL>);
+            if (count > branches<BL>) count = branches<BL>;
+            return { node->leaf() + offset, first, first + count };
         }
     }
 
     const T& get(size_t index) const
     {
-        return descend(get_visitor<T>(), index);
+        assert(index < size);
+        auto tail_off = tail_offset();
+        if (index >= tail_offset()) {
+            index -= tail_off;
+            return tail->leaf() [index & mask<BL>];
+        } else {
+            auto node = root;
+            for (auto level = shift; level != endshift<B, BL>; level -= B) {
+                auto r = node->relaxed();
+                if (r) {
+                    auto node_index = (index >> level) & mask<B>;
+                    while (r->sizes[node_index] <= index) ++node_index;
+                    if (node_index) index -= r->sizes[node_index - 1];
+                    node = node->inner() [node_index];
+                } else {
+                    do {
+                        node = node->inner() [(index >> level) & mask<B>];
+                    } while ((level -= B) != endshift<B, BL>);
+                    return node->leaf() [index & mask<BL>];
+                }
+            }
+            return node->leaf() [index & mask<BL>];
+        }
     }
 
     template <typename FnT>

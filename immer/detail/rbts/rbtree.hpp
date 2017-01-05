@@ -130,15 +130,6 @@ struct rbtree
         else make_empty_leaf_pos(tail).visit(v, args...);
     }
 
-    template <typename Visitor>
-    decltype(auto) descend(Visitor v, size_t idx) const
-    {
-        auto tail_off  = tail_offset();
-        return idx >= tail_off
-            ? make_leaf_descent_pos(tail).visit(v, idx)
-            : visit_regular_descent(root, shift, v, idx);
-    }
-
     template <typename Fn>
     void for_each_chunk(Fn&& fn) const
     {
@@ -188,12 +179,21 @@ struct rbtree
 
     const T* array_for(size_t index) const
     {
-        return descend(array_for_visitor<T>(), index);
+        if (index >= tail_offset())
+            return tail->leaf();
+        else {
+            auto node = root;
+            for (auto level = shift; level != endshift<B, BL>; level -= B)
+                node = node->inner() [(index >> level) & mask<B>];
+            return node->leaf();
+        }
     }
 
     const T& get(size_t index) const
     {
-        return descend(get_visitor<T>(), index);
+        assert(index < size);
+        auto arr = array_for(index);
+        return arr [index & mask<BL>];
     }
 
     template <typename FnT>

@@ -33,49 +33,6 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <typename T>
-struct array_for_visitor
-{
-    using this_t = array_for_visitor;
-
-    template <typename PosT>
-    friend T* visit_inner(this_t, PosT&& pos, size_t idx)
-    { return pos.descend(this_t{}, idx); }
-
-    template <typename PosT>
-    friend T* visit_leaf(this_t, PosT&& pos, size_t)
-    { return pos.node()->leaf(); }
-};
-
-template <typename T>
-struct relaxed_array_for_visitor
-{
-    using this_t = relaxed_array_for_visitor;
-    using result_t = std::tuple<T*, size_t, size_t>;
-
-    template <typename PosT>
-    friend result_t visit_inner(this_t, PosT&& pos, size_t idx)
-    { return pos.towards(this_t{}, idx); }
-
-    template <typename PosT>
-    friend result_t visit_leaf(this_t, PosT&& pos, size_t idx)
-    { return { pos.node()->leaf(), pos.index(idx), pos.count() }; }
-};
-
-template <typename T>
-struct get_visitor
-{
-    using this_t = get_visitor;
-
-    template <typename PosT>
-    friend const T& visit_inner(this_t, PosT&& pos, size_t idx)
-    { return pos.descend(this_t{}, idx); }
-
-    template <typename PosT>
-    friend const T& visit_leaf(this_t, PosT&& pos, size_t idx)
-    { return pos.node()->leaf() [pos.index(idx)]; }
-};
-
 struct for_each_chunk_visitor
 {
     using this_t = for_each_chunk_visitor;
