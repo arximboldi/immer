@@ -223,7 +223,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if (NOT immer_git_status STREQUAL "")
-  set(immer_git_commit_hash "${immer_git_commit_hash}*")
+  set(immer_git_commit_hash "${immer_git_commit_hash}+")
 endif()
 
 site_name(immer_hostname)
