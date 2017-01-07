@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -42,6 +42,7 @@ extern "C" {
 #include <rrb.h>
 #undef restrict
 }
+#include <immer/heap/gc_heap.hpp>
 #endif
 
 #include <vector>

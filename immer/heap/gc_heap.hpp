@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -31,6 +31,42 @@
 #include <cstdlib>
 
 namespace immer {
+
+#ifdef __APPLE__
+#define IMMER_GC_REQUIRE_INIT 1
+#else
+#define IMMER_GC_REQUIRE_INIT 0
+#endif
+
+#if IMMER_GC_REQUIRE_INIT
+
+namespace detail {
+
+template <int Dummy=0>
+struct gc_initializer
+{
+    gc_initializer() { GC_init(); }
+    static gc_initializer init;
+};
+
+template <int D>
+gc_initializer<D> gc_initializer<D>::init {};
+
+inline void gc_initializer_guard()
+{
+    static gc_initializer<> init_ = gc_initializer<>::init;
+    (void) init_;
+}
+
+} // namespace detail
+
+#define IMMER_GC_INIT_GUARD_ ::immer::detail::gc_initializer_guard()
+
+#else
+
+#define IMMER_GC_INIT_GUARD_
+
+#endif // IMMER_GC_REQUIRE_INIT
 
 /*!
  * Heap that uses a tracing garbage collector.
@@ -69,15 +105,18 @@ namespace immer {
  *
  * @endrst
  */
-struct gc_heap
+class gc_heap
 {
+public:
     static void* allocate(std::size_t n)
     {
+        IMMER_GC_INIT_GUARD_;
         return GC_malloc(n);
     }
 
     static void* allocate(std::size_t n, norefs_tag)
     {
+        IMMER_GC_INIT_GUARD_;
         return GC_malloc_atomic(n);
     }
 
