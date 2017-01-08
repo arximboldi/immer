@@ -48,9 +48,9 @@ struct array_for_visitor
 };
 
 template <typename T>
-struct relaxed_array_for_visitor
+struct region_for_visitor
 {
-    using this_t = relaxed_array_for_visitor;
+    using this_t = region_for_visitor;
     using result_t = std::tuple<T*, size_t, size_t>;
 
     template <typename PosT>

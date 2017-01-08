@@ -295,7 +295,7 @@ struct rrbtree
     }
 
     std::tuple<const T*, size_t, size_t>
-    array_for(size_t idx) const
+    region_for(size_t idx) const
     {
         using std::get;
         auto tail_off = tail_offset();
@@ -304,7 +304,7 @@ struct rrbtree
         } else {
             auto subs = visit_maybe_relaxed_sub(
                 root, shift, tail_off,
-                relaxed_array_for_visitor<T>(), idx);
+                region_for_visitor<T>(), idx);
             auto offset = get<1>(subs);
             auto first  = idx - offset;
             auto end    = first + get<2>(subs);

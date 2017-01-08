@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -46,14 +46,14 @@ struct rrbtree_iterator : boost::iterator_facade<
     rrbtree_iterator(const tree_t& v)
         : v_    { &v }
         , i_    { 0 }
-        , curr_ { v.array_for(0) }
+        , curr_ { v.region_for(0) }
     {
     }
 
     rrbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , curr_ { v.array_for(v.size) }
+        , curr_ { v.region_for(v.size) }
     {}
 
 private:
@@ -71,7 +71,7 @@ private:
         if (i_ < get<2>(curr_))
             ++get<0>(curr_);
         else
-            curr_ = v_->array_for(i_);
+            curr_ = v_->region_for(i_);
     }
 
     void decrement()
@@ -82,7 +82,7 @@ private:
         if (i_ >= get<1>(curr_))
             --get<0>(curr_);
         else
-            curr_ = v_->array_for(i_);
+            curr_ = v_->region_for(i_);
     }
 
     void advance(std::ptrdiff_t n)
@@ -94,7 +94,7 @@ private:
         if (i_ >= get<1>(curr_) && i_ < get<2>(curr_))
             get<0>(curr_) += n;
         else
-            curr_ = v_->array_for(i_);
+            curr_ = v_->region_for(i_);
     }
 
     bool equal(const rrbtree_iterator& other) const
