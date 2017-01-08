@@ -3,7 +3,7 @@ sudo: false
 
 matrix:
   include:
-    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Debug FLAGS="-fsanitize=address -fsanitize=leak -fsanitize=undefined"
+    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Debug SLOW=true FLAGS="-fsanitize=address -fsanitize=leak"
       addons: &clang38
         apt:
           sources:
@@ -11,16 +11,16 @@ matrix:
             - ubuntu-toolchain-r-test
           packages: clang-3.8
 
-    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Release BENCHMARK=true
+    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Release SLOW=false BENCHMARK=true
       addons: *clang38
 
-    - env: COMPILER=g++-6 CONFIGURATION=Debug COVERAGE=true
+    - env: COMPILER=g++-6 CONFIGURATION=Debug COVERAGE=true SLOW=true
       addons: &gcc6
         apt:
           sources: ubuntu-toolchain-r-test
           packages: g++-6
 
-    - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true DOCS=true
+    - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true SLOW=false DOCS=true
       addons: *gcc6
 
 before_install:
@@ -87,7 +87,7 @@ before_script:
              -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
              -DCHECK_BENCHMARKS=${BENCHMARK} \
              -DCHECK_COVERAGE=${COVERAGE} \
-             -DCHECK_SLOW_TESTS=true \
+             -DCHECK_SLOW_TESTS=${SLOW} \
              -DBOOST_ROOT=${BOOST_PATH}
   - make deps-test
   - |
