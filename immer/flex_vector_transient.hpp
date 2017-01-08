@@ -137,6 +137,26 @@ public:
     { impl_.push_back_mut(*this, std::move(value)); }
 
     /*!
+     * Sets to the value `value` at position `idx`.
+     * Undefined for `index >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    void set(std::size_t index, value_type value)
+    { impl_.assoc_mut(*this, index, std::move(value)); }
+
+    /*!
+     * Updates the vector to contain the result of the expression
+     * `fn((*this)[idx])` at position `idx`.
+     * Undefined for `0 >= size()`.
+     * It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    template <typename FnT>
+    void update(std::size_t index, FnT&& fn)
+    { impl_.update_mut(*this, index, std::forward<FnT>(fn)); }
+
+    /*!
      * Returns a `persistent` form of this container.
      */
     persistent_type persistent() const&

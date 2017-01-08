@@ -218,6 +218,82 @@ void dec_empty_regular(NodeT* node)
     make_empty_regular_pos(node).visit(dec_visitor());
 }
 
+template <typename NodeT>
+struct get_mut_visitor
+{
+    using node_t  = NodeT;
+    using this_t  = get_mut_visitor;
+    using value_t = typename NodeT::value_t;
+    using edit_t  = typename NodeT::edit_t;
+
+    template <typename Pos>
+    friend value_t& visit_relaxed(this_t, Pos&& pos, size_t idx,
+                                  edit_t e, node_t** location)
+    {
+        auto offset  = pos.index(idx);
+        auto count   = pos.count();
+        auto node    = pos.node();
+        if (node->can_mutate(e)) {
+            return pos.towards_oh(this_t{}, idx, offset,
+                                  e, &node->inner()[offset]);
+        } else {
+            auto new_node = node_t::copy_inner_r_e(e, node, count);
+            try {
+                auto& res = pos.towards_oh(this_t{}, idx, offset,
+                                           e, &new_node->inner()[offset]);
+                pos.visit(dec_visitor{});
+                *location = new_node;
+                return res;
+            } catch (...) {
+                dec_relaxed(new_node, pos.shift());
+                throw;
+            }
+        }
+    }
+
+    template <typename Pos>
+    friend value_t& visit_regular(this_t, Pos&& pos, size_t idx,
+                                  edit_t e, node_t** location)
+    {
+        assert(pos.node() == *location);
+        auto offset  = pos.index(idx);
+        auto count   = pos.count();
+        auto node    = pos.node();
+        if (node->can_mutate(e)) {
+            return pos.towards_oh_ch(this_t{}, idx, offset, count,
+                                     e, &node->inner()[offset]);
+        } else {
+            auto new_node = node_t::copy_inner_e(e, node, count);
+            try {
+                auto& res = pos.towards_oh_ch(this_t{}, idx, offset, count,
+                                              e, &new_node->inner()[offset]);
+                pos.visit(dec_visitor{});
+                *location = new_node;
+                return res;
+            } catch (...) {
+                dec_regular(new_node, pos.shift(), pos.size());
+                throw;
+            }
+        }
+    }
+
+    template <typename Pos>
+    friend value_t& visit_leaf(this_t, Pos&& pos, size_t idx,
+                               edit_t e, node_t** location)
+    {
+        assert(pos.node() == *location);
+        auto node = pos.node();
+        if (node->can_mutate(e)) {
+            return node->leaf() [pos.index(idx)];
+        } else {
+            auto new_node = node_t::copy_leaf_e(e, pos.node(), pos.count());
+            pos.visit(dec_visitor{});
+            *location = new_node;
+            return new_node->leaf() [pos.index(idx)];
+        }
+    };
+};
+
 template <typename NodeT, bool Mutating = true>
 struct push_tail_mut_visitor
 {

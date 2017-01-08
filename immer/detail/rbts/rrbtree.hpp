@@ -312,9 +312,29 @@ struct rrbtree
         }
     }
 
+    T& get_mut(edit_t e, size_t idx)
+    {
+        auto tail_off = tail_offset();
+        if (idx >= tail_off) {
+            ensure_mutable_tail(e, size - tail_off);
+            return tail->leaf() [(idx - tail_off) & mask<BL>];
+        } else {
+            return visit_maybe_relaxed_sub(
+                root, shift, tail_off,
+                get_mut_visitor<node_t>{}, idx, e, &root);
+        }
+    }
+
     const T& get(size_t index) const
     {
         return descend(get_visitor<T>(), index);
+    }
+
+    template <typename FnT>
+    void update_mut(edit_t e, size_t idx, FnT&& fn)
+    {
+        auto& elem = get_mut(e, idx);
+        elem = std::forward<FnT>(fn) (std::move(elem));
     }
 
     template <typename FnT>
@@ -332,6 +352,13 @@ struct rrbtree
                 update_visitor<node_t>{}, idx, fn);
             return { size, shift, new_root, tail->inc() };
         }
+    }
+
+    void assoc_mut(edit_t e, size_t idx, T value)
+    {
+        update_mut(e, idx, [&] (auto&&) {
+                return std::move(value);
+            });
     }
 
     rrbtree assoc(size_t idx, T value) const

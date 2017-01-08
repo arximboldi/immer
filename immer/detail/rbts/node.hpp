@@ -58,6 +58,7 @@ struct node
     using refs_t      = typename MemoryPolicy::refcount;
     using ownee_t     = typename transience::ownee;
     using edit_t      = typename transience::edit;
+    using value_t     = T;
 
     enum class kind_t
     {
@@ -463,6 +464,13 @@ struct node
         return do_copy_inner(dst, src, n);
     }
 
+    static node_t* copy_inner_e(edit_t e, node_t* src, count_t n)
+    {
+        assert(src->kind() == kind_t::inner);
+        auto dst = make_inner_e(e);
+        return do_copy_inner(dst, src, n);
+    }
+
     static node_t* do_copy_inner(node_t* dst, node_t* src, count_t n)
     {
         assert(dst->kind() == kind_t::inner);
@@ -485,6 +493,13 @@ struct node
         assert(allocn >= n);
         assert(src->kind() == kind_t::inner);
         auto dst = make_inner_r_n(allocn);
+        return do_copy_inner_r(dst, src, n);
+    }
+
+    static node_t* copy_inner_r_e(edit_t e, node_t* src, count_t n)
+    {
+        assert(src->kind() == kind_t::inner);
+        auto dst = make_inner_r_e(e);
         return do_copy_inner_r(dst, src, n);
     }
 
