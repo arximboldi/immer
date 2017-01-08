@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -22,9 +22,11 @@
 
 #include "util.hpp"
 
-#include <immer/vector.hpp>
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
+#include <immer/flex_vector_transient.hpp>
+#include <immer/vector.hpp>
+#include <immer/vector_transient.hpp>
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
 #include <immer/experimental/dvektor.hpp>
@@ -149,6 +151,60 @@ NONIUS_BENCHMARK("librrb/random", [] (nonius::chronometer meter)
         return r;
     });
 })
+
+NONIUS_BENCHMARK("t/librrb", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto v = rrb_to_transient(rrb_create());
+    for (auto i = 0u; i < n; ++i)
+        v = transient_rrb_push(v, reinterpret_cast<void*>(i));
+    auto vv = transient_to_rrb(v);
+
+    meter.measure([&] {
+        auto r = rrb_to_transient(vv);
+        for (auto i = 0u; i < n; ++i)
+            r = transient_rrb_update(r, i, reinterpret_cast<void*>(n - i));
+        return r;
+    });
+})
+
+NONIUS_BENCHMARK("t/librrb/F", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto v = rrb_create();
+    for (auto i = 0u; i < n; ++i) {
+        auto f = rrb_push(rrb_create(),
+                          reinterpret_cast<void*>(i));
+        v = rrb_concat(f, v);
+    }
+
+    meter.measure([&] {
+        auto r = rrb_to_transient(v);
+        for (auto i = 0u; i < n; ++i)
+            r = transient_rrb_update(r, i, reinterpret_cast<void*>(n - i));
+        return r;
+    });
+})
+
+NONIUS_BENCHMARK("t/librrb/random", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto g = make_generator(n);
+    auto v = rrb_to_transient(rrb_create());
+    for (auto i = 0u; i < n; ++i)
+        v = transient_rrb_push(v, reinterpret_cast<void*>(i));
+    auto vv = transient_to_rrb(v);
+
+    meter.measure([&] {
+        auto r = rrb_to_transient(vv);
+        for (auto i = 0u; i < n; ++i)
+            r = transient_rrb_update(r, g[i], reinterpret_cast<void*>(n - i));
+        return r;
+    });
+})
 #endif
 
 struct set_fn
@@ -183,7 +239,7 @@ auto generic()
         meter.measure([&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = SetFn{}(v, i, n - i);
+                r = SetFn{}(r, i, n - i);
             return r;
         });
     };
@@ -245,7 +301,7 @@ auto generic_random()
         return [=] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
-                r = SetFn{}(v, g[i], i);
+                r = SetFn{}(r, g[i], i);
             return r;
         };
     };
@@ -265,3 +321,62 @@ NONIUS_BENCHMARK("dvektor/5B/random",  generic_random<immer::dvektor<unsigned,de
 NONIUS_BENCHMARK("dvektor/6B/random",  generic_random<immer::dvektor<unsigned,def_memory,6>>())
 #endif
 NONIUS_BENCHMARK("array/random",       generic_random<immer::array<unsigned>>())
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_mut()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v.transient();
+            for (auto i = 0u; i < n; ++i)
+                r.set(i, n - i);
+            return r;
+        });
+    };
+};
+
+NONIUS_BENCHMARK("t/vector/5B",  generic_mut<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/vector/GC",  generic_mut<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/vector/NO",  generic_mut<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/vector/UN",  generic_mut<immer::vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("t/flex/F/5B",  generic_mut<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_mut_random()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto g = make_generator(n);
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v.transient();
+            for (auto i = 0u; i < n; ++i)
+                r.set(g[i], i);
+            return r;
+        });
+    };
+};
+
+NONIUS_BENCHMARK("t/vector/5B/random",  generic_mut_random<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/vector/GC/random",  generic_mut_random<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/vector/NO/random",  generic_mut_random<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/vector/UN/random",  generic_mut_random<immer::vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("t/flex/F/5B/random",  generic_mut_random<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
