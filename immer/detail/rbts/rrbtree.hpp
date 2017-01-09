@@ -199,7 +199,6 @@ struct rrbtree
             auto new_root = make_relaxed_pos(root, shift, r)
                 .visit(push_tail_mut_visitor<node_t>{}, e, tail, tail_size);
             if (new_root) {
-                if (root != new_root) dec_relaxed(root, shift);
                 root = new_root;
             } else {
                 auto new_root = node_t::make_inner_r_e(e);
@@ -232,7 +231,6 @@ struct rrbtree
         } else if (tail_off) {
             auto new_root = make_regular_sub_pos(root, shift, tail_off)
                 .visit(push_tail_mut_visitor<node_t>{}, e, tail);
-            if (root != new_root) dec_regular(root, shift, tail_off);
             root = new_root;
         } else {
             auto new_root = node_t::make_path_e(e, shift, tail);

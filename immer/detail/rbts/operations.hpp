@@ -333,27 +333,31 @@ struct push_tail_mut_visitor
         } else
             new_child = node_t::make_path_e(e, level - B, tail);
 
-        try {
+        if (mutate) {
             auto count = new_idx + 1;
-            auto old_child = node->inner()[new_idx];
-            if (!mutate) {
-                node    = node_t::copy_inner_r_n(count, pos.node(), new_idx);
-                relaxed = node->relaxed();
-            } else if (idx == new_idx && old_child != new_child) {
-                dec_inner(old_child, pos.shift() - B, children);
-            }
-            node->inner()[new_idx] = new_child;
+            node->inner()[new_idx]  = new_child;
             relaxed->sizes[new_idx] = pos.size() + ts;
             relaxed->count = count;
             return node;
-        } catch (...) {
-            auto shift = pos.shift();
-            auto size  = new_idx == idx ? children + ts : ts;
-            if (shift > BL) {
-                tail->inc();
-                dec_inner(new_child, shift - B, size);
+        } else {
+            try {
+                auto count    = new_idx + 1;
+                auto new_node = node_t::copy_inner_r_n(count, pos.node(), new_idx);
+                auto relaxed  = new_node->relaxed();
+                new_node->inner()[new_idx] = new_child;
+                relaxed->sizes[new_idx] = pos.size() + ts;
+                relaxed->count = count;
+                if (Mutating) pos.visit(dec_visitor{});
+                return new_node;
+            } catch (...) {
+                auto shift = pos.shift();
+                auto size  = new_idx == idx ? children + ts : ts;
+                if (shift > BL) {
+                    tail->inc();
+                    dec_inner(new_child, shift - B, size);
+                }
+                throw;
             }
-            throw;
         }
     }
 
@@ -364,28 +368,25 @@ struct push_tail_mut_visitor
         auto node        = pos.node();
         auto idx         = pos.index(pos.size() - 1);
         auto new_idx     = pos.index(pos.size() + branches<BL> - 1);
-        if (Mutating && node->can_mutate(e)) {
-            if (idx == new_idx) {
-                auto old_child = node->inner()[new_idx];
-                auto new_child = pos.last_oh(this_t{}, idx, e, tail);
-                if (old_child != new_child) {
-                    node->inner()[new_idx] = new_child;
-                    dec_regular(old_child, pos.shift() - B, pos.size());
-                }
-            } else
-                node->inner()[new_idx] = node_t::make_path_e(e, pos.shift() - B, tail);
+        auto mutate      = Mutating && node->can_mutate(e);
+        if (mutate) {
+            node->inner()[new_idx] =
+                idx == new_idx  ? pos.last_oh(this_t{}, idx, e, tail)
+                /* otherwise */ : node_t::make_path_e(e, pos.shift() - B, tail);
             return node;
         } else {
             auto new_parent  = node_t::make_inner_e(e);
             try {
                 new_parent->inner()[new_idx] =
                     idx == new_idx  ? pos.last_oh(this_no_mut_t{}, idx, e, tail)
-                    /* otherwise */ : node_t::make_path_e(e, pos.shift() - B, tail);;
+                    /* otherwise */ : node_t::make_path_e(e, pos.shift() - B, tail);
+                node_t::do_copy_inner(new_parent, node, new_idx);
+                if (Mutating) pos.visit(dec_visitor{});
+                return new_parent;
             } catch (...) {
                 node_t::delete_inner(new_parent);
                 throw;
             }
-            return node_t::do_copy_inner(new_parent, pos.node(), new_idx);
         }
     }
 

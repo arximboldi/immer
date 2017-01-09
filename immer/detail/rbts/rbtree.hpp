@@ -176,7 +176,6 @@ struct rbtree
                 } else if (tail_off) {
                     auto new_root = make_regular_sub_pos(root, shift, tail_off)
                         .visit(push_tail_mut_visitor<node_t>{}, e, tail);
-                    if (root != new_root) dec_regular(root, shift, tail_off);
                     root = new_root;
                     tail = new_tail;
                 } else {
