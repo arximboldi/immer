@@ -87,7 +87,7 @@ TEST_CASE("adopt regular vector contents")
 TEST_CASE("exception safety relaxed")
 {
     using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
-    constexpr auto n = 666u;
+    constexpr auto n = 667u;
 
     SECTION("push back")
     {
@@ -146,6 +146,40 @@ TEST_CASE("exception safety relaxed")
             } else {
                 CHECK_VECTOR_EQUALS(t.vp, join(irange(1u, 1u + i), irange(i, n)));
                 CHECK_VECTOR_EQUALS(t.vt, join(irange(1u, 1u + li), irange(li, n)));
+            }
+        }
+        CHECK(d.happenings > 0);
+        CHECK(t.d.happenings > 0);
+    }
+
+    SECTION("take")
+    {
+        auto t = as_transient_tester(
+            make_test_flex_vector_front<dadaist_vector_t>(0, n));
+        auto d = dadaism{};
+        auto deltas = magic_rotator();
+        auto delta  = deltas.next();
+        for (auto i = n, li = i;;) {
+            auto s = d.next();
+            auto r = dadaist_vector_t{};
+            try {
+                if (t.transient)
+                    t.vt.take(i);
+                else
+                    t.vp = t.vp.take(i);
+                if (t.step())
+                    li = i;
+                delta = deltas.next();
+                if (i < delta)
+                    break;
+                i -= delta;
+            } catch (dada_error) {}
+            if (t.transient) {
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i + delta));
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
+            } else {
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, i + delta));
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, li));
             }
         }
         CHECK(d.happenings > 0);

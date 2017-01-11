@@ -240,6 +240,10 @@ struct regular_pos
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_right(Visitor v, count_t start, Args&&... args)
+    { return each_right_regular(*this, v, start, args...); }
+
+    template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
@@ -294,6 +298,34 @@ void each_regular(Pos&& p, Visitor v, Args&&... args)
         for (; n != e; ++n)
             make_full_pos(*n, ss).visit(v, args...);
         make_regular_pos(*n, ss, p.size()).visit(v, args...);
+    }
+}
+
+template <typename Pos, typename Visitor, typename... Args>
+void each_right_regular(Pos&& p, Visitor v, count_t start, Args&&... args)
+{
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
+
+    if (p.shift() == BL) {
+        auto n = p.node()->inner() + start;
+        auto last = p.count() - 1;
+        auto e = p.node()->inner() + last;
+        if (n <= e) {
+            for (; n != e; ++n)
+                make_full_leaf_pos(*n).visit(v, args...);
+            make_leaf_pos(*n, p.size()).visit(v, args...);
+        }
+    } else {
+        auto n = p.node()->inner() + start;
+        auto last = p.count() - 1;
+        auto e = p.node()->inner() + last;
+        auto ss = p.shift() - B;
+        if (n <= e) {
+            for (; n != e; ++n)
+                make_full_pos(*n, ss).visit(v, args...);
+            make_regular_pos(*n, ss, p.size()).visit(v, args...);
+        }
     }
 }
 
@@ -435,6 +467,10 @@ struct regular_sub_pos
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&& ...args)
     { return each_regular(*this, v, args...); }
+
+    template <typename Visitor, typename... Args>
+    void each_right(Visitor v, count_t start, Args&& ...args)
+    { return each_right_regular(*this, v, start, args...); }
 
     template <typename Visitor, typename... Args>
     void each_sub_(Visitor v, count_t i, Args&& ...args)
@@ -711,6 +747,10 @@ struct full_pos
     { each_(v, 1, branches<B>, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_right(Visitor v, count_t start, Args&&... args)
+    { each_(v, start, branches<B>, args...); }
+
+    template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh(v, idx, index(idx), args...); }
 
@@ -756,7 +796,6 @@ struct full_pos
             ? make_full_leaf_pos(child).visit(v, args...)
             : make_full_pos(child, shift_ - B).visit(v, args...);
     }
-
 
     template <typename Visitor, typename... Args>
     decltype(auto) first_sub_leaf(Visitor v, Args&&... args)
@@ -870,18 +909,24 @@ struct relaxed_pos
 
     template <typename Visitor, typename... Args>
     void each_right_sub(Visitor v, Args&&... args)
+    { each_right(v, 1u, std::forward<Args>(args)...); }
+
+    template <typename Visitor, typename... Args>
+    void each_right(Visitor v, count_t start, Args&&... args)
     {
-        auto s = relaxed_->sizes[0];
+        assert(start > 0);
+        assert(start <= relaxed_->count);
+        auto s = relaxed_->sizes[start - 1];
         auto p = node_->inner();
         if (shift_ == BL) {
-            for (auto i = 1u; i < relaxed_->count; ++i) {
+            for (auto i = start; i < relaxed_->count; ++i) {
                 make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->sizes[i];
             }
         } else {
             auto ss = shift_ - B;
-            for (auto i = 1u; i < relaxed_->count; ++i) {
+            for (auto i = start; i < relaxed_->count; ++i) {
                 visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
                                         v, args...);
                 s = relaxed_->sizes[i];

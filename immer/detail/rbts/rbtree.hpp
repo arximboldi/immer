@@ -321,6 +321,48 @@ struct rbtree
         }
     }
 
+    void take_mut(edit_t e, size_t new_size)
+    {
+        auto tail_off = tail_offset();
+        if (new_size == 0) {
+            // todo: more efficient?
+            *this = empty;
+        } else if (new_size >= size) {
+            return;
+        } else if (new_size > tail_off) {
+            auto ts    = size - tail_off;
+            auto newts = new_size - tail_off;
+            if (tail->can_mutate(e)) {
+                destroy_n(tail->leaf() + newts, ts - newts);
+            } else {
+                auto new_tail = node_t::copy_leaf_e(e, tail, newts);
+                dec_leaf(tail, ts);
+                tail = new_tail;
+            }
+            size = new_size;
+            return;
+        } else {
+            using std::get;
+            auto l = new_size - 1;
+            auto v = slice_right_mut_visitor<node_t>();
+            auto r = make_regular_sub_pos(root, shift, tail_off).visit(v, l, e);
+            auto new_shift = get<0>(r);
+            auto new_root  = get<1>(r);
+            auto new_tail  = get<3>(r);
+            if (new_root) {
+                root  = new_root;
+                shift = new_shift;
+            } else {
+                root  = empty.root->inc();
+                shift = BL;
+            }
+            dec_leaf(tail, size - tail_off);
+            size  = new_size;
+            tail  = new_tail;
+            return;
+        }
+    }
+
     bool check_tree() const
     {
 #if IMMER_DEBUG_DEEP_CHECK

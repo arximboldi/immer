@@ -157,6 +157,14 @@ public:
     { impl_.update_mut(*this, index, std::forward<FnT>(fn)); }
 
     /*!
+     * Resizes the vector to only contain the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    void take(std::size_t elems)
+    { impl_.take_mut(*this, elems); }
+
+    /*!
      * Returns a `persistent` form of this container.
      */
     persistent_type persistent() const&

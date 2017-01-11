@@ -468,6 +468,204 @@ struct push_tail_visitor
     { IMMER_UNREACHABLE; };
 };
 
+struct dec_right_visitor
+{
+    using this_t = dec_right_visitor;
+    using dec_t  = dec_visitor;
+
+    template <typename Pos>
+    friend void visit_relaxed(this_t, Pos&& p, count_t idx)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each_right(dec_t{}, idx);
+            node_t::delete_inner_r(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_regular(this_t, Pos&& p, count_t idx)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each_right(dec_t{}, idx);
+            node_t::delete_inner(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_leaf(this_t, Pos&& p, count_t idx)
+    { IMMER_UNREACHABLE; }
+};
+
+template <typename NodeT, bool Collapse=true, bool Mutating=true>
+struct slice_right_mut_visitor
+{
+    using node_t = NodeT;
+    using this_t = slice_right_mut_visitor;
+    using edit_t = typename NodeT::edit_t;
+
+    // returns a new shift, new root, the new tail size and the new tail
+    using result_t = std::tuple<shift_t, NodeT*, count_t, NodeT*>;
+    using no_collapse_t = slice_right_mut_visitor<NodeT, false, true>;
+    using no_collapse_no_mut_t = slice_right_mut_visitor<NodeT, false, false>;
+    using no_mut_t = slice_right_mut_visitor<NodeT, Collapse, false>;
+
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
+    template <typename PosT>
+    friend result_t visit_relaxed(this_t, PosT&& pos, size_t last, edit_t e)
+    {
+        auto idx = pos.index(last);
+        auto node = pos.node();
+        auto mutate = Mutating && node->can_mutate(e);
+        if (Collapse && idx == 0) {
+            auto res = mutate
+                ? pos.towards_oh(this_t{}, last, idx, e)
+                : pos.towards_oh(no_mut_t{}, last, idx, e);
+            if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+            return res;
+        } else {
+            using std::get;
+            auto subs = mutate
+                ? pos.towards_oh(no_collapse_t{}, last, idx, e)
+                : pos.towards_oh(no_collapse_no_mut_t{}, last, idx, e);
+            auto next = get<1>(subs);
+            auto ts   = get<2>(subs);
+            auto tail = get<3>(subs);
+            try {
+                if (next) {
+                    if (mutate) {
+                        auto nodr = node->relaxed();
+                        pos.each_right(dec_visitor{}, idx + 1);
+                        node->inner()[idx] = next;
+                        nodr->sizes[idx] = last + 1 - ts;
+                        nodr->count = idx + 1;
+                        return { pos.shift(), node, ts, tail };
+                    } else {
+                        auto newn = node_t::copy_inner_r_e(e, node, idx);
+                        auto newr = newn->relaxed();
+                        newn->inner()[idx] = next;
+                        newr->sizes[idx] = last + 1 - ts;
+                        newr->count = idx + 1;
+                        if (Mutating) pos.visit(dec_visitor{});
+                        return { pos.shift(), newn, ts, tail };
+                    }
+                } else if (idx == 0) {
+                    if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+                    return { pos.shift(), nullptr, ts, tail };
+                } else if (Collapse && idx == 1 && pos.shift() > BL) {
+                    auto newn = pos.node()->inner()[0];
+                    if (Mutating) pos.visit(dec_right_visitor{}, 2u);
+                    return { pos.shift() - B, newn, ts, tail };
+                } else {
+                    if (mutate) {
+                        pos.each_right(dec_visitor{}, idx + 1);
+                        node->relaxed()->count = idx;
+                        return { pos.shift(), node, ts, tail };
+                    } else {
+                        auto newn = node_t::copy_inner_r_e(e, node, idx);
+                        if (Mutating) pos.visit(dec_visitor{});
+                        return { pos.shift(), newn, ts, tail };
+                    }
+                }
+            } catch (...) {
+                assert(!mutate);
+                assert(!next || pos.shift() > BL);
+                if (next)
+                    dec_inner(next, pos.shift() - B,
+                              last + 1 - ts - pos.size_before(idx));
+                dec_leaf(tail, ts);
+                throw;
+            }
+        }
+    }
+
+    template <typename PosT>
+    friend result_t visit_regular(this_t, PosT&& pos, size_t last, edit_t e)
+    {
+        auto idx = pos.index(last);
+        auto node = pos.node();
+        auto mutate = Mutating && node->can_mutate(e);
+        if (Collapse && idx == 0) {
+            auto res = mutate
+                ? pos.towards_oh(this_t{}, last, idx, e)
+                : pos.towards_oh(no_mut_t{}, last, idx, e);
+            if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+            return res;
+        } else {
+            using std::get;
+            auto subs = mutate
+                ? pos.towards_oh(no_collapse_t{}, last, idx, e)
+                : pos.towards_oh(no_collapse_no_mut_t{}, last, idx, e);
+            auto next = get<1>(subs);
+            auto ts   = get<2>(subs);
+            auto tail = get<3>(subs);
+            try {
+                if (next) {
+                    if (mutate) {
+                        node->inner()[idx] = next;
+                        pos.each_right(dec_visitor{}, idx + 1);
+                        return { pos.shift(), node, ts, tail };
+                    } else {
+                        auto newn  = node_t::copy_inner_e(e, node, idx);
+                        newn->inner()[idx] = next;
+                        if (Mutating) pos.visit(dec_visitor{});
+                        return { pos.shift(), newn, ts, tail };
+                    }
+                } else if (idx == 0) {
+                    if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+                    return { pos.shift(), nullptr, ts, tail };
+                } else if (Collapse && idx == 1 && pos.shift() > BL) {
+                    auto newn = pos.node()->inner()[0];
+                    if (Mutating) pos.visit(dec_right_visitor{}, 2u);
+                    return { pos.shift() - B, newn, ts, tail };
+                } else {
+                    if (mutate) {
+                        pos.each_right(dec_visitor{}, idx + 1);
+                        return { pos.shift(), node, ts, tail };
+                    } else {
+                        auto newn = node_t::copy_inner_e(e, node, idx);
+                        if (Mutating) pos.visit(dec_visitor{});
+                        return { pos.shift(), newn, ts, tail };
+                    }
+                }
+            } catch (...) {
+                assert(!mutate);
+                assert(!next || pos.shift() > BL);
+                assert(tail);
+                if (next) dec_regular(next, pos.shift() - B, last + 1 - ts);
+                dec_leaf(tail, ts);
+                throw;
+            }
+        }
+    }
+
+    template <typename PosT>
+    friend result_t visit_leaf(this_t, PosT&& pos, size_t last, edit_t e)
+    {
+        auto old_tail_size = pos.count();
+        auto new_tail_size = pos.index(last) + 1;
+        auto node          = pos.node();
+        auto mutate        = Mutating && node->can_mutate(e);
+        if (new_tail_size == old_tail_size) {
+            if (!Mutating) node->inc();
+            return { 0, nullptr, new_tail_size, node };
+        } else if (mutate) {
+            destroy_n(node->leaf() + new_tail_size,
+                      old_tail_size - new_tail_size);
+            return { 0, nullptr, new_tail_size, node };
+        } else {
+            auto new_tail = node_t::copy_leaf_e(e, node, new_tail_size);
+            if (Mutating) pos.visit(dec_visitor{});
+            return { 0, nullptr, new_tail_size, new_tail };
+        }
+    };
+};
+
 template <typename NodeT, bool Collapse=true>
 struct slice_right_visitor
 {
@@ -535,8 +733,7 @@ struct slice_right_visitor
             auto tail = get<3>(subs);
             try {
                 if (next) {
-                    auto count = idx + 1;
-                    auto newn  = node_t::copy_inner_n(count, pos.node(), idx);
+                    auto newn  = node_t::copy_inner_n(idx + 1, pos.node(), idx);
                     newn->inner()[idx] = next;
                     return { pos.shift(), newn, ts, tail };
                 } else if (idx == 0) {
@@ -545,13 +742,14 @@ struct slice_right_visitor
                     auto newn = pos.node()->inner()[0];
                     return { pos.shift() - B, newn->inc(), ts, tail };
                 } else {
-                    auto newn = node_t::copy_inner(pos.node(), idx);
+                    auto newn = node_t::copy_inner_n(idx, pos.node(), idx);
                     return { pos.shift(), newn, ts, tail };
                 }
             } catch (...) {
                 assert(!next || pos.shift() > BL);
+                assert(tail);
                 if (next) dec_regular(next, pos.shift() - B, last + 1 - ts);
-                if (tail) dec_leaf(tail, ts);
+                dec_leaf(tail, ts);
                 throw;
             }
         }

@@ -22,22 +22,68 @@
 
 #include <cstddef>
 #include <utility>
+#include <array>
 
 namespace {
+
+template <typename Iterator>
+struct rotator
+{
+    using value_type = typename std::iterator_traits<Iterator>::value_type;
+
+    Iterator first;
+    Iterator last;
+    Iterator curr;
+
+    void init(Iterator f, Iterator l)
+    { first = f; last = l; curr = f; }
+
+    value_type next()
+    {
+        if (curr == last) curr = first;
+        return *curr++;
+    }
+};
+
+template <typename Range>
+struct range_rotator : rotator<typename Range::iterator>
+{
+    using base_t = rotator<typename Range::iterator>;
+
+    Range range;
+
+    range_rotator(Range r)
+        : range{std::move(r)}
+    { base_t::init(range.begin(), range.end()); }
+};
+
+template <typename Range>
+auto make_rotator(Range r) -> range_rotator<Range>
+{
+    return { r };
+}
+
+inline auto magic_rotator()
+{
+    return make_rotator(std::array<unsigned, 15>{{
+            7, 11, 2,  3,  5,
+            7, 11, 13, 17, 19,
+            23, 5, 29, 31, 37
+        }});
+}
 
 struct dada_error {};
 
 struct dadaism;
-dadaism* g_dadaism = nullptr;
-
-constexpr static unsigned magic[] = {
-    7, 11, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 };
-constexpr static unsigned magic_length =
-    sizeof(magic) / sizeof(*magic);
+static dadaism* g_dadaism = nullptr;
 
 struct dadaism
 {
-    unsigned index      = 0;
+    using rotator_t = decltype(magic_rotator());
+
+    rotator_t magic     = magic_rotator();
+
+    unsigned step       = magic.next();
     unsigned count      = 0;
     unsigned happenings = 0;
     unsigned last       = 0;
@@ -56,13 +102,13 @@ struct dadaism
     {
         toggle = last == happenings;
         last   = happenings;
-        index  = toggle ? index : (index + 1) % magic_length;
+        step   = toggle ? step : magic.next();
         return { *this };
     }
 
     void dada()
     {
-        if (toggle && ++count % magic[index] == 0) {
+        if (toggle && ++count % step == 0) {
             ++happenings;
             throw dada_error{};
         }
