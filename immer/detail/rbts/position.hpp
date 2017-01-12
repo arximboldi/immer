@@ -668,8 +668,14 @@ decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
     case BL + B * 3: return regular_descent_pos<NodeT, BL + B * 3>{node}.visit(v, idx);
     case BL + B * 4: return regular_descent_pos<NodeT, BL + B * 4>{node}.visit(v, idx);
     case BL + B * 5: return regular_descent_pos<NodeT, BL + B * 5>{node}.visit(v, idx);
-    default        : IMMER_UNREACHABLE;
+#if IMMER_DESCENT_DEEP
+    default:
+        for (auto level = shift; level != endshift<B, BL>; level -= B)
+            node = node->inner() [(idx >> level) & mask<B>];
+        return make_leaf_descent_pos(node).visit(v, idx);
+#endif // IMMER_DEEP_DESCENT
     }
+    IMMER_UNREACHABLE;
 }
 
 template <typename NodeT>
@@ -1165,8 +1171,26 @@ decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
         case BL + B * 3: return relaxed_descent_pos<NodeT, BL + B * 3>{node, r}.visit(v, idx);
         case BL + B * 4: return relaxed_descent_pos<NodeT, BL + B * 4>{node, r}.visit(v, idx);
         case BL + B * 5: return relaxed_descent_pos<NodeT, BL + B * 5>{node, r}.visit(v, idx);
-        default        : IMMER_UNREACHABLE;
+#if IMMER_DESCENT_DEEP
+        default:
+            for (auto level = shift; level != endshift<B, BL>; level -= B) {
+                auto r = node->relaxed();
+                if (r) {
+                    auto node_idx = (idx >> level) & mask<B>;
+                    while (r->sizes[node_idx] <= idx) ++node_idx;
+                    if (node_idx) idx -= r->sizes[node_idx - 1];
+                    node = node->inner() [node_idx];
+                } else {
+                    do {
+                        node = node->inner() [(idx >> level) & mask<B>];
+                    } while ((level -= B) != endshift<B, BL>);
+                    return make_leaf_descent_pos(node).visit(v, idx);
+                }
+            }
+            return make_leaf_descent_pos(node).visit(v, idx);
+#endif // IMMER_DESCENT_DEEP
         }
+        IMMER_UNREACHABLE;
     } else {
         return visit_regular_descent(node, shift, v, idx);
     }

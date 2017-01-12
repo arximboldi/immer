@@ -53,6 +53,8 @@
 
 #define IMMER_FORCEINLINE inline __attribute__ ((always_inline))
 
+#define IMMER_DESCENT_DEEP 0
+
 namespace immer {
 
 const auto default_bits = 5;
