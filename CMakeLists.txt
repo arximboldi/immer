@@ -252,18 +252,16 @@ if(immer_benchmark_param)
   add_dependencies(check benchmarks)
 endif()
 
-add_custom_target(make-benchmark-report-dir
+add_custom_target(benchmark-report-dir
   COMMAND ${CMAKE_COMMAND}
   -E make_directory ${immer_benchmark_report_dir})
-if(immer_benchmark_param)
-  add_dependencies(check make-benchmark-report-dir)
-endif()
 
 file(GLOB immer_benchmarks "benchmark/*.cpp")
 foreach(_file IN LISTS immer_benchmarks)
   immer_target_name_for(_target "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(benchmarks ${_target})
+  add_dependencies(${_target} benchmark-report-dir)
   target_link_libraries(${_target} PUBLIC ${immer_benchmark_libs})
   target_compile_definitions(${_target} PUBLIC
     NONIUS_RUNNER
