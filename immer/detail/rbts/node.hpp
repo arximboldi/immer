@@ -53,9 +53,10 @@ struct node
     static constexpr auto bits_leaf = BL;
 
     using node_t      = node;
-    using heap_policy = typename MemoryPolicy::heap;
-    using transience  = typename MemoryPolicy::transience;
-    using refs_t      = typename MemoryPolicy::refcount;
+    using memory      = MemoryPolicy;
+    using heap_policy = typename memory::heap;
+    using transience  = typename memory::transience;
+    using refs_t      = typename memory::refcount;
     using ownee_t     = typename transience::ownee;
     using edit_t      = typename transience::edit;
     using value_t     = T;
@@ -147,7 +148,7 @@ struct node
 
     constexpr static std::size_t sizeof_packed_inner_r_n(count_t count)
     {
-        return MemoryPolicy::prefer_fewer_bigger_objects
+        return memory::prefer_fewer_bigger_objects
             ? sizeof_packed_inner_n(count) + sizeof_packed_relaxed_n(count)
             : sizeof_packed_inner_n(count);
     }
@@ -235,7 +236,7 @@ struct node
         assert(n <= branches<B>);
         auto mp = check_alloc(heap::allocate(sizeof_inner_r_n(n)));
         auto mr = (void*){};
-        if (MemoryPolicy::prefer_fewer_bigger_objects) {
+        if (memory::prefer_fewer_bigger_objects) {
             mr = reinterpret_cast<unsigned char*>(mp) + sizeof_inner_n(n);
         } else {
             try {
@@ -259,7 +260,7 @@ struct node
     {
         auto mp = check_alloc(heap::allocate(max_sizeof_inner_r));
         auto mr = (void*){};
-        if (MemoryPolicy::prefer_fewer_bigger_objects) {
+        if (memory::prefer_fewer_bigger_objects) {
             mr = reinterpret_cast<unsigned char*>(mp) + max_sizeof_inner;
         } else {
             try {
@@ -580,7 +581,21 @@ struct node
         return dst;
     }
 
-    static node_t* copy_leaf( node_t* src, int idx, int last)
+    static node_t* copy_leaf_e(edit_t e, node_t* src, count_t idx, count_t last)
+    {
+        assert(src->kind() == kind_t::leaf);
+        auto dst = make_leaf_e(e);
+        try {
+            std::uninitialized_copy(
+                src->leaf() + idx, src->leaf() + last, dst->leaf());
+        } catch (...) {
+            heap::deallocate(dst);
+            throw;
+        }
+        return dst;
+    }
+
+    static node_t* copy_leaf(node_t* src, count_t idx, count_t last)
     {
         assert(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(last - idx);
@@ -620,7 +635,7 @@ struct node
         assert(p->kind() == kind_t::inner);
         auto r = p->relaxed();
         assert(r);
-        if (!MemoryPolicy::prefer_fewer_bigger_objects)
+        if (!memory::prefer_fewer_bigger_objects)
             heap::deallocate(r);
         heap::deallocate(p);
     }

@@ -767,6 +767,195 @@ struct slice_right_visitor
     };
 };
 
+struct dec_left_visitor
+{
+    using this_t = dec_left_visitor;
+    using dec_t  = dec_visitor;
+
+    template <typename Pos>
+    friend void visit_relaxed(this_t, Pos&& p, count_t idx)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each_left(dec_t{}, idx);
+            node_t::delete_inner_r(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_regular(this_t, Pos&& p, count_t idx)
+    {
+        using node_t = node_type<Pos>;
+        auto node = p.node();
+        if (node->dec()) {
+            p.each_left(dec_t{}, idx);
+            node_t::delete_inner(node);
+        }
+    }
+
+    template <typename Pos>
+    friend void visit_leaf(this_t, Pos&& p, count_t idx)
+    { IMMER_UNREACHABLE; }
+};
+
+template <typename NodeT, bool Collapse=true, bool Mutating=true>
+struct slice_left_mut_visitor
+{
+    using node_t = NodeT;
+    using this_t = slice_left_mut_visitor;
+    using edit_t = typename NodeT::edit_t;
+    using value_t = typename NodeT::value_t;
+    using relaxed_t = typename NodeT::relaxed_t;
+    // returns a new shift and new root
+    using result_t = std::tuple<shift_t, NodeT*>;
+
+    using no_collapse_t = slice_left_mut_visitor<NodeT, false, true>;
+    using no_collapse_no_mut_t = slice_left_mut_visitor<NodeT, false, false>;
+    using no_mut_t = slice_left_mut_visitor<NodeT, Collapse, false>;
+
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
+    template <typename PosT>
+    friend result_t visit_relaxed(this_t, PosT&& pos, size_t first, edit_t e)
+    {
+        auto idx    = pos.subindex(first);
+        auto count  = pos.count();
+        auto node   = pos.node();
+        auto mutate = Mutating && node->can_mutate(e);
+        auto left_size  = pos.size_before(idx);
+        auto child_size = pos.size_sbh(idx, left_size);
+        auto dropped_size = first;
+        auto child_dropped_size = dropped_size - left_size;
+        if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
+            auto r = mutate
+                ? pos.towards_sub_oh(this_t{}, first, idx, e)
+                : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
+            if (Mutating) pos.visit(dec_left_visitor{}, idx);
+            return r;
+        } else {
+            using std::get;
+            auto newn = mutate ? node : node_t::make_inner_r_e(e);
+            auto newr = newn->relaxed();
+            auto newcount = count - idx;
+            auto new_child_size = child_size - child_dropped_size;
+            try {
+                auto subs  = mutate
+                    ? pos.towards_sub_oh(no_collapse_t{}, first, idx, e)
+                    : pos.towards_sub_oh(no_collapse_no_mut_t{}, first, idx, e);
+                if (mutate) pos.each_left(dec_visitor{}, idx);
+                pos.copy_sizes(idx + 1, newcount - 1,
+                               new_child_size, newr->sizes + 1);
+                std::uninitialized_copy(node->inner() + idx + 1,
+                                        node->inner() + count,
+                                        newn->inner() + 1);
+                newn->inner()[0] = get<1>(subs);
+                newr->sizes[0] = new_child_size;
+                newr->count = newcount;
+                if (!mutate) {
+                    node_t::inc_nodes(newn->inner() + 1, newcount - 1);
+                    if (Mutating) pos.visit(dec_visitor{});
+                }
+                return { pos.shift(), newn };
+            } catch (...) {
+                if (!mutate) node_t::delete_inner_r(newn);
+                throw;
+            }
+        }
+    }
+
+    template <typename PosT>
+    friend result_t visit_regular(this_t, PosT&& pos, size_t first, edit_t e)
+    {
+        auto idx    = pos.subindex(first);
+        auto count  = pos.count();
+        auto node   = pos.node();
+        auto mutate = Mutating
+            // this is more restrictive than actually needed because
+            // it causes the algorithm to also avoid mutating the leaf
+            // in place
+            && !node_t::memory::prefer_fewer_bigger_objects
+            && node->can_mutate(e);
+        auto left_size  = pos.size_before(idx);
+        auto child_size = pos.size_sbh(idx, left_size);
+        auto dropped_size = first;
+        auto child_dropped_size = dropped_size - left_size;
+        if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
+            auto r = mutate
+                ? pos.towards_sub_oh(this_t{}, first, idx, e)
+                : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
+            if (Mutating) pos.visit(dec_left_visitor{}, idx);
+            return r;
+        } else {
+            using std::get;
+            // if possible, we convert the node to a relaxed one
+            // simply by allocating a `relaxed_t` size table for
+            // it... maybe some of this magic should be moved as a
+            // `node<...>` static method...
+            auto newcount = count - idx;
+            auto newn = mutate
+                ? (node->impl.data.inner.relaxed = new (
+                       check_alloc(node_t::heap::allocate(
+                                       node_t::max_sizeof_relaxed,
+                                       norefs_tag{}))) relaxed_t,
+                   node)
+                : node_t::make_inner_r_e(e);
+            auto newr = newn->relaxed();
+            try {
+                auto subs = mutate
+                    ? pos.towards_sub_oh(no_collapse_t{}, first, idx, e)
+                    : pos.towards_sub_oh(no_collapse_no_mut_t{}, first, idx, e);
+                if (mutate) pos.each_left(dec_visitor{}, idx);
+                newr->sizes[0] = child_size - child_dropped_size;
+                pos.copy_sizes(idx + 1, newcount - 1,
+                               newr->sizes[0], newr->sizes + 1);
+                newr->count = newcount;
+                newn->inner()[0] = get<1>(subs);
+                std::uninitialized_copy(node->inner() + idx + 1,
+                                        node->inner() + count,
+                                        newn->inner() + 1);
+                if (!mutate) {
+                    node_t::inc_nodes(newn->inner() + 1, newcount - 1);
+                    if (Mutating) pos.visit(dec_visitor{});
+                }
+                return { pos.shift(), newn };
+            } catch (...) {
+                if (!mutate) node_t::delete_inner_r(newn);
+                else {
+                    // restore the regular node that we were
+                    // attempting to relax...
+                    node_t::heap::deallocate(node->impl.data.inner.relaxed);
+                    node->impl.data.inner.relaxed = nullptr;
+                }
+                throw;
+            }
+        }
+    }
+
+    template <typename PosT>
+    friend result_t visit_leaf(this_t, PosT&& pos, size_t first, edit_t e)
+    {
+        auto node   = pos.node();
+        auto idx    = pos.index(first);
+        auto count  = pos.count();
+        auto mutate = Mutating
+            && std::is_nothrow_move_constructible<value_t>::value
+            && node->can_mutate(e);
+        if (mutate) {
+            auto data = node->leaf();
+            auto newcount = count - idx;
+            std::move(data + idx, data + count, data);
+            destroy_n(data + newcount, idx);
+            return { 0, node };
+        } else {
+            auto newn = node_t::copy_leaf_e(e, node, idx, count);
+            if (Mutating) pos.visit(dec_visitor{});
+            return { 0, newn };
+        }
+    };
+};
+
 template <typename NodeT, bool Collapse=true>
 struct slice_left_visitor
 {

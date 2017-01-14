@@ -435,6 +435,41 @@ struct rrbtree
         }
     }
 
+    void drop_mut(edit_t e, size_t elems)
+    {
+        using std::get;
+        auto tail_off = tail_offset();
+        if (elems == 0) {
+            return;
+        } else if (elems >= size) {
+            *this = empty;
+        } else if (elems == tail_off) {
+            dec_inner(root, shift, tail_off);
+            shift = BL;
+            root  = empty.root->inc();
+            size -= elems;
+            return;
+        } else if (elems > tail_off) {
+            auto v = slice_left_mut_visitor<node_t>();
+            tail = get<1>(make_leaf_sub_pos(tail, size - tail_off).visit(
+                              v, elems - tail_off, e));
+            if (root != empty.root) {
+                dec_inner(root, shift, tail_off);
+                shift = BL;
+                root  = empty.root->inc();
+            }
+            size -= elems;
+            return;
+        } else {
+            auto v = slice_left_mut_visitor<node_t>();
+            auto r = visit_maybe_relaxed_sub(root, shift, tail_off, v, elems, e);
+            shift = get<0>(r);
+            root  = get<1>(r);
+            size -= elems;
+            return;
+        }
+    }
+
     rrbtree drop(size_t elems) const
     {
         if (elems == 0) {

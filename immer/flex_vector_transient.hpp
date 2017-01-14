@@ -165,6 +165,14 @@ public:
     { impl_.take_mut(*this, elems); }
 
     /*!
+     * Removes the first the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    void drop(std::size_t elems)
+    { impl_.drop_mut(*this, elems); }
+
+    /*!
      * Returns a `persistent` form of this container.
      */
     persistent_type persistent() const&

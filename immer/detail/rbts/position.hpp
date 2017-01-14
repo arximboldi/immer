@@ -244,6 +244,10 @@ struct regular_pos
     { return each_right_regular(*this, v, start, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_left(Visitor v, count_t n, Args&&... args)
+    { return each_left_regular(*this, v, n, args...); }
+
+    template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh_ch_regular(*this, v, idx, index(idx), count(), args...); }
 
@@ -298,6 +302,26 @@ void each_regular(Pos&& p, Visitor v, Args&&... args)
         for (; n != e; ++n)
             make_full_pos(*n, ss).visit(v, args...);
         make_regular_pos(*n, ss, p.size()).visit(v, args...);
+    }
+}
+
+template <typename Pos, typename Visitor, typename... Args>
+void each_left_regular(Pos&& p, count_t last, Visitor v, Args&&... args)
+{
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
+    assert(last < p.count());
+    if (p.shift() == BL) {
+        auto n = p.node()->inner();
+        auto e = n + last;
+        for (; n != e; ++n)
+            make_full_leaf_pos(*n).visit(v, args...);
+    } else {
+        auto n = p.node()->inner();
+        auto e = n + last;
+        auto ss = p.shift() - B;
+        for (; n != e; ++n)
+            make_full_pos(*n, ss).visit(v, args...);
     }
 }
 
@@ -473,7 +497,7 @@ struct regular_sub_pos
     { return each_right_regular(*this, v, start, args...); }
 
     template <typename Visitor, typename... Args>
-    void each_sub_(Visitor v, count_t i, Args&& ...args)
+    void each_right_sub_(Visitor v, count_t i, Args&& ...args)
     {
         auto last  = count() - 1;
         auto lsize = size_ - (last << shift_);
@@ -493,16 +517,20 @@ struct regular_sub_pos
 
     template <typename Visitor, typename... Args>
     void each_sub(Visitor v, Args&& ...args)
-    { each_sub_(v, 0, args...); }
+    { each_right_sub_(v, 0, args...); }
 
     template <typename Visitor, typename... Args>
     void each_right_sub(Visitor v, Args&& ...args)
-    { if (count() > 1) each_sub_(v, 1, args...); }
+    { if (count() > 1) each_right_sub_(v, 1, args...); }
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&& ...args)
+    { each_left(v, count() - 1, args...); }
+
+    template <typename Visitor, typename... Args>
+    void each_left(Visitor v, count_t last, Args&& ...args)
     {
-        auto last  = count() - 1;
+        assert(last < count());
         auto n = node_->inner();
         auto e = n + last;
         if (shift_ == BL) {
@@ -757,6 +785,10 @@ struct full_pos
     { each_(v, start, branches<B>, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_left(Visitor v, count_t last, Args&&... args)
+    { each_(v, 0, last, args...); }
+
+    template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
     { return towards_oh(v, idx, index(idx), args...); }
 
@@ -872,26 +904,27 @@ struct relaxed_pos
         auto e = sizes + n;
         auto prev = size_before(offset);
         auto these = relaxed_->sizes + offset;
-        for (; sizes != e; ++sizes) {
-            init = *sizes = init + (*these - prev);
-            prev = *these++;
+        for (; sizes != e; ++sizes, ++these) {
+            auto this_size = *these;
+            init = *sizes = init + (this_size - prev);
+            prev = this_size;
         }
     }
 
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
-    { each_(v, relaxed_->count, args...); }
+    { each_left(v, relaxed_->count, args...); }
 
     template <typename Visitor, typename... Args>
     void each_sub(Visitor v, Args&&... args)
-    { each_(v, relaxed_->count, args...); }
+    { each_left(v, relaxed_->count, args...); }
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&&... args)
-    { each_(v, relaxed_->count - 1, args...); }
+    { each_left(v, relaxed_->count - 1, args...); }
 
     template <typename Visitor, typename... Args>
-    void each_(Visitor v, count_t n, Args&&... args)
+    void each_left(Visitor v, count_t n, Args&&... args)
     {
         if (shift_ == BL) {
             auto p = node_->inner();
