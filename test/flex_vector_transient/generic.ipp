@@ -84,6 +84,35 @@ TEST_CASE("adopt regular vector contents")
     }
 }
 
+TEST_CASE("drop move")
+{
+    using vector_t = FLEX_VECTOR_T<unsigned>;
+
+    auto v = vector_t{};
+
+    auto check_move = [&] (vector_t&& x) -> vector_t&& {
+        if (vector_t::memory_policy::use_transient_rvalues)
+            CHECK(&x == &v);
+        else
+            CHECK(&x != &v);
+        return std::move(x);
+    };
+
+    v = v.push_back(0).push_back(1);
+
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).drop(1));
+    auto addr_after = &v[0];
+
+    if (vector_t::bits_leaf > 0 &&
+        vector_t::memory_policy::use_transient_rvalues)
+        CHECK(addr_before == addr_after);
+    else
+        CHECK(addr_before != addr_after);
+
+    CHECK_VECTOR_EQUALS(v, boost::irange(1u, 2u));
+}
+
 TEST_CASE("exception safety relaxed")
 {
     using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;

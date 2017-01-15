@@ -86,6 +86,9 @@ class vector
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
     using flex_t = flex_vector<T, MemoryPolicy, B, BL>;
 
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
+
 public:
     static constexpr auto bits = B;
     static constexpr auto bits_leaf = BL;
@@ -160,8 +163,11 @@ public:
      * Returns a vector with `value` inserted at the end.  It may
      * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
-    vector push_back(value_type value) const
-    { return { impl_.push_back(std::move(value)) }; }
+    vector push_back(value_type value) const&
+    { return impl_.push_back(std::move(value)); }
+
+    decltype(auto) push_back(value_type value) &&
+    { return push_back_move(move_t{}, std::move(value)); }
 
     /*!
      * Returns a vector containing value `value` at position `idx`.
@@ -169,8 +175,11 @@ public:
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    vector set(std::size_t index, value_type value) const
-    { return { impl_.assoc(index, std::move(value)) }; }
+    vector set(std::size_t index, value_type value) const&
+    { return impl_.assoc(index, std::move(value)); }
+
+    decltype(auto) set(std::size_t index, value_type value) &&
+    { return set_move(move_t{}, index, std::move(value)); }
 
     /*!
      * Returns a vector containing the result of the expression
@@ -180,16 +189,23 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     template <typename FnT>
-    vector update(std::size_t index, FnT&& fn) const
-    { return { impl_.update(index, std::forward<FnT>(fn)) }; }
+    vector update(std::size_t index, FnT&& fn) const&
+    { return impl_.update(index, std::forward<FnT>(fn)); }
+
+    template <typename FnT>
+    decltype(auto) update(std::size_t index, FnT&& fn) &&
+    { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
 
     /*!
      * Returns a vector containing only the first `min(elems, size())`
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    vector take(std::size_t elems) const
+    vector take(std::size_t elems) const&
     { return { impl_.take(elems) }; }
+
+    decltype(auto) take(std::size_t elems) &&
+    { return take_move(move_t{}, elems); }
 
     /*!
      * Apply operation `fn` for every *chunk* of data in the vector
@@ -235,6 +251,28 @@ private:
         [](volatile auto){}(&vector::debug_print);
 #endif
     }
+
+    vector&& push_back_move(std::true_type, value_type value)
+    { impl_.push_back_mut({}, std::move(value)); return std::move(*this); }
+    vector push_back_move(std::false_type, value_type value)
+    { return impl_.push_back(std::move(value)); }
+
+    vector&& set_move(std::true_type, std::size_t index, value_type value)
+    { impl_.assoc_mut({}, index, std::move(value)); return std::move(*this); }
+    vector set_move(std::false_type, std::size_t index, value_type value)
+    { return impl_.assoc(index, std::move(value)); }
+
+    template <typename Fn>
+    vector&& update_move(std::true_type, std::size_t index, Fn&& fn)
+    { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
+    template <typename Fn>
+    vector update_move(std::false_type, std::size_t index, Fn&& fn)
+    { return impl_.update(index, std::forward<Fn>(fn)); }
+
+    vector&& take_move(std::true_type, std::size_t elems)
+    { impl_.take_mut({}, elems); return std::move(*this); }
+    vector take_move(std::false_type, std::size_t elems)
+    { return impl_.take(elems); }
 
     impl_t impl_ = impl_t::empty;
 };

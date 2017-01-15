@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -26,6 +26,7 @@
 using gc_memory = immer::memory_policy<
     immer::heap_policy<immer::gc_heap>,
     immer::no_refcount_policy,
+    immer::gc_transience_policy,
     false>;
 
 template <typename T>

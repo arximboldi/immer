@@ -30,6 +30,52 @@
 namespace immer {
 
 /*!
+ * Metafunction that returns the best *transience policy* to use for a
+ * given *refcount policy*.
+ */
+template <typename RefcountPolicy>
+struct get_transience_policy
+    : std::conditional<std::is_same<RefcountPolicy,
+                                    no_refcount_policy>::value,
+                       gc_transience_policy,
+                       no_transience_policy>
+{};
+
+template <typename T>
+using get_transience_policy_t = typename get_transience_policy<T>::type;
+
+/*!
+ * Metafunction that returns wether to *prefer fewer bigger objects*
+ * to use for a given *heap policy*.
+ */
+template <typename HeapPolicy>
+struct get_prefer_fewer_bigger_objects
+    : std::integral_constant<bool,
+                             !std::is_same<
+                                 HeapPolicy,
+                                 free_list_heap_policy<malloc_heap>>::value>
+{};
+
+template <typename T>
+constexpr auto get_prefer_fewer_bigger_objects_v =
+    get_prefer_fewer_bigger_objects<T>::value;
+
+/*!
+ * Metafunction that returns wether to use *transient R-Values*
+ * for a given *refcount policy*.
+ */
+template <typename RefcountPolicy>
+struct get_use_transient_rvalues
+    : std::integral_constant<bool,
+                             !std::is_same<
+                                 RefcountPolicy,
+                                 no_refcount_policy>::value>
+{};
+
+template <typename T>
+constexpr auto get_use_transient_rvalues_v = get_use_transient_rvalues<T>::value;
+
+/*!
  * This is a default implementation of a *memory policy*.  A memory
  * policy is just a bag of other policies plus some flags with hints
  * to the user about the best way to use these strategies.
@@ -46,13 +92,9 @@ namespace immer {
  */
 template <typename HeapPolicy,
           typename RefcountPolicy,
-          bool PreferFewerBiggerObjects = !std::is_same<
-              HeapPolicy,
-              free_list_heap_policy<malloc_heap>>::value,
-          typename TransiencePolicy = std::conditional_t<
-              std::is_same<RefcountPolicy, no_refcount_policy>::value,
-              gc_transience_policy,
-              no_transience_policy>>
+          typename TransiencePolicy     = get_transience_policy_t<RefcountPolicy>,
+          bool PreferFewerBiggerObjects = get_prefer_fewer_bigger_objects_v<HeapPolicy>,
+          bool UseTransientRValues      = get_use_transient_rvalues_v<RefcountPolicy>>
 struct memory_policy
 {
     using heap       = HeapPolicy;
@@ -61,6 +103,9 @@ struct memory_policy
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;
+
+    static constexpr bool use_transient_rvalues =
+        UseTransientRValues;
 };
 
 /*!

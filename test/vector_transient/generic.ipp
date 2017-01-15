@@ -50,19 +50,115 @@ TEST_CASE("from vector and to vector")
     CHECK_VECTOR_EQUALS(p, boost::irange(0u, n));
 }
 
-TEST_CASE("push back")
+TEST_CASE("push back move")
 {
-    SECTION("many elements")
-    {
-        const auto n = 666u;
-        auto v = VECTOR_TRANSIENT_T<unsigned>{};
-        for (auto i = 0u; i < n; ++i) {
-            v.push_back(i * 42);
-            CHECK(v.size() == i + 1);
-            for (auto j = 0u; j < v.size(); ++j)
-                CHECK(v[j] == j * 42);
-        }
-    }
+    using vector_t = VECTOR_T<unsigned>;
+
+    auto v = vector_t{};
+
+    auto check_move = [&] (vector_t&& x) -> vector_t&& {
+        if (vector_t::memory_policy::use_transient_rvalues)
+            CHECK(&x == &v);
+        else
+            CHECK(&x != &v);
+        return std::move(x);
+    };
+
+    v = check_move(std::move(v).push_back(0));
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).push_back(1));
+    auto addr_after = &v[0];
+
+    if (vector_t::memory_policy::use_transient_rvalues)
+        CHECK(addr_before == addr_after);
+    else
+        CHECK(addr_before != addr_after);
+
+    CHECK_VECTOR_EQUALS(v, boost::irange(0u, 2u));
+}
+
+TEST_CASE("set move")
+{
+    using vector_t = VECTOR_T<unsigned>;
+
+    auto v = vector_t{};
+
+    auto check_move = [&] (vector_t&& x) -> vector_t&& {
+        if (vector_t::memory_policy::use_transient_rvalues)
+            CHECK(&x == &v);
+        else
+            CHECK(&x != &v);
+        return std::move(x);
+    };
+
+    v = v.push_back(0);
+
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).set(0, 1));
+    auto addr_after = &v[0];
+
+    if (vector_t::memory_policy::use_transient_rvalues)
+        CHECK(addr_before == addr_after);
+    else
+        CHECK(addr_before != addr_after);
+
+    CHECK_VECTOR_EQUALS(v, boost::irange(1u, 2u));
+}
+
+TEST_CASE("update move")
+{
+    using vector_t = VECTOR_T<unsigned>;
+
+    auto v = vector_t{};
+
+    auto check_move = [&] (vector_t&& x) -> vector_t&& {
+        if (vector_t::memory_policy::use_transient_rvalues)
+            CHECK(&x == &v);
+        else
+            CHECK(&x != &v);
+        return std::move(x);
+    };
+
+    v = v.push_back(0);
+
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).update(0, [] (auto x) { return x + 1; }));
+    auto addr_after = &v[0];
+
+    if (vector_t::memory_policy::use_transient_rvalues)
+        CHECK(addr_before == addr_after);
+    else
+        CHECK(addr_before != addr_after);
+
+    CHECK_VECTOR_EQUALS(v, boost::irange(1u, 2u));
+}
+
+TEST_CASE("take move")
+{
+    using vector_t = VECTOR_T<unsigned>;
+
+    auto v = vector_t{};
+
+    auto check_move = [&] (vector_t&& x) -> vector_t&& {
+        if (vector_t::memory_policy::use_transient_rvalues)
+            CHECK(&x == &v);
+        else
+            CHECK(&x != &v);
+        return std::move(x);
+    };
+
+    v = v.push_back(0).push_back(1);
+
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).take(1));
+    auto addr_after = &v[0];
+
+    if (vector_t::memory_policy::use_transient_rvalues)
+        CHECK(addr_before == addr_after);
+    else
+        CHECK(addr_before != addr_after);
+
+    CHECK_VECTOR_EQUALS(v, boost::irange(0u, 1u));
 }
 
 TEST_CASE("exception safety")

@@ -10,6 +10,7 @@
 using gc_policy = immer::memory_policy<
     immer::heap_policy<immer::gc_heap>,
     immer::no_refcount_policy,
+    immer::gc_transience_policy,
     false>;
 
 // alias the vector type so we are not concerned about memory policies
