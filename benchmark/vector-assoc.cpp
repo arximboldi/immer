@@ -245,6 +245,100 @@ auto generic()
     };
 };
 
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_move()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v;
+            for (auto i = 0u; i < n; ++i)
+                r = std::move(r).set(i, n - i);
+            return r;
+        });
+    };
+};
+
+template <typename Vektor,
+          typename SetFn=set_fn>
+auto generic_random()
+{
+    return [] (nonius::parameters params)
+    {
+        auto n = params.get<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto g = make_generator(n);
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.push_back(i);
+
+        return [=] {
+            auto r = v;
+            for (auto i = 0u; i < n; ++i)
+                r = SetFn{}(r, g[i], i);
+            return r;
+        };
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_mut()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v.transient();
+            for (auto i = 0u; i < n; ++i)
+                r.set(i, n - i);
+            return r;
+        });
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_mut_random()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        auto g = make_generator(n);
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v.transient();
+            for (auto i = 0u; i < n; ++i)
+                r.set(g[i], i);
+            return r;
+        });
+    };
+};
+
 using def_memory    = immer::default_memory_policy;
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
 using gcf_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy, immer::gc_transience_policy, false>;
@@ -283,30 +377,6 @@ NONIUS_BENCHMARK("dvektor/UN", generic<immer::dvektor<unsigned,unsafe_memory,5>>
 
 NONIUS_BENCHMARK("array",      generic<immer::array<unsigned>>())
 
-template <typename Vektor,
-          typename SetFn=set_fn>
-auto generic_random()
-{
-    return [] (nonius::parameters params)
-    {
-        auto n = params.get<N>();
-        if (n > get_limit<Vektor>{})
-            nonius::skip();
-
-        auto g = make_generator(n);
-        auto v = Vektor{};
-        for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
-
-        return [=] {
-            auto r = v;
-            for (auto i = 0u; i < n; ++i)
-                r = SetFn{}(r, g[i], i);
-            return r;
-        };
-    };
-};
-
 #if IMMER_BENCHMARK_STEADY
 NONIUS_BENCHMARK("steady/random",      generic_random<steady::vector<unsigned>, store_fn>())
 #endif
@@ -322,58 +392,17 @@ NONIUS_BENCHMARK("dvektor/6B/random",  generic_random<immer::dvektor<unsigned,de
 #endif
 NONIUS_BENCHMARK("array/random",       generic_random<immer::array<unsigned>>())
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
-auto generic_mut()
-{
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
-        if (n > get_limit<Vektor>{})
-            nonius::skip();
-
-        auto v = Vektor{};
-        for (auto i = 0u; i < n; ++i)
-            v = PushFn{}(std::move(v), i);
-
-        meter.measure([&] {
-            auto r = v.transient();
-            for (auto i = 0u; i < n; ++i)
-                r.set(i, n - i);
-            return r;
-        });
-    };
-};
-
 NONIUS_BENCHMARK("t/vector/5B",  generic_mut<immer::vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("t/vector/GC",  generic_mut<immer::vector<unsigned,gc_memory,5>>())
 NONIUS_BENCHMARK("t/vector/NO",  generic_mut<immer::vector<unsigned,basic_memory,5>>())
 NONIUS_BENCHMARK("t/vector/UN",  generic_mut<immer::vector<unsigned,unsafe_memory,5>>())
 NONIUS_BENCHMARK("t/flex/F/5B",  generic_mut<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
-auto generic_mut_random()
-{
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
-        if (n > get_limit<Vektor>{})
-            nonius::skip();
-
-        auto g = make_generator(n);
-        auto v = Vektor{};
-        for (auto i = 0u; i < n; ++i)
-            v = PushFn{}(std::move(v), i);
-
-        meter.measure([&] {
-            auto r = v.transient();
-            for (auto i = 0u; i < n; ++i)
-                r.set(g[i], i);
-            return r;
-        });
-    };
-};
+NONIUS_BENCHMARK("m/vector/5B",  generic_move<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("m/vector/GC",  generic_move<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("m/vector/NO",  generic_move<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("m/vector/UN",  generic_move<immer::vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("m/flex/F/5B",  generic_move<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
 
 NONIUS_BENCHMARK("t/vector/5B/random",  generic_mut_random<immer::vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("t/vector/GC/random",  generic_mut_random<immer::vector<unsigned,gc_memory,5>>())

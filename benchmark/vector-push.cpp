@@ -98,18 +98,23 @@ auto generic_mut()
     };
 };
 
-NONIUS_BENCHMARK("std::vector", generic_mut<std::vector<unsigned>>())
-NONIUS_BENCHMARK("std::list",   generic_mut<std::list<unsigned>>())
+template <typename Vektor>
+auto generic_move()
+{
+    return [] (nonius::parameters params)
+    {
+        auto n = params.get<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
 
-using def_memory    = immer::default_memory_policy;
-using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
-using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
-using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
-
-NONIUS_BENCHMARK("t/vector/5B", generic_mut<immer::vector_transient<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("t/vector/GC", generic_mut<immer::vector_transient<unsigned,gc_memory,5>>())
-NONIUS_BENCHMARK("t/vector/NO", generic_mut<immer::vector_transient<unsigned,basic_memory,5>>())
-NONIUS_BENCHMARK("t/vector/UN", generic_mut<immer::vector_transient<unsigned,unsafe_memory,5>>())
+        return [=] {
+            auto v = Vektor{};
+            for (auto i = 0u; i < n; ++i)
+                v = std::move(v).push_back(i);
+            return v;
+        };
+    };
+};
 
 template <typename Vektor>
 auto generic()
@@ -128,6 +133,23 @@ auto generic()
         };
     };
 };
+
+NONIUS_BENCHMARK("std::vector", generic_mut<std::vector<unsigned>>())
+NONIUS_BENCHMARK("std::list",   generic_mut<std::list<unsigned>>())
+
+using def_memory    = immer::default_memory_policy;
+using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
+using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
+using unsafe_memory = immer::memory_policy<immer::default_heap_policy, immer::unsafe_refcount_policy>;
+
+NONIUS_BENCHMARK("m/vector/5B", generic_move<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("m/vector/GC", generic_move<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("m/vector/NO", generic_move<immer::vector<unsigned,basic_memory,5>>())
+
+NONIUS_BENCHMARK("t/vector/5B", generic_mut<immer::vector_transient<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/vector/GC", generic_mut<immer::vector_transient<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/vector/NO", generic_mut<immer::vector_transient<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/vector/UN", generic_mut<immer::vector_transient<unsigned,unsafe_memory,5>>())
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())

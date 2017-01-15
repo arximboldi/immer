@@ -183,6 +183,27 @@ auto generic_lin()
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
+auto generic_move()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v;
+            for (auto i = n; i > 0; --i)
+                r = std::move(r).take(i);
+            return r;
+        });
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
 auto generic_mut()
 {
     return [] (nonius::chronometer meter)
@@ -225,6 +246,12 @@ NONIUS_BENCHMARK("l/vector/GC", generic_lin<immer::vector<unsigned,gc_memory,5>>
 NONIUS_BENCHMARK("l/vector/NO", generic_lin<immer::vector<unsigned,basic_memory,5>>())
 NONIUS_BENCHMARK("l/vector/UN", generic_lin<immer::vector<unsigned,unsafe_memory,5>>())
 NONIUS_BENCHMARK("l/flex/F/5B", generic_lin<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
+
+NONIUS_BENCHMARK("m/vector/5B", generic_move<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("m/vector/GC", generic_move<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("m/vector/NO", generic_move<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("m/vector/UN", generic_move<immer::vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("m/flex/F/5B", generic_move<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
 
 NONIUS_BENCHMARK("t/vector/5B", generic_mut<immer::vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("t/vector/GC", generic_mut<immer::vector<unsigned,gc_memory,5>>())
