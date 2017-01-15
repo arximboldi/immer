@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -23,6 +23,7 @@
 #include "util.hpp"
 
 #include <immer/flex_vector.hpp>
+#include <immer/flex_vector_transient.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
@@ -68,6 +69,74 @@ NONIUS_BENCHMARK("librrb/F", [] (nonius::chronometer meter)
             rrb_slice(v, i, n);
     });
 })
+
+NONIUS_BENCHMARK("l/librrb", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto v = rrb_create();
+    for (auto i = 0u; i < n; ++i)
+        v = rrb_push(v, reinterpret_cast<void*>(i));
+
+    meter.measure([&] {
+        auto r = v;
+        for (auto i = 0u; i < n; ++i)
+            r = rrb_slice(r, 1, n);
+        return r;
+    });
+});
+
+NONIUS_BENCHMARK("l/librrb/F", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto v = rrb_create();
+    for (auto i = 0u; i < n; ++i) {
+        auto f = rrb_push(rrb_create(),
+                          reinterpret_cast<void*>(i));
+        v = rrb_concat(f, v);
+    }
+
+    meter.measure([&] {
+        auto r = v;
+        for (auto i = 0u; i < n; ++i)
+            r = rrb_slice(r, 1, n);
+        return r;
+    });
+})
+
+NONIUS_BENCHMARK("t/librrb", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto vv = rrb_create();
+    for (auto i = 0u; i < n; ++i)
+        vv = rrb_push(vv, reinterpret_cast<void*>(i));
+
+    meter.measure([&] {
+        auto v = rrb_to_transient(vv);
+        for (auto i = 0u; i < n; ++i)
+            v = transient_rrb_slice(v, 1, n);
+    });
+});
+
+NONIUS_BENCHMARK("t/librrb/F", [] (nonius::chronometer meter)
+{
+    auto n = meter.param<N>();
+
+    auto vv = rrb_create();
+    for (auto i = 0u; i < n; ++i) {
+        auto f = rrb_push(rrb_create(),
+                          reinterpret_cast<void*>(i));
+        vv = rrb_concat(f, vv);
+    }
+
+    meter.measure([&] {
+        auto v = rrb_to_transient(vv);
+        for (auto i = 0u; i < n; ++i)
+            v = transient_rrb_slice(v, 1, n);
+    });
+})
 #endif
 
 template <typename Vektor,
@@ -85,6 +154,47 @@ auto generic()
         meter.measure([&] {
             for (auto i = 0u; i < n; ++i)
                 v.drop(i);
+        });
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_lin()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        meter.measure([&] {
+            auto r = v;
+            for (auto i = 0u; i < n; ++i)
+                r = r.drop(1);
+            return r;
+        });
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_mut()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+
+        auto vv = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            vv = PushFn{}(std::move(vv), i);
+
+        meter.measure([&] {
+            auto v = vv.transient();
+            for (auto i = 0u; i < n; ++i)
+                v.drop(1);
         });
     };
 };
@@ -107,3 +217,15 @@ NONIUS_BENCHMARK("flex/F/5B", generic<immer::flex_vector<unsigned,def_memory,5>,
 NONIUS_BENCHMARK("flex/F/GC", generic<immer::flex_vector<unsigned,gc_memory,5>, push_front_fn>())
 NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,gcf_memory,5>, push_front_fn>())
 NONIUS_BENCHMARK("flex_s/F/GC", generic<immer::flex_vector<std::size_t,gc_memory,5>, push_front_fn>())
+
+NONIUS_BENCHMARK("l/flex/5B", generic_lin<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("l/flex/GC", generic_lin<immer::flex_vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("l/flex/NO", generic_lin<immer::flex_vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("l/flex/UN", generic_lin<immer::flex_vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("l/flex/F/5B", generic_lin<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
+
+NONIUS_BENCHMARK("t/flex/5B", generic_mut<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/flex/GC", generic_mut<immer::flex_vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/flex/NO", generic_mut<immer::flex_vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/flex/UN", generic_mut<immer::flex_vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("t/flex/F/5B", generic_mut<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
