@@ -251,7 +251,8 @@ public:
     { return l.impl_.concat(r.impl_); }
 
     /*!
-     * Returns a `transient` form of this container.
+     * Returns an @a transient form of this container, an
+     * `immer::flex_vector_transient`.
      */
     transient_type transient() const&
     { return transient_type{ impl_ }; }

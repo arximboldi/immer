@@ -38,6 +38,16 @@ template <typename T,
           detail::rbts::bits_t BL>
 class flex_vector_transient;
 
+/*!
+ * Mutable version of `immer::vector`.
+ *
+ * @rst
+ *
+ * Refer to :doc:`transients` to learn more about when and how to use
+ * the mutable versions of immutable containers.
+ *
+ * @endrst
+ */
 template <typename T,
           typename MemoryPolicy   = default_memory_policy,
           detail::rbts::bits_t B  = default_bits,
@@ -66,8 +76,9 @@ public:
     using persistent_type  = vector<T, MemoryPolicy, B, BL>;
 
     /*!
-     * Default constructor.  It creates a vector of `size() == 0`.  It
-     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     * Default constructor.  It creates a mutable vector of `size() ==
+     * 0`.  It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
      */
     vector_transient() = default;
 
@@ -154,7 +165,8 @@ public:
     { impl_.take_mut(*this, elems); }
 
     /*!
-     * Returns a `persistent` form of this container.
+     * Returns an @a immutable form of this container, an
+     * `immer::vector`.
      */
     persistent_type persistent() const&
     { return persistent_type{ impl_ }; }

@@ -226,7 +226,8 @@ public:
     { impl_.for_each_chunk(std::forward<Fn>(fn)); }
 
     /*!
-     * Returns a `transient` form of this container.
+     * Returns an @a transient form of this container, an
+     * `immer::vector_transient`.
      */
     transient_type transient() const&
     { return transient_type{ impl_ }; }
