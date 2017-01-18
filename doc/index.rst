@@ -1,6 +1,6 @@
 
 .. include:: ../README.rst
-   :end-before: .. INDEX PAGE END
+   :end-before: include:index/end
 
 Contents
 --------

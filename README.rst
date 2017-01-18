@@ -59,7 +59,7 @@ written in C++.
    **Should your organization be interested in supporting it,
    contact:** raskolnikov@gnu.org.
 
-.. INDEX PAGE END
+.. include:index/end
 
 Example
 -------
