@@ -55,7 +55,7 @@ struct node
     using node_t      = node;
     using memory      = MemoryPolicy;
     using heap_policy = typename memory::heap;
-    using transience  = typename memory::transience;
+    using transience  = typename memory::transience_t;
     using refs_t      = typename memory::refcount;
     using ownee_t     = typename transience::ownee;
     using edit_t      = typename transience::edit;

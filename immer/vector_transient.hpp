@@ -43,7 +43,7 @@ template <typename T,
           detail::rbts::bits_t B  = default_bits,
           detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
 class vector_transient
-    : MemoryPolicy::transience::owner
+    : MemoryPolicy::transience_t::owner
 {
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
     using flex_t = flex_vector_transient<T, MemoryPolicy, B, BL>;

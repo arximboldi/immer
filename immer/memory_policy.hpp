@@ -99,13 +99,15 @@ struct memory_policy
 {
     using heap       = HeapPolicy;
     using refcount   = RefcountPolicy;
-    using transience = typename TransiencePolicy::template apply<heap>::type;
+    using transience = TransiencePolicy;
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;
 
     static constexpr bool use_transient_rvalues =
         UseTransientRValues;
+
+    using transience_t = typename transience::template apply<heap>::type;
 };
 
 /*!

@@ -39,7 +39,7 @@ template <typename T,
 struct rbtree
 {
     using node_t = node<T, MemoryPolicy, B, BL>;
-    using edit_t = typename MemoryPolicy::transience::edit;
+    using edit_t = typename node_t::edit_t;
 
     size_t   size;
     shift_t  shift;
