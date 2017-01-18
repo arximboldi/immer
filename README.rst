@@ -3,8 +3,8 @@
    :target: https://travis-ci.org/arximboldi/immer
    :alt: Travis Badge
 
-.. image:: https://img.shields.io/codecov/c/github/arximboldi/immer/master.svg
-   :target: http://codecov.io/github/arximboldi/immer?branch=master
+.. image:: https://codecov.io/gh/arximboldi/immer/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/arximboldi/immer
    :alt: CodeCov Badge
 
 .. raw:: html
