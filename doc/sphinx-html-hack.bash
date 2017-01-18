@@ -2,6 +2,8 @@
 
 location=`dirname $0`
 
+echo "Running $0 at $location"
+
 # Fixes issues described here:
 # https://github.com/michaeljones/breathe/issues/284
 
@@ -19,6 +21,10 @@ sed -i "s@$src@$dst@g" $location/_build/html/*.html
 
 src='<em class="property">using </em><em class="property">using </em>'
 dst='<em class="property">using </em>'
+sed -i "s@$src@$dst@g" $location/_build/html/*.html
+
+src='<em class="property">using </em><code class="descname">\(\([^:]*::\)*\)\([^ ]*\) = \([^<]*\)</code>'
+dst='<em class="property">using </em><code class="descname">\3 = \4</code>'
 sed -i "s@$src@$dst@g" $location/_build/html/*.html
 
 # src='<code class="descclassname">\([^&]*\)&lt;\([^&]*\)&gt;::</code>'
