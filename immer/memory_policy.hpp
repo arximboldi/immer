@@ -84,11 +84,14 @@ constexpr auto get_use_transient_rvalues_v = get_use_transient_rvalues<T>::value
  * @tparam RefcountPolicy A *reference counting policy*, for example,
  *         @ref refcount_policy.
  * @tparam TransiencePolicy A *transience policy*, for example,
- *         @ref transience_policy.
+ *         @ref no_transience_policy.
  * @tparam PreferFewerBiggerObjects Boolean flag indicating whether
  *         the user should prefer to allocate memory in bigger chungs
  *         --e.g. by putting various objects in the same memory
  *         region-- or not.
+ * @tparam UseTransientRValues Boolean flag indicating whether
+ *         immutable containers should try to modify contents in-place
+ *         when manipulating an r-value reference.
  */
 template <typename HeapPolicy,
           typename RefcountPolicy,

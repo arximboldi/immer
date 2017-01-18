@@ -26,6 +26,18 @@
 
 namespace immer {
 
+/**
+ * Provides transience ownership tracking when a *tracing garbage
+ * collector* is used instead of reference counting.
+ *
+ * @rst
+ *
+ * .. warning:: Using this policy without an allocation scheme that
+ *    includes automatic tracing garbage collection may cause memory
+ *    leaks.
+ *
+ * @endrst
+ */
 struct gc_transience_policy
 {
     template <typename HeapPolicy>
