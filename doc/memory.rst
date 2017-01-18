@@ -25,14 +25,16 @@ strategies.
 
 .. _policies: https://en.wikipedia.org/wiki/Policy-based_design
 
+.. _memory policy:
+
 Memory policy
 -------------
-
-.. _memory policy:
 
 .. doxygenstruct:: immer::memory_policy
     :members:
     :undoc-members:
+
+.. _gc:
 
 Example: tracing garbage collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +125,7 @@ Malloc heap
 Garbage collected heap
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. doxygenstruct:: immer::gc_heap
+.. doxygenclass:: immer::gc_heap
 
 Heap adaptors
 ~~~~~~~~~~~~~
@@ -146,6 +148,8 @@ allocators.
 
 .. doxygenstruct:: immer::unsafe_free_list_heap
 
+.. _rc:
+
 Reference counting
 ------------------
 
@@ -165,3 +169,20 @@ containers can use to track their contents.
 .. doxygenstruct:: immer::unsafe_refcount_policy
 
 .. doxygenstruct:: immer::no_refcount_policy
+
+Transience
+----------
+
+In order to support `transients`, it is needed to provide a mechanism
+to track the ownership of the data allocated inside the container.
+This concept is encapsulated in *transience policies*.
+
+Note that when :ref:`reference counting <rc>` is available, no such mechanism is
+needed.  However, when :ref:`tracing garbage collection<gc>` is used instead,
+a special policy has to be provided.  Otherwise, the transient API is
+still available, but it will perform poorly, since it won't be able to
+mutate any data in place.
+
+.. doxygenstruct:: immer::no_transience_policy
+
+.. doxygenstruct:: immer::gc_transience_policy
