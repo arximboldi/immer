@@ -11,9 +11,9 @@ Contents
     Welcome<self>
     quickstart
     containers
+    transients
     memory
     algorithms
-    transients
     implementation
 
 ----
