@@ -1,4 +1,4 @@
 git+https://github.com/sphinx-doc/sphinx
 git+https://github.com/michaeljones/breathe
 recommonmark
-guzzle_sphinx_theme
+git+https://github.com/tbekolay/guzzle_sphinx_theme@use_smartypants

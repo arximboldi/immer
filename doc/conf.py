@@ -63,7 +63,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'immer'
-copyright = u'2016, Juan Pedro Bolivar Puente'
+copyright = u'2016, 2017 Juan Pedro Bolivar Puente'
 author = u'Juan Pedro Bolivar Puente'
 
 raw_enabled = True
@@ -136,7 +136,6 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 import guzzle_sphinx_theme
-html_translator_class = 'guzzle_sphinx_theme.HTMLTranslator'
 html_theme_path = guzzle_sphinx_theme.html_theme_path()
 html_theme = 'guzzle_sphinx_theme'
 extensions.append("guzzle_sphinx_theme")
