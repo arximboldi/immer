@@ -92,8 +92,9 @@ For a canonical model of this concept check the
           On the other hand, having some **scoped state** does make
           sense for some use-cases of immutable data structures.  For
           example, we might want to support variations of `region
-          based allocation`_.  The might evolve to evolve to support
-          some kind of non-global state to accommodate these use cases.
+          based allocation`_.  This interface might evolve to evolve
+          to support some kind of non-global state to accommodate
+          these use cases.
 
 .. _region based allocation: https://en.wikipedia.org/wiki/Region-based_memory_management
 

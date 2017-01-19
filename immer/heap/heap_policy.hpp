@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -64,14 +64,14 @@ struct enable_heap_policy
 };
 
 /*!
- * Heap policy that creates returns heap with a free list of objects
+ * Heap policy that returns a heap with a free list of objects
  * of `max_size = max(Sizes...)` on top an underlying `Heap`.  Note
  * these two properties of the resulting heap:
  *
  * - Allocating an object that is bigger than `max_size` may trigger
  *   *undefined behavior*.
  *
- * - Allocating an object of with size less that `max_size` still
+ * - Allocating an object of size less than `max_size` still
  *   returns an object of `max_size`.
  *
  * Basically, this heap will always return objects of `max_size`.
@@ -79,7 +79,7 @@ struct enable_heap_policy
  * but it keeps the object in a global linked list instead.  When a
  * new object is requested, it does not need to call `std::malloc` but
  * it can directly pop and return the other object from the global
- * list -- a much faster operation.
+ * list, a much faster operation.
  *
  * This actually creates a hierarchy with two free lists:
  *
@@ -100,7 +100,7 @@ struct enable_heap_policy
  *    Note that most our data structures internally use trees with the
  *    same big branching factors.  This means that all *vectors*,
  *    *maps*, etc. can just allocate elements from the same free-list
- *    optimized heap.  Not only does this lower the allocation time,
+ *    optimized heap.  Not only does this lowers the allocation time,
  *    but also makes up for more efficient *cache utilization*.  When
  *    a new node is needed, there are high chances the allocator will
  *    return a node that was just accessed.  When batches of immutable
