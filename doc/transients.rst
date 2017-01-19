@@ -44,13 +44,13 @@ this:
    :start-after: include:myiota/start
    :end-before:  include:myiota/end
 
-Both conversions are :math:`O(1)`.  Note that calling `transient()`
-does not break the immutability of the variable it is called on.
-The new mutable object will adopt its contents, but when a mutation
-is performed, it will copy the data necessary using *copy on
-write*.  Subsequent manipulations may hit parts that have already
-been copied, and these changes are done in-place.  Because of this,
-it does not make sense to use transients to do only one change.
+Both conversions are :math:`O(1)`.  Note that calling ``transient()``
+does not break the immutability of the variable it is called on.  The
+new mutable object will adopt its contents, but when a mutation is
+performed, it will copy the data necessary using *copy on write*.
+Subsequent manipulations may hit parts that have already been copied,
+and these changes are done in-place.  Because of this, it does not
+make sense to use transients to do only one change.
 
 .. tip::
 
@@ -62,7 +62,7 @@ Standard library compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Transients try to provide an interface as similar as possible to
-similar standard library containers.  Those, they may be used to
+similar standard library containers.  Thus, they may be used to
 interoperate with standard library components.
 
 For example the :ref:`myiota() function above<iota-transient>` may as
