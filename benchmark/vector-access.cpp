@@ -45,6 +45,10 @@ extern "C" {
 #include <immer/heap/gc_heap.hpp>
 #endif
 
+#if IMMER_BENCHMARK_BOOST_COROUTINE
+#include <boost/coroutine2/all.hpp>
+#endif
+
 #include <vector>
 #include <list>
 #include <numeric>
@@ -217,6 +221,34 @@ auto generic_iter()
     };
 }
 
+#if IMMER_BENCHMARK_BOOST_COROUTINE
+template <typename Vektor, typename PushFn=push_back_fn>
+auto generic_coro()
+{
+    return [] (nonius::parameters params)
+    {
+        using coro_t = typename boost::coroutines2::coroutine<int>;
+
+        auto n = params.get<N>();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        return [=] {
+            auto c = coro_t::pull_type { [&](auto& sink) {
+                v.for_each_chunk([&](auto f, auto l) {
+                    for (; f != l; ++f)
+                        sink(*f);
+                });
+            }};
+            auto volatile x = std::accumulate(begin(c), end(c), 0u);
+            return x;
+        };
+    };
+}
+#endif
+
 template <typename Vektor,
           typename PushFn=push_back_fn>
 auto generic_idx()
@@ -329,4 +361,8 @@ NONIUS_BENCHMARK("vector/6B/random",   generic_random<immer::vector<unsigned,def
 NONIUS_BENCHMARK("dvektor/4B/random",  generic_random<immer::dvektor<unsigned,def_memory,4>>())
 NONIUS_BENCHMARK("dvektor/5B/random",  generic_random<immer::dvektor<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("dvektor/6B/random",  generic_random<immer::dvektor<unsigned,def_memory,6>>())
+#endif
+
+#if IMMER_BENCHMARK_BOOST_COROUTINE
+NONIUS_BENCHMARK("vector/5B/coro", generic_coro<immer::vector<unsigned,def_memory,5>>())
 #endif

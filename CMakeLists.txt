@@ -15,14 +15,12 @@ set(CMAKE_CXX_EXTENSIONS off)
 #  =====================================================================
 
 option(CHECK_COVERAGE "compile with test coverage support")
-
 option(CHECK_BENCHMARKS "run benchmarks on make check")
 option(CHECK_BENCHMARKS_LONG "run benchmarks for more inputs")
 option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
-
 option(CHECK_FREE_LIST "run checks with use free list heap")
-
 option(CHECK_SLOW_TESTS "run slow tests")
+option(CHECK_BOOST_COROUTINE "run benchmarks with boost coroutine")
 
 set(PRETTYPRINT_INCLUDE_DIR
   "${CMAKE_BINARY_DIR}/prettyprint-prefix/src/prettyprint")
@@ -118,7 +116,12 @@ ExternalProject_Add_Step(librrb autoreconf
   DEPENDERS configure
   COMMAND autoreconf -vif <SOURCE_DIR>)
 
-find_package(Boost 1.56 REQUIRED)
+if (CHECK_BOOST_COROUTINE)
+  find_package(Boost 1.56 REQUIRED COMPONENTS coroutine)
+else ()
+  find_package(Boost 1.56 REQUIRED)
+endif ()
+
 find_package(Threads)
 
 find_program(CCACHE ccache)
@@ -169,6 +172,7 @@ set(immer_benchmark_include_dirs
   ${STEADY_INCLUDE_DIR})
 set(immer_benchmark_libs
   ${LIBRRB_LIBS}
+  ${Boost_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT})
 
 enable_testing()
@@ -267,7 +271,8 @@ foreach(_file IN LISTS immer_benchmarks)
     NONIUS_RUNNER
     IMMER_BENCHMARK_LIBRRB=1
     IMMER_BENCHMARK_STEADY=1
-    IMMER_BENCHMARK_EXPERIMENTAL=0)
+    IMMER_BENCHMARK_EXPERIMENTAL=0
+    IMMER_BENCHMARK_BOOST_COROUTINE=${CHECK_BOOST_COROUTINE})
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})
   target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
   if (immer_benchmark_param)
