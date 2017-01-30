@@ -217,20 +217,6 @@ auto generic_iter()
     };
 }
 
-using def_memory = immer::default_memory_policy;
-
-NONIUS_BENCHMARK("flex/5B",     generic_iter<immer::flex_vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("flex/F/5B",   generic_iter<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
-NONIUS_BENCHMARK("vector/4B",   generic_iter<immer::vector<unsigned,def_memory,4>>())
-NONIUS_BENCHMARK("vector/5B",   generic_iter<immer::vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("vector/6B",   generic_iter<immer::vector<unsigned,def_memory,6>>())
-
-#if IMMER_BENCHMARK_EXPERIMENTAL
-NONIUS_BENCHMARK("dvektor/4B",  generic_iter<immer::dvektor<unsigned,def_memory,4>>())
-NONIUS_BENCHMARK("dvektor/5B",  generic_iter<immer::dvektor<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("dvektor/6B",  generic_iter<immer::dvektor<unsigned,def_memory,6>>())
-#endif
-
 template <typename Vektor,
           typename PushFn=push_back_fn>
 auto generic_idx()
@@ -253,21 +239,6 @@ auto generic_idx()
     };
 };
 
-#if IMMER_BENCHMARK_STEADY
-NONIUS_BENCHMARK("steady/idx",      generic_idx<steady::vector<unsigned>>())
-#endif
-
-NONIUS_BENCHMARK("flex/5B/idx",     generic_idx<immer::flex_vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("flex/F/5B/idx",   generic_idx<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
-NONIUS_BENCHMARK("vector/4B/idx",   generic_idx<immer::vector<unsigned,def_memory,4>>())
-NONIUS_BENCHMARK("vector/5B/idx",   generic_idx<immer::vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("vector/6B/idx",   generic_idx<immer::vector<unsigned,def_memory,6>>())
-#if IMMER_BENCHMARK_EXPERIMENTAL
-NONIUS_BENCHMARK("dvektor/4B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,4>>())
-NONIUS_BENCHMARK("dvektor/5B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("dvektor/6B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,6>>())
-#endif
-
 template <typename Vektor,
           typename PushFn=push_back_fn>
 auto generic_reduce()
@@ -286,12 +257,6 @@ auto generic_reduce()
         };
     };
 }
-
-NONIUS_BENCHMARK("flex/5B/reduce",   generic_reduce<immer::flex_vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("flex/F/5B/reduce", generic_reduce<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
-NONIUS_BENCHMARK("vector/4B/reduce", generic_reduce<immer::vector<unsigned,def_memory,4>>())
-NONIUS_BENCHMARK("vector/5B/reduce", generic_reduce<immer::vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("vector/6B/reduce", generic_reduce<immer::vector<unsigned,def_memory,6>>())
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -315,6 +280,41 @@ auto generic_random()
         };
     };
 };
+
+using def_memory = immer::default_memory_policy;
+
+NONIUS_BENCHMARK("flex/5B",     generic_iter<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("flex/F/5B",   generic_iter<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+NONIUS_BENCHMARK("vector/4B",   generic_iter<immer::vector<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("vector/5B",   generic_iter<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("vector/6B",   generic_iter<immer::vector<unsigned,def_memory,6>>())
+
+#if IMMER_BENCHMARK_EXPERIMENTAL
+NONIUS_BENCHMARK("dvektor/4B",  generic_iter<immer::dvektor<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("dvektor/5B",  generic_iter<immer::dvektor<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("dvektor/6B",  generic_iter<immer::dvektor<unsigned,def_memory,6>>())
+#endif
+
+#if IMMER_BENCHMARK_STEADY
+NONIUS_BENCHMARK("steady/idx",      generic_idx<steady::vector<unsigned>>())
+#endif
+
+NONIUS_BENCHMARK("flex/5B/idx",     generic_idx<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("flex/F/5B/idx",   generic_idx<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+NONIUS_BENCHMARK("vector/4B/idx",   generic_idx<immer::vector<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("vector/5B/idx",   generic_idx<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("vector/6B/idx",   generic_idx<immer::vector<unsigned,def_memory,6>>())
+#if IMMER_BENCHMARK_EXPERIMENTAL
+NONIUS_BENCHMARK("dvektor/4B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("dvektor/5B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("dvektor/6B/idx",  generic_idx<immer::dvektor<unsigned,def_memory,6>>())
+#endif
+
+NONIUS_BENCHMARK("flex/5B/reduce",   generic_reduce<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("flex/F/5B/reduce", generic_reduce<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+NONIUS_BENCHMARK("vector/4B/reduce", generic_reduce<immer::vector<unsigned,def_memory,4>>())
+NONIUS_BENCHMARK("vector/5B/reduce", generic_reduce<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("vector/6B/reduce", generic_reduce<immer::vector<unsigned,def_memory,6>>())
 
 #if IMMER_BENCHMARK_STEADY
 NONIUS_BENCHMARK("steady/random",      generic_random<steady::vector<unsigned>>())
