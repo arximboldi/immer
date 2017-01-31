@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -36,21 +36,52 @@ struct single_thread_heap_policy
     };
 };
 
+using memory_t = immer::memory_policy<
+    single_thread_heap_policy,
+    immer::unsafe_refcount_policy>;
+
+template <typename T>
+using js_vector_t = immer::vector<T, memory_t>;
+
+template <typename VectorT>
+VectorT range(typename VectorT::value_type first,
+              typename VectorT::value_type last)
+{
+    auto v = VectorT{};
+    for (; first != last; ++first)
+        v = std::move(v).push_back(first);
+    return v;
+}
+
+template <typename VectorT>
+VectorT range_slow(typename VectorT::value_type first,
+                   typename VectorT::value_type last)
+{
+    auto v = VectorT{};
+    for (; first != last; ++first)
+        v = v.push_back(first);
+    return v;
+}
+
+template <typename VectorT>
+VectorT push_back(VectorT& v, typename VectorT::value_type x)
+{ return v.push_back(x); }
+
+template <typename VectorT>
+VectorT set(VectorT& v, std::size_t i, typename VectorT::value_type x)
+{ return v.set(i, x); }
+
 template <typename T>
 void bind_vector(const char* name)
 {
     using emscripten::class_;
 
-    using memory_t = immer::memory_policy<
-        single_thread_heap_policy,
-        immer::unsafe_refcount_policy>;
-
-    using vector_t = immer::vector<T, 5, memory_t>;
+    using vector_t = js_vector_t<T>;
 
     class_<vector_t>(name)
         .constructor()
-        .function("push",  &vector_t::push_back)
-        .function("set",   &vector_t::assoc)
+        .function("push",  &push_back<vector_t>)
+        .function("set",   &set<vector_t>)
         .function("get",   &vector_t::operator[])
         .property("size",  &vector_t::size);
 }
@@ -59,7 +90,14 @@ void bind_vector(const char* name)
 
 EMSCRIPTEN_BINDINGS(immer)
 {
+    using emscripten::function;
+
     bind_vector<emscripten::val>("Vector");
     bind_vector<int>("VectorInt");
     bind_vector<double>("VectorNumber");
+
+    function("range_int", &range<js_vector_t<int>>);
+    function("rangeSlow_int", &range_slow<js_vector_t<int>>);
+    function("range_double", &range<js_vector_t<double>>);
+    function("rangeSlow_double", &range_slow<js_vector_t<double>>);
 }
