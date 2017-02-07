@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -50,6 +50,22 @@ constexpr auto log2(std::size_t x)
                   "fix me");
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
 }
+
+struct empty_t {};
+
+template <bool b, typename F>
+auto static_if(F&& f) -> std::enable_if_t<b>
+{ std::forward<F>(f)(empty_t{}); }
+template <bool b, typename F>
+auto static_if(F&& f) -> std::enable_if_t<!b>
+{}
+
+template <bool b, typename R=void, typename F1, typename F2>
+auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<b, R>
+{ return std::forward<F1>(f1)(empty_t{}); }
+template <bool b, typename R=void, typename F1, typename F2>
+auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<!b, R>
+{ return std::forward<F2>(f2)(empty_t{}); }
 
 } // namespace detail
 } // namespace immer

@@ -351,11 +351,14 @@ NONIUS_BENCHMARK("steady",     generic<steady::vector<unsigned>, push_back_fn, s
 
 NONIUS_BENCHMARK("flex/5B",    generic<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex/F/5B",  generic<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+
 NONIUS_BENCHMARK("flex/GC",    generic<immer::flex_vector<unsigned,gc_memory,5>>())
-NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())
 NONIUS_BENCHMARK("flex/F/GC",  generic<immer::flex_vector<unsigned,gc_memory,5>,push_front_fn>())
 NONIUS_BENCHMARK("flex/F/GCF", generic<immer::flex_vector<unsigned,gcf_memory,5>,push_front_fn>())
+
+NONIUS_BENCHMARK("flex_s/GC",  generic<immer::flex_vector<std::size_t,gc_memory,5>>())
 NONIUS_BENCHMARK("flex_s/F/GC",generic<immer::flex_vector<std::size_t,gc_memory,5>,push_front_fn>())
+NONIUS_BENCHMARK("flex_s/F/GCF",generic<immer::flex_vector<std::size_t,gcf_memory,5>,push_front_fn>())
 
 NONIUS_BENCHMARK("vector/4B",  generic<immer::vector<unsigned,def_memory,4>>())
 NONIUS_BENCHMARK("vector/5B",  generic<immer::vector<unsigned,def_memory,5>>())

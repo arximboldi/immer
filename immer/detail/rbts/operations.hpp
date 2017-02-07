@@ -103,10 +103,10 @@ struct update_visitor
     {
         auto offset  = pos.index(idx);
         auto count   = pos.count();
-        auto node    = node_t::make_inner_r_n(count);
+        auto node    = node_t::make_inner_sr_n(count, pos.relaxed());
         try {
             auto child = pos.towards_oh(this_t{}, idx, offset, fn);
-            node_t::do_copy_inner_r(node, pos.node(), count);
+            node_t::do_copy_inner_sr(node, pos.node(), count);
             node->inner()[offset]->dec_unsafe();
             node->inner()[offset] = child;
             return node;
@@ -237,7 +237,7 @@ struct get_mut_visitor
             return pos.towards_oh(this_t{}, idx, offset,
                                   e, &node->inner()[offset]);
         } else {
-            auto new_node = node_t::copy_inner_r_e(e, node, count);
+            auto new_node = node_t::copy_inner_sr_e(e, node, count);
             try {
                 auto& res = pos.towards_oh(this_t{}, idx, offset,
                                            e, &new_node->inner()[offset]);
@@ -309,7 +309,6 @@ struct push_tail_mut_visitor
     friend node_t* visit_relaxed(this_t, Pos&& pos, edit_t e, node_t* tail, count_t ts)
     {
         auto node        = pos.node();
-        auto relaxed     = node->relaxed();
         auto level       = pos.shift();
         auto idx         = pos.count() - 1;
         auto children    = pos.size(idx);
@@ -335,6 +334,7 @@ struct push_tail_mut_visitor
 
         if (mutate) {
             auto count = new_idx + 1;
+            auto relaxed = node->ensure_mutable_relaxed_n(e, new_idx);
             node->inner()[new_idx]  = new_child;
             relaxed->sizes[new_idx] = pos.size() + ts;
             relaxed->count = count;
@@ -342,7 +342,7 @@ struct push_tail_mut_visitor
         } else {
             try {
                 auto count    = new_idx + 1;
-                auto new_node = node_t::copy_inner_r_n(count, pos.node(), new_idx);
+                auto new_node = node_t::copy_inner_r_e(e, pos.node(), new_idx);
                 auto relaxed  = new_node->relaxed();
                 new_node->inner()[new_idx] = new_child;
                 relaxed->sizes[new_idx] = pos.size() + ts;
@@ -539,7 +539,7 @@ struct slice_right_mut_visitor
             try {
                 if (next) {
                     if (mutate) {
-                        auto nodr = node->relaxed();
+                        auto nodr = node->ensure_mutable_relaxed_n(e, idx);
                         pos.each_right(dec_visitor{}, idx + 1);
                         node->inner()[idx] = next;
                         nodr->sizes[idx] = last + 1 - ts;
@@ -564,7 +564,7 @@ struct slice_right_mut_visitor
                 } else {
                     if (mutate) {
                         pos.each_right(dec_visitor{}, idx + 1);
-                        node->relaxed()->count = idx;
+                        node->ensure_mutable_relaxed_n(e, idx)->count = idx;
                         return { pos.shift(), node, ts, tail };
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
@@ -836,7 +836,9 @@ struct slice_left_mut_visitor
             return r;
         } else {
             using std::get;
-            auto newn = mutate ? node : node_t::make_inner_r_e(e);
+            auto newn = node;
+            if (!mutate) newn = node_t::make_inner_r_e(e);
+            else node->ensure_mutable_relaxed(e);
             auto newr = newn->relaxed();
             auto newcount = count - idx;
             auto new_child_size = child_size - child_dropped_size;
@@ -875,7 +877,7 @@ struct slice_left_mut_visitor
             // this is more restrictive than actually needed because
             // it causes the algorithm to also avoid mutating the leaf
             // in place
-            && !node_t::memory::prefer_fewer_bigger_objects
+            && !node_t::embed_relaxed
             && node->can_mutate(e);
         auto left_size  = pos.size_before(idx);
         auto child_size = pos.size_sbh(idx, left_size);
