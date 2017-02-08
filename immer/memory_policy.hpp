@@ -51,9 +51,9 @@ using get_transience_policy_t = typename get_transience_policy<T>::type;
 template <typename HeapPolicy>
 struct get_prefer_fewer_bigger_objects
     : std::integral_constant<bool,
-                             !std::is_same<
+                             std::is_same<
                                  HeapPolicy,
-                                 free_list_heap_policy<malloc_heap>>::value>
+                                 heap_policy<malloc_heap>>::value>
 {};
 
 template <typename T>
