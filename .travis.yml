@@ -3,7 +3,10 @@ sudo: false
 
 matrix:
   include:
-    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Debug SLOW=true FLAGS="-fsanitize=address -fsanitize=leak"
+    - env: >
+        COMPILER=clang++-3.8 STDLIB=libc++
+        CONFIGURATION=Debug  SLOW=true
+        FLAGS="-fsanitize=address -fsanitize=leak"
       addons: &clang38
         apt:
           sources:
@@ -11,112 +14,36 @@ matrix:
             - ubuntu-toolchain-r-test
           packages: clang-3.8
 
-    - env: COMPILER=clang++-3.8 STDLIB=libc++ CONFIGURATION=Release SLOW=false BENCHMARK=true
+    - env: >
+        COMPILER=clang++-3.8  STDLIB=libc++
+        CONFIGURATION=Release SLOW=false
+        BENCHMARK=true
       addons: *clang38
 
-    - env: COMPILER=g++-6 CONFIGURATION=Debug COVERAGE=true SLOW=true
+    - env: >
+        COMPILER=g++-6
+        CONFIGURATION=Debug SLOW=true
+        COVERAGE=true
       addons: &gcc6
         apt:
           sources: ubuntu-toolchain-r-test
           packages: g++-6
 
-    - env: COMPILER=g++-6 CONFIGURATION=Release BENCHMARK=true SLOW=false DOCS=true
+    - env: >
+        COMPILER=g++-6
+        CONFIGURATION=Release SLOW=false
+        BENCHMARK=true DOCS=true
       addons: *gcc6
 
-before_install:
-  - |
-    openssl aes-256-cbc -K $encrypted_1c8d51d72e41_key \
-        -iv $encrypted_1c8d51d72e41_iv \
-        -in tools/ssh-key.enc \
-        -out tools/ssh-key -d
+cache:
+  - pip
+  - ccache
+  - directories:
+      - ${TRAVIS_BUILD_DIR}/build/deps
+      - ${TRAVIS_BUILD_DIR}/deps
 
-install:
-  # All the dependencies are installed in ${TRAVIS_BUILD_DIR}/deps/
-  - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
-  - mkdir ${DEPS_DIR} && cd ${DEPS_DIR}
-
-  # Install a recent CMake
-  - CMAKE_URL="http://www.cmake.org/files/v3.5/cmake-3.5.1-Linux-x86_64.tar.gz"
-  - mkdir cmake && travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C cmake
-  - export PATH=${DEPS_DIR}/cmake/bin:${PATH}
-
-  # Install boost
-  - BOOST_VERSION=1.61.0
-  - BOOST_FILE_VERSION=1_61_0
-  - BOOST_URL="http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/boost_${BOOST_FILE_VERSION}.tar.gz/download"
-  - mkdir boost && travis_retry wget --quiet -O - ${BOOST_URL} | tar --strip-components=1 -xz -C boost
-  - export BOOST_PATH=${DEPS_DIR}/boost
-
-  # Install libc++ and libc++abi
-  - |
-    if [[ "${STDLIB}" == "libc++" ]]; then
-      VERSION=3.8.0
-      LLVM_URL="http://llvm.org/releases/${VERSION}/llvm-${VERSION}.src.tar.xz"
-      LIBCXX_URL="http://llvm.org/releases/${VERSION}/libcxx-${VERSION}.src.tar.xz"
-      LIBCXXABI_URL="http://llvm.org/releases/${VERSION}/libcxxabi-${VERSION}.src.tar.xz"
-      mkdir -p llvm llvm/build llvm/projects/libcxx llvm/projects/libcxxabi
-      travis_retry wget --quiet -O - ${LLVM_URL} | tar --strip-components=1 -xJ -C llvm
-      travis_retry wget --quiet -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx
-      travis_retry wget --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
-      (cd llvm/build && cmake .. -DCMAKE_CXX_COMPILER=clang++ && make cxxabi cxx -j2)
-      export CXXFLAGS="-Qunused-arguments \
-                       -Wno-reserved-id-macro \
-                       -I${DEPS_DIR}/llvm/build/include \
-                       -I${DEPS_DIR}/llvm/build/include/c++/v1 \
-                       -stdlib=libc++ \
-                       -DIMMER_ENABLE_CXA_THREAD_ATEXIT_HACK=1"
-      export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/build/lib"
-    fi
-
-  # Install documentation deps
-  - |
-    if [[ "${DOCS}" == "true" ]]; then
-         DOXYGEN_URL="http://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.11.linux.bin.tar.gz"
-         mkdir doxygen && travis_retry wget --quiet -O - ${DOXYGEN_URL} | tar --strip-components=1 -xz -C doxygen
-         export PATH=${DEPS_DIR}/doxygen/bin:${PATH}
-         pip install --user -r ${TRAVIS_BUILD_DIR}/doc/requirements.txt
-         export PATH=~/bin:${PATH}
-    fi
-
-before_script:
-  - cd ${TRAVIS_BUILD_DIR}
-  - mkdir build && cd build
-  - ${COMPILER} --version
-  - |
-    cmake .. -DCMAKE_CXX_COMPILER=${COMPILER} \
-             -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${FLAGS}" \
-             -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
-             -DCHECK_BENCHMARKS=${BENCHMARK} \
-             -DCHECK_COVERAGE=${COVERAGE} \
-             -DCHECK_SLOW_TESTS=${SLOW} \
-             -DBOOST_ROOT=${BOOST_PATH}
-  - make deps-test
-  - |
-    if [[ "${BENCHMARK}" == true ]]; then
-        make deps-benchmark
-    fi
-
-script:
-  - make check VERBOSE=1
-
-after_success:
-  - |
-    if [[ "${COVERAGE}" == true ]]; then
-        gcov-6 -bcprs `dirname ${PWD}` `find . -name "*.gcno"`
-        bash <(curl -s https://codecov.io/bash) -x gcov-6
-    fi
-  - |
-    if [[ "${BENCHMARK}" == true ]]; then
-       	chmod 600 ../tools/ssh-key
-        make upload-benchmark-reports
-    fi
-  - |
-    if [[ "${DOCS}" == true && \
-          "${TRAVIS_PULL_REQUEST}" == "false" && \
-          "${TRAVIS_BRANCH}" == "master" ]];
-    then
-        chmod 600 ../tools/ssh-key
-        make docs
-        make upload-docs
-    fi
+before_install: source tools/travis/all.bash && travis-before-install
+install:        travis-install
+before_script:  travis-before-script
+script:         travis-script
+after_success:  travis-after-success

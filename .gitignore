@@ -3,7 +3,7 @@ reports/
 doc/_build
 doc/_doxygen
 
-tools/ssh-key
+tools/travis/ssh-key
 tools/clojure/target/
 tools/scala/target/
 tools/scala/project/target/

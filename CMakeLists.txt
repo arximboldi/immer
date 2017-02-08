@@ -11,6 +11,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
 
+set(DEPS_DIR "${CMAKE_BINARY_DIR}/deps")
+
 #  Options
 #  =====================================================================
 
@@ -23,29 +25,31 @@ option(CHECK_SLOW_TESTS "run slow tests")
 option(CHECK_BOOST_COROUTINE "run benchmarks with boost coroutine")
 
 set(PRETTYPRINT_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/prettyprint-prefix/src/prettyprint")
+  "${DEPS_DIR}/Source/prettyprint")
 set(DOCTEST_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/doctest-prefix/src/doctest/doctest")
+  "${DEPS_DIR}/Source/doctest/doctest")
 set(CATCH_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/catch-prefix/src/catch/single_include")
+  "${DEPS_DIR}/Source/catch/single_include")
 set(NONIUS_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/nonius-prefix/src/nonius/include")
+  "${DEPS_DIR}/Source/nonius/include")
 set(STEADY_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/steady-prefix/src/steady/steady")
+  "${DEPS_DIR}/Source/steady/steady")
 set(LIBRRB_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/librrb-prefix/include")
+  "${DEPS_DIR}/Install/librrb/include")
 set(LIBGC_INCLUDE_DIR
-  "${CMAKE_BINARY_DIR}/libgc-prefix/include")
+  "${DEPS_DIR}/Install/libgc/include")
 set(LIBGC_LIBS
-  "${CMAKE_BINARY_DIR}/libgc-prefix/lib/libgc.a")
+  "${DEPS_DIR}/Install/libgc/lib/libgc.a")
 set(LIBRRB_LIBS
-  "${CMAKE_BINARY_DIR}/librrb-prefix/lib/librrb.a"
+  "${DEPS_DIR}/Install/librrb/lib/librrb.a"
   ${LIBGC_LIBS})
 
 #  Deps
 #  =====================================================================
 
 include(ExternalProject)
+
+set_directory_properties(PROPERTIES EP_BASE "${DEPS_DIR}")
 
 add_custom_target(deps COMMENT "Download and prepare dependencies")
 add_custom_target(deps-test COMMENT "Get test dependencies")
@@ -100,7 +104,7 @@ ExternalProject_Add_Step(libgc autoreconf
 ExternalProject_Add_Step(libgc ln-libatomic_ops
   DEPENDEES download update patch
   DEPENDERS configure
-  COMMAND ln -sf ${CMAKE_BINARY_DIR}/libatomic_ops-prefix/src/libatomic_ops <SOURCE_DIR>/libatomic_ops)
+  COMMAND ln -sf ${DEPS_DIR}/Source/libatomic_ops <SOURCE_DIR>/libatomic_ops)
 
 immer_external_dep(deps-benchmark librrb
   DEPENDS libgc
@@ -108,7 +112,7 @@ immer_external_dep(deps-benchmark librrb
   GIT_TAG development
   BUILD_IN_SOURCE 1
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3\ -I${CMAKE_BINARY_DIR}/libgc-prefix/include LDFLAGS=-L${CMAKE_BINARY_DIR}/libgc-prefix/lib
+  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3\ -I${DEPS_DIR}/Install/libgc/include LDFLAGS=-L${DEPS_DIR}/Install/libgc/lib
   BUILD_COMMAND make
   INSTALL_COMMAND make install)
 ExternalProject_Add_Step(librrb autoreconf
@@ -288,7 +292,7 @@ endforeach()
 add_custom_target(upload-benchmark-reports
   COMMAND
   scp -P 5488 -o StrictHostKeyChecking=no -p
-      -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
+      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key
       -r ${immer_benchmark_report_base_dir}/*
       raskolnikov@sinusoid.es:public/misc/immer/reports/)
 
@@ -333,6 +337,6 @@ add_dependencies(docs doxygen)
 add_custom_target(upload-docs
   COMMAND
   scp -P 5488 -o StrictHostKeyChecking=no -p
-      -i ${CMAKE_SOURCE_DIR}/tools/ssh-key
+      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key
       -r ${CMAKE_SOURCE_DIR}/doc/_build/html/*
       raskolnikov@sinusoid.es:public/immer/)
