@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+import benchmark
+
+import pyrsistent
+import immer
+
+BENCHMARK_SIZE = 1000
+
+def tov(v, src=xrange(BENCHMARK_SIZE)):
+    for x in src:
+        v = v.append(x)
+    return v
+
+IMMER_EMPTY_VECTOR = immer.Vector()
+PYRSISTENT_EMPTY_VECTOR = pyrsistent.pvector()
+
+IMMER_FULL_VECTOR = tov(immer.Vector())
+PYRSISTENT_FULL_VECTOR = tov(pyrsistent.pvector())
+
+class Benchmark_Push(benchmark.Benchmark):
+    each = 20
+
+    def test_immer(self):
+        v = immer.Vector()
+        for i in xrange(BENCHMARK_SIZE):
+            v = v.append(i)
+
+    def test_pyrsistent(self):
+        v = pyrsistent.pvector()
+        for i in xrange(BENCHMARK_SIZE):
+            v = v.append(i)
+
+class Benchmark_Set(benchmark.Benchmark):
+    each = 20
+
+    def test_immer(self):
+        v = IMMER_FULL_VECTOR
+        for i in xrange(BENCHMARK_SIZE):
+            v = v.set(i, i+1)
+
+    def test_pyrsistent(self):
+        v = PYRSISTENT_FULL_VECTOR
+        for i in xrange(BENCHMARK_SIZE):
+            v = v.set(i, i+1)
+
+class Benchmark_Access(benchmark.Benchmark):
+    each = 20
+
+    def test_immer(self):
+        v = IMMER_FULL_VECTOR
+        for i in xrange(BENCHMARK_SIZE):
+            v[i]
+
+    def test_pyrsistent(self):
+        v = PYRSISTENT_FULL_VECTOR
+        for i in xrange(BENCHMARK_SIZE):
+            v[i]
+
+class Benchmark_Size(benchmark.Benchmark):
+    each = 20
+
+    def test_immer(self):
+        for i in xrange(BENCHMARK_SIZE):
+            len(IMMER_EMPTY_VECTOR)
+
+    def test_pyrsistent(self):
+        for i in xrange(BENCHMARK_SIZE):
+            len(PYRSISTENT_EMPTY_VECTOR)
+
+    def test_immer_fn(self):
+        fn = IMMER_EMPTY_VECTOR.__len__
+        for i in xrange(BENCHMARK_SIZE):
+            fn()
+
+    def test_pyrsistent_fn(self):
+        fn = PYRSISTENT_EMPTY_VECTOR.__len__
+        for i in xrange(BENCHMARK_SIZE):
+            fn()
+
+if __name__ == '__main__':
+    benchmark.main(format="markdown",
+                   numberFormat="%.4g")
