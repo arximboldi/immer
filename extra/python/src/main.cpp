@@ -6,7 +6,22 @@
 
 namespace {
 
-struct single_thread_heap_policy
+struct python_heap
+{
+    template <typename ...Tags>
+    static void* allocate(std::size_t size,  Tags...)
+    {
+        return PyMem_Malloc(size);
+    }
+
+    template <typename ...Tags>
+    static void deallocate(void* obj)
+    {
+        PyMem_Free(obj);
+    }
+};
+
+struct python_heap_policy
 {
     template <std::size_t... Sizes>
     struct apply
@@ -14,12 +29,12 @@ struct single_thread_heap_policy
         using type = immer::with_free_list_node<
             immer::unsafe_free_list_heap<
                 std::max({Sizes...}),
-                immer::malloc_heap>>;
+                python_heap>>;
     };
 };
 
 using memory_t = immer::memory_policy<
-    single_thread_heap_policy,
+    python_heap_policy,
     immer::unsafe_refcount_policy>;
 
 template <typename T>
