@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -95,16 +95,16 @@ void test_free_list_heap()
 
 TEST_CASE("free list")
 {
-    test_free_list_heap<immer::free_list_heap<42u, immer::malloc_heap>>();
+    test_free_list_heap<immer::free_list_heap<42u, 2, immer::malloc_heap>>();
 }
 
 TEST_CASE("thread local free list")
 {
-    test_free_list_heap<immer::thread_local_free_list_heap<42u, immer::malloc_heap>>();
+    test_free_list_heap<immer::thread_local_free_list_heap<42u, 2, immer::malloc_heap>>();
 }
 
 
 TEST_CASE("unsafe free_list")
 {
-    test_free_list_heap<immer::unsafe_free_list_heap<42u, immer::malloc_heap>>();
+    test_free_list_heap<immer::unsafe_free_list_heap<42u, 2, immer::malloc_heap>>();
 }

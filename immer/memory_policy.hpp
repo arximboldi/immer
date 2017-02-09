@@ -22,6 +22,7 @@
 
 #include <immer/heap/heap_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
+#include <immer/refcount/unsafe_refcount_policy.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/transience/no_transience_policy.hpp>
 #include <immer/transience/gc_transience_policy.hpp>
@@ -114,20 +115,28 @@ struct memory_policy
 };
 
 /*!
- * The default *heap policy* just uses the standard heap.  If
- * `IMMER_FREE_LIST` is defined to `1` then it uses the special @ref
- * free_list_heap_policy.
+ * The default *heap policy* just uses the standard heap with a
+ * @ref free_list_heap_policy.  If `IMMER_NO_FREE_LIST` is defined to `1`
+ * then it just uses the standard heap.
  */
-#if IMMER_FREE_LIST
-using default_heap_policy = free_list_heap_policy<malloc_heap>;
-#else
+#if IMMER_NO_FREE_LIST
 using default_heap_policy = heap_policy<malloc_heap>;
+#else
+#if IMMER_NO_THREAD_SAFETY
+using default_heap_policy = unsafe_free_list_heap_policy<malloc_heap>;
+#else
+using default_heap_policy = free_list_heap_policy<malloc_heap>;
+#endif
 #endif
 
 /*!
  * By default we use thread safe reference counting.
  */
+#if IMMER_NO_THREAD_SAFETY
+using default_refcount_policy = unsafe_refcount_policy;
+#else
 using default_refcount_policy = refcount_policy;
+#endif
 
 /*!
  * The default memory policy.

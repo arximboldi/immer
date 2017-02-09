@@ -83,8 +83,12 @@ set(immer_benchmark_report_base_dir
 set(immer_benchmark_report_dir
   "${immer_benchmark_report_base_dir}/report_${immer_git_commit_hash}_${immer_hostname}_${immer_compiler_name}")
 
-if (CHECK_FREE_LIST)
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_free-list")
+if (DISABLE_FREE_LIST)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_no-free-list")
+endif()
+
+if (DISABLE_THREAD_SAFETY)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_no-ts")
 endif()
 
 if (CHECK_BENCHMARKS_LONGER)
@@ -117,7 +121,7 @@ foreach(_file IN LISTS immer_benchmarks)
     IMMER_BENCHMARK_LIBRRB=1
     IMMER_BENCHMARK_STEADY=1
     IMMER_BENCHMARK_EXPERIMENTAL=0
-    IMMER_BENCHMARK_BOOST_COROUTINE=${CHECK_BOOST_COROUTINE})
+    IMMER_BENCHMARK_BOOST_COROUTINE=${ENABLE_BOOST_COROUTINE})
   target_link_libraries(${_target} PUBLIC ${immer_benchmark_libs})
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})
   target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})

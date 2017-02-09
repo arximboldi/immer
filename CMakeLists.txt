@@ -16,13 +16,15 @@ set(CMAKE_CXX_EXTENSIONS off)
 
 set(DEPS_DIR "${CMAKE_BINARY_DIR}/deps")
 
-option(CHECK_COVERAGE "compile with test coverage support")
 option(CHECK_BENCHMARKS "run benchmarks on make check")
 option(CHECK_BENCHMARKS_LONG "run benchmarks for more inputs")
 option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
-option(CHECK_FREE_LIST "run checks with use free list heap")
 option(CHECK_SLOW_TESTS "run slow tests")
-option(CHECK_BOOST_COROUTINE "run benchmarks with boost coroutine")
+
+option(ENABLE_COVERAGE "compile with test coverage support")
+option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine")
+option(DISABLE_FREE_LIST "disables the free list heap")
+option(DISABLE_THREAD_SAFETY "disables thread safety by default")
 
 set(LIBGC_INCLUDE_DIR
   "${DEPS_DIR}/Install/libgc/include")
@@ -54,7 +56,7 @@ function(immer_external_dep_nobuild target name)
     INSTALL_COMMAND "")
 endfunction()
 
-if (CHECK_BOOST_COROUTINE)
+if (ENABLE_BOOST_COROUTINE)
   find_package(Boost 1.56 REQUIRED COMPONENTS coroutine)
 else ()
   find_package(Boost 1.56 REQUIRED)
@@ -98,15 +100,19 @@ ExternalProject_Add_Step(libgc ln-libatomic_ops
 
 add_definitions(-DIMMER_HAS_LIBGC=1)
 
-if (CHECK_FREE_LIST)
-  add_definitions(-DIMMER_FREE_LIST=1)
+if (DISABLE_FREE_LIST)
+  add_definitions(-DIMMER_NO_FREE_LIST=1)
+endif()
+
+if (DISABLE_THREAD_SAFETY)
+  add_definitions(-DIMMER_NO_THREAD_SAFETY=1)
 endif()
 
 if (CHECK_SLOW_TESTS)
   add_definitions(-DIMMER_SLOW_TESTS=1)
 endif()
 
-if (CHECK_COVERAGE)
+if (ENABLE_COVERAGE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
 

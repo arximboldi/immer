@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -36,7 +36,7 @@ namespace immer {
  * @tparam Size Maximum size of the objects to be allocated.
  * @tparam Base Type of the parent heap.
  */
-template <std::size_t Size, typename Base>
+template <std::size_t Size, std::size_t Limit, typename Base>
 struct free_list_heap : Base
 {
     using base_t = Base;
@@ -49,31 +49,43 @@ struct free_list_heap : Base
 
         free_list_node* n;
         do {
-            n = head_;
+            n = head_.data;
             if (!n) {
                 auto p = base_t::allocate(Size + sizeof(free_list_node));
                 return static_cast<free_list_node*>(p);
             }
-        } while (!head_.compare_exchange_weak(n, n->next));
+        } while (!head_.data.compare_exchange_weak(n, n->next));
+        head_.count.fetch_sub(1u, std::memory_order_relaxed);
         return n;
     }
 
     template <typename... Tags>
     static void deallocate(void* data, Tags...)
     {
-        auto n = static_cast<free_list_node*>(data);
-        do {
-            n->next = head_;
-        } while (!head_.compare_exchange_weak(n->next, n));
+        // we use relaxed, because we are fine with temporarily having
+        // a few more/less buffers in free list
+        if (head_.count.load(std::memory_order_relaxed) >= Limit) {
+            base_t::deallocate(data);
+        } else {
+            auto n = static_cast<free_list_node*>(data);
+            do {
+                n->next = head_.data;
+            } while (!head_.data.compare_exchange_weak(n->next, n));
+            head_.count.fetch_add(1u, std::memory_order_relaxed);
+        }
     }
 
 private:
-    using head_t = std::atomic<free_list_node*>;
+    struct head_t
+    {
+        std::atomic<free_list_node*> data;
+        std::atomic<std::size_t> count;
+    };
+
     static head_t head_;
 };
 
-template <std::size_t S, typename B>
-typename free_list_heap<S, B>::head_t
-free_list_heap<S, B>::head_ {nullptr};
+template <std::size_t S, std::size_t L, typename B>
+typename free_list_heap<S,L,B>::head_t  free_list_heap<S,L,B>::head_ {{nullptr}, {0}};
 
 } // namespace immer

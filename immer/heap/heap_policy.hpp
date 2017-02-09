@@ -117,7 +117,8 @@ struct enable_heap_policy
  *
  * @endrst
  */
-template <typename Heap>
+template <typename Heap,
+          std::size_t Limit = default_free_list_size>
 struct free_list_heap_policy
 {
     template <std::size_t... Sizes>
@@ -128,8 +129,27 @@ struct free_list_heap_policy
         using type = with_free_list_node<
             thread_local_free_list_heap<
                 max_size,
-                free_list_heap<max_size,
-                               Heap>>>;
+                Limit,
+                free_list_heap<max_size, Limit, Heap>>>;
+    };
+};
+
+/**
+ * Similar to @ref free_list_heap_policy, but it assumes no
+ * multi-threading, so a single global free list with no concurrency
+ * checks is used.
+ */
+template <typename Heap,
+          std::size_t Limit = default_free_list_size>
+struct unsafe_free_list_heap_policy
+{
+    template <std::size_t... Sizes>
+    struct apply
+    {
+        static constexpr auto max_size = std::max({Sizes...});
+
+        using type = with_free_list_node<
+            unsafe_free_list_heap<max_size, Limit, Heap>>;
     };
 };
 

@@ -112,8 +112,8 @@ function travis-before-script
           -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${FLAGS}" \
           -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
           -DCHECK_BENCHMARKS=${BENCHMARK} \
-          -DCHECK_COVERAGE=${COVERAGE} \
           -DCHECK_SLOW_TESTS=${SLOW} \
+          -DENABLE_COVERAGE=${COVERAGE} \
           -DBOOST_ROOT=${BOOST_PATH}
     make deps-test
 

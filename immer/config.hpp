@@ -58,5 +58,6 @@
 namespace immer {
 
 const auto default_bits = 5;
+const auto default_free_list_size = 1 << 10;
 
 } // namespace immer
