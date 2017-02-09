@@ -16,7 +16,7 @@ struct python_heap
     }
 
     template <typename ...Tags>
-    static void deallocates(void* obj)
+    static void deallocate(void* obj)
     {
         PyMem_Free(obj);
     }
