@@ -6,6 +6,7 @@ import pyrsistent
 import immer
 
 BENCHMARK_SIZE = 1000
+BENCHMARK_RUNS = 20
 
 def tov(v, src=xrange(BENCHMARK_SIZE)):
     for x in src:
@@ -19,7 +20,7 @@ IMMER_FULL_VECTOR = tov(immer.Vector())
 PYRSISTENT_FULL_VECTOR = tov(pyrsistent.pvector())
 
 class Benchmark_Push(benchmark.Benchmark):
-    each = 20
+    each = BENCHMARK_RUNS
 
     def test_immer(self):
         v = immer.Vector()
@@ -32,7 +33,7 @@ class Benchmark_Push(benchmark.Benchmark):
             v = v.append(i)
 
 class Benchmark_Set(benchmark.Benchmark):
-    each = 20
+    each = BENCHMARK_RUNS
 
     def test_immer(self):
         v = IMMER_FULL_VECTOR
@@ -45,7 +46,7 @@ class Benchmark_Set(benchmark.Benchmark):
             v = v.set(i, i+1)
 
 class Benchmark_Access(benchmark.Benchmark):
-    each = 20
+    each = BENCHMARK_RUNS
 
     def test_immer(self):
         v = IMMER_FULL_VECTOR
@@ -57,8 +58,18 @@ class Benchmark_Access(benchmark.Benchmark):
         for i in xrange(BENCHMARK_SIZE):
             v[i]
 
+if hasattr(IMMER_FULL_VECTOR, 'tolist'):
+    class Benchmark_ToList(benchmark.Benchmark):
+        each = BENCHMARK_RUNS
+
+        def test_immer(self):
+            IMMER_FULL_VECTOR.tolist()
+
+        def test_pyrsistent(self):
+            PYRSISTENT_FULL_VECTOR.tolist()
+
 class Benchmark_Size(benchmark.Benchmark):
-    each = 20
+    each = BENCHMARK_RUNS
 
     def test_immer(self):
         for i in xrange(BENCHMARK_SIZE):

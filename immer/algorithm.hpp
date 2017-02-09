@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -31,6 +31,16 @@ T accumulate(VectorT&& v, T init)
         init = std::accumulate(first, last, init);
     });
     return init;
+}
+
+template <typename VectorT, typename Fn>
+Fn&& for_each(VectorT&& v, Fn&& fn)
+{
+    v.for_each_chunk([&] (auto first, auto last) {
+        for (; first != last; ++first)
+            fn(*first);
+    });
+    return std::forward<Fn>(fn);
 }
 
 } // namespace immer
