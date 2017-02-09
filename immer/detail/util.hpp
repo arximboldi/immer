@@ -44,14 +44,34 @@ inline void* check_alloc(void* p)
     return p;
 }
 
-constexpr auto log2(std::size_t x)
+struct not_supported_t {};
+struct empty_t {};
+
+template <typename T>
+inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
+inline constexpr auto clz_(unsigned int x) { return __builtin_clz(x); }
+inline constexpr auto clz_(unsigned long x) { return __builtin_clzl(x); }
+inline constexpr auto clz_(unsigned long long x) { return __builtin_clzll(x); }
+
+template <typename T>
+inline constexpr T log2_aux(T x, T r = 0)
 {
-    static_assert(std::is_same<std::size_t, unsigned long>{},
-                  "fix me");
-    return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
+    return x <= 1 ? r : log2(x >> 1, r + 1);
 }
 
-struct empty_t {};
+template <typename T>
+inline constexpr auto log2(T x)
+    -> std::enable_if_t<!std::is_same<decltype(clz_(x)), not_supported_t>{}, T>
+{
+    return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - clz_(x);
+}
+
+template <typename T>
+inline constexpr auto log2(T x)
+    -> std::enable_if_t<std::is_same<decltype(clz_(x)), not_supported_t>{}, T>
+{
+    return log2_aux(x);
+}
 
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<b>

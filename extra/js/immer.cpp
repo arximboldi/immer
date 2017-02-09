@@ -24,20 +24,8 @@
 
 namespace {
 
-struct single_thread_heap_policy
-{
-    template <std::size_t... Sizes>
-    struct apply
-    {
-        using type = immer::with_free_list_node<
-            immer::unsafe_free_list_heap<
-                std::max({Sizes...}),
-                immer::malloc_heap>>;
-    };
-};
-
 using memory_t = immer::memory_policy<
-    single_thread_heap_policy,
+    immer::unsafe_free_list_heap_policy<immer::malloc_heap>,
     immer::unsafe_refcount_policy>;
 
 template <typename T>
