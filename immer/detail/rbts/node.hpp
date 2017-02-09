@@ -152,7 +152,7 @@ struct node
 
     constexpr static std::size_t sizeof_packed_leaf_n(count_t count)
     {
-        return offsetof(impl_t, data.inner.buffer)
+        return offsetof(impl_t, data.leaf.buffer)
             +  sizeof(leaf_t::buffer) * count;
     }
 
@@ -201,6 +201,7 @@ struct node
 
     using heap = typename heap_policy::template apply<
         max_sizeof_inner,
+        max_sizeof_inner_r,
         max_sizeof_leaf
     >::type;
 
@@ -860,10 +861,17 @@ template <typename T, typename MP, bits_t B>
 constexpr bits_t derive_bits_leaf_aux()
 {
     using node_t = node<T, MP, B, B>;
-    auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
-    auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0u);
-    auto full_elems = space / sizeof_elem;
-    return log2(full_elems);
+    constexpr auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
+    constexpr auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0u);
+    constexpr auto full_elems = space / sizeof_elem;
+    constexpr auto BL = log2(full_elems);
+    using result_t = node<T, MP, B, BL>;
+    static_assert(
+        result_t::max_sizeof_leaf <= result_t::max_sizeof_inner,
+        "TODO: fix the heap policy design such that, in this case,\
+we do not create free lists for degenerately big free nodes and\
+always use the same sized free lists for all types!");
+    return BL;
 }
 
 template <typename T, typename MP, bits_t B>
