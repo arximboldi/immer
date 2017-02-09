@@ -1,39 +1,34 @@
 language: c++
 sudo: false
 
+addons:
+  apt:
+    packages: g++-6
+    sources: ubuntu-toolchain-r-test
+
 matrix:
   include:
     - env: >
-        COMPILER=clang++-3.8 STDLIB=libc++
-        CONFIGURATION=Debug  SLOW=true
+        LLVM=3.9.0
+        COMPILER=clang++
+        CONFIGURATION=Debug SLOW=true
         FLAGS="-fsanitize=address -fsanitize=leak"
-      addons: &clang38
-        apt:
-          sources:
-            - llvm-toolchain-precise-3.8
-            - ubuntu-toolchain-r-test
-          packages: clang-3.8
 
     - env: >
-        COMPILER=clang++-3.8  STDLIB=libc++
+        LLVM=3.9.0
+        COMPILER=clang++
         CONFIGURATION=Release SLOW=false
         BENCHMARK=true
-      addons: *clang38
 
     - env: >
         COMPILER=g++-6
         CONFIGURATION=Debug SLOW=true
         COVERAGE=true
-      addons: &gcc6
-        apt:
-          sources: ubuntu-toolchain-r-test
-          packages: g++-6
 
     - env: >
         COMPILER=g++-6
         CONFIGURATION=Release SLOW=false
         BENCHMARK=true DOCS=true
-      addons: *gcc6
 
 cache:
   - pip

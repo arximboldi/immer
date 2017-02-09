@@ -26,17 +26,6 @@
 #include <catch.hpp>
 #include <numeric>
 
-// http://stackoverflow.com/questions/29322666/undefined-reference-to-cxa-thread-atexitcxxabi-when-compiling-with-libc#3043776
-// https://reviews.llvm.org/D21803
-#if IMMER_ENABLE_CXA_THREAD_ATEXIT_HACK
-extern "C" int __cxa_thread_atexit(void (*func)(),
-                                   void *obj,
-                                   void *dso_symbol)
-{
-    return 0;
-}
-#endif
-
 void do_stuff_to(void* buf, std::size_t size)
 {
     auto ptr = static_cast<unsigned char*>(buf);

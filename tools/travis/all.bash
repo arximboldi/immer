@@ -43,31 +43,27 @@ function install-boost
 
 function install-llvm
 {
+    LLVM_DIR=${DEPS_DIR}/llvm
     if dep-not-cached "llvm"; then
         goto-deps
-        LLVM_VERSION=3.8.0
+        LLVM_VERSION=${LLVM}
         LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
         LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
         LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
-        mkdir -p llvm llvm/build llvm/projects/libcxx llvm/projects/libcxxabi
-        travis_retry $WGET --quiet -O - ${LLVM_URL} \
-            | tar --strip-components=1 -xJ -C llvm
-        travis_retry $WGET --quiet -O - ${LIBCXX_URL} \
-            | tar --strip-components=1 -xJ -C llvm/projects/libcxx
-        travis_retry $WGET --quiet -O - ${LIBCXXABI_URL} \
-            | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
-        (cd llvm/build \
-             && cmake .. -DCMAKE_CXX_COMPILER=clang++ \
-             && make cxxabi cxx -j2)
-    fi;
-    export CXXFLAGS="-Qunused-arguments \
-           -Wno-reserved-id-macro \
-           -I${DEPS_DIR}/llvm/build/include \
-           -I${DEPS_DIR}/llvm/build/include/c++/v1 \
-           -stdlib=libc++ \
-           -DIMMER_ENABLE_CXA_THREAD_ATEXIT_HACK=1"
-    export LDFLAGS="-L${DEPS_DIR}/llvm/build/lib -lc++ -lc++abi"
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/build/lib"
+        CLANG_URL="http://llvm.org/releases/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz"
+        mkdir -p ${LLVM_DIR} ${LLVM_DIR}/build ${LLVM_DIR}/projects/libcxx ${LLVM_DIR}/projects/libcxxabi ${LLVM_DIR}/clang
+        $WGET --quiet -O - ${LLVM_URL}      | tar --strip-components=1 -xJ -C ${LLVM_DIR}
+        $WGET --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
+        $WGET --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
+        $WGET --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
+        (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=clang++)
+        (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
+        (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
+    fi
+    export EXTRA_CXXFLAGS="-nostdinc++ -isystem ${LLVM_DIR}/install/include/c++/v1 -Wno-reserved-id-macro -Qunused-arguments"
+    export EXTRA_LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_DIR}/install/lib"
+    export PATH="${LLVM_DIR}/clang/bin:${PATH}"
 }
 
 function install-doxygen
@@ -91,9 +87,13 @@ function install-sphinx
 
 function travis-install
 {
+    if [[ "${COMPILER}" != "" ]];
+    then
+        export CXX=${COMPILER};
+    fi
     install-cmake
     install-boost
-    if [[ "${STDLIB}" == "libc++" ]]; then
+    if [[ "${LLVM}" != "" ]]; then
         install-llvm
     fi
     if [[ "${DOCS}" == "true" ]]; then
@@ -108,18 +108,16 @@ function travis-before-script
     mkdir -p build && cd build
     ${COMPILER} --version
 
-    cmake .. -DCMAKE_CXX_COMPILER=${COMPILER} \
-          -DCMAKE_CXX_FLAGS="${CXXFLAGS} ${FLAGS}" \
+    cmake .. \
+          -DCMAKE_CXX_COMPILER=${COMPILER} \
+          -DCMAKE_CXX_FLAGS="${EXTRA_CXXFLAGS} ${FLAGS}" \
+          -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" \
           -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
           -DCHECK_BENCHMARKS=${BENCHMARK} \
           -DCHECK_SLOW_TESTS=${SLOW} \
           -DENABLE_COVERAGE=${COVERAGE} \
           -DBOOST_ROOT=${BOOST_PATH}
-    make deps-test
-
-    if [[ "${BENCHMARK}" == true ]]; then
-        make deps-benchmark
-    fi
+    make deps
 }
 
 function travis-script
