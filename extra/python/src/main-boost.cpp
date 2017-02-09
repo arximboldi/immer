@@ -26,7 +26,7 @@
 
 namespace {
 
-struct python_heap
+struct heap_t
 {
     template <typename ...Tags>
     static void* allocate(std::size_t size,  Tags...)
@@ -41,24 +41,9 @@ struct python_heap
     }
 };
 
-struct python_heap_policy
-{
-    template <std::size_t... Sizes>
-    struct apply
-    {
-        using type = immer::with_free_list_node<
-            immer::unsafe_free_list_heap<
-                std::max({Sizes...}),
-                python_heap>>;
-    };
-};
-
 using memory_t = immer::memory_policy<
-    python_heap_policy,
+    immer::unsafe_free_list_heap_policy<heap_t>,
     immer::unsafe_refcount_policy>;
-
-template <typename T>
-using immer_vector_t = immer::vector<T, memory_t>;
 
 template <typename Vector>
 struct immer_vector_indexing_suite : boost::python::vector_indexing_suite<
@@ -91,7 +76,7 @@ BOOST_PYTHON_MODULE(immer)
 {
     using namespace boost::python;
 
-    using vector_t = immer_vector_t<object>;
+    using vector_t = immer::vector<object, memory_t>;
 
     class_<vector_t>("Vector")
         .def(immer_vector_indexing_suite<vector_t>())

@@ -25,7 +25,7 @@
 
 namespace {
 
-struct python_heap
+struct heap_t
 {
     template <typename ...Tags>
     static void* allocate(std::size_t size,  Tags...)
@@ -40,24 +40,9 @@ struct python_heap
     }
 };
 
-struct python_heap_policy
-{
-    template <std::size_t... Sizes>
-    struct apply
-    {
-        using type = immer::with_free_list_node<
-            immer::unsafe_free_list_heap<
-                std::max({Sizes...}),
-                python_heap>>;
-    };
-};
-
 using memory_t = immer::memory_policy<
-    python_heap_policy,
+    immer::unsafe_free_list_heap_policy<heap_t>,
     immer::unsafe_refcount_policy>;
-
-template <typename T>
-using py_vector_t = immer::vector<T, memory_t>;
 
 } // anonymous namespace
 
@@ -74,7 +59,7 @@ PYBIND11_PLUGIN(immer)
            Vector
     )pbdoc");
 
-    using vector_t = py_vector_t<py::object>;
+    using vector_t = immer::vector<py::object, memory_t>;
 
     py::class_<vector_t>(m, "Vector")
         .def(py::init<>())

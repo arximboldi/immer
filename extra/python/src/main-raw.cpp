@@ -46,18 +46,6 @@ struct heap_t
     }
 };
 
-struct heap_policy_t
-{
-    template <std::size_t... Sizes>
-    struct apply
-    {
-        using type = immer::with_free_list_node<
-            immer::unsafe_free_list_heap<
-                std::max({Sizes...}),
-                heap_t>>;
-    };
-};
-
 struct object_t
 {
     struct wrap_t {};
@@ -105,7 +93,7 @@ struct object_t
 };
 
 using memory_t = immer::memory_policy<
-    heap_policy_t,
+    immer::unsafe_free_list_heap_policy<heap_t>,
     immer::unsafe_refcount_policy>;
 
 using vector_impl_t = immer::vector<object_t, memory_t>;
