@@ -108,6 +108,9 @@ function travis-before-script
     mkdir -p build && cd build
     ${COMPILER} --version
 
+    if [[ "$CONFIGURATION" == Debug ]];   then SLOW=true; fi
+    if [[ "$CONFIGURATION" == Release ]]; then BENCHRMARK=true; fi
+
     cmake .. \
           -DCMAKE_CXX_COMPILER=${COMPILER} \
           -DCMAKE_CXX_FLAGS="${EXTRA_CXXFLAGS} ${FLAGS}" \
@@ -116,6 +119,7 @@ function travis-before-script
           -DCHECK_BENCHMARKS=${BENCHMARK} \
           -DCHECK_SLOW_TESTS=${SLOW} \
           -DENABLE_COVERAGE=${COVERAGE} \
+          -DDISABLE_FREE_LIST=${DISABLE_FREE_LIST} \
           -DBOOST_ROOT=${BOOST_PATH}
     make deps
 }

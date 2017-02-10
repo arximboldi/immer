@@ -9,26 +9,18 @@ addons:
 matrix:
   include:
     - env: >
-        LLVM=3.9.0
-        COMPILER=clang++
-        CONFIGURATION=Debug SLOW=true
-        FLAGS="-fsanitize=address -fsanitize=leak"
+        COMPILER=clang++ LLVM=3.9.0 CONFIGURATION=Debug
+        DISABLE_FREE_LIST=true
+        FLAGS=-fsanitize=address\ -fsanitize=leak
 
     - env: >
-        LLVM=3.9.0
-        COMPILER=clang++
-        CONFIGURATION=Release SLOW=false
-        BENCHMARK=true
+        COMPILER=clang++ LLVM=3.9.0 CONFIGURATION=Release
 
     - env: >
-        COMPILER=g++-6
-        CONFIGURATION=Debug SLOW=true
-        COVERAGE=true
+        COMPILER=g++-6 CONFIGURATION=Debug COVERAGE=true
 
     - env: >
-        COMPILER=g++-6
-        CONFIGURATION=Release SLOW=false
-        BENCHMARK=true DOCS=true
+        COMPILER=g++-6 CONFIGURATION=Release DOCS=true
 
 cache:
   - pip
