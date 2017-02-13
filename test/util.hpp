@@ -40,19 +40,21 @@ struct identity_t
 } // anonymous namespace
 
 #if IMMER_SLOW_TESTS
-#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, xf_)      \
-    [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {        \
-        auto size = std::distance(first, last);                   \
-        CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);   \
-        for (auto j = 0u; j < size; ++j)                          \
-            CHECK(xf(v1[j]) == xf(*first++));                     \
-    } (v1_, first_, last_, xf_)                                   \
+#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, xf_)         \
+    [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {           \
+        auto size = std::distance(first, last);                      \
+        CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);       \
+        if (static_cast<std::ptrdiff_t>(v1.size()) != size) return;  \
+        for (auto j = 0u; j < size; ++j)                             \
+            CHECK(xf(v1[j]) == xf(*first++));                        \
+    } (v1_, first_, last_, xf_)                                      \
     // CHECK_EQUALS
 #else
 #define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, ...)            \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {              \
         auto size = std::distance(first, last);                         \
         CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);          \
+        if (static_cast<std::ptrdiff_t>(v1.size()) != size) return;     \
         if (size > 0) {                                                 \
             CHECK(xf(v1[0]) == xf(*(first + (0))));                     \
             CHECK(xf(v1[size - 1]) == xf(*(first + (size - 1))));       \
