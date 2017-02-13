@@ -21,7 +21,7 @@ function install-cmake
         CMAKE_VERSION_SHORT="3.5"
         CMAKE_URL="http://www.cmake.org/files/v${CMAKE_VERSION_SHORT}/cmake-${CMAKE_VERSION_LONG}-Linux-x86_64.tar.gz"
         mkdir -p cmake \
-            && $WGET --quiet -O - ${CMAKE_URL} \
+            && ${WGET} --quiet -O - ${CMAKE_URL} \
                 | tar --strip-components=1 -xz -C cmake
     fi
     export PATH=${DEPS_DIR}/cmake/bin:${PATH}
@@ -35,7 +35,7 @@ function install-boost
         BOOST_FILE_VERSION=1_61_0
         BOOST_URL="http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/boost_${BOOST_FILE_VERSION}.tar.gz/download"
         mkdir -p boost \
-            && $WGET --quiet -O - ${BOOST_URL} \
+            && ${WGET} --quiet -O - ${BOOST_URL} \
                 | tar --strip-components=1 -xz -C boost
     fi
     export BOOST_PATH=${DEPS_DIR}/boost
@@ -52,10 +52,10 @@ function install-llvm
         LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
         CLANG_URL="http://llvm.org/releases/${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz"
         mkdir -p ${LLVM_DIR} ${LLVM_DIR}/build ${LLVM_DIR}/projects/libcxx ${LLVM_DIR}/projects/libcxxabi ${LLVM_DIR}/clang
-        $WGET --quiet -O - ${LLVM_URL}      | tar --strip-components=1 -xJ -C ${LLVM_DIR}
-        $WGET --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
-        $WGET --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
-        $WGET --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
+        ${WGET} --quiet -O - ${LLVM_URL}      | tar --strip-components=1 -xJ -C ${LLVM_DIR}
+        ${WGET} --quiet -O - ${LIBCXX_URL}    | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxx
+        ${WGET} --quiet -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C ${LLVM_DIR}/projects/libcxxabi
+        ${WGET} --quiet -O - ${CLANG_URL}     | tar --strip-components=1 -xJ -C ${LLVM_DIR}/clang
         (cd ${LLVM_DIR}/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_DIR}/install -DCMAKE_CXX_COMPILER=clang++)
         (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
         (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
@@ -73,7 +73,7 @@ function install-doxygen
         DOXYGEN_VERSION="1.8.11"
         DOXYGEN_URL="http://ftp.stack.nl/pub/users/dimitri/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz"
         mkdir -p doxygen \
-            && travis_retry $WGET --quiet -O - ${DOXYGEN_URL} \
+            && travis_retry ${WGET} --quiet -O - ${DOXYGEN_URL} \
                 | tar --strip-components=1 -xz -C doxygen
     fi
     export PATH=${DEPS_DIR}/doxygen/bin:${PATH}
@@ -108,8 +108,8 @@ function travis-before-script
     mkdir -p build && cd build
     ${COMPILER} --version
 
-    if [[ "$CONFIGURATION" == Debug ]];   then SLOW=true; fi
-    if [[ "$CONFIGURATION" == Release ]]; then BENCHRMARK=true; fi
+    if [[ "${CONFIGURATION}" == Debug ]];   then slow_tests=true; fi
+    if [[ "${CONFIGURATION}" == Release ]]; then BENCHMARK=true; fi
 
     cmake .. \
           -DCMAKE_CXX_COMPILER=${COMPILER} \
@@ -117,7 +117,7 @@ function travis-before-script
           -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" \
           -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
           -DCHECK_BENCHMARKS=${BENCHMARK} \
-          -DCHECK_SLOW_TESTS=${SLOW} \
+          -DCHECK_SLOW_TESTS=${slow_tests} \
           -DENABLE_COVERAGE=${COVERAGE} \
           -DDISABLE_FREE_LIST=${DISABLE_FREE_LIST} \
           -DBOOST_ROOT=${BOOST_PATH}
