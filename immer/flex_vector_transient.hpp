@@ -65,7 +65,7 @@ public:
 
     using value_type = T;
     using reference = const T&;
-    using size_type = std::size_t;
+    using size_type = detail::rbts::size_t;
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
@@ -123,7 +123,7 @@ public:
      * Returns the number of elements in the container.  It does
      * not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    std::size_t size() const { return impl_.size; }
+    size_type size() const { return impl_.size; }
 
     /*!
      * Returns `true` if there are no elements in the container.  It
@@ -152,7 +152,7 @@ public:
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void set(std::size_t index, value_type value)
+    void set(size_type index, value_type value)
     { impl_.assoc_mut(*this, index, std::move(value)); }
 
     /*!
@@ -163,7 +163,7 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     template <typename FnT>
-    void update(std::size_t index, FnT&& fn)
+    void update(size_type index, FnT&& fn)
     { impl_.update_mut(*this, index, std::forward<FnT>(fn)); }
 
     /*!
@@ -171,7 +171,7 @@ public:
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void take(std::size_t elems)
+    void take(size_type elems)
     { impl_.take_mut(*this, elems); }
 
     /*!
@@ -179,7 +179,7 @@ public:
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void drop(std::size_t elems)
+    void drop(size_type elems)
     { impl_.drop_mut(*this, elems); }
 
     /*!

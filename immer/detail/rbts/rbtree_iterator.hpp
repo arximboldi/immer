@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -95,7 +95,7 @@ private:
         assert(n >= 0 || static_cast<size_t>(-n) <= i_);
 
         i_ += n;
-        if (i_ <= base_ && i_ - base_ < branches<BL>) {
+        if (i_ >= base_ && i_ < base_ + branches<BL>) {
             curr_ += n;
         } else {
             base_ = i_ - (i_ & mask<BL>);

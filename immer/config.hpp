@@ -53,6 +53,7 @@
 
 #define IMMER_FORCEINLINE inline __attribute__ ((always_inline))
 
+#define IMMER_DESCENT_WIDE 1
 #define IMMER_DESCENT_DEEP 0
 
 namespace immer {

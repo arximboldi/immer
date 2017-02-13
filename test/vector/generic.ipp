@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -67,7 +67,7 @@ TEST_CASE("push back one element")
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
-            for (auto j = 0u; j < v.size(); ++j)
+            for (decltype(v.size()) j = 0; j < v.size(); ++j)
                 CHECK(v[j] == j * 42);
         }
     }
@@ -113,7 +113,7 @@ TEST_CASE("update")
     {
         auto v = make_test_vector(0, 666u);
 
-        for (auto i = 0u; i < v.size(); ++i) {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
             v = v.set(i, i+1);
             CHECK(v[i] == i+1);
         }
@@ -214,7 +214,7 @@ TEST_CASE("vector of strings")
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(std::to_string(i));
 
-    for (auto i = 0u; i < v.size(); ++i)
+    for (decltype(v.size()) i = 0; i < v.size(); ++i)
         CHECK(v[i] == std::to_string(i));
 
     SECTION("set")
@@ -286,7 +286,7 @@ TEST_CASE("exception safety")
     {
         auto v = dadaist_vector_t{};
         auto d = dadaism{};
-        for (auto i = 0u; v.size() < n;) {
+        for (auto i = 0u; v.size() < static_cast<decltype(v.size())>(n);) {
             auto s = d.next();
             try {
                 v = v.push_back({i});

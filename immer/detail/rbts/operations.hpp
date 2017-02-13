@@ -526,7 +526,7 @@ struct slice_right_mut_visitor
             auto res = mutate
                 ? pos.towards_oh(this_t{}, last, idx, e)
                 : pos.towards_oh(no_mut_t{}, last, idx, e);
-            if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+            if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
             return res;
         } else {
             using std::get;
@@ -555,11 +555,11 @@ struct slice_right_mut_visitor
                         return { pos.shift(), newn, ts, tail };
                     }
                 } else if (idx == 0) {
-                    if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+                    if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
                     return { pos.shift(), nullptr, ts, tail };
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
-                    if (Mutating) pos.visit(dec_right_visitor{}, 2u);
+                    if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
                     return { pos.shift() - B, newn, ts, tail };
                 } else {
                     if (mutate) {
@@ -594,7 +594,7 @@ struct slice_right_mut_visitor
             auto res = mutate
                 ? pos.towards_oh(this_t{}, last, idx, e)
                 : pos.towards_oh(no_mut_t{}, last, idx, e);
-            if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+            if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
             return res;
         } else {
             using std::get;
@@ -617,11 +617,11 @@ struct slice_right_mut_visitor
                         return { pos.shift(), newn, ts, tail };
                     }
                 } else if (idx == 0) {
-                    if (Mutating) pos.visit(dec_right_visitor{}, 1u);
+                    if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
                     return { pos.shift(), nullptr, ts, tail };
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
-                    if (Mutating) pos.visit(dec_right_visitor{}, 2u);
+                    if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
                     return { pos.shift() - B, newn, ts, tail };
                 } else {
                     if (mutate) {
@@ -1029,7 +1029,7 @@ struct concat_merger
         : curr{counts}, n{countn}
     {};
 
-    static constexpr auto n_results_max = 3u;
+    static constexpr count_t n_results_max = 3;
 
     node_t* results[n_results_max] = {node_t::make_inner_r_n(
             std::min(n, branches<B>))};
@@ -1215,12 +1215,15 @@ struct concat_rebalance_plan
 
     void shuffle(shift_t shift)
     {
-        constexpr auto rrb_extras    = 2u;
-        constexpr auto rrb_invariant = 1u;
+        // gcc seems to not really understand this code... :(
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+        constexpr count_t rrb_extras    = 2;
+        constexpr count_t rrb_invariant = 1;
         const auto bits     = shift == BL ? BL : B;
         const auto branches = count_t{1} << bits;
         const auto optimal  = ((total - 1) >> bits) + 1;
-        auto i = 0u;
+        count_t i = 0;
         while (n >= optimal + rrb_extras) {
             // skip ok nodes
             while (counts[i] > branches - rrb_invariant) i++;
@@ -1237,6 +1240,7 @@ struct concat_rebalance_plan
             --n;
             --i;
         }
+#pragma GCC diagnostic pop
     }
 
     template <typename LPos, typename CPos, typename RPos>

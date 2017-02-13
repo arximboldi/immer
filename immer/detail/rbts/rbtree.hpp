@@ -180,13 +180,13 @@ struct rbtree
                     tail = new_tail;
                 } else {
                     auto new_root = node_t::make_path_e(e, shift, tail);
-                    assert(tail_off == 0u);
+                    assert(tail_off == 0);
                     dec_empty_regular(root);
                     root = new_root;
                     tail = new_tail;
                 }
             } catch (...) {
-                node_t::delete_leaf(new_tail, 1u);
+                node_t::delete_leaf(new_tail, 1);
                 throw;
             }
         }
@@ -202,10 +202,10 @@ struct rbtree
                                                       std::move(value));
             return { size + 1, shift, root->inc(), new_tail };
         } else {
-            auto new_tail = node_t::make_leaf_n(1u, std::move(value));
+            auto new_tail = node_t::make_leaf_n(1, std::move(value));
             try {
                 if (tail_off == size_t{branches<B>} << shift) {
-                    auto new_root = node_t::make_inner_n(2u);
+                    auto new_root = node_t::make_inner_n(2);
                     try {
                         auto path = node_t::make_path(shift, tail);
                         new_root->inner() [0] = root;
@@ -228,7 +228,7 @@ struct rbtree
                     return { size + 1, shift, new_root, new_tail };
                 }
             } catch (...) {
-                node_t::delete_leaf(new_tail, 1u);
+                node_t::delete_leaf(new_tail, 1);
                 throw;
             }
         }
@@ -401,8 +401,8 @@ template <typename T, typename MP, bits_t B, bits_t BL>
 const rbtree<T, MP, B, BL> rbtree<T, MP, B, BL>::empty = {
     0,
     BL,
-    node_t::make_inner_n(0u),
-    node_t::make_leaf_n(0u)
+    node_t::make_inner_n(0),
+    node_t::make_leaf_n(0)
 };
 
 } // namespace rbts

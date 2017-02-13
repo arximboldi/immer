@@ -24,6 +24,8 @@
 #include <utility>
 #include <array>
 
+#include <immer/detail/rbts/bits.hpp>
+
 namespace {
 
 template <typename Iterator>
@@ -176,7 +178,7 @@ struct dadaist : tristan_tzara
 template <typename T>
 struct dadaist_vector;
 
-using bits_t = unsigned;
+using bits_t = immer::detail::rbts::bits_t;
 
 template <template <class, class, bits_t, bits_t> class V,
           typename T, typename MP, bits_t B, bits_t BL>

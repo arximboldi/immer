@@ -96,7 +96,7 @@ public:
 
     using value_type = T;
     using reference = const T&;
-    using size_type = std::size_t;
+    using size_type = detail::rbts::size_t;
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
@@ -143,7 +143,7 @@ public:
      * Returns the number of elements in the container.  It does
      * not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    std::size_t size() const { return impl_.size; }
+    size_type size() const { return impl_.size; }
 
     /*!
      * Returns `true` if there are no elements in the container.  It
@@ -175,10 +175,10 @@ public:
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    vector set(std::size_t index, value_type value) const&
+    vector set(size_type index, value_type value) const&
     { return impl_.assoc(index, std::move(value)); }
 
-    decltype(auto) set(std::size_t index, value_type value) &&
+    decltype(auto) set(size_type index, value_type value) &&
     { return set_move(move_t{}, index, std::move(value)); }
 
     /*!
@@ -189,11 +189,11 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     template <typename FnT>
-    vector update(std::size_t index, FnT&& fn) const&
+    vector update(size_type index, FnT&& fn) const&
     { return impl_.update(index, std::forward<FnT>(fn)); }
 
     template <typename FnT>
-    decltype(auto) update(std::size_t index, FnT&& fn) &&
+    decltype(auto) update(size_type index, FnT&& fn) &&
     { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
 
     /*!
@@ -201,10 +201,10 @@ public:
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    vector take(std::size_t elems) const&
+    vector take(size_type elems) const&
     { return { impl_.take(elems) }; }
 
-    decltype(auto) take(std::size_t elems) &&
+    decltype(auto) take(size_type elems) &&
     { return take_move(move_t{}, elems); }
 
     /*!
@@ -258,21 +258,21 @@ private:
     vector push_back_move(std::false_type, value_type value)
     { return impl_.push_back(std::move(value)); }
 
-    vector&& set_move(std::true_type, std::size_t index, value_type value)
+    vector&& set_move(std::true_type, size_type index, value_type value)
     { impl_.assoc_mut({}, index, std::move(value)); return std::move(*this); }
-    vector set_move(std::false_type, std::size_t index, value_type value)
+    vector set_move(std::false_type, size_type index, value_type value)
     { return impl_.assoc(index, std::move(value)); }
 
     template <typename Fn>
-    vector&& update_move(std::true_type, std::size_t index, Fn&& fn)
+    vector&& update_move(std::true_type, size_type index, Fn&& fn)
     { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
     template <typename Fn>
-    vector update_move(std::false_type, std::size_t index, Fn&& fn)
+    vector update_move(std::false_type, size_type index, Fn&& fn)
     { return impl_.update(index, std::forward<Fn>(fn)); }
 
-    vector&& take_move(std::true_type, std::size_t elems)
+    vector&& take_move(std::true_type, size_type elems)
     { impl_.take_mut({}, elems); return std::move(*this); }
-    vector take_move(std::false_type, std::size_t elems)
+    vector take_move(std::false_type, size_type elems)
     { return impl_.take(elems); }
 
     impl_t impl_ = impl_t::empty;

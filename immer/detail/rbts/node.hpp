@@ -77,21 +77,21 @@ struct node
 
     struct relaxed_meta_t
     {
-        meta_t      meta;
-        count_t     count;
-        std::size_t sizes[branches<B>];
+        meta_t  meta;
+        count_t count;
+        size_t  sizes[branches<B>];
     };
 
     struct relaxed_no_meta_t : meta_t
     {
-        count_t     count;
-        std::size_t sizes[branches<B>];
+        count_t count;
+        size_t  sizes[branches<B>];
     };
 
     struct relaxed_embedded_t
     {
-        count_t     count;
-        std::size_t sizes[branches<B>];
+        count_t count;
+        size_t  sizes[branches<B>];
     };
 
     using relaxed_t =
@@ -286,7 +286,7 @@ struct node
         }
         auto p = new (mp) node_t;
         auto r = new (mr) relaxed_t;
-        r->count = 0u;
+        r->count = 0;
         p->impl.data.inner.relaxed = r;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::kind_t::inner;
@@ -330,7 +330,7 @@ struct node
         auto r = new (mr) relaxed_t;
         ownee(p) = e;
         static_if<!embed_relaxed>([&](auto){ ownee(r) = e; });
-        r->count = 0u;
+        r->count = 0;
         p->impl.data.inner.relaxed = r;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.kind = node_t::kind_t::inner;
@@ -378,7 +378,7 @@ struct node
 
     static node_t* make_inner_n(count_t n, node_t* x)
     {
-        assert(n >= 1u);
+        assert(n >= 1);
         auto p = make_inner_n(n);
         p->inner() [0] = x;
         return p;
@@ -386,7 +386,7 @@ struct node
 
     static node_t* make_inner_n(edit_t n, node_t* x)
     {
-        assert(n >= 1u);
+        assert(n >= 1);
         auto p = make_inner_n(n);
         p->inner() [0] = x;
         return p;
@@ -394,7 +394,7 @@ struct node
 
     static node_t* make_inner_n(count_t n, node_t* x, node_t* y)
     {
-        assert(n >= 2u);
+        assert(n >= 2);
         auto p = make_inner_n(n);
         p->inner() [0] = x;
         p->inner() [1] = y;
@@ -403,7 +403,7 @@ struct node
 
     static node_t* make_inner_r_n(count_t n, node_t* x)
     {
-        assert(n >= 1u);
+        assert(n >= 1);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -413,7 +413,7 @@ struct node
 
     static node_t* make_inner_r_n(count_t n, node_t* x, size_t xs)
     {
-        assert(n >= 1u);
+        assert(n >= 1);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -424,7 +424,7 @@ struct node
 
     static node_t* make_inner_r_n(count_t n, node_t* x, node_t* y)
     {
-        assert(n >= 2u);
+        assert(n >= 2);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -437,7 +437,7 @@ struct node
                                   node_t* x, size_t xs,
                                   node_t* y)
     {
-        assert(n >= 2u);
+        assert(n >= 2);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -451,7 +451,7 @@ struct node
                                   node_t* x, size_t xs,
                                   node_t* y, size_t ys)
     {
-        assert(n >= 2u);
+        assert(n >= 2);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -467,7 +467,7 @@ struct node
                                   node_t* y, size_t ys,
                                   node_t* z, size_t zs)
     {
-        assert(n >= 3u);
+        assert(n >= 3);
         auto p = make_inner_r_n(n);
         auto r = p->relaxed();
         p->inner() [0] = x;
@@ -483,7 +483,7 @@ struct node
     template <typename U>
     static node_t* make_leaf_n(count_t n, U&& x)
     {
-        assert(n >= 1u);
+        assert(n >= 1);
         auto p = make_leaf_n(n);
         try {
             new (p->leaf()) T{ std::forward<U>(x) };
@@ -880,7 +880,7 @@ constexpr bits_t derive_bits_leaf_aux()
 {
     using node_t = node<T, MP, B, B>;
     constexpr auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
-    constexpr auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0u);
+    constexpr auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0);
     constexpr auto full_elems = space / sizeof_elem;
     constexpr auto BL = log2(full_elems);
     using result_t = node<T, MP, B, BL>;

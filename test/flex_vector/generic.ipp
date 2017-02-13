@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -107,7 +107,7 @@ auto make_many_test_flex_vector_front_remainder()
 TEST_CASE("set relaxed")
 {
     auto v = make_test_flex_vector_front(0, 666u);
-    for (auto i = 0u; i < v.size(); ++i) {
+    for (decltype(v.size()) i = 0; i < v.size(); ++i) {
         v = v.set(i, i+1);
         CHECK(v[i] == i+1);
     }
@@ -121,7 +121,7 @@ TEST_CASE("push_front")
     for (auto i = 0u; i < n; ++i) {
         v = v.push_front(i);
         CHECK(v.size() == i + 1);
-        for (auto j = 0u; j < v.size(); ++j)
+        for (decltype(v.size()) j = 0; j < v.size(); ++j)
             CHECK(v[v.size() - j - 1] == j);
     }
 }
@@ -382,7 +382,7 @@ TEST_CASE("exception safety relaxed")
         auto half = n / 2;
         auto v = make_test_flex_vector_front<dadaist_vector_t>(0, half);
         auto d = dadaism{};
-        for (auto i = half; v.size() < n;) {
+        for (auto i = half; v.size() < static_cast<decltype(v.size())>(n);) {
             auto s = d.next();
             try {
                 v = v.push_back({i});

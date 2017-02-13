@@ -387,7 +387,7 @@ decltype(auto) towards_sub_oh_regular(Pos&& p, Visitor v, size_t idx,
     auto child   = p.node()->inner() [offset_hint];
     auto lsize   = offset_hint << p.shift();
     auto size    = p.this_size();
-    auto is_full = (size - lsize) >= (1u << p.shift());
+    auto is_full = (size - lsize) >= (size_t{1} << p.shift());
     return is_full
         ? (is_leaf
            ? make_full_leaf_pos(child).visit(
@@ -452,7 +452,7 @@ struct singleton_regular_sub_pos
     node_t* leaf_;
     count_t count_;
 
-    count_t count() const { return 1u; }
+    count_t count() const { return 1; }
     node_t* node()  const { assert(false); return nullptr; }
     size_t  size()  const { return count_; }
     shift_t shift() const { return BL; }
@@ -635,7 +635,7 @@ struct regular_sub_pos
     {
         auto is_leaf = shift_ == BL;
         auto child   = node_->inner() [0];
-        auto is_full = size_ >= (1u << shift_);
+        auto is_full = size_ >= (size_t{1} << shift_);
         return is_full
             ? (is_leaf
                ? make_full_leaf_pos(child).visit(v, args...)
@@ -671,7 +671,7 @@ regular_sub_pos<NodeT> make_regular_sub_pos(NodeT* node,
     assert(node);
     assert(shift >= NodeT::bits_leaf);
     assert(size > 0);
-    assert(size <= (branches<NodeT::bits> << shift));
+    assert(size <= (branches<NodeT::bits, size_t> << shift));
     return {node, shift, size};
 }
 
@@ -742,8 +742,10 @@ decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
     case BL + B * 1: return regular_descent_pos<NodeT, BL + B * 1>{node}.visit(v, idx);
     case BL + B * 2: return regular_descent_pos<NodeT, BL + B * 2>{node}.visit(v, idx);
     case BL + B * 3: return regular_descent_pos<NodeT, BL + B * 3>{node}.visit(v, idx);
+#if IMMER_DESCENT_WIDE
     case BL + B * 4: return regular_descent_pos<NodeT, BL + B * 4>{node}.visit(v, idx);
     case BL + B * 5: return regular_descent_pos<NodeT, BL + B * 5>{node}.visit(v, idx);
+#endif
 #if IMMER_DESCENT_DEEP
     default:
         for (auto level = shift; level != endshift<B, BL>; level -= B)
@@ -926,7 +928,7 @@ struct relaxed_pos
     relaxed_t* relaxed() const { return relaxed_; }
 
     size_t size_before(count_t offset) const
-    { return offset ? relaxed_->sizes[offset - 1] : 0u; }
+    { return offset ? relaxed_->sizes[offset - 1] : 0; }
 
     size_t size(count_t offset) const
     { return size_sbh(offset, size_before(offset)); }
@@ -977,7 +979,7 @@ struct relaxed_pos
         if (shift_ == BL) {
             auto p = node_->inner();
             auto s = size_t{};
-            for (auto i = 0u; i < n; ++i) {
+            for (auto i = count_t{0}; i < n; ++i) {
                 make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->sizes[i];
@@ -986,7 +988,7 @@ struct relaxed_pos
             auto p = node_->inner();
             auto s = size_t{};
             auto ss = shift_ - B;
-            for (auto i = 0u; i < n; ++i) {
+            for (auto i = count_t{0}; i < n; ++i) {
                 visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
                                         v, args...);
                 s = relaxed_->sizes[i];
@@ -996,7 +998,7 @@ struct relaxed_pos
 
     template <typename Visitor, typename... Args>
     void each_right_sub(Visitor v, Args&&... args)
-    { each_right(v, 1u, std::forward<Args>(args)...); }
+    { each_right(v, 1, std::forward<Args>(args)...); }
 
     template <typename Visitor, typename... Args>
     void each_right(Visitor v, count_t start, Args&&... args)
@@ -1250,8 +1252,10 @@ decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
         case BL + B * 1: return relaxed_descent_pos<NodeT, BL + B * 1>{node, r}.visit(v, idx);
         case BL + B * 2: return relaxed_descent_pos<NodeT, BL + B * 2>{node, r}.visit(v, idx);
         case BL + B * 3: return relaxed_descent_pos<NodeT, BL + B * 3>{node, r}.visit(v, idx);
+#if IMMER_DESCENT_WIDE
         case BL + B * 4: return relaxed_descent_pos<NodeT, BL + B * 4>{node, r}.visit(v, idx);
         case BL + B * 5: return relaxed_descent_pos<NodeT, BL + B * 5>{node, r}.visit(v, idx);
+#endif
 #if IMMER_DESCENT_DEEP
         default:
             for (auto level = shift; level != endshift<B, BL>; level -= B) {
