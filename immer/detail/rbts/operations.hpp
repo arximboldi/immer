@@ -1029,10 +1029,12 @@ struct concat_merger
         : curr{counts}, n{countn}
     {};
 
-    node_t* result    = node_t::make_inner_r_n(std::min(n, branches<B>));
-    node_t* parent    = result;
-    count_t count_sum = 0u;
-    size_t  size_sum  = {};
+    static constexpr auto n_results_max = 3u;
+
+    node_t* results[n_results_max] = {node_t::make_inner_r_n(
+            std::min(n, branches<B>))};
+    size_t  result_sizes[n_results_max] = {0};
+    count_t result_idx = 0u;
 
     node_t* to        = {};
     count_t to_offset = {};
@@ -1041,34 +1043,19 @@ struct concat_merger
     void add_child(node_t* p, size_t size)
     {
         ++curr;
+        auto parent = results[result_idx];
         auto r = parent->relaxed();
         if (r->count == branches<B>) {
-            // all this could be simpler, just accumulate all parents
-            // in a buffer and decide at the end what to do about it...
-            count_sum += branches<BL>;
-            auto new_parent = node_t::make_inner_r_n(
-                std::min(n - count_sum, branches<B>));
-            if (result == parent) {
-                try {
-                    auto cnt = (n >> B) + 1;
-                    result = node_t::make_inner_r_n(cnt, parent, size_sum);
-                } catch (...) {
-                    node_t::delete_inner_r(new_parent);
-                    throw;
-                }
-            } else {
-                auto r = result->relaxed();
-                auto idx = r->count++;
-                assert(idx > 0);
-                r->sizes[idx] = r->sizes[idx - 1] + size_sum;
-                result->inner()[idx] = parent;
-            }
-            parent = new_parent;
-            r = new_parent->relaxed();
-            size_sum = 0;
+            assert(result_idx + 1 < n_results_max);
+            n -= branches<B>;
+            parent = node_t::make_inner_r_n(std::min(n, branches<B>));
+            r = parent->relaxed();
+            results[++result_idx] = parent;
+            result_sizes[result_idx] = result_sizes[result_idx - 1];
         }
         auto idx = r->count++;
-        r->sizes[idx] = size_sum += size;
+        result_sizes[result_idx] += size;
+        r->sizes[idx] = size + (idx ? r->sizes[idx - 1] : 0);
         parent->inner() [idx] = p;
     };
 
@@ -1150,18 +1137,17 @@ struct concat_merger
     relaxed_pos<Node> finish(shift_t shift, bool is_top)
     {
         assert(!to);
-        if (parent != result) {
-            auto r = result->relaxed();
-            auto idx = r->count++;
-            assert(idx);
-            r->sizes[idx] = r->sizes[idx - 1] + size_sum;
-            result->inner() [idx] = parent;
+        if (!is_top || result_idx > 0) {
+            auto cnt    = result_idx + 1;
+            auto result = node_t::make_inner_r_n(cnt);
+            auto r      = result->relaxed();
+            r->count    = cnt;
+            std::copy(results, results + cnt, result->inner());
+            std::copy(result_sizes, result_sizes + cnt, r->sizes);
             return { result, shift + B, r };
-        } else if (is_top) {
-            return { result, shift, result->relaxed() };
         } else {
-            auto n = node_t::make_inner_r_n(1u, result, size_sum);
-            return { n, shift + B, n->relaxed() };
+            assert(is_top);
+            return { results[0], shift, results[0]->relaxed() };
         }
     }
 
@@ -1175,9 +1161,8 @@ struct concat_merger
                 dec_relaxed(to, shift);
             }
         }
-        if (parent != result)
-            dec_relaxed(result, shift + B);
-        dec_relaxed(parent, shift);
+        for (auto i = count_t{0}; i <= result_idx; ++i)
+            dec_relaxed(results[i], shift);
     }
 };
 
