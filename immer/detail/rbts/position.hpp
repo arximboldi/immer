@@ -440,6 +440,54 @@ struct null_sub_pos
 };
 
 template <typename NodeT>
+struct singleton_regular_sub_pos
+{
+    // this is a fake regular pos made out of a single child... useful
+    // to treat a single leaf node as a whole tree
+
+    static constexpr auto B  = NodeT::bits;
+    static constexpr auto BL = NodeT::bits_leaf;
+
+    using node_t = NodeT;
+    node_t* leaf_;
+    count_t count_;
+
+    count_t count() const { return 1u; }
+    node_t* node()  const { assert(false); return nullptr; }
+    size_t  size()  const { return count_; }
+    shift_t shift() const { return BL; }
+    count_t index(size_t idx) const { return 0; }
+    count_t subindex(size_t idx) const { return 0; }
+    size_t  size_before(count_t offset) const { return 0; }
+    size_t  this_size() const { return count_; }
+    size_t  size(count_t offset) { return count_; }
+
+    template <typename Visitor, typename... Args>
+    void each_left_sub(Visitor v, Args&&... args) {}
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) last_sub(Visitor v, Args&&... args)
+    {
+        return make_leaf_sub_pos(leaf_, count_).visit(v, args...);
+    }
+
+    template <typename Visitor, typename ...Args>
+    decltype(auto) visit(Visitor v, Args&& ...args)
+    {
+        return visit_regular(v, *this, std::forward<Args>(args)...);
+    }
+};
+
+template <typename NodeT>
+auto make_singleton_regular_sub_pos(NodeT* leaf, count_t count)
+{
+    assert(leaf);
+    assert(leaf->kind() == NodeT::kind_t::leaf);
+    assert(count > 0);
+    return singleton_regular_sub_pos<NodeT>{leaf, count};
+}
+
+template <typename NodeT>
 struct regular_sub_pos
 {
     static constexpr auto B  = NodeT::bits;

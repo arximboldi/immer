@@ -462,6 +462,24 @@ struct node
         return p;
     }
 
+    static node_t* make_inner_r_n(count_t n,
+                                  node_t* x, size_t xs,
+                                  node_t* y, size_t ys,
+                                  node_t* z, size_t zs)
+    {
+        assert(n >= 3u);
+        auto p = make_inner_r_n(n);
+        auto r = p->relaxed();
+        p->inner() [0] = x;
+        p->inner() [1] = y;
+        p->inner() [2] = z;
+        r->sizes [0] = xs;
+        r->sizes [1] = xs + ys;
+        r->sizes [2] = xs + ys + zs;
+        r->count = 3;
+        return p;
+    }
+
     template <typename U>
     static node_t* make_leaf_n(count_t n, U&& x)
     {

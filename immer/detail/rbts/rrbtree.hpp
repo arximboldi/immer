@@ -536,27 +536,27 @@ struct rrbtree
                     throw;
                 }
             }
+        } else if (tail_offset() == 0) {
+            auto tail_offst = tail_offset();
+            auto tail_size  = size - tail_offst;
+            auto concated   = concat_trees(tail, tail_size,
+                                           r.root, r.shift, r.tail_offset());
+            auto new_shift  = concated.shift();
+            auto new_root   = concated.node();
+            assert(new_shift == new_root->compute_shift());
+            assert(new_root->check(new_shift, size + r.tail_offset()));
+            return { size + r.size, new_shift, new_root, r.tail->inc() };
         } else {
             auto tail_offst = tail_offset();
-            auto with_tail  = push_tail(root, shift, tail_offst,
-                                        tail, size - tail_offst);
-            tail->inc();
-            auto lshift     = get<0>(with_tail);
-            auto lroot      = get<1>(with_tail);
-            assert(lroot->check(lshift, size));
-            try {
-                auto concated   = concat_trees(lroot, lshift, size,
+            auto tail_size  = size - tail_offst;
+            auto concated   = concat_trees(root, shift, tail_offst,
+                                           tail, tail_size,
                                            r.root, r.shift, r.tail_offset());
-                auto new_shift  = concated.shift();
-                auto new_root   = concated.node();
-                assert(new_shift == new_root->compute_shift());
-                assert(new_root->check(new_shift, size + r.tail_offset()));
-                dec_inner(lroot, lshift, size);
-                return { size + r.size, new_shift, new_root, r.tail->inc() };
-            } catch (...) {
-                dec_inner(lroot, lshift, size);
-                throw;
-            }
+            auto new_shift  = concated.shift();
+            auto new_root   = concated.node();
+            assert(new_shift == new_root->compute_shift());
+            assert(new_root->check(new_shift, size + r.tail_offset()));
+            return { size + r.size, new_shift, new_root, r.tail->inc() };
         }
     }
 
