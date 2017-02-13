@@ -121,6 +121,7 @@ foreach(_file IN LISTS immer_benchmarks)
     IMMER_BENCHMARK_LIBRRB=1
     IMMER_BENCHMARK_STEADY=1
     IMMER_BENCHMARK_EXPERIMENTAL=0
+    IMMER_BENCHMARK_DISABLE_GC=1
     IMMER_BENCHMARK_BOOST_COROUTINE=${ENABLE_BOOST_COROUTINE})
   target_link_libraries(${_target} PUBLIC ${immer_benchmark_libs})
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})

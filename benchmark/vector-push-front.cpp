@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -26,6 +26,8 @@
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
 
+#include "util.hpp"
+
 #if IMMER_BENCHMARK_LIBRRB
 extern "C" {
 #define restrict __restrict__
@@ -37,11 +39,11 @@ extern "C" {
 NONIUS_PARAM(N, std::size_t{1000})
 
 #if IMMER_BENCHMARK_LIBRRB
-NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
+NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
-    auto n = params.get<N>();
+    auto n = meter.param<N>();
 
-    return [=] {
+    measure(meter, [&] {
         auto v = rrb_create();
         for (auto i = 0u; i < n; ++i) {
             auto f = rrb_push(rrb_create(),
@@ -49,23 +51,23 @@ NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
             v = rrb_concat(f, v);
         }
         return v;
-    };
+    });
 })
 #endif
 
 template <typename Vektor>
 auto generic()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
 
-        return [=] {
+        measure(meter, [&] {
             auto v = Vektor{};
             for (auto i = 0u; i < n; ++i)
                 v = v.push_front(i);
             return v;
-        };
+        });
     };
 };
 

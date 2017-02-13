@@ -108,7 +108,7 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = v;
         for (auto i = 0u; i < n; ++i)
             r = rrb_update(r, i, reinterpret_cast<void*>(n - i));
@@ -127,7 +127,7 @@ NONIUS_BENCHMARK("librrb/F", [] (nonius::chronometer meter)
         v = rrb_concat(f, v);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = v;
         for (auto i = 0u; i < n; ++i)
             r = rrb_update(r, i, reinterpret_cast<void*>(n - i));
@@ -144,7 +144,7 @@ NONIUS_BENCHMARK("librrb/random", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = v;
         for (auto i = 0u; i < n; ++i)
             r = rrb_update(r, g[i], reinterpret_cast<void*>(i));
@@ -161,7 +161,7 @@ NONIUS_BENCHMARK("t/librrb", [] (nonius::chronometer meter)
         v = transient_rrb_push(v, reinterpret_cast<void*>(i));
     auto vv = transient_to_rrb(v);
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = rrb_to_transient(vv);
         for (auto i = 0u; i < n; ++i)
             r = transient_rrb_update(r, i, reinterpret_cast<void*>(n - i));
@@ -180,7 +180,7 @@ NONIUS_BENCHMARK("t/librrb/F", [] (nonius::chronometer meter)
         v = rrb_concat(f, v);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = rrb_to_transient(v);
         for (auto i = 0u; i < n; ++i)
             r = transient_rrb_update(r, i, reinterpret_cast<void*>(n - i));
@@ -198,7 +198,7 @@ NONIUS_BENCHMARK("t/librrb/random", [] (nonius::chronometer meter)
         v = transient_rrb_push(v, reinterpret_cast<void*>(i));
     auto vv = transient_to_rrb(v);
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = rrb_to_transient(vv);
         for (auto i = 0u; i < n; ++i)
             r = transient_rrb_update(r, g[i], reinterpret_cast<void*>(n - i));
@@ -236,7 +236,7 @@ auto generic()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = SetFn{}(r, i, n - i);
@@ -259,7 +259,7 @@ auto generic_move()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = std::move(r).set(i, n - i);
@@ -272,9 +272,9 @@ template <typename Vektor,
           typename SetFn=set_fn>
 auto generic_random()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
 
@@ -283,12 +283,12 @@ auto generic_random()
         for (auto i = 0u; i < n; ++i)
             v = v.push_back(i);
 
-        return [=] {
+        measure(meter, [&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = SetFn{}(r, g[i], i);
             return r;
-        };
+        });
     };
 };
 
@@ -306,7 +306,7 @@ auto generic_mut()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v.transient();
             for (auto i = 0u; i < n; ++i)
                 r.set(i, n - i);
@@ -330,7 +330,7 @@ auto generic_mut_random()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v.transient();
             for (auto i = 0u; i < n; ++i)
                 r.set(g[i], i);

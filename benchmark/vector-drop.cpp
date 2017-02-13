@@ -47,7 +47,7 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         for (auto i = 0u; i < n; ++i)
             rrb_slice(v, i, n);
     });
@@ -64,7 +64,7 @@ NONIUS_BENCHMARK("librrb/F", [] (nonius::chronometer meter)
         v = rrb_concat(f, v);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         for (auto i = 0u; i < n; ++i)
             rrb_slice(v, i, n);
     });
@@ -78,7 +78,7 @@ NONIUS_BENCHMARK("l/librrb", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = v;
         for (auto i = 0u; i < n; ++i)
             r = rrb_slice(r, 1, n);
@@ -97,7 +97,7 @@ NONIUS_BENCHMARK("l/librrb/F", [] (nonius::chronometer meter)
         v = rrb_concat(f, v);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto r = v;
         for (auto i = 0u; i < n; ++i)
             r = rrb_slice(r, 1, n);
@@ -113,7 +113,7 @@ NONIUS_BENCHMARK("t/librrb", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         vv = rrb_push(vv, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto v = rrb_to_transient(vv);
         for (auto i = 0u; i < n; ++i)
             v = transient_rrb_slice(v, 1, n);
@@ -131,7 +131,7 @@ NONIUS_BENCHMARK("t/librrb/F", [] (nonius::chronometer meter)
         vv = rrb_concat(f, vv);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         auto v = rrb_to_transient(vv);
         for (auto i = 0u; i < n; ++i)
             v = transient_rrb_slice(v, 1, n);
@@ -151,7 +151,7 @@ auto generic()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             for (auto i = 0u; i < n; ++i)
                 v.drop(i);
         });
@@ -170,7 +170,7 @@ auto generic_lin()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = r.drop(1);
@@ -191,7 +191,7 @@ auto generic_move()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto r = v;
             for (auto i = 0u; i < n; ++i)
                 r = std::move(r).drop(1);
@@ -212,7 +212,7 @@ auto generic_mut()
         for (auto i = 0u; i < n; ++i)
             vv = PushFn{}(std::move(vv), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             auto v = vv.transient();
             for (auto i = 0u; i < n; ++i)
                 v.drop(1);

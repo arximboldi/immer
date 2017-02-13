@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -23,6 +23,8 @@
 #include <utility>
 #include <cstddef>
 #include <limits>
+
+#include <immer/heap/gc_heap.hpp>
 
 namespace immer {
 template <typename T> class array;
@@ -57,5 +59,23 @@ struct get_limit : std::integral_constant<
 template <typename T>
 struct get_limit<immer::array<T>> : std::integral_constant<
     std::size_t, 10000> {};
+
+struct gc_disable
+{
+    gc_disable()  { GC_disable(); }
+    ~gc_disable() { GC_enable(); GC_gcollect(); }
+
+    gc_disable(const gc_disable&) = delete;
+    gc_disable(gc_disable&&) = delete;
+};
+
+template <typename Meter, typename Fn>
+void measure(Meter& m, Fn&& fn)
+{
+#if IMMER_BENCHMARK_DISABLE_GC
+    gc_disable guard;
+#endif
+    return m.measure(std::forward<Fn>(fn));
+}
 
 } // anonymous namespace

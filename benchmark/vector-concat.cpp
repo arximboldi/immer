@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -47,7 +47,7 @@ NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
     for (auto i = 0u; i < n; ++i)
         v = rrb_push(v, reinterpret_cast<void*>(i));
 
-    meter.measure([&] {
+    measure(meter, [&] {
         return rrb_concat(v, v);
     });
 })
@@ -63,7 +63,7 @@ NONIUS_BENCHMARK("librrb/F", [] (nonius::chronometer meter)
         v = rrb_concat(f, v);
     }
 
-    meter.measure([&] {
+    measure(meter, [&] {
         return rrb_concat(v, v);
     });
 })
@@ -81,7 +81,7 @@ auto generic()
         for (auto i = 0u; i < n; ++i)
             v = PushFn{}(std::move(v), i);
 
-        meter.measure([&] {
+        measure(meter, [&] {
             return v + v;
         });
     };

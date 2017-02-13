@@ -55,82 +55,82 @@ extern "C" {
 NONIUS_PARAM(N, std::size_t{1000})
 
 #if IMMER_BENCHMARK_LIBRRB
-NONIUS_BENCHMARK("librrb", [] (nonius::parameters params)
+NONIUS_BENCHMARK("librrb", [] (nonius::chronometer meter)
 {
-    auto n = params.get<N>();
+    auto n = meter.param<N>();
 
-    return [=] {
+    measure(meter, [&] {
         auto v = rrb_create();
         for (auto i = 0u; i < n; ++i)
             v = rrb_push(v, reinterpret_cast<void*>(i));
         return v;
-    };
+    });
 })
 
-NONIUS_BENCHMARK("t/librrb", [] (nonius::parameters params)
+NONIUS_BENCHMARK("t/librrb", [] (nonius::chronometer meter)
 {
-    auto n = params.get<N>();
+    auto n = meter.param<N>();
 
-    return [=] {
+    measure(meter, [&] {
         auto v = rrb_to_transient(rrb_create());
         for (auto i = 0u; i < n; ++i)
             v = transient_rrb_push(v, reinterpret_cast<void*>(i));
         return v;
-    };
+    });
 })
 #endif
 
 template <typename Vektor>
 auto generic_mut()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
 
-        return [=] {
+        measure(meter, [&] {
             auto v = Vektor{};
             for (auto i = 0u; i < n; ++i)
                 v.push_back(i);
             return v;
-        };
+        });
     };
 };
 
 template <typename Vektor>
 auto generic_move()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
 
-        return [=] {
+        measure(meter, [&] {
             auto v = Vektor{};
             for (auto i = 0u; i < n; ++i)
                 v = std::move(v).push_back(i);
             return v;
-        };
+        });
     };
 };
 
 template <typename Vektor>
 auto generic()
 {
-    return [] (nonius::parameters params)
+    return [] (nonius::chronometer meter)
     {
-        auto n = params.get<N>();
+        auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
 
-        return [=] {
+        measure(meter, [&] {
             auto v = Vektor{};
             for (auto i = 0u; i < n; ++i)
                 v = v.push_back(i);
             return v;
-        };
+        });
     };
 };
 
