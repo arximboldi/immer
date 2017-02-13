@@ -560,6 +560,83 @@ struct rrbtree
         }
     }
 
+    friend void concat_mut_l(rrbtree& l, edit_t el, const rrbtree& r)
+    {
+        using std::get;
+        if (l.size == 0)
+            l = r;
+        else if (r.size == 0)
+            return;
+        else if (r.tail_offset() == 0) {
+            // just concat the tail, similar to push_back
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            if (tail_size == branches<BL>) {
+                l.push_tail_mut(el, tail_offst, l.tail, tail_size);
+                l.tail = r.tail->inc();
+                l.size += r.size;
+                return;
+            } else if (tail_size + r.size <= branches<BL>) {
+                l.ensure_mutable_tail(el, tail_size);
+                std::uninitialized_copy(r.tail->leaf(),
+                                        r.tail->leaf() + r.size,
+                                        l.tail->leaf() + tail_size);
+                l.size += r.size;
+                return;
+            } else {
+                auto remaining = branches<BL> - tail_size;
+                l.ensure_mutable_tail(el, tail_size);
+                std::uninitialized_copy(r.tail->leaf(),
+                                        r.tail->leaf() + remaining,
+                                        l.tail->leaf() + tail_size);
+                try {
+                    auto new_tail = node_t::copy_leaf(r.tail, remaining, r.size);
+                    try {
+                        l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
+                        l.tail = new_tail;
+                        l.size += r.size;
+                        return;
+                    } catch (...) {
+                        node_t::delete_leaf(new_tail, r.size - remaining);
+                        throw;
+                    }
+                } catch (...) {
+                    destroy_n(r.tail->leaf() + tail_size, remaining);
+                    throw;
+                }
+            }
+        } else if (l.tail_offset() == 0) {
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            auto concated   = concat_trees(l.tail, tail_size,
+                                           r.root, r.shift, r.tail_offset());
+            auto new_shift  = concated.shift();
+            auto new_root   = concated.node();
+            assert(new_shift == new_root->compute_shift());
+            assert(new_root->check(new_shift, l.size + r.tail_offset()));
+            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
+            return;
+        } else {
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            auto concated   = concat_trees(l.root, l.shift, tail_offst,
+                                           l.tail, tail_size,
+                                           r.root, r.shift, r.tail_offset());
+            auto new_shift  = concated.shift();
+            auto new_root   = concated.node();
+            assert(new_shift == new_root->compute_shift());
+            assert(new_root->check(new_shift, l.size + r.tail_offset()));
+            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
+            return;
+        }
+    }
+
+    friend void concat_mut_r(const rrbtree& l, rrbtree& r, edit_t er)
+    { assert(false && "todo"); }
+
+    friend void concat_mut_lr(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
+    { assert(false && "todo"); }
+
     bool check_tree() const
     {
 #if IMMER_DEBUG_DEEP_CHECK

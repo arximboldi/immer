@@ -191,6 +191,26 @@ public:
     persistent_type persistent() &&
     { return persistent_type{ std::move(impl_) }; }
 
+    /*!
+     * Appends the contents of the `r` at the end.  It may allocate
+     * memory and its complexity is:
+     * @f$ O(log(max(size_r, size_l))) @f$
+     */
+    void append(const flex_vector_transient& r)
+    { concat_mut_l(impl_, *this, r.impl_); }
+    void append(flex_vector_transient&& r)
+    { concat_mut_lr(impl_, *this, r.impl_, r); }
+
+    /*!
+     * Prepends the contents of the `l` at the beginning.  It may
+     * allocate memory and its complexity is:
+     * @f$ O(log(max(size_r, size_l))) @f$
+     */
+    void prepend(const flex_vector_transient& l)
+    { concat_mut_r(l.impl_, impl_, *this); }
+    void prepend(flex_vector_transient&& l)
+    { concat_mut_lr(l.impl_, l, impl_, *this); }
+
 private:
     friend persistent_type;
 

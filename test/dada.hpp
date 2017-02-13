@@ -96,16 +96,18 @@ struct dadaism
         bool moved = false;
         dadaism* save_ = g_dadaism;
         scope(scope&& s) { save_ = s.save_; s.moved = true; }
-        scope(dadaism& self)  { g_dadaism = &self; }
+        scope(dadaism* self)  { g_dadaism = self; }
         ~scope() { if (!moved) g_dadaism = save_; }
     };
+
+    static scope disable() { return { nullptr }; }
 
     scope next()
     {
         toggle = last == happenings;
         last   = happenings;
         step   = toggle ? step : magic.next();
-        return { *this };
+        return { this };
     }
 
     void dada()

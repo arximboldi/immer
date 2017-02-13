@@ -247,4 +247,42 @@ TEST_CASE("exception safety relaxed")
         CHECK(d.happenings > 0);
         CHECK(t.d.happenings > 0);
     }
+
+    SECTION("append")
+    {
+        auto make_ = [](auto i, auto delta) {
+            auto d = dadaism::disable();
+            return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
+        };
+        auto t = as_transient_tester(dadaist_vector_t{});
+        auto d = dadaism{};
+        auto deltas = magic_rotator();
+        auto delta  = deltas.next();
+        for (auto i = 0u, li = 0u; i < n;) {
+            auto s = d.next();
+            auto r = dadaist_vector_t{};
+            try {
+                auto data = make_(i, delta);
+                if (t.transient) {
+                    auto datat = data.transient();
+                    t.vt.append(datat);
+                } else
+                    t.vp = t.vp + data;
+                i += delta;
+                if (t.step()) {
+                    li = i;
+                }
+                delta = deltas.next();
+            } catch (dada_error) {}
+            if (t.transient) {
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
+            } else {
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, i));
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, li));
+            }
+        }
+        CHECK(d.happenings > 0);
+        CHECK(t.d.happenings > 0);
+    }
 }
