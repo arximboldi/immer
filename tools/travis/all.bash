@@ -60,8 +60,8 @@ function install-llvm
         (cd ${LLVM_DIR}/build/projects/libcxx && make install -j2)
         (cd ${LLVM_DIR}/build/projects/libcxxabi && make install -j2)
     fi
-    export EXTRA_CXXFLAGS="-nostdinc++ -isystem ${LLVM_DIR}/install/include/c++/v1 -Wno-reserved-id-macro -Qunused-arguments"
-    export EXTRA_LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
+    export LLVM_CXXFLAGS="-nostdinc++ -isystem ${LLVM_DIR}/install/include/c++/v1 -Wno-reserved-id-macro -Qunused-arguments"
+    export LLVM_LDFLAGS="-L ${LLVM_DIR}/install/lib -l c++ -l c++abi"
     export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_DIR}/install/lib"
     export PATH="${LLVM_DIR}/clang/bin:${PATH}"
 }
@@ -108,18 +108,26 @@ function travis-before-script
     mkdir -p build && cd build
     ${COMPILER} --version
 
-    if [[ "${CONFIGURATION}" == Debug ]];   then slow_tests=true; fi
-    if [[ "${CONFIGURATION}" == Release ]]; then BENCHMARK=true; fi
+    if [[ "${CONFIGURATION}" == Release ]]; then
+        BENCHMARK=true
+    fi
+    if [[ "${CONFIGURATION}" == Debug ]]; then
+        slow_tests=true
+    fi
+    if [[ "${SANITIZE}" == true ]]; then
+        disable_free_list=true
+        sanitize_flags="-fsanitize=address -fsanitize=leak"
+    fi
 
     cmake .. \
           -DCMAKE_CXX_COMPILER=${COMPILER} \
-          -DCMAKE_CXX_FLAGS="${EXTRA_CXXFLAGS} ${FLAGS}" \
-          -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" \
+          -DCMAKE_CXX_FLAGS="${LLVM_CXXFLAGS} ${sanitize_flags}" \
+          -DCMAKE_EXE_LINKER_FLAGS="${LLVM_LDFLAGS}" \
           -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
           -DCHECK_BENCHMARKS=${BENCHMARK} \
           -DCHECK_SLOW_TESTS=${slow_tests} \
           -DENABLE_COVERAGE=${COVERAGE} \
-          -DDISABLE_FREE_LIST=${DISABLE_FREE_LIST} \
+          -DDISABLE_FREE_LIST=${disable_free_list} \
           -DBOOST_ROOT=${BOOST_PATH}
     make deps
 }

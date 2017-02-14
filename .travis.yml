@@ -9,9 +9,7 @@ addons:
 matrix:
   include:
     - env: >
-        COMPILER=clang++ LLVM=3.9.0 CONFIGURATION=Debug
-        DISABLE_FREE_LIST=true
-        FLAGS=-fsanitize=address\ -fsanitize=leak
+        COMPILER=clang++ LLVM=3.9.0 CONFIGURATION=Debug SANITIZE=true
 
     - env: >
         COMPILER=clang++ LLVM=3.9.0 CONFIGURATION=Release
