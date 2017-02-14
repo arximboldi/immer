@@ -1,6 +1,6 @@
 //
 // immer - immutable data structures for C++
-// Copyright (C) 2016 Juan Pedro Bolivar Puente
+// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
 //
 // This file is part of immer.
 //
@@ -20,16 +20,16 @@
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 
 namespace immer {
 namespace detail {
 namespace rbts {
 
-using bits_t  = unsigned;
-using shift_t = unsigned;
-using count_t = unsigned;
-using size_t  = std::size_t;
+using bits_t  = std::uint32_t;
+using shift_t = std::uint32_t;
+using count_t = std::uint32_t;
+using size_t  = std::uint32_t;
 
 template <bits_t B, typename T=count_t>
 constexpr T branches = T{1} << B;

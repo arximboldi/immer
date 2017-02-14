@@ -687,7 +687,12 @@ struct regular_descent_pos
 
     node_t* node()  const { return node_; }
     shift_t shift() const { return Shift; }
-    count_t index(size_t idx) const { return (idx >> Shift) & mask<B>; }
+    count_t index(size_t idx) const {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshift-count-overflow"
+        return (idx >> Shift) & mask<B>;
+#pragma GCC diagnostic pop
+    }
 
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx)
@@ -742,10 +747,8 @@ decltype(auto) visit_regular_descent(NodeT* node, shift_t shift, Visitor v,
     case BL + B * 1: return regular_descent_pos<NodeT, BL + B * 1>{node}.visit(v, idx);
     case BL + B * 2: return regular_descent_pos<NodeT, BL + B * 2>{node}.visit(v, idx);
     case BL + B * 3: return regular_descent_pos<NodeT, BL + B * 3>{node}.visit(v, idx);
-#if IMMER_DESCENT_WIDE
     case BL + B * 4: return regular_descent_pos<NodeT, BL + B * 4>{node}.visit(v, idx);
     case BL + B * 5: return regular_descent_pos<NodeT, BL + B * 5>{node}.visit(v, idx);
-#endif
 #if IMMER_DESCENT_DEEP
     default:
         for (auto level = shift; level != endshift<B, BL>; level -= B)
@@ -1175,7 +1178,11 @@ struct relaxed_descent_pos
 
     count_t index(size_t idx) const
     {
+        // make gcc happy
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshift-count-overflow"
         auto offset = idx >> Shift;
+#pragma GCC diagnostic pop
         while (relaxed_->sizes[offset] <= idx) ++offset;
         return offset;
     }
@@ -1252,10 +1259,8 @@ decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
         case BL + B * 1: return relaxed_descent_pos<NodeT, BL + B * 1>{node, r}.visit(v, idx);
         case BL + B * 2: return relaxed_descent_pos<NodeT, BL + B * 2>{node, r}.visit(v, idx);
         case BL + B * 3: return relaxed_descent_pos<NodeT, BL + B * 3>{node, r}.visit(v, idx);
-#if IMMER_DESCENT_WIDE
         case BL + B * 4: return relaxed_descent_pos<NodeT, BL + B * 4>{node, r}.visit(v, idx);
         case BL + B * 5: return relaxed_descent_pos<NodeT, BL + B * 5>{node, r}.visit(v, idx);
-#endif
 #if IMMER_DESCENT_DEEP
         default:
             for (auto level = shift; level != endshift<B, BL>; level -= B) {
