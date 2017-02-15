@@ -40,6 +40,9 @@ constexpr auto bits_leaf = std::decay_t<Pos>::node_t::bits_leaf;
 template <typename Pos>
 using node_type = typename std::decay<Pos>::type::node_t;
 
+template <typename Pos>
+using edit_type = typename std::decay<Pos>::type::node_t::edit_t;
+
 template <typename NodeT>
 struct empty_regular_pos
 {

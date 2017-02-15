@@ -97,7 +97,7 @@ constexpr auto get_use_transient_rvalues_v = get_use_transient_rvalues<T>::value
 template <typename HeapPolicy,
           typename RefcountPolicy,
           typename TransiencePolicy     = get_transience_policy_t<RefcountPolicy>,
-          bool PreferFewerBiggerObjects = get_prefer_fewer_bigger_objects_v<HeapPolicy>,
+          bool PreferFewerBiggerObjects = false,//get_prefer_fewer_bigger_objects_v<HeapPolicy>,
           bool UseTransientRValues      = get_use_transient_rvalues_v<RefcountPolicy>>
 struct memory_policy
 {

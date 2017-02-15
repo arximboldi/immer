@@ -836,9 +836,9 @@ struct slice_left_mut_visitor
             return r;
         } else {
             using std::get;
-            auto newn = node;
-            if (!mutate) newn = node_t::make_inner_r_e(e);
-            else node->ensure_mutable_relaxed(e);
+            auto newn = mutate
+                ? (node->ensure_mutable_relaxed(e), node)
+                : node_t::make_inner_r_e(e);
             auto newr = newn->relaxed();
             auto newcount = count - idx;
             auto new_child_size = child_size - child_dropped_size;
@@ -1024,6 +1024,8 @@ struct concat_center_pos
     static constexpr count_t max_children = 3;
 
     using node_t = Node;
+    using edit_t = typename Node::edit_t;
+
     shift_t shift_ = 0u;
     count_t count_ = 0u;
     node_t* nodes_[max_children];
@@ -1072,6 +1074,21 @@ struct concat_center_pos
                 each_sub(dec_visitor{});
                 throw;
             }
+        } else {
+            assert(shift_ >= B + BL);
+            return { nodes_[0], shift_ - B, nodes_[0]->relaxed() };
+        }
+    }
+
+    relaxed_pos<Node> realize_e(edit_t e)
+    {
+        if (count_ > 1) {
+            auto result = node_t::make_inner_r_e(e);
+            auto r      = result->relaxed();
+            r->count    = count_;
+            std::copy(nodes_, nodes_ + count_, result->inner());
+            std::copy(sizes_, sizes_ + count_, r->sizes);
+            return { result, shift_, r };
         } else {
             assert(shift_ >= B + BL);
             return { nodes_[0], shift_ - B, nodes_[0]->relaxed() };
@@ -1478,6 +1495,495 @@ concat_trees(Node* ltail, count_t ltcount,
         empty_leaf_pos<Node>{},
         rroot, rshift, rsize)
         .realize();
+}
+
+template <typename Node>
+using concat_center_mut_pos = concat_center_pos<Node>;
+
+template <typename Node>
+struct concat_merger_mut
+{
+    using node_t = Node;
+    using edit_t = typename Node::edit_t;
+
+    static constexpr auto B  = Node::bits;
+    static constexpr auto BL = Node::bits_leaf;
+
+    using result_t = concat_center_pos<Node>;
+
+    edit_t ec_  = {};
+
+    count_t* curr_;
+    count_t  n_;
+    result_t result_;
+    count_t  count_ = 0;
+    node_t*  candidate_ = nullptr;
+    edit_t   candidate_e_;
+
+    concat_merger_mut(edit_t ec, shift_t shift,
+                      count_t* counts, count_t n,
+                      edit_t e1, node_t* c1,
+                      edit_t e2, node_t* c2)
+        : ec_{ec}
+        , curr_{counts}
+        , n_{n}
+        , result_{shift + B, nullptr, 0}
+    {
+        if (c1) {
+            c1->ensure_mutable_relaxed_e(e1, ec);
+            result_.nodes_[0] = c1->inc();
+            candidate_ = c2;
+            candidate_e_ = e2;
+        } else if (c2) {
+            c2->ensure_mutable_relaxed_e(e2, ec);
+            result_.nodes_[0] = c2->inc();
+        } else {
+            result_.nodes_[0] = node_t::make_inner_r_e(ec);
+        }
+    }
+
+    node_t*  to_        = {};
+    count_t  to_offset_ = {};
+    size_t   to_size_   = {};
+    size_t   to_cleanup_ = {};
+
+    void add_child(node_t* p, size_t size)
+    {
+        ++curr_;
+        auto parent  = result_.nodes_[result_.count_ - 1];
+        auto relaxed = parent->relaxed();
+        if (count_ == branches<B>) {
+            parent->relaxed()->count = count_;
+            assert(result_.count_ < result_t::max_children);
+            n_ -= branches<B>;
+            if (candidate_) {
+                parent = candidate_->inc();
+                parent->ensure_mutable_relaxed_e(candidate_e_, ec_);
+                candidate_ = nullptr;
+            } else
+                parent  = node_t::make_inner_r_e(ec_);
+            count_ = 0;
+            relaxed = parent->relaxed();
+            result_.nodes_[result_.count_] = parent;
+            result_.sizes_[result_.count_] = result_.sizes_[result_.count_ - 1];
+            ++result_.count_;
+        }
+        auto idx = count_++;
+        result_.sizes_[result_.count_ - 1] += size;
+        relaxed->sizes[idx] = size + (idx ? relaxed->sizes[idx - 1] : 0);
+        parent->inner() [idx] = p;
+    };
+
+    template <typename Pos>
+    void merge_leaf(Pos&& p, edit_t e, bool mutating)
+    {
+        auto from       = p.node();
+        auto from_size  = p.size();
+        auto from_count = p.count();
+        assert(from_size);
+        if (!to_ && *curr_ == from_count) {
+            add_child(from, from_size);
+            if (!mutating) from->inc();
+        } else {
+            auto from_offset  = count_t{};
+            auto from_data    = from->leaf();
+            auto from_mutate  = mutating && from->can_mutate(e);
+            auto from_adopted = false;
+            do {
+                if (!to_) {
+                    if (from_mutate) {
+                        assert(!from_adopted);
+                        from_adopted = true;
+                        node_t::ownee(from) = ec_;
+                        to_ = from;
+                        to_cleanup_ = from_count;
+                        assert(from_count);
+                    } else {
+                        to_ = node_t::make_leaf_e(ec_);
+                        to_cleanup_ = 0;
+                    }
+                    to_offset_ = 0;
+                }
+                auto data = to_->leaf();
+                auto to_copy = std::min(from_count - from_offset,
+                                        *curr_ - to_offset_);
+                if (from == to_) {
+                    if (from_offset != to_offset_)
+                        std::move(from_data + from_offset,
+                                  from_data + from_offset + to_copy,
+                                  data + to_offset_);
+                    to_cleanup_ -= to_copy;
+                } else {
+                    auto cleanup = std::min(to_copy, to_cleanup_);
+                    destroy_n(data + to_offset_, cleanup);
+                    to_cleanup_ -= cleanup;
+                    if (!from_mutate)
+                        std::uninitialized_copy(from_data + from_offset,
+                                                from_data + from_offset + to_copy,
+                                                data + to_offset_);
+                    else
+                        uninitialized_move(from_data + from_offset,
+                                           from_data + from_offset + to_copy,
+                                           data + to_offset_);
+                }
+                to_offset_  += to_copy;
+                from_offset += to_copy;
+                if (*curr_ == to_offset_) {
+                    destroy_n(data + to_offset_, to_cleanup_);
+                    add_child(to_, to_offset_);
+                    to_ = nullptr;
+                }
+            } while (from_offset != from_count);
+            if (mutating && !from_adopted && from->dec())
+                node_t::delete_leaf(from, from_count);
+        }
+    }
+
+    template <typename Pos>
+    void merge_inner(Pos&& p, edit_t e, bool mutating)
+    {
+        auto from       = p.node();
+        auto from_size  = p.size();
+        auto from_count = p.count();
+        assert(from_size);
+        if (!to_ && *curr_ == from_count) {
+            add_child(from, from_size);
+            if (!mutating) from->inc();
+        } else {
+            auto from_offset  = count_t{};
+            auto from_data    = from->inner();
+            auto from_adopted = false;
+            do {
+                if (!to_) {
+                    auto from_mutate = mutating
+                        && from->can_relax()
+                        && from->can_mutate(e);
+                    if (from_mutate) {
+                        assert(!from_adopted);
+                        from_adopted = from_mutate;
+                        node_t::ownee(from) = ec_;
+                        from->ensure_mutable_relaxed_e(e, ec_);
+                        to_ = from->inc();
+                    } else {
+                        to_ = node_t::make_inner_r_e(ec_);
+                    }
+                    to_offset_ = 0;
+                    to_size_   = 0;
+                }
+                auto data    = to_->inner();
+                auto to_copy = std::min(from_count - from_offset,
+                                        *curr_ - to_offset_);
+                auto sizes   = to_->relaxed()->sizes;
+                if (from != to_ || from_offset != to_offset_) {
+                    std::copy(from_data + from_offset,
+                              from_data + from_offset + to_copy,
+                              data + to_offset_);
+                    if (!mutating)
+                        node_t::inc_nodes(from_data + from_offset, to_copy);
+                    p.copy_sizes(from_offset, to_copy,
+                                 to_size_, sizes + to_offset_);
+                }
+                to_offset_  += to_copy;
+                from_offset += to_copy;
+                to_size_     = sizes[to_offset_ - 1];
+                if (*curr_ == to_offset_) {
+                    to_->relaxed()->count = to_offset_;
+                    add_child(to_, to_size_);
+                    to_ = nullptr;
+                }
+            } while (from_offset != from_count);
+            if (mutating && !from_adopted && from->dec())
+                node_t::delete_inner_any(from);
+        }
+    }
+
+    concat_center_pos<Node> finish() const
+    {
+        assert(!to_);
+        result_.nodes_[result_.count_ - 1]->relaxed()->count = count_;
+        return result_;
+    }
+
+    void abort()
+    {
+        // We may have mutated stuff the tree in place, leaving
+        // everything in a corrupted state...  It should be possible
+        // to define cleanup properly, but that is a task for some
+        // other day... ;)
+        std::terminate();
+    }
+};
+
+struct concat_merger_mut_visitor
+{
+    using this_t = concat_merger_mut_visitor;
+
+    template <typename Pos, typename Merger>
+    friend void visit_inner(this_t, Pos&& p,
+                            Merger& merger, edit_type<Pos> e, bool mut)
+    { merger.merge_inner(p, e, mut); }
+
+    template <typename Pos, typename Merger>
+    friend void visit_leaf(this_t, Pos&& p,
+                           Merger& merger, edit_type<Pos> e, bool mut)
+    { merger.merge_leaf(p, e, mut); }
+};
+
+template <bits_t B, bits_t BL>
+struct concat_rebalance_plan_mut : concat_rebalance_plan<B, BL>
+{
+    using this_t = concat_rebalance_plan_mut;
+
+    template <typename LPos, typename CPos, typename RPos>
+    concat_center_mut_pos<node_type<CPos>>
+    merge(edit_type<CPos> ec,
+          edit_type<CPos> el, bool lmut, LPos&& lpos, CPos&& cpos,
+          edit_type<CPos> er, bool rmut, RPos&& rpos)
+    {
+        using node_t    = node_type<CPos>;
+        using merger_t  = concat_merger_mut<node_t>;
+        using visitor_t = concat_merger_mut_visitor;
+        auto lnode = ((node_t*)lpos.node());
+        auto rnode = ((node_t*)rpos.node());
+        auto lmut2 = lmut && lnode && lnode->can_relax() && lnode->can_mutate(el);
+        auto rmut2 = rmut && rnode && rnode->can_relax() && rnode->can_mutate(er);
+        auto merger = merger_t{
+            ec, cpos.shift(), this->counts, this->n,
+            el, lmut2 ? lnode : nullptr,
+            er, rmut2 ? rnode : nullptr
+        };
+        try {
+            lpos.each_left_sub(visitor_t{}, merger, el, lmut2);
+            cpos.each_sub(visitor_t{}, merger, ec, true);
+            rpos.each_right_sub(visitor_t{}, merger, er, rmut2);
+            if (lmut && lnode && lnode->dec())
+                node_t::delete_inner_any(lnode);
+            if (rmut && rnode && rnode->dec())
+                node_t::delete_inner_any(rnode);
+            return merger.finish();
+        } catch (...) {
+            merger.abort();
+            throw;
+        }
+    }
+};
+
+template <typename Node, typename LPos, typename CPos, typename RPos>
+concat_center_pos<Node>
+concat_rebalance_mut(edit_type<Node> ec,
+                     edit_type<Node> el, bool lmut, LPos&& lpos, CPos&& cpos,
+                     edit_type<Node> er, bool rmut, RPos&& rpos)
+{
+    auto plan = concat_rebalance_plan_mut<Node::bits, Node::bits_leaf>{};
+    plan.fill(lpos, cpos, rpos);
+    plan.shuffle(cpos.shift());
+    return plan.merge(ec, el, lmut, lpos, cpos, er, rmut, rpos);
+}
+
+template <typename Node, typename LPos, typename TPos, typename RPos>
+concat_center_mut_pos<Node>
+concat_leafs_mut(edit_type<Node> ec,
+                 edit_type<Node> el, bool lmut, LPos&& lpos, TPos&& tpos,
+                 edit_type<Node> er, bool rmut, RPos&& rpos)
+{
+    static_assert(Node::bits >= 2, "");
+    assert(lpos.shift() == tpos.shift());
+    assert(lpos.shift() == rpos.shift());
+    assert(lpos.shift() == 0);
+    if (!lmut) lpos.node()->inc();
+    if (!lmut && tpos.count()) tpos.node()->inc();
+    if (!rmut) rpos.node()->inc();
+    if (tpos.count() > 0)
+        return {
+            Node::bits_leaf,
+            lpos.node(), lpos.count(),
+            tpos.node(), tpos.count(),
+            rpos.node(), rpos.count(),
+        };
+    else
+        return {
+            Node::bits_leaf,
+            lpos.node(), lpos.count(),
+            rpos.node(), rpos.count(),
+        };
+}
+
+template <typename Node>
+struct concat_left_mut_visitor;
+template <typename Node>
+struct concat_right_mut_visitor;
+template <typename Node>
+struct concat_both_mut_visitor;
+
+template <typename Node, typename LPos, typename TPos, typename RPos>
+concat_center_mut_pos<Node>
+concat_inners_mut(edit_type<Node> ec,
+                  edit_type<Node> el, bool lmut, LPos&& lpos, TPos&& tpos,
+                  edit_type<Node> er, bool rmut, RPos&& rpos)
+{
+    auto lshift = lpos.shift();
+    auto rshift = rpos.shift();
+    // lpos.node() can be null it is a singleton_regular_sub_pos<...>,
+    // this is, when the tree is just a tail...
+    if (lshift > rshift) {
+        auto lmut2 = lmut && (!lpos.node() || lpos.node()->can_mutate(el));
+        auto cpos = lpos.last_sub(concat_left_mut_visitor<Node>{},
+                                  ec, el, lmut2, tpos, er, rmut, rpos);
+        return concat_rebalance_mut<Node>(ec,
+                                          el, lmut, lpos, cpos,
+                                          er, rmut, null_sub_pos{});
+    } else if (lshift < rshift) {
+        auto rmut2 = rmut && rpos.node()->can_mutate(er);
+        auto cpos = rpos.first_sub(concat_right_mut_visitor<Node>{},
+                                   ec, el, lmut, lpos, tpos, er, rmut2);
+        return concat_rebalance_mut<Node>(ec,
+                                          el, lmut, null_sub_pos{}, cpos,
+                                          er, rmut, rpos);
+    } else {
+        assert(lshift == rshift);
+        assert(Node::bits_leaf == 0u || lshift > 0);
+        auto lmut2 = lmut && (!lpos.node() || lpos.node()->can_mutate(el));
+        auto rmut2 = rmut && rpos.node()->can_mutate(er);
+        auto cpos = lpos.last_sub(concat_both_mut_visitor<Node>{},
+                                  ec, el, lmut2, tpos, er, rmut2, rpos);
+        return concat_rebalance_mut<Node>(ec,
+                                          el, lmut, lpos, cpos,
+                                          er, rmut, rpos);
+    }
+}
+
+template <typename Node>
+struct concat_left_mut_visitor
+{
+    using this_t = concat_left_mut_visitor;
+    using edit_t = typename Node::edit_t;
+
+    template <typename LPos, typename TPos, typename RPos>
+    friend concat_center_mut_pos<Node>
+    visit_inner(this_t, LPos&& lpos, edit_t ec,
+                edit_t el, bool lmut, TPos&& tpos,
+                edit_t er, bool rmut, RPos&& rpos)
+    { return concat_inners_mut<Node>(
+            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+
+    template <typename LPos, typename TPos, typename RPos>
+    friend concat_center_mut_pos<Node>
+    visit_leaf(this_t, LPos&& lpos, edit_t ec,
+               edit_t el, bool lmut, TPos&& tpos,
+               edit_t er, bool rmut, RPos&& rpos)
+    { IMMER_UNREACHABLE; }
+};
+
+template <typename Node>
+struct concat_right_mut_visitor
+{
+    using this_t = concat_right_mut_visitor;
+    using edit_t = typename Node::edit_t;
+
+    template <typename RPos, typename LPos, typename TPos>
+    friend concat_center_mut_pos<Node>
+    visit_inner(this_t, RPos&& rpos, edit_t ec,
+                edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
+                edit_t er, bool rmut)
+    { return concat_inners_mut<Node>(
+            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+
+    template <typename RPos, typename LPos, typename TPos>
+    friend concat_center_mut_pos<Node>
+    visit_leaf(this_t, RPos&& rpos, edit_t ec,
+               edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
+               edit_t er, bool rmut)
+    { return concat_leafs_mut<Node>(
+            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+};
+
+template <typename Node>
+struct concat_both_mut_visitor
+{
+    using this_t = concat_both_mut_visitor;
+    using edit_t = typename Node::edit_t;
+
+    template <typename LPos, typename TPos, typename RPos>
+    friend concat_center_mut_pos<Node>
+    visit_inner(this_t, LPos&& lpos, edit_t ec,
+                edit_t el, bool lmut, TPos&& tpos,
+                edit_t er, bool rmut, RPos&& rpos)
+    { return rpos.first_sub(concat_right_mut_visitor<Node>{},
+                            ec, el, lmut, lpos, tpos, er, rmut); }
+
+    template <typename LPos, typename TPos, typename RPos>
+    friend concat_center_mut_pos<Node>
+    visit_leaf(this_t, LPos&& lpos, edit_t ec,
+               edit_t el, bool lmut, TPos&& tpos,
+               edit_t er, bool rmut, RPos&& rpos)
+    { return rpos.first_sub_leaf(concat_right_mut_visitor<Node>{},
+                                 ec, el, lmut, lpos, tpos, er, rmut); }
+};
+
+template <typename Node>
+struct concat_trees_right_mut_visitor
+{
+    using this_t = concat_trees_right_mut_visitor;
+    using edit_t = typename Node::edit_t;
+
+    template <typename RPos, typename LPos, typename TPos>
+    friend concat_center_mut_pos<Node>
+    visit_node(this_t, RPos&& rpos, edit_t ec,
+               edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
+               edit_t er, bool rmut)
+    { return concat_inners_mut<Node>(
+            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+};
+
+template <typename Node>
+struct concat_trees_left_mut_visitor
+{
+    using this_t = concat_trees_left_mut_visitor;
+    using edit_t = typename Node::edit_t;
+
+    template <typename LPos, typename TPos, typename... Args>
+    friend concat_center_mut_pos<Node>
+    visit_node(this_t, LPos&& lpos, edit_t ec,
+               edit_t el, bool lmut, TPos&& tpos,
+               edit_t er, bool rmut, Args&& ...args)
+    { return visit_maybe_relaxed_sub(
+            args...,
+            concat_trees_right_mut_visitor<Node>{},
+            ec, el, lmut, lpos, tpos, er, rmut); }
+};
+
+template <typename Node>
+relaxed_pos<Node>
+concat_trees_mut(edit_type<Node> ec,
+                 edit_type<Node> el, bool lmut,
+                 Node* lroot, shift_t lshift, size_t lsize,
+                 Node* ltail, count_t ltcount,
+                 edit_type<Node> er, bool rmut,
+                 Node* rroot, shift_t rshift, size_t rsize)
+{
+    return visit_maybe_relaxed_sub(
+        lroot, lshift, lsize,
+        concat_trees_left_mut_visitor<Node>{},
+        ec,
+        el, lmut, make_leaf_pos(ltail, ltcount),
+        er, rmut, rroot, rshift, rsize)
+        .realize_e(ec);
+}
+
+template <typename Node>
+relaxed_pos<Node>
+concat_trees_mut(edit_type<Node> ec,
+                 edit_type<Node> el, bool lmut,
+                 Node* ltail, count_t ltcount,
+                 edit_type<Node> er, bool rmut,
+                 Node* rroot, shift_t rshift, size_t rsize)
+{
+    return make_singleton_regular_sub_pos(ltail, ltcount).visit(
+        concat_trees_left_mut_visitor<Node>{},
+        ec,
+        el, lmut, empty_leaf_pos<Node>{},
+        er, rmut, rroot, rshift, rsize)
+        .realize_e(ec);
 }
 
 } // namespace rbts

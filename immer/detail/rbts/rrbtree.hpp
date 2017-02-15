@@ -590,7 +590,7 @@ struct rrbtree
                                         r.tail->leaf() + remaining,
                                         l.tail->leaf() + tail_size);
                 try {
-                    auto new_tail = node_t::copy_leaf(r.tail, remaining, r.size);
+                    auto new_tail = node_t::copy_leaf_e(el, r.tail, remaining, r.size);
                     try {
                         l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
                         l.tail = new_tail;
@@ -608,25 +608,34 @@ struct rrbtree
         } else if (l.tail_offset() == 0) {
             auto tail_offst = l.tail_offset();
             auto tail_size  = l.size - tail_offst;
-            auto concated   = concat_trees(l.tail, tail_size,
-                                           r.root, r.shift, r.tail_offset());
+            auto concated   = concat_trees_mut(
+                el,
+                el, true, l.tail, tail_size,
+                {}, false, r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, l.size + r.tail_offset()));
-            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
+            l.size += r.size;
+            l.shift = new_shift;
+            l.root  = new_root;
+            l.tail  = r.tail->inc();
             return;
         } else {
             auto tail_offst = l.tail_offset();
             auto tail_size  = l.size - tail_offst;
-            auto concated   = concat_trees(l.root, l.shift, tail_offst,
-                                           l.tail, tail_size,
-                                           r.root, r.shift, r.tail_offset());
+            auto concated   = concat_trees_mut(
+                el,
+                el, true, l.root, l.shift, tail_offst, l.tail, tail_size,
+                {}, false, r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, l.size + r.tail_offset()));
-            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
+            l.size += r.size;
+            l.shift = new_shift;
+            l.root  = new_root;
+            l.tail  = r.tail->inc();
             return;
         }
     }

@@ -25,9 +25,18 @@
 #include <cstddef>
 #include <new>
 #include <type_traits>
+#include <memory>
 
 namespace immer {
 namespace detail {
+
+template <typename Iter1, typename Iter2>
+auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
+{
+    return std::uninitialized_copy(std::make_move_iterator(in1),
+                                   std::make_move_iterator(in2),
+                                   out);
+}
 
 template <class T, class Size>
 void destroy_n(T* p, Size n)
@@ -46,6 +55,7 @@ inline void* check_alloc(void* p)
 
 struct not_supported_t {};
 struct empty_t {};
+
 
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }

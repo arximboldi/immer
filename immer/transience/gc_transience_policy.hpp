@@ -72,7 +72,8 @@ struct gc_transience_policy
 
                 ownee& operator=(edit e)
                 {
-                    assert(token_ == nullptr);
+                    assert(token_ == e ||
+                           token_ == nullptr);
                     token_ = e;
                     return *this;
                 }
