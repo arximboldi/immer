@@ -218,6 +218,12 @@ struct node
         return impl.data.inner.relaxed;
     }
 
+    const relaxed_t* relaxed() const
+    {
+        assert(kind() == kind_t::inner);
+        return impl.data.inner.relaxed;
+    }
+
     node_t** inner()
     {
         assert(kind() == kind_t::inner);
@@ -692,6 +698,31 @@ struct node
         return dst;
     }
 
+    static node_t* copy_leaf_e(edit_t e,
+                               node_t* src1, count_t n1,
+                               node_t* src2, count_t n2)
+    {
+        assert(src1->kind() == kind_t::leaf);
+        assert(src2->kind() == kind_t::leaf);
+        auto dst = make_leaf_e(e);
+        try {
+            std::uninitialized_copy(
+                src1->leaf(), src1->leaf() + n1, dst->leaf());
+        } catch (...) {
+            heap::deallocate(dst);
+            throw;
+        }
+        try {
+            std::uninitialized_copy(
+                src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
+        } catch (...) {
+            destroy_n(dst->leaf(), n1);
+            heap::deallocate(dst);
+            throw;
+        }
+        return dst;
+    }
+
     static node_t* copy_leaf_e(edit_t e, node_t* src, count_t idx, count_t last)
     {
         assert(src->kind() == kind_t::leaf);
@@ -741,6 +772,14 @@ struct node
         heap::deallocate(p);
     }
 
+    static void delete_inner_any(node_t* p)
+    {
+        if (p->relaxed())
+            delete_inner_r(p);
+        else
+            delete_inner(p);
+    }
+
     static void delete_inner_r(node_t* p)
     {
         assert(p->kind() == kind_t::inner);
@@ -766,6 +805,11 @@ struct node
             || ownee(this).can_mutate(e);
     }
 
+    bool can_relax() const
+    {
+        return !embed_relaxed || relaxed();
+    }
+
     relaxed_t* ensure_mutable_relaxed(edit_t e)
     {
         auto src_r = relaxed();
@@ -775,8 +819,30 @@ struct node
                 if (refs(src_r).unique() || ownee(src_r).can_mutate(e))
                     return src_r;
                 else {
-                    return impl.data.inner.relaxed =
+                    auto dst_r = impl.data.inner.relaxed =
                         new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
+                    ownee(dst_r) = e;
+                    return dst_r;
+                }
+            });
+    }
+
+    relaxed_t* ensure_mutable_relaxed_e(edit_t e, edit_t ec)
+    {
+        auto src_r = relaxed();
+        return static_if<embed_relaxed, relaxed_t*>(
+            [&] (auto) { return src_r; },
+            [&] (auto) {
+                if (src_r && (refs(src_r).unique() ||
+                              ownee(src_r).can_mutate(e))) {
+                    ownee(src_r) = ec;
+                    return src_r;
+                } else {
+                    if (src_r) refs(src_r).dec_unsafe();
+                    auto dst_r = impl.data.inner.relaxed =
+                        new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
+                    ownee(dst_r) = ec;
+                    return dst_r;
                 }
             });
     }
@@ -793,6 +859,7 @@ struct node
                     auto dst_r =
                         new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
                     std::copy(src_r->sizes, src_r->sizes + n, dst_r->sizes);
+                    ownee(dst_r) = e;
                     return impl.data.inner.relaxed = dst_r;
                 }
             });

@@ -45,8 +45,14 @@ struct no_transience_policy
                 ownee& operator=(edit) { return *this; };
                 bool can_mutate(edit) const { return false; }
             };
+
+            static owner noone;
         };
     };
 };
+
+template <typename HP>
+typename no_transience_policy::apply<HP>::type::owner
+no_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer

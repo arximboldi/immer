@@ -199,7 +199,7 @@ public:
     void append(const flex_vector_transient& r)
     { concat_mut_l(impl_, *this, r.impl_); }
     void append(flex_vector_transient&& r)
-    { concat_mut_lr(impl_, *this, r.impl_, r); }
+    { concat_mut_lr_l(impl_, *this, r.impl_, r); }
 
     /*!
      * Prepends the contents of the `l` at the beginning.  It may
@@ -209,7 +209,7 @@ public:
     void prepend(const flex_vector_transient& l)
     { concat_mut_r(l.impl_, impl_, *this); }
     void prepend(flex_vector_transient&& l)
-    { concat_mut_lr(l.impl_, l, impl_, *this); }
+    { concat_mut_lr_r(l.impl_, l, impl_, *this); }
 
 private:
     friend persistent_type;

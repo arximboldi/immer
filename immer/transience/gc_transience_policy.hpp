@@ -72,15 +72,22 @@ struct gc_transience_policy
 
                 ownee& operator=(edit e)
                 {
-                    assert(token_ == nullptr);
+                    assert(token_ == e ||
+                           token_ == nullptr);
                     token_ = e;
                     return *this;
                 }
 
                 bool can_mutate(edit t) const { return token_ == t; }
             };
+
+            static owner noone;
         };
     };
 };
+
+template <typename HP>
+typename gc_transience_policy::apply<HP>::type::owner
+gc_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer

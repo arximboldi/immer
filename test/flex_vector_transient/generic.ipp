@@ -255,24 +255,24 @@ TEST_CASE("exception safety relaxed")
             return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
         };
         auto t = as_transient_tester(dadaist_vector_t{});
-        auto d = dadaism{};
+        auto d = dadaism();
         auto deltas = magic_rotator();
         auto delta  = deltas.next();
         for (auto i = 0u, li = 0u; i < n;) {
-            auto s = d.next();
-            auto r = dadaist_vector_t{};
             try {
-                auto data = make_(i, delta);
                 if (t.transient) {
+                    auto data = make_(i, delta);
                     auto datat = data.transient();
                     t.vt.append(datat);
-                } else
+                } else {
+                    auto data = make_(i, delta);
                     t.vp = t.vp + data;
+                }
                 i += delta;
                 if (t.step()) {
                     li = i;
                 }
-                delta = deltas.next();
+                delta = deltas.next() * 3;
             } catch (dada_error) {}
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
@@ -282,7 +282,123 @@ TEST_CASE("exception safety relaxed")
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, li));
             }
         }
-        CHECK(d.happenings > 0);
+        CHECK(d.happenings == 0);
+        CHECK(t.d.happenings > 0);
+    }
+
+    SECTION("append mut")
+    {
+        auto make_ = [](auto i, auto delta) {
+            auto d = dadaism::disable();
+            return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
+        };
+        auto t = as_transient_tester(dadaist_vector_t{});
+        auto d = dadaism();
+        auto deltas = magic_rotator();
+        auto delta  = deltas.next();
+        for (auto i = 0u, li = 0u; i < n;) {
+            try {
+                if (t.transient) {
+                    auto data = make_(i, delta);
+                    auto datat = data.transient();
+                    t.vt.append(std::move(datat));
+                } else {
+                    auto data = make_(i, delta);
+                    t.vp = t.vp + data;
+                }
+                i += delta;
+                if (t.step()) {
+                    li = i;
+                }
+                delta = deltas.next() * 3;
+            } catch (dada_error) {}
+            if (t.transient) {
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
+            } else {
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, i));
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, li));
+            }
+        }
+        CHECK(d.happenings == 0);
+        CHECK(t.d.happenings > 0);
+    }
+
+    SECTION("prepend")
+    {
+        auto make_ = [](auto i, auto delta) {
+            auto d = dadaism::disable();
+            return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
+        };
+        auto t = as_transient_tester(dadaist_vector_t{});
+        auto d = dadaism();
+        auto deltas = magic_rotator();
+        auto delta  = deltas.next();
+        for (auto i = n, li = n; i > 0;) {
+            delta = std::min(i, delta);
+            try {
+                if (t.transient) {
+                    auto data = make_(i - delta, delta);
+                    auto datat = data.transient();
+                    t.vt.prepend(datat);
+                } else {
+                    auto data = make_(i - delta, delta);
+                    t.vp = data + t.vp;
+                }
+                i -= delta;
+                if (t.step()) {
+                    li = i;
+                }
+                delta = deltas.next() * 3;
+            } catch (dada_error) {}
+            if (t.transient) {
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(i, n));
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(li, n));
+            } else {
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(i, n));
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(li, n));
+            }
+        }
+        CHECK(d.happenings == 0);
+        CHECK(t.d.happenings > 0);
+    }
+
+    SECTION("prepend mut")
+    {
+        auto make_ = [](auto i, auto delta) {
+            auto d = dadaism::disable();
+            return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
+        };
+        auto t = as_transient_tester(dadaist_vector_t{});
+        auto d = dadaism();
+        auto deltas = magic_rotator();
+        auto delta  = deltas.next();
+        for (auto i = n, li = n; i > 0;) {
+            delta = std::min(i, delta);
+            try {
+                if (t.transient) {
+                    auto data = make_(i - delta, delta);
+                    auto datat = data.transient();
+                    t.vt.prepend(std::move(datat));
+                } else {
+                    auto data = make_(i - delta, delta);
+                    t.vp = data + t.vp;
+                }
+                i -= delta;
+                if (t.step()) {
+                    li = i;
+                }
+                delta = deltas.next() * 3;
+            } catch (dada_error) {}
+            if (t.transient) {
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(i, n));
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(li, n));
+            } else {
+                CHECK_VECTOR_EQUALS(t.vp, boost::irange(i, n));
+                CHECK_VECTOR_EQUALS(t.vt, boost::irange(li, n));
+            }
+        }
+        CHECK(d.happenings == 0);
         CHECK(t.d.happenings > 0);
     }
 }

@@ -560,6 +560,9 @@ struct rrbtree
         }
     }
 
+    constexpr static bool supports_transient_concat =
+        !std::is_empty<edit_t>::value;
+
     friend void concat_mut_l(rrbtree& l, edit_t el, const rrbtree& r)
     {
         using std::get;
@@ -590,7 +593,7 @@ struct rrbtree
                                         r.tail->leaf() + remaining,
                                         l.tail->leaf() + tail_size);
                 try {
-                    auto new_tail = node_t::copy_leaf(r.tail, remaining, r.size);
+                    auto new_tail = node_t::copy_leaf_e(el, r.tail, remaining, r.size);
                     try {
                         l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
                         l.tail = new_tail;
@@ -606,36 +609,380 @@ struct rrbtree
                 }
             }
         } else if (l.tail_offset() == 0) {
-            auto tail_offst = l.tail_offset();
-            auto tail_size  = l.size - tail_offst;
-            auto concated   = concat_trees(l.tail, tail_size,
-                                           r.root, r.shift, r.tail_offset());
-            auto new_shift  = concated.shift();
-            auto new_root   = concated.node();
-            assert(new_shift == new_root->compute_shift());
-            assert(new_root->check(new_shift, l.size + r.tail_offset()));
-            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
-            return;
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    el,
+                    el, l.tail, tail_size,
+                    MemoryPolicy::transience_t::noone,
+                    r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                l.size += r.size;
+                l.shift = concated.shift();
+                l.root  = concated.node();
+                l.tail  = r.tail;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                l = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
         } else {
-            auto tail_offst = l.tail_offset();
-            auto tail_size  = l.size - tail_offst;
-            auto concated   = concat_trees(l.root, l.shift, tail_offst,
-                                           l.tail, tail_size,
-                                           r.root, r.shift, r.tail_offset());
-            auto new_shift  = concated.shift();
-            auto new_root   = concated.node();
-            assert(new_shift == new_root->compute_shift());
-            assert(new_root->check(new_shift, l.size + r.tail_offset()));
-            l = { l.size + r.size, new_shift, new_root, r.tail->inc() };
-            return;
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    el,
+                    el, l.root, l.shift, tail_offst, l.tail, tail_size,
+                    MemoryPolicy::transience_t::noone,
+                    r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                l.size += r.size;
+                l.shift = concated.shift();
+                l.root  = concated.node();
+                l.tail  = r.tail;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.root, l.shift, tail_offst,
+                                               l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                l = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+            }
         }
     }
 
     friend void concat_mut_r(const rrbtree& l, rrbtree& r, edit_t er)
-    { assert(false && "todo"); }
+    {
+        using std::get;
+        if (r.size == 0)
+            r = l;
+        else if (l.size == 0)
+            return;
+        else if (r.tail_offset() == 0) {
+            // just concat the tail, similar to push_back
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            if (tail_size == branches<BL>) {
+                // this could be improved by making sure that the
+                // newly created nodes as part of the `push_tail()`
+                // are tagged with `er`
+                auto res = l.push_tail(l.root, l.shift, tail_offst,
+                                       l.tail, tail_size);
+                r = { l.size + r.size, get<0>(res), get<1>(res),
+                      r.tail->inc() };
+                return;
+            } else if (tail_size + r.size <= branches<BL>) {
+                // doing this in a exception way mutating way is very
+                // tricky while potential performance gains are
+                // minimal (we need to move every element of the right
+                // tail anyways to make space for the left tail)
+                //
+                // we could however improve this by at least moving the
+                // elements of the right tail...
+                auto new_tail = node_t::copy_leaf(l.tail, tail_size,
+                                                  r.tail, r.size);
+                r = { l.size + r.size, l.shift, l.root->inc(), new_tail };
+                return;
+            } else {
+                // like the immutable version
+                auto remaining = branches<BL> - tail_size;
+                auto add_tail  = node_t::copy_leaf_e(er,
+                                                     l.tail, tail_size,
+                                                     r.tail, remaining);
+                try {
+                    auto new_tail = node_t::copy_leaf_e(er, r.tail, remaining, r.size);
+                    try {
+                        // this could be improved by making sure that the
+                        // newly created nodes as part of the `push_tail()`
+                        // are tagged with `er`
+                        auto new_root = l.push_tail(l.root, r.shift, tail_offst,
+                                                    add_tail, branches<BL>);
+                        r = { l.size + r.size,
+                              get<0>(new_root), get<1>(new_root),
+                              new_tail };
+                        return;
+                    } catch (...) {
+                        node_t::delete_leaf(new_tail, r.size - remaining);
+                        throw;
+                    }
+                } catch (...) {
+                    node_t::delete_leaf(add_tail, branches<BL>);
+                    throw;
+                }
+                return;
+            }
+        } else if (l.tail_offset() == 0) {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    er,
+                    MemoryPolicy::transience_t::noone, l.tail, tail_size,
+                    er,r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                r.size += l.size;
+                r.shift = concated.shift();
+                r.root  = concated.node();
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                r = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
+        } else {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    er,
+                    MemoryPolicy::transience_t::noone,
+                    l.root, l.shift, tail_offst, l.tail, tail_size,
+                    er, r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                r.size += l.size;
+                r.shift = concated.shift();
+                r.root  = concated.node();
+                return;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.root, l.shift, tail_offst,
+                                               l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                r = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
+        }
+    }
 
-    friend void concat_mut_lr(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
-    { assert(false && "todo"); }
+    friend void concat_mut_lr_l(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
+    {
+        using std::get;
+        if (l.size == 0)
+            l = r;
+        else if (r.size == 0)
+            return;
+        else if (r.tail_offset() == 0) {
+            // just concat the tail, similar to push_back
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            if (tail_size == branches<BL>) {
+                l.push_tail_mut(el, tail_offst, l.tail, tail_size);
+                l.tail = r.tail->inc();
+                l.size += r.size;
+                return;
+            } else if (tail_size + r.size <= branches<BL>) {
+                l.ensure_mutable_tail(el, tail_size);
+                if (r.tail->can_mutate(er))
+                    uninitialized_move(r.tail->leaf(),
+                                       r.tail->leaf() + r.size,
+                                       l.tail->leaf() + tail_size);
+                else
+                    std::uninitialized_copy(r.tail->leaf(),
+                                            r.tail->leaf() + r.size,
+                                            l.tail->leaf() + tail_size);
+                l.size += r.size;
+                return;
+            } else {
+                auto remaining = branches<BL> - tail_size;
+                l.ensure_mutable_tail(el, tail_size);
+                if (r.tail->can_mutate(er))
+                    uninitialized_move(r.tail->leaf(),
+                                       r.tail->leaf() + remaining,
+                                       l.tail->leaf() + tail_size);
+                else
+                    std::uninitialized_copy(r.tail->leaf(),
+                                            r.tail->leaf() + remaining,
+                                            l.tail->leaf() + tail_size);
+                try {
+                    auto new_tail = node_t::copy_leaf_e(el, r.tail, remaining, r.size);
+                    try {
+                        l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
+                        l.tail = new_tail;
+                        l.size += r.size;
+                        return;
+                    } catch (...) {
+                        node_t::delete_leaf(new_tail, r.size - remaining);
+                        throw;
+                    }
+                } catch (...) {
+                    destroy_n(r.tail->leaf() + tail_size, remaining);
+                    throw;
+                }
+            }
+        } else if (l.tail_offset() == 0) {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    el,
+                    el, l.tail, tail_size,
+                    er, r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                l.size += r.size;
+                l.shift = concated.shift();
+                l.root  = concated.node();
+                l.tail  = r.tail;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                l = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
+        } else {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    el,
+                    el, l.root, l.shift, tail_offst, l.tail, tail_size,
+                    er, r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                l.size += r.size;
+                l.shift = concated.shift();
+                l.root  = concated.node();
+                l.tail  = r.tail;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.root, l.shift, tail_offst,
+                                               l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                l = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+            }
+        }
+    }
+
+    friend void concat_mut_lr_r(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
+    {
+        using std::get;
+        if (r.size == 0)
+            r = l;
+        else if (l.size == 0)
+            return;
+        else if (r.tail_offset() == 0) {
+            // just concat the tail, similar to push_back
+            auto tail_offst = l.tail_offset();
+            auto tail_size  = l.size - tail_offst;
+            if (tail_size == branches<BL>) {
+                // this could be improved by making sure that the
+                // newly created nodes as part of the `push_tail()`
+                // are tagged with `er`
+                auto res = l.push_tail(l.root, l.shift, tail_offst,
+                                       l.tail, tail_size);
+                r = { l.size + r.size, get<0>(res), get<1>(res),
+                      r.tail->inc() };
+                return;
+            } else if (tail_size + r.size <= branches<BL>) {
+                // doing this in a exception way mutating way is very
+                // tricky while potential performance gains are
+                // minimal (we need to move every element of the right
+                // tail anyways to make space for the left tail)
+                //
+                // we could however improve this by at least moving the
+                // elements of the mutable tails...
+                auto new_tail = node_t::copy_leaf(l.tail, tail_size,
+                                                  r.tail, r.size);
+                r = { l.size + r.size, l.shift, l.root->inc(), new_tail };
+                return;
+            } else {
+                // like the immutable version.
+                // we could improve this also by moving elements
+                // instead of just copying them
+                auto remaining = branches<BL> - tail_size;
+                auto add_tail  = node_t::copy_leaf_e(er,
+                                                     l.tail, tail_size,
+                                                     r.tail, remaining);
+                try {
+                    auto new_tail = node_t::copy_leaf_e(er, r.tail, remaining, r.size);
+                    try {
+                        // this could be improved by making sure that the
+                        // newly created nodes as part of the `push_tail()`
+                        // are tagged with `er`
+                        auto new_root = l.push_tail(l.root, r.shift, tail_offst,
+                                                    add_tail, branches<BL>);
+                        r = { l.size + r.size,
+                              get<0>(new_root), get<1>(new_root),
+                              new_tail };
+                        return;
+                    } catch (...) {
+                        node_t::delete_leaf(new_tail, r.size - remaining);
+                        throw;
+                    }
+                } catch (...) {
+                    node_t::delete_leaf(add_tail, branches<BL>);
+                    throw;
+                }
+                return;
+            }
+        } else if (l.tail_offset() == 0) {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    er,
+                    el, l.tail, tail_size,
+                    er,r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                r.size += l.size;
+                r.shift = concated.shift();
+                r.root  = concated.node();
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                r = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
+        } else {
+            if (supports_transient_concat) {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees_mut(
+                    er,
+                    el, l.root, l.shift, tail_offst, l.tail, tail_size,
+                    er, r.root, r.shift, r.tail_offset());
+                assert(concated.shift() == concated.node()->compute_shift());
+                assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
+                r.size += l.size;
+                r.shift = concated.shift();
+                r.root  = concated.node();
+                return;
+            } else {
+                auto tail_offst = l.tail_offset();
+                auto tail_size  = l.size - tail_offst;
+                auto concated   = concat_trees(l.root, l.shift, tail_offst,
+                                               l.tail, tail_size,
+                                               r.root, r.shift, r.tail_offset());
+                r = { l.size + r.size, concated.shift(),
+                      concated.node(), r.tail->inc() };
+                return;
+            }
+        }
+    }
 
     bool check_tree() const
     {
