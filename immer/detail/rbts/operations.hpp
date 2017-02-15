@@ -1016,46 +1016,109 @@ struct slice_left_visitor
 };
 
 template <typename Node>
+struct concat_center_pos
+{
+    static constexpr auto B  = Node::bits;
+    static constexpr auto BL = Node::bits_leaf;
+
+    static constexpr count_t max_children = 3;
+
+    using node_t = Node;
+    shift_t shift_ = 0u;
+    count_t count_ = 0u;
+    node_t* nodes_[max_children];
+    size_t  sizes_[max_children];
+
+    auto shift() const { return shift_; }
+
+    concat_center_pos(shift_t s,
+                      Node* n0, size_t s0)
+        : shift_{s}, count_{1}, nodes_{n0}, sizes_{s0} {}
+
+    concat_center_pos(shift_t s,
+                      Node* n0, size_t s0,
+                      Node* n1, size_t s1)
+        : shift_{s}, count_{2}, nodes_{n0, n1}, sizes_{s0, s1}  {}
+
+    concat_center_pos(shift_t s,
+                      Node* n0, size_t s0,
+                      Node* n1, size_t s1,
+                      Node* n2, size_t s2)
+        : shift_{s}, count_{3}, nodes_{n0, n1, n2}, sizes_{s0, s1, s2} {}
+
+    template <typename Visitor, typename... Args>
+    void each_sub(Visitor v, Args&& ...args)
+    {
+        if (shift_ == BL) {
+            for (auto i = count_t{0}; i < count_; ++i)
+                make_leaf_sub_pos(nodes_[i], sizes_[i]).visit(v, args...);
+        } else {
+            for (auto i = count_t{0}; i < count_; ++i)
+                make_relaxed_pos(nodes_[i], shift_ - B, nodes_[i]->relaxed()).visit(v, args...);
+        }
+    }
+
+    relaxed_pos<Node> realize() &&
+    {
+        if (count_ > 1) {
+            try {
+                auto result = node_t::make_inner_r_n(count_);
+                auto r      = result->relaxed();
+                r->count    = count_;
+                std::copy(nodes_, nodes_ + count_, result->inner());
+                std::copy(sizes_, sizes_ + count_, r->sizes);
+                return { result, shift_, r };
+            } catch (...) {
+                each_sub(dec_visitor{});
+                throw;
+            }
+        } else {
+            assert(shift_ >= B + BL);
+            return { nodes_[0], shift_ - B, nodes_[0]->relaxed() };
+        }
+    }
+};
+
+template <typename Node>
 struct concat_merger
 {
     using node_t = Node;
     static constexpr auto B  = Node::bits;
     static constexpr auto BL = Node::bits_leaf;
 
-    count_t* curr;
-    count_t  n;
+    using result_t = concat_center_pos<Node>;
 
-    concat_merger(count_t* counts, count_t countn)
-        : curr{counts}, n{countn}
-    {};
+    count_t* curr_;
+    count_t  n_;
+    result_t result_;
 
-    static constexpr count_t n_results_max = 3;
+    concat_merger(shift_t shift, count_t* counts, count_t n)
+        : curr_{counts}
+        , n_{n}
+        , result_{shift + B, node_t::make_inner_r_n(std::min(n_, branches<B>)), 0}
+    {}
 
-    node_t* results[n_results_max] = {node_t::make_inner_r_n(
-            std::min(n, branches<B>))};
-    size_t  result_sizes[n_results_max] = {0};
-    count_t result_idx = 0u;
-
-    node_t* to        = {};
-    count_t to_offset = {};
-    size_t  to_size   = {};
+    node_t*  to_        = {};
+    count_t  to_offset_ = {};
+    size_t   to_size_   = {};
 
     void add_child(node_t* p, size_t size)
     {
-        ++curr;
-        auto parent = results[result_idx];
-        auto r = parent->relaxed();
-        if (r->count == branches<B>) {
-            assert(result_idx + 1 < n_results_max);
-            n -= branches<B>;
-            parent = node_t::make_inner_r_n(std::min(n, branches<B>));
-            r = parent->relaxed();
-            results[++result_idx] = parent;
-            result_sizes[result_idx] = result_sizes[result_idx - 1];
+        ++curr_;
+        auto parent  = result_.nodes_[result_.count_ - 1];
+        auto relaxed = parent->relaxed();
+        if (relaxed->count == branches<B>) {
+            assert(result_.count_ < result_t::max_children);
+            n_ -= branches<B>;
+            parent  = node_t::make_inner_r_n(std::min(n_, branches<B>));
+            relaxed = parent->relaxed();
+            result_.nodes_[result_.count_] = parent;
+            result_.sizes_[result_.count_] = result_.sizes_[result_.count_ - 1];
+            ++result_.count_;
         }
-        auto idx = r->count++;
-        result_sizes[result_idx] += size;
-        r->sizes[idx] = size + (idx ? r->sizes[idx - 1] : 0);
+        auto idx = relaxed->count++;
+        result_.sizes_[result_.count_ - 1] += size;
+        relaxed->sizes[idx] = size + (idx ? relaxed->sizes[idx - 1] : 0);
         parent->inner() [idx] = p;
     };
 
@@ -1066,28 +1129,28 @@ struct concat_merger
         auto from_size  = p.size();
         auto from_count = p.count();
         assert(from_size);
-        if (!to && *curr == from_count) {
+        if (!to_ && *curr_ == from_count) {
             add_child(from, from_size);
             from->inc();
         } else {
             auto from_offset = count_t{};
             auto from_data   = from->leaf();
             do {
-                if (!to) {
-                    to = node_t::make_leaf_n(*curr);
-                    to_offset = 0;
+                if (!to_) {
+                    to_ = node_t::make_leaf_n(*curr_);
+                    to_offset_ = 0;
                 }
-                auto data = to->leaf();
+                auto data = to_->leaf();
                 auto to_copy = std::min(from_count - from_offset,
-                                        *curr - to_offset);
+                                        *curr_ - to_offset_);
                 std::uninitialized_copy(from_data + from_offset,
                                         from_data + from_offset + to_copy,
-                                        data + to_offset);
-                to_offset   += to_copy;
+                                        data + to_offset_);
+                to_offset_  += to_copy;
                 from_offset += to_copy;
-                if (*curr == to_offset) {
-                    add_child(to, to_offset);
-                    to = nullptr;
+                if (*curr_ == to_offset_) {
+                    add_child(to_, to_offset_);
+                    to_ = nullptr;
                 }
             } while (from_offset != from_count);
         }
@@ -1100,69 +1163,58 @@ struct concat_merger
         auto from_size  = p.size();
         auto from_count = p.count();
         assert(from_size);
-        if (!to && *curr == from_count) {
+        if (!to_ && *curr_ == from_count) {
             add_child(from, from_size);
             from->inc();
         } else {
             auto from_offset = count_t{};
             auto from_data  = from->inner();
             do {
-                if (!to) {
-                    to = node_t::make_inner_r_n(*curr);
-                    to_offset = 0;
-                    to_size   = 0;
+                if (!to_) {
+                    to_ = node_t::make_inner_r_n(*curr_);
+                    to_offset_ = 0;
+                    to_size_   = 0;
                 }
-                auto data    = to->inner();
+                auto data    = to_->inner();
                 auto to_copy = std::min(from_count - from_offset,
-                                        *curr - to_offset);
+                                        *curr_ - to_offset_);
                 std::uninitialized_copy(from_data + from_offset,
                                         from_data + from_offset + to_copy,
-                                        data + to_offset);
+                                        data + to_offset_);
                 node_t::inc_nodes(from_data + from_offset, to_copy);
-                auto sizes   = to->relaxed()->sizes;
+                auto sizes   = to_->relaxed()->sizes;
                 p.copy_sizes(from_offset, to_copy,
-                             to_size, sizes + to_offset);
-                to_offset   += to_copy;
+                             to_size_, sizes + to_offset_);
+                to_offset_  += to_copy;
                 from_offset += to_copy;
-                to_size      = sizes[to_offset - 1];
-                if (*curr == to_offset) {
-                    to->relaxed()->count = to_offset;
-                    add_child(to, to_size);
-                    to = nullptr;
+                to_size_     = sizes[to_offset_ - 1];
+                if (*curr_ == to_offset_) {
+                    to_->relaxed()->count = to_offset_;
+                    add_child(to_, to_size_);
+                    to_ = nullptr;
                 }
             } while (from_offset != from_count);
         }
     }
 
-    relaxed_pos<Node> finish(shift_t shift, bool is_top)
+    concat_center_pos<Node> finish() const
     {
-        assert(!to);
-        if (!is_top || result_idx > 0) {
-            auto cnt    = result_idx + 1;
-            auto result = node_t::make_inner_r_n(cnt);
-            auto r      = result->relaxed();
-            r->count    = cnt;
-            std::copy(results, results + cnt, result->inner());
-            std::copy(result_sizes, result_sizes + cnt, r->sizes);
-            return { result, shift + B, r };
-        } else {
-            assert(is_top);
-            return { results[0], shift, results[0]->relaxed() };
-        }
+        assert(!to_);
+        return result_;
     }
 
-    void abort(shift_t shift)
+    void abort()
     {
-        if (to) {
+        auto shift = result_.shift_ - B;
+        if (to_) {
             if (shift == BL)
-                node_t::delete_leaf(to, to_offset);
+                node_t::delete_leaf(to_, to_offset_);
             else {
-                to->relaxed()->count = to_offset;
-                dec_relaxed(to, shift);
+                to_->relaxed()->count = to_offset_;
+                dec_relaxed(to_, shift - B);
             }
         }
-        for (auto i = count_t{0}; i <= result_idx; ++i)
-            dec_relaxed(results[i], shift);
+        result_.each_sub(dec_visitor());
     }
 };
 
@@ -1244,62 +1296,62 @@ struct concat_rebalance_plan
     }
 
     template <typename LPos, typename CPos, typename RPos>
-    relaxed_pos<node_type<CPos>>
-    merge(LPos&& lpos, CPos&& cpos, RPos&& rpos, bool is_top)
+    concat_center_pos<node_type<CPos>>
+    merge(LPos&& lpos, CPos&& cpos, RPos&& rpos)
     {
         using node_t    = node_type<CPos>;
         using merger_t  = concat_merger<node_t>;
         using visitor_t = concat_merger_visitor;
-        auto merger = merger_t{counts, n};
+        auto merger = merger_t{cpos.shift(), counts, n};
         try {
             lpos.each_left_sub(visitor_t{}, merger);
             cpos.each_sub(visitor_t{}, merger);
             rpos.each_right_sub(visitor_t{}, merger);
-            return merger.finish(cpos.shift(), is_top);
+            cpos.each_sub(dec_visitor{});
+            return merger.finish();
         } catch (...) {
-            merger.abort(cpos.shift());
+            merger.abort();
             throw;
         }
     }
 };
 
 template <typename Node, typename LPos, typename CPos, typename RPos>
-relaxed_pos<Node>
-concat_rebalance(LPos&& lpos, CPos&& cpos, RPos&& rpos, bool is_top)
+concat_center_pos<Node>
+concat_rebalance(LPos&& lpos, CPos&& cpos, RPos&& rpos)
 {
     auto plan = concat_rebalance_plan<Node::bits, Node::bits_leaf>{};
     plan.fill(lpos, cpos, rpos);
     plan.shuffle(cpos.shift());
-    return plan.merge(lpos, cpos, rpos, is_top);
+    try {
+        return plan.merge(lpos, cpos, rpos);
+    } catch (...) {
+        cpos.each_sub(dec_visitor{});
+        throw;
+    }
 }
 
 template <typename Node, typename LPos, typename TPos, typename RPos>
-relaxed_pos<Node>
-concat_leafs(LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
+concat_center_pos<Node>
+concat_leafs(LPos&& lpos, TPos&& tpos, RPos&& rpos)
 {
-    using node_t = Node;
-    assert(!is_top);
+    static_assert(Node::bits >= 2, "");
     assert(lpos.shift() == tpos.shift());
     assert(lpos.shift() == rpos.shift());
     assert(lpos.shift() == 0);
-    if (tpos.count() > 0) {
-        static_assert(Node::bits >= 2, "");
-        auto node = node_t::make_inner_r_n(3u,
-                                           lpos.node(), lpos.count(),
-                                           tpos.node(), tpos.count(),
-                                           rpos.node(), rpos.count());
-        lpos.node()->inc();
-        tpos.node()->inc();
-        rpos.node()->inc();
-        return { node, node_t::bits_leaf, node->relaxed() };
-    } else {
-        auto node = node_t::make_inner_r_n(2u,
-                                           lpos.node(), lpos.count(),
-                                           rpos.node(), rpos.count());
-        lpos.node()->inc();
-        rpos.node()->inc();
-        return { node, node_t::bits_leaf, node->relaxed() };
-    }
+    if (tpos.count() > 0)
+        return {
+            Node::bits_leaf,
+            lpos.node()->inc(), lpos.count(),
+            tpos.node()->inc(), tpos.count(),
+            rpos.node()->inc(), rpos.count(),
+        };
+    else
+        return {
+            Node::bits_leaf,
+            lpos.node()->inc(), lpos.count(),
+            rpos.node()->inc(), rpos.count(),
+        };
 }
 
 template <typename Node>
@@ -1310,43 +1362,22 @@ template <typename Node>
 struct concat_both_visitor;
 
 template <typename Node, typename LPos, typename TPos, typename RPos>
-relaxed_pos<Node>
-concat_inners(LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
+concat_center_pos<Node>
+concat_inners(LPos&& lpos, TPos&& tpos, RPos&& rpos)
 {
     auto lshift = lpos.shift();
     auto rshift = rpos.shift();
     if (lshift > rshift) {
-        auto cpos = lpos.last_sub(concat_left_visitor<Node>{}, tpos, rpos, false);
-        try {
-            auto r = concat_rebalance<Node>(lpos, cpos, null_sub_pos{}, is_top);
-            cpos.visit(dec_visitor{});
-            return r;
-        } catch (...) {
-            cpos.visit(dec_visitor{});
-            throw;
-        }
+        auto cpos = lpos.last_sub(concat_left_visitor<Node>{}, tpos, rpos);
+        return concat_rebalance<Node>(lpos, cpos, null_sub_pos{});
     } else if (lshift < rshift) {
-        auto cpos = rpos.first_sub(concat_right_visitor<Node>{}, lpos, tpos, false);
-        try {
-            auto r = concat_rebalance<Node>(null_sub_pos{}, cpos, rpos, is_top);
-            cpos.visit(dec_visitor{});
-            return r;
-        } catch (...) {
-            cpos.visit(dec_visitor{});
-            throw;
-        }
+        auto cpos = rpos.first_sub(concat_right_visitor<Node>{}, lpos, tpos);
+        return concat_rebalance<Node>(null_sub_pos{}, cpos, rpos);
     } else {
         assert(lshift == rshift);
         assert(Node::bits_leaf == 0u || lshift > 0);
-        auto cpos = lpos.last_sub(concat_both_visitor<Node>{}, tpos, rpos, false);
-        try {
-            auto r = concat_rebalance<Node>(lpos, cpos, rpos, is_top);
-            cpos.visit(dec_visitor{});
-            return r;
-        } catch (...) {
-            cpos.visit(dec_visitor{});
-            throw;
-        }
+        auto cpos = lpos.last_sub(concat_both_visitor<Node>{}, tpos, rpos);
+        return concat_rebalance<Node>(lpos, cpos, rpos);
     }
 }
 
@@ -1356,13 +1387,13 @@ struct concat_left_visitor
     using this_t = concat_left_visitor;
 
     template <typename LPos, typename TPos, typename RPos>
-    friend relaxed_pos<Node>
-    visit_inner(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
-    { return concat_inners<Node>(lpos, tpos, rpos, is_top); }
+    friend concat_center_pos<Node>
+    visit_inner(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos)
+    { return concat_inners<Node>(lpos, tpos, rpos); }
 
     template <typename LPos, typename TPos, typename RPos>
-    friend relaxed_pos<Node>
-    visit_leaf(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
+    friend concat_center_pos<Node>
+    visit_leaf(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos)
     { IMMER_UNREACHABLE; }
 };
 
@@ -1372,14 +1403,14 @@ struct concat_right_visitor
     using this_t = concat_right_visitor;
 
     template <typename RPos, typename LPos, typename TPos>
-    friend relaxed_pos<Node>
-    visit_inner(this_t, RPos&& rpos, LPos&& lpos, TPos&& tpos, bool is_top)
-    { return concat_inners<Node>(lpos, tpos, rpos, is_top); }
+    friend concat_center_pos<Node>
+    visit_inner(this_t, RPos&& rpos, LPos&& lpos, TPos&& tpos)
+    { return concat_inners<Node>(lpos, tpos, rpos); }
 
     template <typename RPos, typename LPos, typename TPos>
-    friend relaxed_pos<Node>
-    visit_leaf(this_t, RPos&& rpos, LPos&& lpos, TPos&& tpos, bool is_top)
-    { return concat_leafs<Node>(lpos, tpos, rpos, is_top); }
+    friend concat_center_pos<Node>
+    visit_leaf(this_t, RPos&& rpos, LPos&& lpos, TPos&& tpos)
+    { return concat_leafs<Node>(lpos, tpos, rpos); }
 };
 
 template <typename Node>
@@ -1388,14 +1419,14 @@ struct concat_both_visitor
     using this_t = concat_both_visitor;
 
     template <typename LPos, typename TPos, typename RPos>
-    friend relaxed_pos<Node>
-    visit_inner(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
-    { return rpos.first_sub(concat_right_visitor<Node>{}, lpos, tpos, is_top); }
+    friend concat_center_pos<Node>
+    visit_inner(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos)
+    { return rpos.first_sub(concat_right_visitor<Node>{}, lpos, tpos); }
 
     template <typename LPos, typename TPos, typename RPos>
-    friend relaxed_pos<Node>
-    visit_leaf(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos, bool is_top)
-    { return rpos.first_sub_leaf(concat_right_visitor<Node>{}, lpos, tpos, is_top); }
+    friend concat_center_pos<Node>
+    visit_leaf(this_t, LPos&& lpos, TPos&& tpos, RPos&& rpos)
+    { return rpos.first_sub_leaf(concat_right_visitor<Node>{}, lpos, tpos); }
 };
 
 template <typename Node>
@@ -1404,9 +1435,9 @@ struct concat_trees_right_visitor
     using this_t = concat_trees_right_visitor;
 
     template <typename RPos, typename LPos, typename TPos>
-    friend auto visit_node(this_t, RPos&& rpos,
-                           LPos&& lpos, TPos&& tpos)
-    { return concat_inners<Node>(lpos, tpos, rpos, true); }
+    friend concat_center_pos<Node>
+    visit_node(this_t, RPos&& rpos, LPos&& lpos, TPos&& tpos)
+    { return concat_inners<Node>(lpos, tpos, rpos); }
 };
 
 template <typename Node>
@@ -1415,10 +1446,8 @@ struct concat_trees_left_visitor
     using this_t = concat_trees_left_visitor;
 
     template <typename LPos, typename TPos, typename... Args>
-    friend relaxed_pos<Node> visit_node(this_t,
-                                        LPos&& lpos,
-                                        TPos&& tpos,
-                                        Args&& ...args)
+    friend concat_center_pos<Node>
+    visit_node(this_t, LPos&& lpos, TPos&& tpos, Args&& ...args)
     { return visit_maybe_relaxed_sub(
             args...,
             concat_trees_right_visitor<Node>{},
@@ -1435,7 +1464,8 @@ concat_trees(Node* lroot, shift_t lshift, size_t lsize,
         lroot, lshift, lsize,
         concat_trees_left_visitor<Node>{},
         make_leaf_pos(ltail, ltcount),
-        rroot, rshift, rsize);
+        rroot, rshift, rsize)
+        .realize();
 }
 
 template <typename Node>
@@ -1446,7 +1476,8 @@ concat_trees(Node* ltail, count_t ltcount,
     return make_singleton_regular_sub_pos(ltail, ltcount).visit(
         concat_trees_left_visitor<Node>{},
         empty_leaf_pos<Node>{},
-        rroot, rshift, rsize);
+        rroot, rshift, rsize)
+        .realize();
 }
 
 } // namespace rbts
