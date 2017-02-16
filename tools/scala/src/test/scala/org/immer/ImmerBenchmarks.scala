@@ -74,4 +74,14 @@ object ImmerBenchmarks extends Bench.OfflineRegressionReport {
       v.reduce(_ + _)
     }}}
   }
+
+  performance of "concat" in {
+    measure method "RRBVector ++" in { using(rrbvectors) in { v => {
+      v ++ v
+    }}}
+
+    measure method "RRBVector :+" in { using(rrbvectors) in { v => {
+      v :+ v
+    }}}
+  }
 }
