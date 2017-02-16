@@ -1583,19 +1583,20 @@ struct concat_merger_mut
         assert(from_size);
         if (!to_ && *curr_ == from_count) {
             add_child(from, from_size);
-            if (!mutating) from->inc();
+            //if (!mutating)
+                from->inc();
         } else {
             auto from_offset  = count_t{};
             auto from_data    = from->leaf();
             auto from_mutate  = mutating && from->can_mutate(e);
-            auto from_adopted = false;
+            //auto from_adopted = false;
             do {
                 if (!to_) {
                     if (from_mutate) {
-                        assert(!from_adopted);
-                        from_adopted = true;
+                        //assert(!from_adopted);
+                        //from_adopted = true;
                         node_t::ownee(from) = ec_;
-                        to_ = from;
+                        to_ = from->inc();
                         to_cleanup_ = from_count;
                         assert(from_count);
                     } else {
@@ -1634,8 +1635,8 @@ struct concat_merger_mut
                     to_ = nullptr;
                 }
             } while (from_offset != from_count);
-            if (mutating && !from_adopted && from->dec())
-                node_t::delete_leaf(from, from_count);
+            //if (!from_adopted)
+            //    p.visit(dec_visitor{});
         }
     }
 
@@ -1648,19 +1649,20 @@ struct concat_merger_mut
         assert(from_size);
         if (!to_ && *curr_ == from_count) {
             add_child(from, from_size);
-            if (!mutating) from->inc();
+            //if (!mutating)
+                from->inc();
         } else {
             auto from_offset  = count_t{};
             auto from_data    = from->inner();
-            auto from_adopted = false;
+            //auto from_adopted = false;
+            auto from_mutate = mutating
+                && from->can_relax()
+                && from->can_mutate(e);
             do {
                 if (!to_) {
-                    auto from_mutate = mutating
-                        && from->can_relax()
-                        && from->can_mutate(e);
                     if (from_mutate) {
                         assert(!from_adopted);
-                        from_adopted = from_mutate;
+                        //from_adopted = from_mutate;
                         node_t::ownee(from) = ec_;
                         from->ensure_mutable_relaxed_e(e, ec_);
                         to_ = from->inc();
@@ -1678,8 +1680,8 @@ struct concat_merger_mut
                     std::copy(from_data + from_offset,
                               from_data + from_offset + to_copy,
                               data + to_offset_);
-                    if (!mutating)
-                        node_t::inc_nodes(from_data + from_offset, to_copy);
+                    //if (!from_mutate)
+                    node_t::inc_nodes(from_data + from_offset, to_copy);
                     p.copy_sizes(from_offset, to_copy,
                                  to_size_, sizes + to_offset_);
                 }
@@ -1692,8 +1694,8 @@ struct concat_merger_mut
                     to_ = nullptr;
                 }
             } while (from_offset != from_count);
-            if (mutating && !from_adopted && from->dec())
-                node_t::delete_inner_any(from);
+            //if (!from_adopted)
+            //    p.visit(dec_visitor{});
         }
     }
 
@@ -1756,10 +1758,9 @@ struct concat_rebalance_plan_mut : concat_rebalance_plan<B, BL>
             lpos.each_left_sub(visitor_t{}, merger, el, lmut2);
             cpos.each_sub(visitor_t{}, merger, ec, true);
             rpos.each_right_sub(visitor_t{}, merger, er, rmut2);
-            if (lmut && lnode && lnode->dec())
-                node_t::delete_inner_any(lnode);
-            if (rmut && rnode && rnode->dec())
-                node_t::delete_inner_any(rnode);
+            // cpos.each_sub(dec_visitor{});
+            //if (lmut && !lmut2) lpos.visit(dec_visitor{});
+            //if (rmut && !rmut2) rpos.visit(dec_visitor{});
             return merger.finish();
         } catch (...) {
             merger.abort();
@@ -1790,9 +1791,12 @@ concat_leafs_mut(edit_type<Node> ec,
     assert(lpos.shift() == tpos.shift());
     assert(lpos.shift() == rpos.shift());
     assert(lpos.shift() == 0);
-    if (!lmut) lpos.node()->inc();
-    if (!lmut && tpos.count()) tpos.node()->inc();
-    if (!rmut) rpos.node()->inc();
+    //if (!lmut)
+    lpos.node()->inc();
+    //if (!lmut && tpos.count())
+    tpos.node()->inc();
+    //if (!rmut)
+    rpos.node()->inc();
     if (tpos.count() > 0)
         return {
             Node::bits_leaf,

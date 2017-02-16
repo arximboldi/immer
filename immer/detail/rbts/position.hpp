@@ -440,6 +440,8 @@ struct null_sub_pos
     void each_right_sub(Visitor, Args&&...) {}
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor, Args&&...) {}
+    template <typename Visitor, typename... Args>
+    void visit(Visitor, Args&&...) {}
 };
 
 template <typename NodeT>
@@ -467,6 +469,8 @@ struct singleton_regular_sub_pos
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&&... args) {}
+    template <typename Visitor, typename... Args>
+    void each(Visitor v, Args&&... args) {}
 
     template <typename Visitor, typename... Args>
     decltype(auto) last_sub(Visitor v, Args&&... args)
@@ -1153,7 +1157,7 @@ decltype(auto) visit_maybe_relaxed_sub(NodeT* node, shift_t shift, size_t size,
     assert(node);
     auto relaxed = node->relaxed();
     if (relaxed) {
-        assert(size == relaxed->sizes[relaxed->count - 1]);
+        //assert(size == relaxed->sizes[relaxed->count - 1]);
         return make_relaxed_pos(node, shift, relaxed)
             .visit(v, std::forward<Args>(args)...);
     } else {

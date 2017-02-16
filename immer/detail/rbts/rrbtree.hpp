@@ -616,6 +616,7 @@ struct rrbtree
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, l.size + r.tail_offset()));
+            dec_inner(l.root, l.shift, tail_offst);
             l.size += r.size;
             l.shift = new_shift;
             l.root  = new_root;
@@ -632,6 +633,7 @@ struct rrbtree
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, l.size + r.tail_offset()));
+            dec_inner(l.root, l.shift, tail_offst);
             l.size += r.size;
             l.shift = new_shift;
             l.root  = new_root;

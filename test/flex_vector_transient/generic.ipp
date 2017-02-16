@@ -255,6 +255,7 @@ TEST_CASE("exception safety relaxed")
             return make_test_flex_vector<dadaist_vector_t>(i, i + delta);
         };
         auto t = as_transient_tester(dadaist_vector_t{});
+        auto d = dadaism();
         auto deltas = magic_rotator();
         auto delta  = deltas.next();
         for (auto i = 0u, li = 0u; i < n;) {
@@ -282,6 +283,7 @@ TEST_CASE("exception safety relaxed")
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, li));
             }
         }
+        CHECK(d.happenings == 0);
         CHECK(t.d.happenings > 0);
     }
 }

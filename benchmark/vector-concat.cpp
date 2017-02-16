@@ -23,6 +23,7 @@
 #include "util.hpp"
 
 #include <immer/flex_vector.hpp>
+#include <immer/flex_vector_transient.hpp>
 
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
@@ -87,6 +88,47 @@ auto generic()
     };
 };
 
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_incr()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        auto n_incr = n / 10;
+        auto v = Vektor{};
+        for (auto i = 0u; i < n_incr; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        measure(meter, [&] {
+                auto vv = Vektor{};
+                while (vv.size() < n)
+                    vv = vv + v;
+            });
+    };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto generic_incr_mut()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        auto n_incr = n / 10;
+        auto v = Vektor{};
+        for (auto i = 0u; i < n_incr; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        measure(meter, [&] {
+                auto vv = Vektor{}.transient();
+                auto vi = v.transient();
+                while (vv.size() < n)
+                    vv.append(vi);
+            });
+    };
+};
+
 using def_memory    = immer::default_memory_policy;
 using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
 using basic_memory  = immer::memory_policy<immer::heap_policy<immer::malloc_heap>, immer::refcount_policy>;
@@ -103,3 +145,9 @@ NONIUS_BENCHMARK("flex/UN", generic<immer::flex_vector<unsigned,unsafe_memory,5>
 NONIUS_BENCHMARK("flex/F/5B", generic<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
 NONIUS_BENCHMARK("flex/F/GC", generic<immer::flex_vector<unsigned,gc_memory,5>,push_front_fn>())
 NONIUS_BENCHMARK("flex_s/F/GC", generic<immer::flex_vector<std::size_t,gc_memory,5>,push_front_fn>())
+
+NONIUS_BENCHMARK("i/flex/NO", generic_incr<immer::flex_vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("i/flex/UN", generic_incr<immer::flex_vector<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("i/flex/5B", generic_incr<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("i/flex/GC", generic_incr<immer::flex_vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/flex/GC", generic_incr_mut<immer::flex_vector<unsigned,gc_memory,5>>())
