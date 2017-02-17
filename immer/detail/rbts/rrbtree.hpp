@@ -610,8 +610,9 @@ struct rrbtree
             auto tail_size  = l.size - tail_offst;
             auto concated   = concat_trees_mut(
                 el,
-                el, true, l.tail, tail_size,
-                {}, false, r.root, r.shift, r.tail_offset());
+                el, l.tail, tail_size,
+                MemoryPolicy::transience_t::noone,
+                r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());
@@ -627,8 +628,9 @@ struct rrbtree
             auto tail_size  = l.size - tail_offst;
             auto concated   = concat_trees_mut(
                 el,
-                el, true, l.root, l.shift, tail_offst, l.tail, tail_size,
-                {}, false, r.root, r.shift, r.tail_offset());
+                el, l.root, l.shift, tail_offst, l.tail, tail_size,
+                MemoryPolicy::transience_t::noone,
+                r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
             assert(new_shift == new_root->compute_shift());

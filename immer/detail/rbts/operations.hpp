@@ -1575,7 +1575,7 @@ struct concat_merger_mut
     };
 
     template <typename Pos>
-    void merge_leaf(Pos&& p, edit_t e, bool mutating)
+    void merge_leaf(Pos&& p, edit_t e)
     {
         auto from       = p.node();
         auto from_size  = p.size();
@@ -1588,7 +1588,7 @@ struct concat_merger_mut
         } else {
             auto from_offset  = count_t{};
             auto from_data    = from->leaf();
-            auto from_mutate  = mutating && from->can_mutate(e);
+            auto from_mutate  = from->can_mutate(e);
             //auto from_adopted = false;
             do {
                 if (!to_) {
@@ -1641,7 +1641,7 @@ struct concat_merger_mut
     }
 
     template <typename Pos>
-    void merge_inner(Pos&& p, edit_t e, bool mutating)
+    void merge_inner(Pos&& p, edit_t e)
     {
         auto from       = p.node();
         auto from_size  = p.size();
@@ -1655,13 +1655,11 @@ struct concat_merger_mut
             auto from_offset  = count_t{};
             auto from_data    = from->inner();
             //auto from_adopted = false;
-            auto from_mutate = mutating
-                && from->can_relax()
-                && from->can_mutate(e);
+            auto from_mutate = from->can_relax() && from->can_mutate(e);
             do {
                 if (!to_) {
                     if (from_mutate) {
-                        assert(!from_adopted);
+                        //assert(!from_adopted);
                         //from_adopted = from_mutate;
                         node_t::ownee(from) = ec_;
                         from->ensure_mutable_relaxed_e(e, ec_);
@@ -1722,13 +1720,13 @@ struct concat_merger_mut_visitor
 
     template <typename Pos, typename Merger>
     friend void visit_inner(this_t, Pos&& p,
-                            Merger& merger, edit_type<Pos> e, bool mut)
-    { merger.merge_inner(p, e, mut); }
+                            Merger& merger, edit_type<Pos> e)
+    { merger.merge_inner(p, e); }
 
     template <typename Pos, typename Merger>
     friend void visit_leaf(this_t, Pos&& p,
-                           Merger& merger, edit_type<Pos> e, bool mut)
-    { merger.merge_leaf(p, e, mut); }
+                           Merger& merger, edit_type<Pos> e)
+    { merger.merge_leaf(p, e); }
 };
 
 template <bits_t B, bits_t BL>
@@ -1739,25 +1737,25 @@ struct concat_rebalance_plan_mut : concat_rebalance_plan<B, BL>
     template <typename LPos, typename CPos, typename RPos>
     concat_center_mut_pos<node_type<CPos>>
     merge(edit_type<CPos> ec,
-          edit_type<CPos> el, bool lmut, LPos&& lpos, CPos&& cpos,
-          edit_type<CPos> er, bool rmut, RPos&& rpos)
+          edit_type<CPos> el, LPos&& lpos, CPos&& cpos,
+          edit_type<CPos> er, RPos&& rpos)
     {
         using node_t    = node_type<CPos>;
         using merger_t  = concat_merger_mut<node_t>;
         using visitor_t = concat_merger_mut_visitor;
         auto lnode = ((node_t*)lpos.node());
         auto rnode = ((node_t*)rpos.node());
-        auto lmut2 = lmut && lnode && lnode->can_relax() && lnode->can_mutate(el);
-        auto rmut2 = rmut && rnode && rnode->can_relax() && rnode->can_mutate(er);
+        auto lmut2 = lnode && lnode->can_relax() && lnode->can_mutate(el);
+        auto rmut2 = rnode && rnode->can_relax() && rnode->can_mutate(er);
         auto merger = merger_t{
             ec, cpos.shift(), this->counts, this->n,
             el, lmut2 ? lnode : nullptr,
             er, rmut2 ? rnode : nullptr
         };
         try {
-            lpos.each_left_sub(visitor_t{}, merger, el, lmut2);
-            cpos.each_sub(visitor_t{}, merger, ec, true);
-            rpos.each_right_sub(visitor_t{}, merger, er, rmut2);
+            lpos.each_left_sub(visitor_t{}, merger, el);
+            cpos.each_sub(visitor_t{}, merger, ec);
+            rpos.each_right_sub(visitor_t{}, merger, er);
             // cpos.each_sub(dec_visitor{});
             //if (lmut && !lmut2) lpos.visit(dec_visitor{});
             //if (rmut && !rmut2) rpos.visit(dec_visitor{});
@@ -1772,20 +1770,20 @@ struct concat_rebalance_plan_mut : concat_rebalance_plan<B, BL>
 template <typename Node, typename LPos, typename CPos, typename RPos>
 concat_center_pos<Node>
 concat_rebalance_mut(edit_type<Node> ec,
-                     edit_type<Node> el, bool lmut, LPos&& lpos, CPos&& cpos,
-                     edit_type<Node> er, bool rmut, RPos&& rpos)
+                     edit_type<Node> el, LPos&& lpos, CPos&& cpos,
+                     edit_type<Node> er, RPos&& rpos)
 {
     auto plan = concat_rebalance_plan_mut<Node::bits, Node::bits_leaf>{};
     plan.fill(lpos, cpos, rpos);
     plan.shuffle(cpos.shift());
-    return plan.merge(ec, el, lmut, lpos, cpos, er, rmut, rpos);
+    return plan.merge(ec, el, lpos, cpos, er, rpos);
 }
 
 template <typename Node, typename LPos, typename TPos, typename RPos>
 concat_center_mut_pos<Node>
 concat_leafs_mut(edit_type<Node> ec,
-                 edit_type<Node> el, bool lmut, LPos&& lpos, TPos&& tpos,
-                 edit_type<Node> er, bool rmut, RPos&& rpos)
+                 edit_type<Node> el, LPos&& lpos, TPos&& tpos,
+                 edit_type<Node> er, RPos&& rpos)
 {
     static_assert(Node::bits >= 2, "");
     assert(lpos.shift() == tpos.shift());
@@ -1822,37 +1820,33 @@ struct concat_both_mut_visitor;
 template <typename Node, typename LPos, typename TPos, typename RPos>
 concat_center_mut_pos<Node>
 concat_inners_mut(edit_type<Node> ec,
-                  edit_type<Node> el, bool lmut, LPos&& lpos, TPos&& tpos,
-                  edit_type<Node> er, bool rmut, RPos&& rpos)
+                  edit_type<Node> el, LPos&& lpos, TPos&& tpos,
+                  edit_type<Node> er, RPos&& rpos)
 {
     auto lshift = lpos.shift();
     auto rshift = rpos.shift();
     // lpos.node() can be null it is a singleton_regular_sub_pos<...>,
     // this is, when the tree is just a tail...
     if (lshift > rshift) {
-        auto lmut2 = lmut && (!lpos.node() || lpos.node()->can_mutate(el));
         auto cpos = lpos.last_sub(concat_left_mut_visitor<Node>{},
-                                  ec, el, lmut2, tpos, er, rmut, rpos);
+                                  ec, el, tpos, er, rpos);
         return concat_rebalance_mut<Node>(ec,
-                                          el, lmut, lpos, cpos,
-                                          er, rmut, null_sub_pos{});
+                                          el, lpos, cpos,
+                                          er, null_sub_pos{});
     } else if (lshift < rshift) {
-        auto rmut2 = rmut && rpos.node()->can_mutate(er);
         auto cpos = rpos.first_sub(concat_right_mut_visitor<Node>{},
-                                   ec, el, lmut, lpos, tpos, er, rmut2);
+                                   ec, el, lpos, tpos, er);
         return concat_rebalance_mut<Node>(ec,
-                                          el, lmut, null_sub_pos{}, cpos,
-                                          er, rmut, rpos);
+                                          el, null_sub_pos{}, cpos,
+                                          er, rpos);
     } else {
         assert(lshift == rshift);
         assert(Node::bits_leaf == 0u || lshift > 0);
-        auto lmut2 = lmut && (!lpos.node() || lpos.node()->can_mutate(el));
-        auto rmut2 = rmut && rpos.node()->can_mutate(er);
         auto cpos = lpos.last_sub(concat_both_mut_visitor<Node>{},
-                                  ec, el, lmut2, tpos, er, rmut2, rpos);
+                                  ec, el, tpos, er, rpos);
         return concat_rebalance_mut<Node>(ec,
-                                          el, lmut, lpos, cpos,
-                                          er, rmut, rpos);
+                                          el, lpos, cpos,
+                                          er, rpos);
     }
 }
 
@@ -1865,16 +1859,16 @@ struct concat_left_mut_visitor
     template <typename LPos, typename TPos, typename RPos>
     friend concat_center_mut_pos<Node>
     visit_inner(this_t, LPos&& lpos, edit_t ec,
-                edit_t el, bool lmut, TPos&& tpos,
-                edit_t er, bool rmut, RPos&& rpos)
+                edit_t el, TPos&& tpos,
+                edit_t er, RPos&& rpos)
     { return concat_inners_mut<Node>(
-            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+            ec, el, lpos, tpos, er, rpos); }
 
     template <typename LPos, typename TPos, typename RPos>
     friend concat_center_mut_pos<Node>
     visit_leaf(this_t, LPos&& lpos, edit_t ec,
-               edit_t el, bool lmut, TPos&& tpos,
-               edit_t er, bool rmut, RPos&& rpos)
+               edit_t el, TPos&& tpos,
+               edit_t er, RPos&& rpos)
     { IMMER_UNREACHABLE; }
 };
 
@@ -1887,18 +1881,18 @@ struct concat_right_mut_visitor
     template <typename RPos, typename LPos, typename TPos>
     friend concat_center_mut_pos<Node>
     visit_inner(this_t, RPos&& rpos, edit_t ec,
-                edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
-                edit_t er, bool rmut)
+                edit_t el, LPos&& lpos, TPos&& tpos,
+                edit_t er)
     { return concat_inners_mut<Node>(
-            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+            ec, el, lpos, tpos, er, rpos); }
 
     template <typename RPos, typename LPos, typename TPos>
     friend concat_center_mut_pos<Node>
     visit_leaf(this_t, RPos&& rpos, edit_t ec,
-               edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
-               edit_t er, bool rmut)
+               edit_t el, LPos&& lpos, TPos&& tpos,
+               edit_t er)
     { return concat_leafs_mut<Node>(
-            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+            ec, el, lpos, tpos, er, rpos); }
 };
 
 template <typename Node>
@@ -1910,18 +1904,18 @@ struct concat_both_mut_visitor
     template <typename LPos, typename TPos, typename RPos>
     friend concat_center_mut_pos<Node>
     visit_inner(this_t, LPos&& lpos, edit_t ec,
-                edit_t el, bool lmut, TPos&& tpos,
-                edit_t er, bool rmut, RPos&& rpos)
+                edit_t el, TPos&& tpos,
+                edit_t er, RPos&& rpos)
     { return rpos.first_sub(concat_right_mut_visitor<Node>{},
-                            ec, el, lmut, lpos, tpos, er, rmut); }
+                            ec, el, lpos, tpos, er); }
 
     template <typename LPos, typename TPos, typename RPos>
     friend concat_center_mut_pos<Node>
     visit_leaf(this_t, LPos&& lpos, edit_t ec,
-               edit_t el, bool lmut, TPos&& tpos,
-               edit_t er, bool rmut, RPos&& rpos)
+               edit_t el, TPos&& tpos,
+               edit_t er, RPos&& rpos)
     { return rpos.first_sub_leaf(concat_right_mut_visitor<Node>{},
-                                 ec, el, lmut, lpos, tpos, er, rmut); }
+                                 ec, el, lpos, tpos, er); }
 };
 
 template <typename Node>
@@ -1933,10 +1927,10 @@ struct concat_trees_right_mut_visitor
     template <typename RPos, typename LPos, typename TPos>
     friend concat_center_mut_pos<Node>
     visit_node(this_t, RPos&& rpos, edit_t ec,
-               edit_t el, bool lmut, LPos&& lpos, TPos&& tpos,
-               edit_t er, bool rmut)
+               edit_t el, LPos&& lpos, TPos&& tpos,
+               edit_t er)
     { return concat_inners_mut<Node>(
-            ec, el, lmut, lpos, tpos, er, rmut, rpos); }
+            ec, el, lpos, tpos, er, rpos); }
 };
 
 template <typename Node>
@@ -1948,45 +1942,45 @@ struct concat_trees_left_mut_visitor
     template <typename LPos, typename TPos, typename... Args>
     friend concat_center_mut_pos<Node>
     visit_node(this_t, LPos&& lpos, edit_t ec,
-               edit_t el, bool lmut, TPos&& tpos,
-               edit_t er, bool rmut, Args&& ...args)
+               edit_t el, TPos&& tpos,
+               edit_t er, Args&& ...args)
     { return visit_maybe_relaxed_sub(
             args...,
             concat_trees_right_mut_visitor<Node>{},
-            ec, el, lmut, lpos, tpos, er, rmut); }
+            ec, el, lpos, tpos, er); }
 };
 
 template <typename Node>
 relaxed_pos<Node>
 concat_trees_mut(edit_type<Node> ec,
-                 edit_type<Node> el, bool lmut,
+                 edit_type<Node> el,
                  Node* lroot, shift_t lshift, size_t lsize,
                  Node* ltail, count_t ltcount,
-                 edit_type<Node> er, bool rmut,
+                 edit_type<Node> er,
                  Node* rroot, shift_t rshift, size_t rsize)
 {
     return visit_maybe_relaxed_sub(
         lroot, lshift, lsize,
         concat_trees_left_mut_visitor<Node>{},
         ec,
-        el, lmut, make_leaf_pos(ltail, ltcount),
-        er, rmut, rroot, rshift, rsize)
+        el, make_leaf_pos(ltail, ltcount),
+        er, rroot, rshift, rsize)
         .realize_e(ec);
 }
 
 template <typename Node>
 relaxed_pos<Node>
 concat_trees_mut(edit_type<Node> ec,
-                 edit_type<Node> el, bool lmut,
+                 edit_type<Node> el,
                  Node* ltail, count_t ltcount,
-                 edit_type<Node> er, bool rmut,
+                 edit_type<Node> er,
                  Node* rroot, shift_t rshift, size_t rsize)
 {
     return make_singleton_regular_sub_pos(ltail, ltcount).visit(
         concat_trees_left_mut_visitor<Node>{},
         ec,
-        el, lmut, empty_leaf_pos<Node>{},
-        er, rmut, rroot, rshift, rsize)
+        el, empty_leaf_pos<Node>{},
+        er, rroot, rshift, rsize)
         .realize_e(ec);
 }
 

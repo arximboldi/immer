@@ -66,6 +66,8 @@ struct gc_transience_policy
                 }
             };
 
+            static owner noone;
+
             struct ownee
             {
                 edit token_ = nullptr;
@@ -83,5 +85,9 @@ struct gc_transience_policy
         };
     };
 };
+
+template <typename HP>
+typename gc_transience_policy::apply<HP>::type::owner
+gc_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer
