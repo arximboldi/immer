@@ -2,6 +2,9 @@
 #  Config
 #  ======
 
+set(BENCHMARK_PARAM   "N:1000" CACHE STRING "Benchmark parameters")
+set(BENCHMARK_SAMPLES "20"     CACHE STRING "Benchmark samples")
+
 set(NONIUS_INCLUDE_DIR
   "${DEPS_DIR}/Source/nonius/include")
 set(STEADY_INCLUDE_DIR
@@ -78,30 +81,23 @@ site_name(immer_hostname)
 
 get_filename_component(immer_compiler_name "${CMAKE_CXX_COMPILER}" NAME)
 
-set(immer_benchmark_report_base_dir
-  "${CMAKE_SOURCE_DIR}/reports")
-set(immer_benchmark_report_dir
-  "${immer_benchmark_report_base_dir}/report_${immer_git_commit_hash}_${immer_hostname}_${immer_compiler_name}")
+set(immer_benchmark_report_base_dir "${CMAKE_SOURCE_DIR}/reports")
+set(immer_benchmark_report_dir "${immer_benchmark_report_base_dir}/report_\
+${immer_git_commit_hash}_\
+${immer_hostname}_\
+${immer_compiler_name}_\
+${BENCHMARK_PARAM}_\
+s${BENCHMARK_SAMPLES}")
 
-if (DISABLE_FREE_LIST)
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_no-free-list")
+if(DISABLE_FREE_LIST)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_nofl")
 endif()
 
-if (DISABLE_THREAD_SAFETY)
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_no-ts")
+if(DISABLE_THREAD_SAFETY)
+  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_nots")
 endif()
 
-if (CHECK_BENCHMARKS_LONGER)
-  set(immer_benchmark_param "N:*:1:10:7")
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_longer")
-elseif(CHECK_BENCHMARKS_LONG)
-  set(immer_benchmark_param "N:*:10:10:4")
-  set(immer_benchmark_report_dir "${immer_benchmark_report_dir}_long")
-elseif(CHECK_BENCHMARKS)
-  set(immer_benchmark_param "N:1000")
-endif()
-
-if(immer_benchmark_param)
+if(CHECK_BENCHMARKS)
   add_dependencies(check benchmarks)
 endif()
 
@@ -109,7 +105,7 @@ add_custom_target(benchmark-report-dir
   COMMAND ${CMAKE_COMMAND}
   -E make_directory ${immer_benchmark_report_dir})
 
-file(GLOB immer_benchmarks "*.cpp")
+file(GLOB_RECURSE immer_benchmarks "*.cpp")
 foreach(_file IN LISTS immer_benchmarks)
   immer_target_name_for(_target _output "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
@@ -126,12 +122,12 @@ foreach(_file IN LISTS immer_benchmarks)
   target_link_libraries(${_target} PUBLIC ${immer_benchmark_libs})
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})
   target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
-  if (immer_benchmark_param)
+  if(CHECK_BENCHMARKS)
     add_test("benchmark/${_output}" ${_output} -v
       -t ${_target}
       -r html
-      -s 20
-      -p ${immer_benchmark_param}
+      -s ${BENCHMARK_SAMPLES}
+      -p ${BENCHMARK_PARAM}
       -o ${immer_benchmark_report_dir}/${_target}.html)
   endif()
 endforeach()

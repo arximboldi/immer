@@ -16,11 +16,6 @@ set(CMAKE_CXX_EXTENSIONS off)
 
 set(DEPS_DIR "${CMAKE_BINARY_DIR}/deps")
 
-option(CHECK_BENCHMARKS "run benchmarks on make check")
-option(CHECK_BENCHMARKS_LONG "run benchmarks for more inputs")
-option(CHECK_BENCHMARKS_LONGER "run benchmarks for more inputs")
-option(CHECK_SLOW_TESTS "run slow tests")
-
 option(ENABLE_COVERAGE "compile with test coverage support")
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine")
 option(DISABLE_FREE_LIST "disables the free list heap")

@@ -31,6 +31,8 @@
 #include <array>
 #include <vector>
 
+NONIUS_PARAM(N, std::size_t{1000})
+
 constexpr auto benchmark_size = 32u;
 
 struct object_t : immer::detail::ref_count_base<object_t>
