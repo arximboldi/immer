@@ -11,4 +11,6 @@ tools/scala/project/target/
 extra/js/out
 extra/js/boost
 
+__pycache__
+
 .gdb_history
