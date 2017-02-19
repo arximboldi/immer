@@ -119,6 +119,7 @@ foreach(_file IN LISTS immer_benchmarks)
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
   add_dependencies(benchmarks ${_target})
   add_dependencies(${_target} benchmark-report-dir)
+  target_compile_options(${_target} PUBLIC -Wno-unused-function)
   target_compile_definitions(${_target} PUBLIC
     NONIUS_RUNNER
     IMMER_BENCHMARK_LIBRRB=1
