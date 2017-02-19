@@ -130,7 +130,9 @@ foreach(_file IN LISTS immer_benchmarks)
   target_include_directories(${_target} PUBLIC ${immer_include_dirs})
   target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
   if(CHECK_BENCHMARKS)
-    add_test("benchmark/${_output}" ${_output} -v
+    add_test("benchmark/${_output}" "${CMAKE_SOURCE_DIR}/tools/with-tee.bash"
+      ${immer_benchmark_report_dir}/${_target}.out
+      "${CMAKE_CURRENT_BINARY_DIR}/${_output}" -v
       -t ${_target}
       -r html
       -s ${BENCHMARK_SAMPLES}
