@@ -118,6 +118,8 @@ set(immer_include_dirs ${PROJECT_SOURCE_DIR})
 
 enable_testing()
 
+set(CTEST_ENVIRONMENT "GC_INITIAL_HEAP_SIZE=8G")
+
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
