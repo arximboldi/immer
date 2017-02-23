@@ -26,7 +26,7 @@ add_dependencies(deps deps-benchmark)
 
 immer_external_dep_nobuild(deps-benchmark nonius
   GIT_REPOSITORY https://github.com/arximboldi/nonius.git
-  GIT_TAG devel)
+  GIT_TAG hacks)
 
 immer_external_dep_nobuild(deps-benchmark steady
   GIT_REPOSITORY https://github.com/marcusz/steady)
