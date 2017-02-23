@@ -55,4 +55,67 @@ auto benchmark_concat_librrb(Fn maker)
         };
 }
 
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto benchmark_concat_incr()
+{
+    return
+        [] (nonius::chronometer meter)
+        {
+            auto steps = 10u;
+            auto n = meter.param<N>();
+
+            auto v = Vektor{};
+            for (auto i = 0u; i < n / steps; ++i)
+                v = PushFn{}(std::move(v), i);
+
+            measure(meter, [&] {
+                    auto r = v;
+                    for (auto i = 0u; i < steps; ++i)
+                        r = r + v;
+                    return r;
+                });
+        };
+};
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
+auto benchmark_concat_incr_mut()
+{
+    return
+        [] (nonius::chronometer meter)
+        {
+            auto steps = 10u;
+            auto n = meter.param<N>();
+
+            auto v = Vektor{};
+            for (auto i = 0u; i < n / steps; ++i)
+                v = PushFn{}(std::move(v), i);
+            auto vv = v.transient();
+            measure(meter, [&] {
+                    auto r = v.transient();
+                    for (auto i = 0u; i < steps; ++i)
+                        r.append(vv);
+                    return r;
+                });
+        };
+};
+
+template <typename Fn>
+auto benchmark_concat_incr_librrb(Fn maker)
+{
+    return
+        [=] (nonius::chronometer meter) {
+            auto n = meter.param<N>();
+            auto steps = 10u;
+            auto v = maker(n / steps);
+            measure(meter, [&] {
+                    auto r = v;
+                    for (auto i = 0ul; i < steps; ++i)
+                        r = rrb_concat(r, v);
+                    return r;
+                });
+        };
+}
+
 } // anonymous namespace
