@@ -55,17 +55,17 @@ NONIUS_BENCHMARK("librrb", benchmark_push_librrb)
 NONIUS_BENCHMARK("t/librrb", benchmark_push_mut_librrb)
 #endif
 
-NONIUS_BENCHMARK("std::vector", bechmark_push_mut<std::vector<unsigned>>())
-NONIUS_BENCHMARK("std::list",   bechmark_push_mut<std::list<unsigned>>())
+NONIUS_BENCHMARK("std::vector", benchmark_push_mut_std<std::vector<unsigned>>())
+NONIUS_BENCHMARK("std::list",   benchmark_push_mut_std<std::list<unsigned>>())
 
-NONIUS_BENCHMARK("m/vector/5B", bechmark_push_move<immer::vector<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("m/vector/GC", bechmark_push_move<immer::vector<unsigned,gc_memory,5>>())
-NONIUS_BENCHMARK("m/vector/NO", bechmark_push_move<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("m/vector/5B", benchmark_push_move<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("m/vector/GC", benchmark_push_move<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("m/vector/NO", benchmark_push_move<immer::vector<unsigned,basic_memory,5>>())
 
-NONIUS_BENCHMARK("t/vector/5B", bechmark_push_mut<immer::vector_transient<unsigned,def_memory,5>>())
-NONIUS_BENCHMARK("t/vector/GC", bechmark_push_mut<immer::vector_transient<unsigned,gc_memory,5>>())
-NONIUS_BENCHMARK("t/vector/NO", bechmark_push_mut<immer::vector_transient<unsigned,basic_memory,5>>())
-NONIUS_BENCHMARK("t/vector/UN", bechmark_push_mut<immer::vector_transient<unsigned,unsafe_memory,5>>())
+NONIUS_BENCHMARK("t/vector/5B", benchmark_push_mut<immer::vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("t/vector/GC", benchmark_push_mut<immer::vector<unsigned,gc_memory,5>>())
+NONIUS_BENCHMARK("t/vector/NO", benchmark_push_mut<immer::vector<unsigned,basic_memory,5>>())
+NONIUS_BENCHMARK("t/vector/UN", benchmark_push_mut<immer::vector<unsigned,unsafe_memory,5>>())
 
 NONIUS_BENCHMARK("flex/5B",    benchmark_push<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex_s/GC",  benchmark_push<immer::flex_vector<std::size_t,gc_memory,5>>())

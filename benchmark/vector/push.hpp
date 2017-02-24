@@ -25,7 +25,7 @@
 namespace {
 
 template <typename Vektor>
-auto bechmark_push_mut()
+auto benchmark_push_mut_std()
 {
     return [] (nonius::chronometer meter)
     {
@@ -43,7 +43,25 @@ auto bechmark_push_mut()
 };
 
 template <typename Vektor>
-auto bechmark_push_move()
+auto benchmark_push_mut()
+{
+    return [] (nonius::chronometer meter)
+    {
+        auto n = meter.param<N>();
+        if (n > get_limit<Vektor>{})
+            nonius::skip();
+
+        measure(meter, [&] {
+            auto v = Vektor{}.transient();
+            for (auto i = 0u; i < n; ++i)
+                v.push_back(i);
+            return v;
+        });
+    };
+};
+
+template <typename Vektor>
+auto benchmark_push_move()
 {
     return [] (nonius::chronometer meter)
     {
@@ -95,9 +113,9 @@ auto benchmark_push_mut_librrb(nonius::chronometer meter)
     auto n = meter.param<N>();
 
     measure(meter, [&] {
-        auto v = rrb_create();
+        auto v = rrb_to_transient(rrb_create());
         for (auto i = 0u; i < n; ++i)
-            v = rrb_push(v, reinterpret_cast<void*>(i));
+            v = transient_rrb_push(v, reinterpret_cast<void*>(i));
         return v;
     });
 }
