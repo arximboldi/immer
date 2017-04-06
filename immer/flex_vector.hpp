@@ -242,6 +242,10 @@ public:
     void for_each_chunk(Fn&& fn) const
     { impl_.for_each_chunk(std::forward<Fn>(fn)); }
 
+    template <typename Fn>
+    void for_each_chunk(size_type first, size_type last, Fn&& fn) const
+    { impl_.for_each_chunk(first, last, std::forward<Fn>(fn)); }
+
     /*!
      * Concatenation operator. Returns a flex_vector with the contents
      * of `l` followed by those of `r`.  It may allocate memory

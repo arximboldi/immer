@@ -198,11 +198,47 @@ TEST_CASE("accumulate")
     const auto n = 666u;
     auto v = make_test_vector(0, n);
 
+    auto expected_n =
+        [] (auto n) {
+            return n * (n - 1) / 2;
+        };
+    auto expected_i =
+        [&] (auto i, auto n) {
+            return expected_n(n) - expected_n(i);
+        };
+
     SECTION("sum collection")
     {
         auto sum = immer::accumulate(v, 0u);
-        auto expected = v.size() * (v.size() - 1) / 2;
-        CHECK(sum == expected);
+        CHECK(sum == expected_n(v.size()));
+    }
+
+    SECTION("sum range")
+    {
+        {
+            auto sum = immer::accumulate_i(v, 100, 300, 0u);
+            CHECK(sum == expected_i(100, 300));
+        }
+        {
+            auto sum = immer::accumulate_i(v, 31, 300, 0u);
+            CHECK(sum == expected_i(31, 300));
+        }
+        {
+            auto sum = immer::accumulate_i(v, 0, 33, 0u);
+            CHECK(sum == expected_i(0, 33));
+        }
+        {
+            auto sum = immer::accumulate_i(v, 100, 660, 0u);
+            CHECK(sum == expected_i(100, 660));
+        }
+        {
+            auto sum = immer::accumulate_i(v, 100, 105, 0u);
+            CHECK(sum == expected_i(100, 105));
+        }
+        {
+            auto sum = immer::accumulate_i(v, 660, 664, 0u);
+            CHECK(sum == expected_i(660, 664));
+        }
     }
 }
 

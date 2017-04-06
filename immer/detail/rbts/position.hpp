@@ -243,6 +243,10 @@ struct regular_pos
     { return each_regular(*this, v, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_i(Visitor v, count_t i, count_t n, Args&&... args)
+    { return each_i_regular(*this, v, i, n, args...); }
+
+    template <typename Visitor, typename... Args>
     void each_right(Visitor v, count_t start, Args&&... args)
     { return each_right_regular(*this, v, start, args...); }
 
@@ -309,7 +313,47 @@ void each_regular(Pos&& p, Visitor v, Args&&... args)
 }
 
 template <typename Pos, typename Visitor, typename... Args>
-void each_left_regular(Pos&& p, count_t last, Visitor v, Args&&... args)
+void each_i_regular(Pos&& p, Visitor v, count_t f, count_t l, Args&&... args)
+{
+    constexpr auto B  = bits<Pos>;
+    constexpr auto BL = bits_leaf<Pos>;
+
+    if (p.shift() == BL) {
+        if (l > f) {
+            if (l < p.count()) {
+                auto n = p.node()->inner() + f;
+                auto e = p.node()->inner() + l;
+                for (; n < e; ++n)
+                    make_full_leaf_pos(*n).visit(v, args...);
+            } else {
+                auto n = p.node()->inner() + f;
+                auto e = p.node()->inner() + l - 1;
+                for (; n < e; ++n)
+                    make_full_leaf_pos(*n).visit(v, args...);
+                make_leaf_pos(*n, p.size()).visit(v, args...);
+            }
+        }
+    } else {
+        if (l > f) {
+            auto ss = p.shift() - B;
+            if (l < p.count()) {
+                auto n = p.node()->inner() + f;
+                auto e = p.node()->inner() + l;
+                for (; n < e; ++n)
+                    make_full_pos(*n, ss).visit(v, args...);
+            } else {
+                auto n = p.node()->inner() + f;
+                auto e = p.node()->inner() + l - 1;
+                for (; n < e; ++n)
+                    make_full_pos(*n, ss).visit(v, args...);
+                make_regular_pos(*n, ss, p.size()).visit(v, args...);
+            }
+        }
+    }
+}
+
+template <typename Pos, typename Visitor, typename... Args>
+void each_left_regular(Pos&& p, Visitor v, count_t last, Args&&... args)
 {
     constexpr auto B  = bits<Pos>;
     constexpr auto BL = bits_leaf<Pos>;
@@ -546,6 +590,10 @@ struct regular_sub_pos
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&& ...args)
     { return each_regular(*this, v, args...); }
+
+    template <typename Visitor, typename... Args>
+    void each_i(Visitor v, count_t i, count_t n, Args&& ...args)
+    { return each_i_regular(*this, v, i, n, args...); }
 
     template <typename Visitor, typename... Args>
     void each_right(Visitor v, count_t start, Args&& ...args)
@@ -814,7 +862,7 @@ struct full_pos
     }
 
     template <typename Visitor, typename... Args>
-    void each_(Visitor v, count_t i, count_t n, Args&&... args)
+    void each_i(Visitor v, count_t i, count_t n, Args&&... args)
     {
         auto p = node_->inner() + i;
         auto e = node_->inner() + n;
@@ -834,19 +882,19 @@ struct full_pos
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&&... args)
-    { each_(v, 0, branches<B> - 1, args...); }
+    { each_i(v, 0, branches<B> - 1, args...); }
 
     template <typename Visitor, typename... Args>
     void each_right_sub(Visitor v, Args&&... args)
-    { each_(v, 1, branches<B>, args...); }
+    { each_i(v, 1, branches<B>, args...); }
 
     template <typename Visitor, typename... Args>
     void each_right(Visitor v, count_t start, Args&&... args)
-    { each_(v, start, branches<B>, args...); }
+    { each_i(v, start, branches<B>, args...); }
 
     template <typename Visitor, typename... Args>
     void each_left(Visitor v, count_t last, Args&&... args)
-    { each_(v, 0, last, args...); }
+    { each_i(v, 0, last, args...); }
 
     template <typename Visitor, typename... Args>
     decltype(auto) towards(Visitor v, size_t idx, Args&&... args)
@@ -976,6 +1024,29 @@ struct relaxed_pos
     { each_left(v, relaxed_->count, args...); }
 
     template <typename Visitor, typename... Args>
+    void each_i(Visitor v, count_t i, count_t n, Args&&... args)
+    {
+        if (shift_ == BL) {
+            auto p = node_->inner();
+            auto s = i > 0 ? relaxed_->sizes[i - 1] : 0;
+            for (; i < n; ++i) {
+                make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
+                    .visit(v, args...);
+                s = relaxed_->sizes[i];
+            }
+        } else {
+            auto p = node_->inner();
+            auto s = i > 0 ? relaxed_->sizes[i - 1] : 0;
+            auto ss = shift_ - B;
+            for (; i < n; ++i) {
+                visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
+                                        v, args...);
+                s = relaxed_->sizes[i];
+            }
+        }
+    }
+
+    template <typename Visitor, typename... Args>
     void each_sub(Visitor v, Args&&... args)
     { each_left(v, relaxed_->count, args...); }
 
@@ -1044,15 +1115,15 @@ struct relaxed_pos
     {
         assert(offset_hint == index(idx));
         auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
-        return towards_oh_lsh(v, idx, offset_hint, left_size, args...);
+        return towards_oh_sbh(v, idx, offset_hint, left_size, args...);
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_oh_lsh(Visitor v, size_t idx,
+    decltype(auto) towards_oh_sbh(Visitor v, size_t idx,
                                   count_t offset_hint,
                                   size_t left_size_hint,
                                   Args&&... args)
-    { return towards_sub_oh_lsh(v, idx, offset_hint, left_size_hint, args...); }
+    { return towards_sub_oh_sbh(v, idx, offset_hint, left_size_hint, args...); }
 
     template <typename Visitor, typename... Args>
     decltype(auto) towards_sub_oh(Visitor v, size_t idx,
@@ -1061,11 +1132,11 @@ struct relaxed_pos
     {
         assert(offset_hint == index(idx));
         auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
-        return towards_sub_oh_lsh(v, idx, offset_hint, left_size, args...);
+        return towards_sub_oh_sbh(v, idx, offset_hint, left_size, args...);
     }
 
     template <typename Visitor, typename... Args>
-    decltype(auto) towards_sub_oh_lsh(Visitor v, size_t idx,
+    decltype(auto) towards_sub_oh_sbh(Visitor v, size_t idx,
                                       count_t offset_hint,
                                       size_t left_size_hint,
                                       Args&&... args)

@@ -133,6 +133,25 @@ struct rrbtree
         else make_empty_leaf_pos(tail).visit(v, args...);
     }
 
+    template <typename Visitor, typename... Args>
+    void traverse(Visitor v, size_t first, size_t last, Args&&... args) const
+    {
+        auto tail_off  = tail_offset();
+        auto tail_size = size - tail_off;
+
+        if (first < tail_off)
+            visit_maybe_relaxed_sub(root, shift, tail_off, v,
+                                    first,
+                                    last < tail_off ? last : tail_off,
+                                    args...);
+        if (last > tail_off)
+            make_leaf_sub_pos(tail, tail_size).visit(
+                v,
+                first > tail_off ? first - tail_off : 0,
+                last - tail_off,
+                args...);
+    }
+
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx) const
     {
@@ -146,6 +165,12 @@ struct rrbtree
     void for_each_chunk(Fn&& fn) const
     {
         traverse(for_each_chunk_visitor{}, std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
+    void for_each_chunk(size_t first, size_t last, Fn&& fn) const
+    {
+        traverse(for_each_chunk_i_visitor{}, first, last, std::forward<Fn>(fn));
     }
 
     std::tuple<shift_t, node_t*>
