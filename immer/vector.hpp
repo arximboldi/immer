@@ -160,6 +160,14 @@ public:
     { return impl_.get(index); }
 
     /*!
+     * Returns whether the vectors are equal.
+     */
+    bool operator==(const vector& other) const
+    { return impl_.equals(other.impl_); }
+    bool operator!=(const vector& other) const
+    { return !(*this == other); }
+
+    /*!
      * Returns a vector with `value` inserted at the end.  It may
      * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */

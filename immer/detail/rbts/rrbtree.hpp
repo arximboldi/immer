@@ -37,6 +37,12 @@ template <typename T,
           typename MemoryPolicy,
           bits_t   B,
           bits_t   BL>
+struct rrbtree_iterator;
+
+template <typename T,
+          typename MemoryPolicy,
+          bits_t   B,
+          bits_t   BL>
 struct rrbtree
 {
     using node_t = node<T, MemoryPolicy, B, BL>;
@@ -134,6 +140,19 @@ struct rrbtree
     }
 
     template <typename Visitor, typename... Args>
+    bool traverse_p(Visitor v, Args&&... args) const
+    {
+        auto tail_off  = tail_offset();
+        auto tail_size = size - tail_off;
+        return (tail_off
+                ? visit_maybe_relaxed_sub(root, shift, tail_off, v, args...)
+                : make_empty_regular_pos(root).visit(v, args...))
+            && (tail_size
+                ? make_leaf_sub_pos(tail, tail_size).visit(v, args...)
+                : make_empty_leaf_pos(tail).visit(v, args...));
+    }
+
+    template <typename Visitor, typename... Args>
     void traverse(Visitor v, size_t first, size_t last, Args&&... args) const
     {
         auto tail_off  = tail_offset();
@@ -168,9 +187,46 @@ struct rrbtree
     }
 
     template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        return traverse_p(for_each_chunk_p_visitor{}, std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
     void for_each_chunk(size_t first, size_t last, Fn&& fn) const
     {
         traverse(for_each_chunk_i_visitor{}, first, last, std::forward<Fn>(fn));
+    }
+
+    bool equals(const rrbtree& other) const
+    {
+        using iter_t = rrbtree_iterator<T, MemoryPolicy, B, BL>;
+        return size == other.size
+            && (size == 0
+                || ((size <= branches<B>
+                     || (!root->relaxed() && !other.root->relaxed()
+                         ? make_regular_sub_pos(root, shift, tail_offset()).visit(
+                             equals_visitor{}, other.root)
+                         : (root == other.root ||
+                            // if we had iterators that keep the whole
+                            // display, maybe we could have a
+                            // something a bit smarter here that can
+                            // still skip whole subtrees via identity
+                            for_each_chunk_p([iter = iter_t{other}]
+                                             (auto f, auto e) mutable {
+                                                 if (f == &*iter) {
+                                                     iter += e - f;
+                                                     return true;
+                                                 }
+                                                 for (; f != e; ++f, ++iter) {
+                                                     if (*f != *iter) {
+                                                         return false;
+                                                     }
+                                                 }
+                                                 return true;
+                                             }))))
+                    && make_leaf_sub_pos(tail, tail_size()).visit(
+                        equals_visitor{}, other.tail)));
     }
 
     std::tuple<shift_t, node_t*>

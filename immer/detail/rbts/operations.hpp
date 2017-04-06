@@ -92,6 +92,22 @@ struct for_each_chunk_visitor
     }
 };
 
+struct for_each_chunk_p_visitor
+{
+    using this_t = for_each_chunk_p_visitor;
+
+    template <typename Pos, typename Fn>
+    friend bool visit_inner(this_t, Pos&& pos, Fn&& fn)
+    { return pos.each_pred(this_t{}, std::forward<Fn>(fn)); }
+
+    template <typename Pos, typename Fn>
+    friend bool visit_leaf(this_t, Pos&& pos, Fn&& fn)
+    {
+        auto data = pos.node()->leaf();
+        return std::forward<Fn>(fn)(data, data + pos.count());
+    }
+};
+
 struct for_each_chunk_left_visitor
 {
     using this_t = for_each_chunk_left_visitor;
@@ -197,6 +213,33 @@ struct for_each_chunk_i_visitor
             std::forward<Fn>(fn)(data + f, data + l + 1);
         }
     }
+};
+
+struct equals_visitor
+{
+    using this_t = equals_visitor;
+
+    template <typename Pos, typename NodeT>
+    friend bool visit_relaxed(this_t, Pos&& pos, NodeT* other)
+    { IMMER_UNREACHABLE; }
+
+    template <typename Pos, typename NodeT>
+    friend bool visit_regular(this_t, Pos&& pos, NodeT* other)
+    {
+        auto node = pos.node();
+        return node == other
+            || pos.each_pred_zip(this_t{}, other);
+    }
+
+    template <typename Pos, typename NodeT>
+    friend bool visit_leaf(this_t, Pos&& pos, NodeT* other)
+    {
+        auto node = pos.node();
+        return node == other
+            || std::equal(node->leaf(), node->leaf() + pos.count(),
+                          other->leaf());
+    }
+
 };
 
 template <typename NodeT>

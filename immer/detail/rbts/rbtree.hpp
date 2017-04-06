@@ -167,6 +167,17 @@ struct rbtree
         traverse(for_each_chunk_i_visitor{}, first, last, std::forward<Fn>(fn));
     }
 
+    bool equals(const rbtree& other) const
+    {
+        return size == other.size
+            && (size == 0
+                || ((size <= branches<B>
+                     || make_regular_sub_pos(root, shift, tail_offset()).visit(
+                         equals_visitor{}, other.root))
+                    && make_leaf_sub_pos(tail, tail_size()).visit(
+                        equals_visitor{}, other.tail)));
+    }
+
     void ensure_mutable_tail(edit_t e, count_t n)
     {
         if (!tail->can_mutate(e)) {

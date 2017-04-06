@@ -193,6 +193,20 @@ TEST_CASE("iterator")
     }
 }
 
+TEST_CASE("equals")
+{
+    const auto n = 666u;
+    auto v = make_test_vector(0, n);
+
+    CHECK(v == v);
+    CHECK(v == v.set(42, 42));
+    CHECK(v != v.set(42, 24));
+    CHECK(v.set(42, 24) == v.set(42, 24));
+    CHECK(v != v.push_back(7));
+    CHECK(v.push_back(7) == v.push_back(7));
+    CHECK(v.push_back(5) != v.push_back(7));
+}
+
 TEST_CASE("accumulate")
 {
     const auto n = 666u;
