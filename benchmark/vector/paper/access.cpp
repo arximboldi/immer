@@ -22,11 +22,13 @@
 #include <immer/flex_vector.hpp>
 
 NONIUS_BENCHMARK("reduce owrs", benchmark_access_reduce<immer::flex_vector<unsigned,def_memory>>())
+NONIUS_BENCHMARK("reduce_i owrs", benchmark_access_reduce_range<immer::flex_vector<unsigned,def_memory>>())
 NONIUS_BENCHMARK("iter orws", benchmark_access_iter<immer::flex_vector<unsigned,def_memory>>())
 NONIUS_BENCHMARK("idx owrs", benchmark_access_idx<immer::flex_vector<unsigned,def_memory>>())
 NONIUS_BENCHMARK("idx librrb", benchmark_access_librrb(make_librrb_vector))
 
 NONIUS_BENCHMARK("relaxed reduce owrs", benchmark_access_reduce<immer::flex_vector<unsigned,def_memory>,push_front_fn>())
+NONIUS_BENCHMARK("relaxed reduce_i owrs", benchmark_access_reduce<immer::flex_vector<unsigned,def_memory>,push_front_fn>())
 NONIUS_BENCHMARK("relaxed iter orws", benchmark_access_iter<immer::flex_vector<unsigned,def_memory>,push_front_fn>())
 NONIUS_BENCHMARK("relaxed idx owrs", benchmark_access_idx<immer::flex_vector<unsigned,def_memory>,push_front_fn>())
 NONIUS_BENCHMARK("relaxed idx librrb", benchmark_access_librrb(make_librrb_vector_f))

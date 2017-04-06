@@ -174,6 +174,25 @@ auto benchmark_access_reduce()
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
+auto benchmark_access_reduce_range()
+{
+    return [] (nonius::parameters params)
+    {
+        auto n = params.get<N>();
+
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v = PushFn{}(std::move(v), i);
+
+        return [=] {
+            auto volatile x = immer::accumulate_i(v, 0, v.size(), 0u);
+            return x;
+        };
+    };
+}
+
+template <typename Vektor,
+          typename PushFn=push_back_fn>
 auto benchmark_access_random()
 {
     return [] (nonius::parameters params)

@@ -77,6 +77,9 @@ NONIUS_BENCHMARK("dvektor/5B/idx",  benchmark_access_idx<immer::dvektor<unsigned
 NONIUS_BENCHMARK("dvektor/6B/idx",  benchmark_access_idx<immer::dvektor<unsigned,def_memory,6>>())
 #endif
 
+NONIUS_BENCHMARK("flex/5B/reduce_i", benchmark_access_reduce_range<immer::flex_vector<unsigned,def_memory,5>>())
+NONIUS_BENCHMARK("vector/5B/reduce_i", benchmark_access_reduce_range<immer::vector<unsigned,def_memory,5>>())
+
 NONIUS_BENCHMARK("flex/5B/reduce",   benchmark_access_reduce<immer::flex_vector<unsigned,def_memory,5>>())
 NONIUS_BENCHMARK("flex/F/5B/reduce", benchmark_access_reduce<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
 NONIUS_BENCHMARK("vector/4B/reduce", benchmark_access_reduce<immer::vector<unsigned,def_memory,4>>())
