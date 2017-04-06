@@ -55,6 +55,26 @@ struct rrbtree
 
     static const rrbtree empty;
 
+    template <typename U>
+    static auto from_initializer_list(std::initializer_list<U> values)
+    {
+        auto e = edit_t{};
+        auto result = rrbtree{empty};
+        for (auto&& v : values)
+            result.push_back_mut(e, v);
+        return result;
+    }
+
+    template <typename Iter>
+    static auto from_range(Iter first, Iter last)
+    {
+        auto e = edit_t{};
+        auto result = rrbtree{empty};
+        for (; first != last; ++first)
+            result.push_back_mut(e, *first);
+        return result;
+    }
+
     rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {

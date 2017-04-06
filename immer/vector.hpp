@@ -113,6 +113,22 @@ public:
     vector() = default;
 
     /*!
+     * Constructs a vector containing the elements in `values`.
+     */
+    vector(std::initializer_list<T> values)
+        : impl_{impl_t::from_initializer_list(values)}
+    {}
+
+    /*!
+     * Constructs a vector containing the elements in the range
+     * defined by the input iterators `first` and `last`.
+     */
+    template <typename Iter>
+    vector(Iter first, Iter last)
+        : impl_{impl_t::from_range(first, last)}
+    {}
+
+    /*!
      * Returns an iterator pointing at the first element of the
      * collection. It does not allocate memory and its complexity is
      * @f$ O(1) @f$.
@@ -210,7 +226,7 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     vector take(size_type elems) const&
-    { return { impl_.take(elems) }; }
+    { return impl_.take(elems); }
 
     decltype(auto) take(size_type elems) &&
     { return take_move(move_t{}, elems); }

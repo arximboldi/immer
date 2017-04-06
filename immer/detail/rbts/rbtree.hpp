@@ -48,6 +48,26 @@ struct rbtree
 
     static const rbtree empty;
 
+    template <typename U>
+    static auto from_initializer_list(std::initializer_list<U> values)
+    {
+        auto e = edit_t{};
+        auto result = rbtree{empty};
+        for (auto&& v : values)
+            result.push_back_mut(e, v);
+        return result;
+    }
+
+    template <typename Iter>
+    static auto from_range(Iter first, Iter last)
+    {
+        auto e = edit_t{};
+        auto result = rbtree{empty};
+        for (; first != last; ++first)
+            result.push_back_mut(e, *first);
+        return result;
+    }
+
     rbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {

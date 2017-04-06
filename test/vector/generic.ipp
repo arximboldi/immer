@@ -45,8 +45,24 @@ auto make_test_vector(unsigned min, unsigned max)
 
 TEST_CASE("instantiation")
 {
-    auto v = VECTOR_T<int>{};
-    CHECK(v.size() == 0u);
+    SECTION("default")
+    {
+        auto v = VECTOR_T<int>{};
+        CHECK(v.size() == 0u);
+    }
+
+    SECTION("initializer list")
+    {
+        auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+    }
+
+    SECTION("range")
+    {
+        auto r = std::vector<int>{{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}};
+        auto v = VECTOR_T<unsigned>{r.begin(), r.end()};
+        CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+    }
 }
 
 TEST_CASE("push back one element")
