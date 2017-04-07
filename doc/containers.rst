@@ -165,6 +165,13 @@ used to obtain similar performance benefits.
      immutable containers types, expressions of the form ``v =
      std::move(v)`` are well-defined.
 
+box
+---
+
+.. doxygenclass:: immer::box
+    :members:
+    :undoc-members:
+
 array
 -----
 

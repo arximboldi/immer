@@ -53,9 +53,27 @@ inline void* check_alloc(void* p)
     return p;
 }
 
+template <typename Heap, typename T, typename... Args>
+T* make(Args&& ...args)
+{
+    auto ptr = check_alloc(Heap::allocate(sizeof(T)));
+    try {
+        return new (ptr) T{std::forward<Args>(args)...};
+    } catch (...) {
+        Heap::deallocate(ptr);
+        throw;
+    }
+}
+
 struct not_supported_t {};
 struct empty_t {};
 
+template <typename T>
+struct exact_t
+{
+    T value;
+    exact_t(T v) : value{v} {};
+};
 
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
