@@ -313,6 +313,16 @@ struct rbtree
         return descend(get_visitor<T>(), index);
     }
 
+    const T& front() const
+    {
+        return get(0);
+    }
+
+    const T& back() const
+    {
+        return tail->leaf()[(size - 1) & mask<BL>];
+    }
+
     template <typename FnT>
     void update_mut(edit_t e, size_t idx, FnT&& fn)
     {

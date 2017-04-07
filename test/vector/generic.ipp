@@ -65,6 +65,13 @@ TEST_CASE("instantiation")
     }
 }
 
+TEST_CASE("back and front")
+{
+    auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    CHECK(v.front() == 0);
+    CHECK(v.back() == 9);
+}
+
 TEST_CASE("push back one element")
 {
     SECTION("one element")

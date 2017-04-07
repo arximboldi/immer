@@ -166,6 +166,16 @@ public:
     bool empty() const { return impl_.size == 0; }
 
     /*!
+     * Access the last element.
+     */
+    const T& back() const { return impl_.back(); }
+
+    /*!
+     * Access the first element.
+     */
+    const T& front() const { return impl_.front(); }
+
+    /*!
      * Returns a `const` reference to the element at position `index`.
      * Undefined for `index >= size()`.
      * It does not allocate memory and its complexity

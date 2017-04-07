@@ -429,6 +429,16 @@ struct rrbtree
         return descend(get_visitor<T>(), index);
     }
 
+    const T& front() const
+    {
+        return get(0);
+    }
+
+    const T& back() const
+    {
+        return get(size - 1);
+    }
+
     template <typename FnT>
     void update_mut(edit_t e, size_t idx, FnT&& fn)
     {
