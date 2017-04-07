@@ -43,7 +43,7 @@ using size_type_t = typename std::decay_t<T>::size_type;
 //    of these.  Right now iterator arithmetic has some cost and we
 //    might re-evaluate this.
 
-/**
+/*!
  * Optimized equivalent of `std::accumulate` applied to the immutable
  * collection `v`.
  */
@@ -56,7 +56,7 @@ T accumulate(VectorT&& v, T init)
     return init;
 }
 
-/**
+/*!
  * Optimized equivalent of `std::accumulate` applied over the subrange
  * @f$ [first, last) @f$ of the immutable collection `v`.
  */
@@ -72,7 +72,7 @@ T accumulate_i(VectorT&& v,
     return init;
 }
 
-/**
+/*!
  * Optimized equivalent of `std::for_each` applied to the immutable
  * collection `v`.
  */
@@ -86,7 +86,7 @@ Fn&& for_each(VectorT&& v, Fn&& fn)
     return std::forward<Fn>(fn);
 }
 
-/**
+/*!
  * Optimized equivalent of `std::for_each` applied over the subrange
  * @f$ [first, last) @f$ of the immutable collection `v`.
  */

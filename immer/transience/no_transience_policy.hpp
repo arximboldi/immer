@@ -22,7 +22,7 @@
 
 namespace immer {
 
-/**
+/*!
  * Disables any special *transience* tracking.  To be used when
  * *reference counting* is available instead.
  */

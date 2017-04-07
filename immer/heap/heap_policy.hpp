@@ -134,7 +134,7 @@ struct free_list_heap_policy
     };
 };
 
-/**
+/*!
  * Similar to @ref free_list_heap_policy, but it assumes no
  * multi-threading, so a single global free list with no concurrency
  * checks is used.

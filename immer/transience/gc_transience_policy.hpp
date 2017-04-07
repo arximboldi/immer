@@ -26,7 +26,7 @@
 
 namespace immer {
 
-/**
+/*!
  * Provides transience ownership tracking when a *tracing garbage
  * collector* is used instead of reference counting.
  *

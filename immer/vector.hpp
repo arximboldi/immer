@@ -42,7 +42,7 @@ template <typename T,
           detail::rbts::bits_t BL>
 class vector_transient;
 
-/**
+/*!
  * Immutable sequential container supporting both random access and
  * structural sharing.
  *
