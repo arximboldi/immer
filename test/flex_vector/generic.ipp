@@ -180,13 +180,27 @@ TEST_CASE("concat recursive")
 
 TEST_CASE("insert")
 {
-    const auto n = 666u;
-    auto v = make_test_flex_vector(0, n);
-    v = v.insert(42, 100);
-    CHECK_VECTOR_EQUALS(v, boost::join(
-                            boost::irange(0u, 42u),
-                            boost::join(boost::irange(100u, 101u),
-                                        boost::irange(42u, n))));
+    SECTION("normal")
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector(0, n);
+        v = v.insert(42, 100);
+        CHECK_VECTOR_EQUALS(v, boost::join(
+                                boost::irange(0u, 42u),
+                                boost::join(boost::irange(100u, 101u),
+                                            boost::irange(42u, n))));
+    }
+
+    SECTION("normal")
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector(0, n);
+        v = std::move(v).insert(42, 100);
+        CHECK_VECTOR_EQUALS(v, boost::join(
+                                boost::irange(0u, 42u),
+                                boost::join(boost::irange(100u, 101u),
+                                            boost::irange(42u, n))));
+    }
 }
 
 TEST_CASE("accumulate relaxed")

@@ -266,13 +266,28 @@ public:
     friend flex_vector operator+ (const flex_vector& l, const flex_vector& r)
     { return l.impl_.concat(r.impl_); }
 
+    friend decltype(auto) operator+ (flex_vector&& l, const flex_vector& r)
+    { return concat_move(move_t{}, std::move(l), r); }
+
+    friend decltype(auto) operator+ (const flex_vector& l, flex_vector&& r)
+    { return concat_move(move_t{}, l, std::move(r)); }
+
+    friend decltype(auto) operator+ (flex_vector&& l, flex_vector&& r)
+    { return concat_move(move_t{}, std::move(l), std::move(r)); }
+
     /*!
      * Returns a flex_vector with the `value` inserted at index
      * `pos`. It may allocate memory and its complexity is @f$
      * O(log(size)) @f$
      */
-    flex_vector insert(size_type pos, T value) const
+    flex_vector insert(size_type pos, T value) const&
     { return take(pos).push_back(std::move(value)) + drop(pos); }
+    decltype(auto) insert(size_type pos, T value) &&
+    {
+        using std::move;
+        auto rs = drop(pos);
+        return move(*this).take(pos).push_back(move(value)) + move(rs);
+    }
 
     /*!
      * Returns an @a transient form of this container, an
@@ -304,7 +319,6 @@ private:
 #endif
     }
 
-
     flex_vector&& push_back_move(std::true_type, value_type value)
     { impl_.push_back_mut({}, std::move(value)); return std::move(*this); }
     flex_vector push_back_move(std::false_type, value_type value)
@@ -331,6 +345,15 @@ private:
     { impl_.drop_mut({}, elems); return std::move(*this); }
     flex_vector drop_move(std::false_type, size_type elems)
     { return impl_.drop(elems); }
+
+    static flex_vector&& concat_move(std::true_type, flex_vector&& l, const flex_vector& r)
+    { concat_mut_l(l.impl_, {}, r.impl_); return std::move(l); }
+    static flex_vector&& concat_move(std::true_type, const flex_vector& l, flex_vector&& r)
+    { concat_mut_r(l.impl_, r.impl_, {}); return std::move(r); }
+    static flex_vector&& concat_move(std::true_type, flex_vector&& l, flex_vector&& r)
+    { concat_mut_lr_l(l.impl_, {}, r.impl_, {}); return std::move(l); }
+    static flex_vector concat_move(std::false_type, const flex_vector& l, const flex_vector& r)
+    { return l.impl_.concat(r.impl_); }
 
     impl_t impl_ = impl_t::empty;
 };
