@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <numeric>
 #include <type_traits>
 
@@ -106,6 +107,31 @@ Fn&& for_each(Iterator first, Iterator last, Fn&& fn)
             fn(*first);
     });
     return std::forward<Fn>(fn);
+}
+
+/*!
+ * Equivalent of `std::copy` applied to the range `r`.
+ */
+template <typename Range, typename OutIter>
+OutIter copy(Range&& r, OutIter out)
+{
+    for_each_chunk(r, [&] (auto first, auto last) {
+        out = std::copy(first, last, out);
+    });
+    return out;
+}
+
+/*!
+ * Equivalent of `std::copy` applied to the range @f$ [first,
+ * last) @f$.
+ */
+template <typename InIter, typename OutIter>
+OutIter copy(InIter first, InIter last, OutIter out)
+{
+    for_each_chunk(first, last, [&] (auto first, auto last) {
+        out = std::copy(first, last, out);
+    });
+    return out;
 }
 
 } // namespace immer
