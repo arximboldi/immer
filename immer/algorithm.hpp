@@ -25,61 +25,69 @@
 
 namespace immer {
 
-namespace detail {
-
-template <typename T>
-using size_type_t = typename std::decay_t<T>::size_type;
-
-} // namespace detail
-
 // Right now these algorithms dispatch directly to the vector
-// implementations unconditionally.  This needs to be reviewed in the
-// future because:
-//
-// 1. We will suport other kinds of containers -- e.g. associative
-//    containers, sets, etc.
-//
-// 2. We should also provide overloads for the iterator based versions
-//    of these.  Right now iterator arithmetic has some cost and we
-//    might re-evaluate this.
+// implementations unconditionally.  This will be changed in the
+// future to support other kinds of containers.
 
 /*!
- * Optimized equivalent of `std::accumulate` applied to the immutable
- * collection `v`.
+ * Apply operation `fn` for every contiguous *chunk* of data in the
+ * range sequentially.  Each time, `Fn` is passed two `value_type`
+ * pointers describing a range over a part of the vector.  This allows
+ * iterating over the elements in the most efficient way.
+ *
+ * @rst
+ *
+ * .. tip:: This is a low level method. Most of the time, :doc:`other
+ *    wrapper algorithms <algorithms>` should be used instead.
+ *
+ * @endrst
  */
-template <typename VectorT, typename T>
-T accumulate(VectorT&& v, T init)
+template <typename Range, typename Fn>
+void for_each_chunk(const Range& r, Fn&& fn)
 {
-    v.for_each_chunk([&] (auto first, auto last) {
+    r.impl().for_each_chunk(std::forward<Fn>(fn));
+}
+
+template <typename Iterator, typename Fn>
+void for_each_chunk(const Iterator& first, const Iterator& last, Fn&& fn)
+{
+   assert(&first.impl() == &last.impl());
+   first.impl().for_each_chunk(first.index(), last.index(),
+                               std::forward<Fn>(fn));
+}
+
+/*!
+ * Equivalent of `std::accumulate` applied to the range `r`.
+ */
+template <typename Range, typename T>
+T accumulate(Range&& r, T init)
+{
+    for_each_chunk(r, [&] (auto first, auto last) {
         init = std::accumulate(first, last, init);
     });
     return init;
 }
 
 /*!
- * Optimized equivalent of `std::accumulate` applied over the subrange
- * @f$ [first, last) @f$ of the immutable collection `v`.
+ * Equivalent of `std::accumulate` applied to the range @f$ [first,
+ * last) @f$.
  */
-template <typename VectorT, typename T>
-T accumulate_i(VectorT&& v,
-               detail::size_type_t<VectorT> first,
-               detail::size_type_t<VectorT> last,
-               T init)
+template <typename Iterator, typename T>
+T accumulate(Iterator first, Iterator last, T init)
 {
-    v.for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&] (auto first, auto last) {
         init = std::accumulate(first, last, init);
     });
     return init;
 }
 
 /*!
- * Optimized equivalent of `std::for_each` applied to the immutable
- * collection `v`.
+ * Equivalent of `std::for_each` applied to the range `r`.
  */
-template <typename VectorT, typename Fn>
-Fn&& for_each(VectorT&& v, Fn&& fn)
+template <typename Range, typename Fn>
+Fn&& for_each(Range&& r, Fn&& fn)
 {
-    v.for_each_chunk([&] (auto first, auto last) {
+    for_each_chunk(r, [&] (auto first, auto last) {
         for (; first != last; ++first)
             fn(*first);
     });
@@ -87,16 +95,13 @@ Fn&& for_each(VectorT&& v, Fn&& fn)
 }
 
 /*!
- * Optimized equivalent of `std::for_each` applied over the subrange
- * @f$ [first, last) @f$ of the immutable collection `v`.
+ * Equivalent of `std::for_each` applied to the range @f$ [first,
+ * last) @f$.
  */
-template <typename VectorT, typename Fn>
-Fn&& for_each_i(VectorT&& v,
-                detail::size_type_t<VectorT> first,
-                detail::size_type_t<VectorT> last,
-                Fn&& fn)
+template <typename Iterator, typename Fn>
+Fn&& for_each(Iterator first, Iterator last, Fn&& fn)
 {
-    v.for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&] (auto first, auto last) {
         for (; first != last; ++first)
             fn(*first);
     });

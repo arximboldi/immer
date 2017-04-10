@@ -214,30 +214,37 @@ TEST_CASE("accumulate relaxed")
 
     SECTION("sum range")
     {
+        using namespace std;
         const auto n = 666u;
         auto v = make_test_flex_vector_front(0, n);
         {
-            auto sum = immer::accumulate_i(v, 100, 300, 0u);
+            auto sum = immer::accumulate(begin(v) + 100,
+                                         begin(v) + 300,
+                                         0u);
             CHECK(sum == expected_i(100, 300));
         }
         {
-            auto sum = immer::accumulate_i(v, 31, 300, 0u);
+            auto sum = immer::accumulate(begin(v) + 31,
+                                         begin(v) + 300, 0u);
             CHECK(sum == expected_i(31, 300));
         }
         {
-            auto sum = immer::accumulate_i(v, 0, 33, 0u);
+            auto sum = immer::accumulate(begin(v), begin(v) + 33, 0u);
             CHECK(sum == expected_i(0, 33));
         }
         {
-            auto sum = immer::accumulate_i(v, 100, 660, 0u);
+            auto sum = immer::accumulate(begin(v) + 100,
+                                         begin(v) + 660, 0u);
             CHECK(sum == expected_i(100, 660));
         }
         {
-            auto sum = immer::accumulate_i(v, 100, 105, 0u);
+            auto sum = immer::accumulate(begin(v) + 100,
+                                         begin(v) + 105, 0u);
             CHECK(sum == expected_i(100, 105));
         }
         {
-            auto sum = immer::accumulate_i(v, 660, 664, 0u);
+            auto sum = immer::accumulate(begin(v) + 660,
+                                         begin(v) + 664, 0u);
             CHECK(sum == expected_i(660, 664));
         }
     }

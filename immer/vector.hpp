@@ -139,7 +139,7 @@ public:
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    iterator end()   const { return {impl_, typename iterator::end_t{}}; }
+    iterator end() const { return {impl_, typename iterator::end_t{}}; }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
@@ -242,28 +242,6 @@ public:
     { return take_move(move_t{}, elems); }
 
     /*!
-     * Apply operation `fn` for every *chunk* of data in the vector
-     * sequentially.  Each time, `Fn` is passed two `value_type`
-     * pointers describing a range over a part of the vector.  This
-     * allows iterating over the elements in the most efficient way.
-     *
-     * @rst
-     *
-     * .. tip:: This is a low level method. Most of the time,
-     *    :doc:`wrapper algorithms <algorithms>` should be used
-     *    instead.
-     *
-     * @endrst
-     */
-    template <typename Fn>
-    void for_each_chunk(Fn&& fn) const
-    { impl_.for_each_chunk(std::forward<Fn>(fn)); }
-
-    template <typename Fn>
-    void for_each_chunk(size_type first, size_type last, Fn&& fn) const
-    { impl_.for_each_chunk(first, last, std::forward<Fn>(fn)); }
-
-    /*!
      * Returns an @a transient form of this container, an
      * `immer::vector_transient`.
      */
@@ -271,6 +249,9 @@ public:
     { return transient_type{ impl_ }; }
     transient_type transient() &&
     { return transient_type{ std::move(impl_) }; }
+
+    // Semi-private
+    const impl_t& impl() const { return impl_; }
 
 #if IMMER_DEBUG_PRINT
     void debug_print() const

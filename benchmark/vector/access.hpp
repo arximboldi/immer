@@ -185,7 +185,7 @@ auto benchmark_access_reduce_range()
             v = PushFn{}(std::move(v), i);
 
         return [=] {
-            auto volatile x = immer::accumulate_i(v, 0, v.size(), 0u);
+            auto volatile x = immer::accumulate(v.begin(), v.end(), 0u);
             return x;
         };
     };

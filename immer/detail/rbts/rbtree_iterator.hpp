@@ -56,6 +56,9 @@ struct rbtree_iterator : boost::iterator_facade<
         , curr_ { nullptr }
     {}
 
+    const tree_t& impl() const { return *v_; }
+    size_t index() const { return i_; }
+
 private:
     friend class boost::iterator_core_access;
 

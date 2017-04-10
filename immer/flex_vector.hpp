@@ -259,28 +259,6 @@ public:
     { return drop_move(move_t{}, elems); }
 
     /*!
-     * Apply operation `fn` for every *chunk* of data in the vector
-     * sequentially.  Each time, `Fn` is passed two `value_type`
-     * pointers describing a range over a part of the vector.  This
-     * allows iterating over the elements in the most efficient way.
-     *
-     * @rst
-     *
-     * .. tip:: This is a low level method. Most of the time,
-     *    :doc:`wrapper algorithms <algorithms>` should be used
-     *    instead.
-     *
-     * @endrst
-     */
-    template <typename Fn>
-    void for_each_chunk(Fn&& fn) const
-    { impl_.for_each_chunk(std::forward<Fn>(fn)); }
-
-    template <typename Fn>
-    void for_each_chunk(size_type first, size_type last, Fn&& fn) const
-    { impl_.for_each_chunk(first, last, std::forward<Fn>(fn)); }
-
-    /*!
      * Concatenation operator. Returns a flex_vector with the contents
      * of `l` followed by those of `r`.  It may allocate memory
      * and its complexity is @f$ O(log(max(size_r, size_l))) @f$
@@ -296,6 +274,9 @@ public:
     { return transient_type{ impl_ }; }
     transient_type transient() &&
     { return transient_type{ std::move(impl_) }; }
+
+    // Semi-private
+    const impl_t& impl() const { return impl_; }
 
 #if IMMER_DEBUG_PRINT
     void debug_print() const

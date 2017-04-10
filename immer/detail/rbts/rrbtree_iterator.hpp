@@ -41,6 +41,9 @@ struct rrbtree_iterator : boost::iterator_facade<
 
     struct end_t {};
 
+    const tree_t& impl() const { return *v_; }
+    size_t index() const { return i_; }
+
     rrbtree_iterator() = default;
 
     rrbtree_iterator(const tree_t& v)
