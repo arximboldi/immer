@@ -267,6 +267,14 @@ public:
     { return l.impl_.concat(r.impl_); }
 
     /*!
+     * Returns a flex_vector with the `value` inserted at index
+     * `pos`. It may allocate memory and its complexity is @f$
+     * O(log(size)) @f$
+     */
+    flex_vector insert(size_type pos, T value) const
+    { return take(pos).push_back(std::move(value)) + drop(pos); }
+
+    /*!
      * Returns an @a transient form of this container, an
      * `immer::flex_vector_transient`.
      */
