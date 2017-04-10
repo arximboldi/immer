@@ -46,14 +46,14 @@ struct rrbtree_iterator : boost::iterator_facade<
     rrbtree_iterator(const tree_t& v)
         : v_    { &v }
         , i_    { 0 }
-        , curr_ { v.region_for(0) }
+        , curr_ { nullptr, ~size_t{}, ~size_t{} }
     {
     }
 
     rrbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , curr_ { v.region_for(v.size) }
+        , curr_ { nullptr, ~size_t{}, ~size_t{} }
     {}
 
 private:
@@ -61,17 +61,13 @@ private:
 
     const tree_t* v_;
     size_t   i_;
-    region_t curr_;
+    mutable region_t curr_;
 
     void increment()
     {
         using std::get;
         assert(i_ < v_->size);
         ++i_;
-        if (i_ < get<2>(curr_))
-            ++get<0>(curr_);
-        else
-            curr_ = v_->region_for(i_);
     }
 
     void decrement()
@@ -79,10 +75,6 @@ private:
         using std::get;
         assert(i_ > 0);
         --i_;
-        if (i_ >= get<1>(curr_))
-            --get<0>(curr_);
-        else
-            curr_ = v_->region_for(i_);
     }
 
     void advance(std::ptrdiff_t n)
@@ -91,10 +83,6 @@ private:
         assert(n <= 0 || i_ + static_cast<size_t>(n) <= v_->size);
         assert(n >= 0 || static_cast<size_t>(-n) <= i_);
         i_ += n;
-        if (i_ >= get<1>(curr_) && i_ < get<2>(curr_))
-            get<0>(curr_) += n;
-        else
-            curr_ = v_->region_for(i_);
     }
 
     bool equal(const rrbtree_iterator& other) const
@@ -112,7 +100,9 @@ private:
     const T& dereference() const
     {
         using std::get;
-        return *get<0>(curr_);
+        if (i_ < get<1>(curr_) || i_ >= get<2>(curr_))
+            curr_ = v_->region_for(i_);
+        return get<0>(curr_)[i_ - get<1>(curr_)];
     }
 };
 

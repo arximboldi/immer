@@ -399,15 +399,14 @@ struct rrbtree
         using std::get;
         auto tail_off = tail_offset();
         if (idx >= tail_off) {
-            return { tail->leaf() + (idx - tail_off), tail_off, size };
+            return { tail->leaf(), tail_off, size };
         } else {
             auto subs = visit_maybe_relaxed_sub(
                 root, shift, tail_off,
                 region_for_visitor<T>(), idx);
-            auto offset = get<1>(subs);
-            auto first  = idx - offset;
-            auto end    = first + get<2>(subs);
-            return { get<0>(subs) + offset, first, end };
+            auto first = idx - get<1>(subs);
+            auto end   = first + get<2>(subs);
+            return { get<0>(subs), first, end };
         }
     }
 

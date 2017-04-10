@@ -45,62 +45,42 @@ struct rbtree_iterator : boost::iterator_facade<
     rbtree_iterator(const tree_t& v)
         : v_    { &v }
         , i_    { 0 }
-        , base_ { 0 }
-        , curr_ { v.array_for(0) }
-    {
-    }
+        , base_ { ~size_t{} }
+        , curr_ { nullptr }
+    {}
 
     rbtree_iterator(const tree_t& v, end_t)
         : v_    { &v }
         , i_    { v.size }
-        , base_ { i_ - (i_ & mask<BL>) }
-        , curr_ { v.array_for(i_ - 1) + (i_ - base_) }
+        , base_ { ~size_t{} }
+        , curr_ { nullptr }
     {}
 
 private:
     friend class boost::iterator_core_access;
 
-    const tree_t* v_;
-    size_t    i_;
-    size_t    base_;
-    const T*  curr_;
+    const tree_t*    v_;
+    size_t           i_;
+    mutable size_t   base_;
+    mutable const T* curr_ = nullptr;
 
     void increment()
     {
         assert(i_ < v_->size);
         ++i_;
-        if (i_ - base_ < branches<BL>) {
-            ++curr_;
-        } else {
-            base_ += branches<BL>;
-            curr_ = v_->array_for(i_);
-        }
     }
 
     void decrement()
     {
         assert(i_ > 0);
         --i_;
-        if (i_ >= base_) {
-            --curr_;
-        } else {
-            base_ -= branches<BL>;
-            curr_ = v_->array_for(i_) + (branches<BL> - 1);
-        }
     }
 
     void advance(std::ptrdiff_t n)
     {
         assert(n <= 0 || i_ + static_cast<size_t>(n) <= v_->size);
         assert(n >= 0 || static_cast<size_t>(-n) <= i_);
-
         i_ += n;
-        if (i_ >= base_ && i_ < base_ + branches<BL>) {
-            curr_ += n;
-        } else {
-            base_ = i_ - (i_ & mask<BL>);
-            curr_ = v_->array_for(i_) + (i_ - base_);
-        }
     }
 
     bool equal(const rbtree_iterator& other) const
@@ -117,7 +97,12 @@ private:
 
     const T& dereference() const
     {
-        return *curr_;
+        auto base = i_ & ~mask<BL>;
+        if (base_ != base) {
+            base_ = base;
+            curr_ = v_->array_for(i_);
+        }
+        return curr_[i_ & mask<BL>];
     }
 };
 
