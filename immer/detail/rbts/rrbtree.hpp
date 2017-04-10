@@ -786,6 +786,9 @@ struct rrbtree
                 // are tagged with `er`
                 auto res = l.push_tail(l.root, l.shift, tail_offst,
                                        l.tail, tail_size);
+                l.tail->inc(); // note: leak if mutably concatenated
+                               // with itself, but this is forbidden
+                               // by the interface
                 r = { l.size + r.size, get<0>(res), get<1>(res),
                       r.tail->inc() };
                 return;
