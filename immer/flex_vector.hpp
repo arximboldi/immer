@@ -290,6 +290,18 @@ public:
     }
 
     /*!
+     * Returns a flex_vector without the element at index `pos`. It
+     * may allocate memory and its complexity is @f$ O(log(size)) @f$
+     */
+    flex_vector erase(size_type pos) const&
+    { return take(pos) + drop(pos + 1); }
+    decltype(auto) erase(size_type pos) &&
+    {
+        auto rs = drop(pos + 1);
+        return move(*this).take(pos) + move(rs);
+    }
+
+    /*!
      * Returns an @a transient form of this container, an
      * `immer::flex_vector_transient`.
      */

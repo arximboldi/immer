@@ -203,6 +203,18 @@ TEST_CASE("insert")
     }
 }
 
+TEST_CASE("erase")
+{
+    const auto n = 666u;
+    auto v = make_test_flex_vector(0, n);
+    auto vv = v.erase(0);
+    CHECK_VECTOR_EQUALS(vv, boost::irange(1u, n));
+    CHECK_VECTOR_EQUALS(v.erase(v.size() - 1), boost::irange(0u, n - 1));
+    CHECK_VECTOR_EQUALS(v.erase(v.size() - 1), boost::irange(0u, n - 1));
+    CHECK_VECTOR_EQUALS(v.erase(42), boost::join(boost::irange(0u, 42u),
+                                                 boost::irange(43u, n)));
+}
+
 TEST_CASE("accumulate relaxed")
 {
     auto expected_n =
