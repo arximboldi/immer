@@ -286,7 +286,8 @@ public:
     {
         using std::move;
         auto rs = drop(pos);
-        return move(*this).take(pos).push_back(move(value)) + move(rs);
+        return std::move(*this).take(pos).push_back(
+            std::move(value)) + std::move(rs);
     }
 
     /*!
@@ -298,7 +299,7 @@ public:
     decltype(auto) erase(size_type pos) &&
     {
         auto rs = drop(pos + 1);
-        return move(*this).take(pos) + move(rs);
+        return std::move(*this).take(pos) + std::move(rs);
     }
 
     /*!
