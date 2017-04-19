@@ -26,6 +26,12 @@
 
 namespace immer {
 
+/**
+ * @defgroup algorithm
+ * @{
+ */
+
+/*@{*/
 // Right now these algorithms dispatch directly to the vector
 // implementations unconditionally.  This will be changed in the
 // future to support other kinds of containers.
@@ -133,5 +139,7 @@ OutIter copy(InIter first, InIter last, OutIter out)
     });
     return out;
 }
+
+/** @} */ // group: algorithm
 
 } // namespace immer
