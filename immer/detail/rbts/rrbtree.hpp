@@ -221,32 +221,28 @@ struct rrbtree
     bool equals(const rrbtree& other) const
     {
         using iter_t = rrbtree_iterator<T, MemoryPolicy, B, BL>;
-        return size == other.size
-            && (size == 0
-                || ((size <= branches<B>
-                     || (!root->relaxed() && !other.root->relaxed()
-                         ? make_regular_sub_pos(root, shift, tail_offset()).visit(
-                             equals_visitor{}, other.root)
-                         : (root == other.root ||
-                            // if we had iterators that keep the whole
-                            // display, maybe we could have a
-                            // something a bit smarter here that can
-                            // still skip whole subtrees via identity
-                            for_each_chunk_p([iter = iter_t{other}]
-                                             (auto f, auto e) mutable {
-                                                 if (f == &*iter) {
-                                                     iter += e - f;
-                                                     return true;
-                                                 }
-                                                 for (; f != e; ++f, ++iter) {
-                                                     if (*f != *iter) {
-                                                         return false;
-                                                     }
-                                                 }
-                                                 return true;
-                                             }))))
-                    && make_leaf_sub_pos(tail, tail_size()).visit(
-                        equals_visitor{}, other.tail)));
+        if (size != other.size) return false;
+        if (size == 0) return true;
+        auto tail_off = tail_offset();
+        // compare trees
+        if (tail_off > 0 &&
+            !visit_maybe_relaxed_sub(
+                root, shift, tail_off,
+                equals_visitor{}, other.root, iter_t{other}, size_t{})) {
+            return false;
+        }
+        auto tail_off_other = tail_offset();
+        // compare leafs
+        return
+            tail_off == tail_off_other ? make_leaf_sub_pos(
+                tail, tail_size()).visit(
+                    equals_visitor{}, other.tail) :
+            tail_off > tail_off_other  ? std::equal(
+                tail->leaf(), tail->leaf() + (size - tail_off),
+                other.tail->leaf() + (tail_off - tail_off_other))
+            /* otherwise */            : std::equal(
+                tail->leaf(), tail->leaf() + (size - tail_off),
+                iter_t{other} + tail_off);
     }
 
     std::tuple<shift_t, node_t*>

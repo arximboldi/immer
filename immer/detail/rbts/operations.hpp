@@ -219,9 +219,83 @@ struct equals_visitor
 {
     using this_t = equals_visitor;
 
-    template <typename Pos, typename NodeT>
-    friend bool visit_relaxed(this_t, Pos&& pos, NodeT* other)
-    { IMMER_UNREACHABLE; }
+    template <typename Pos, typename Iter>
+    static bool uneven_tree_eq(Pos&& pos, Iter iter)
+    {
+        auto equal_chunk = [&] (auto f, auto e) {
+            if (f == &*iter) {
+                iter += e - f;
+                return true;
+            }
+            for (; f != e; ++f, ++iter)
+                if (*f != *iter)
+                    return false;
+            return true;
+        };
+        return pos.each_pred(for_each_chunk_p_visitor{}, equal_chunk);
+    }
+
+    template <typename Pos, typename NodeT, typename Iter>
+    friend bool visit_relaxed(this_t, Pos&& pos, NodeT* other,
+                              Iter&& first, size_t idx)
+    {
+        static constexpr auto B  = NodeT::bits;
+        static constexpr auto BL = NodeT::bits_leaf;
+
+        auto node   = pos.node();
+        if (node == other) return true;
+        auto relaxed = pos.relaxed();
+        auto other_relaxed = other->relaxed();
+        // we can try to zip the trees if the two size vectors are
+        // effectively the same
+        auto can_zip = other_relaxed && (
+            other_relaxed == relaxed ||
+            (other_relaxed->count == relaxed->count &&
+             std::equal(relaxed->sizes, relaxed->sizes + relaxed->count,
+                        other_relaxed->sizes)));
+        if (can_zip) {
+            // similar to each_pred_zip but varied and too specific to
+            // really consider it for extraction...
+            auto p = node->inner();
+            auto po = other->inner();
+            auto s = size_t{};
+            auto shift = pos.shift();
+            if (shift == BL) {
+                for (auto i = count_t{0}; i < relaxed->count; ++i) {
+                    if (!make_leaf_sub_pos(p[i], relaxed->sizes[i] - s).visit(
+                            this_t{}, po[i]))
+                        return false;
+                    s = relaxed->sizes[i];
+                }
+            } else {
+                for (auto i = count_t{0}; i < relaxed->count; ++i) {
+                    if (!visit_maybe_relaxed_sub(
+                            p[i], shift - B, relaxed->sizes[i] - s,
+                            this_t{}, po[i], first, idx + s))
+                        return false;
+                    s = relaxed->sizes[i];
+                }
+            }
+            return true;
+        } else {
+            return this_t::uneven_tree_eq(pos, first + idx);
+        }
+    }
+
+    template <typename Pos, typename NodeT, typename Iter>
+    friend bool visit_regular(this_t, Pos&& pos, NodeT* other,
+                              Iter&& first, size_t idx)
+    {
+        // if the other is relaxed, we could also check if the sizes
+        // are equivalent to that of a regular and zip in that case,
+        // but that is probably overkill...
+        auto can_zip = !other->relaxed();
+        auto node = pos.node();
+        return node == other
+            || (can_zip
+                ? pos.each_pred_zip(this_t{}, other)
+                : this_t::uneven_tree_eq(pos, first + idx));
+    }
 
     template <typename Pos, typename NodeT>
     friend bool visit_regular(this_t, Pos&& pos, NodeT* other)
@@ -239,7 +313,6 @@ struct equals_visitor
             || std::equal(node->leaf(), node->leaf() + pos.count(),
                           other->leaf());
     }
-
 };
 
 template <typename NodeT>
