@@ -13,12 +13,12 @@ the standard library algorithms require being passed in two iterators.
 
 .. note::
 
-   They are a similar idea to `structure-aware iterators<iterators>`_
+   They are a similar idea to `structure-aware iterators`_
    but implemented using higher order functions in order to support
    structures of any depth.  The downside is that this sometimes
    causes the compiler to generate bigger executable files.
 
-.. _iterators: https://www.youtube.com/watch?v=T3oA3zAMH9M
+.. _structure-aware iterators: https://www.youtube.com/watch?v=T3oA3zAMH9M
 
 
 -----
