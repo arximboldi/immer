@@ -323,6 +323,33 @@ TEST_CASE("equals bugs")
         CHECK(v == v.insert(10, 12).erase(10));
         CHECK(v == v.insert(0, 12).erase(0));
     }
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector(0, n);
+        for (auto i : test_irange(0u, n))
+            CHECK(v == v.insert(i, 42).erase(i));
+    }
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector_front(0, n);
+        for (auto i : test_irange(0u, n))
+            CHECK(v == v.insert(i, 42).erase(i));
+    }
+    {
+        const auto n = 666u;
+        auto v = FLEX_VECTOR_T<unsigned>{};
+        for (auto i : test_irange(0u, n)) {
+            while (v.size() < i)
+                v = std::move(v).push_back(i);
+            auto vv = v;
+            for (auto j : test_irange(0u, v.size())) {
+                auto vz = vv.insert(j, 42).erase(j);
+                CHECK(v == vz);
+                CHECK(vv == vz);
+                vv = vz;
+            }
+        }
+    }
 }
 
 TEST_CASE("take relaxed")
@@ -372,6 +399,7 @@ TEST_CASE("reconcat")
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + all_rhs[n - i];
         CHECK_VECTOR_EQUALS(vv, v);
+        CHECK_SLOW(vv == v);
     }
 }
 
@@ -384,6 +412,7 @@ TEST_CASE("reconcat drop")
     for (auto i = 0u; i < n; ++i) {
         auto vv = all_lhs[i] + v.drop(i);
         CHECK_VECTOR_EQUALS(vv, v);
+        CHECK_SLOW(vv == v);
     }
 }
 
@@ -396,6 +425,7 @@ TEST_CASE("reconcat take")
     for (auto i = 0u; i < n; ++i) {
         auto vv = v.take(i) + all_rhs[n - i];
         CHECK_VECTOR_EQUALS(vv, v);
+        CHECK_SLOW(vv == v);
     }
 }
 #endif
@@ -408,6 +438,7 @@ TEST_CASE("reconcat take drop")
     for (auto i : test_irange(0u, n)) {
         auto vv = v.take(i) + v.drop(i);
         CHECK_VECTOR_EQUALS(vv, v);
+        CHECK_SLOW(vv == v);
     }
 }
 
@@ -419,6 +450,7 @@ TEST_CASE("reconcat take drop feedback")
     for (auto i : test_irange(0u, n)) {
         vv = vv.take(i) + vv.drop(i);
         CHECK_VECTOR_EQUALS(vv, v);
+        CHECK_SLOW(vv == v);
     }
 }
 

@@ -771,6 +771,46 @@ struct regular_sub_pos
             : make_leaf_sub_pos(child, size_).visit(v, args...);
     }
 
+    template <typename Visitor, typename... Args>
+    decltype(auto) first_sub_inner(Visitor v, Args&&... args)
+    {
+        assert(shift_ >= BL);
+        auto child   = node_->inner() [0];
+        auto is_full = size_ >= branches<BL>;
+        return is_full
+            ? make_full_pos(child, shift_ - B).visit(v, args...)
+            : make_regular_sub_pos(child, shift_ - B, size_).visit(v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub(count_t idx, Visitor v, Args&&... args)
+    {
+        assert(idx < count());
+        auto is_leaf = shift_ == BL;
+        auto child   = node_->inner() [idx];
+        auto lsize   = size(idx);
+        auto is_full = idx + 1 < count();
+        return is_full
+            ? (is_leaf
+               ? make_full_leaf_pos(child).visit(v, args...)
+               : make_full_pos(child, shift_ - B).visit(v, args...))
+            : (is_leaf
+               ? make_leaf_sub_pos(child, lsize).visit(v, args...)
+               : make_regular_sub_pos(child, shift_ - B, lsize).visit(v, args...));
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub_leaf(count_t idx, Visitor v, Args&&... args)
+    {
+        assert(shift_ == BL);
+        auto child   = node_->inner() [idx];
+        auto lsize   = size(idx);
+        auto is_full = idx + 1 < count();
+        return is_full
+            ? make_full_leaf_pos(child).visit(v, args...)
+            : make_leaf_sub_pos(child, lsize).visit(v, args...);
+    }
+
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
@@ -1043,6 +1083,34 @@ struct full_pos
     {
         assert(shift_ == BL);
         auto child   = node_->inner() [0];
+        return make_full_leaf_pos(child).visit(v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) first_sub_inner(Visitor v, Args&&... args)
+    {
+        assert(shift_ >= BL);
+        auto child   = node_->inner() [0];
+        return make_full_pos(child, shift_ - B).visit(v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub(count_t idx, Visitor v, Args&&... args)
+    {
+        assert(idx < count());
+        auto is_leaf = shift_ == BL;
+        auto child   = node_->inner() [idx];
+        return is_leaf
+            ? make_full_leaf_pos(child).visit(v, args...)
+            : make_full_pos(child, shift_ - B).visit(v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub_leaf(count_t idx, Visitor v, Args&&... args)
+    {
+        assert(shift_ == BL);
+        assert(idx < count());
+        auto child   = node_->inner() [idx];
         return make_full_leaf_pos(child).visit(v, args...);
     }
 
@@ -1321,12 +1389,48 @@ struct relaxed_pos
         return make_leaf_sub_pos(child, child_size).visit(v, args...);
     }
 
+    template <typename Visitor, typename... Args>
+    decltype(auto) first_sub_inner(Visitor v, Args&&... args)
+    {
+        assert(shift_ > BL);
+        auto child      = node_->inner() [0];
+        auto child_size = relaxed_->sizes[0];
+        return visit_maybe_relaxed_sub(child, shift_ - B, child_size, v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub(count_t offset, Visitor v, Args&&... args)
+    {
+        auto child      = node_->inner() [offset];
+        auto child_size = size(offset);
+        auto is_leaf    = shift_ == BL;
+        return is_leaf
+            ? make_leaf_sub_pos(child, child_size).visit(v, args...)
+            : visit_maybe_relaxed_sub(child, shift_ - B, child_size, v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    decltype(auto) nth_sub_leaf(count_t offset, Visitor v, Args&&... args)
+    {
+        assert(shift_ == BL);
+        auto child      = node_->inner() [offset];
+        auto child_size = size(offset);
+        return make_leaf_sub_pos(child, child_size).visit(v, args...);
+    }
+
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
         return visit_relaxed(v, *this, std::forward<Args>(args)...);
     }
 };
+
+template <typename Pos>
+using is_relaxed = std::is_same<relaxed_pos<typename std::decay_t<Pos>::node_t>,
+                                std::decay_t<Pos>>;
+
+template <typename Pos>
+constexpr auto is_relaxed_v = is_relaxed<Pos>::value;
 
 template <typename NodeT>
 relaxed_pos<NodeT> make_relaxed_pos(NodeT* node,

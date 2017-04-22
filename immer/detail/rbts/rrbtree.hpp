@@ -224,15 +224,26 @@ struct rrbtree
         if (size != other.size) return false;
         if (size == 0) return true;
         auto tail_off = tail_offset();
+        auto tail_off_other = other.tail_offset();
         // compare trees
-        if (tail_off > 0 &&
-            !visit_maybe_relaxed_sub(
-                root, shift, tail_off,
-                equals_visitor{}, other.root, iter_t{other}, size_t{})) {
-            return false;
+        if (tail_off > 0 && tail_off_other > 0) {
+            // other.shift != shift is a theoretical possibility for
+            // relaxed trees that sadly we haven't managed to exercise
+            // in tests yet...
+            if (other.shift >= shift) {
+                if (!visit_maybe_relaxed_sub(
+                        other.root, other.shift, tail_off_other,
+                        equals_visitor::rrb{}, iter_t{other},
+                        root, shift, tail_off))
+                    return false;
+            } else {
+                if (!visit_maybe_relaxed_sub(
+                        root, shift, tail_off,
+                        equals_visitor::rrb{}, iter_t{*this},
+                        other.root, other.shift, tail_off_other))
+                    return false;
+            }
         }
-        auto tail_off_other = tail_offset();
-        // compare leafs
         return
             tail_off == tail_off_other ? make_leaf_sub_pos(
                 tail, tail_size()).visit(

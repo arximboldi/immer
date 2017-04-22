@@ -40,6 +40,12 @@ struct identity_t
 } // anonymous namespace
 
 #if IMMER_SLOW_TESTS
+#define CHECK_SLOW(...) CHECK(__VA_ARGS__)
+#else
+#define CHECK_SLOW(...)
+#endif
+
+#if IMMER_SLOW_TESTS
 #define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, xf_)         \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {           \
         auto size = std::distance(first, last);                      \
@@ -96,14 +102,19 @@ auto test_irange(Integer from, Integer to)
 #if IMMER_SLOW_TESTS
     return boost::irange(from, to);
 #else
-    assert(to - from > Integer{2});
-    return boost::join(
-        boost::irange(from, from + Integer{2}),
-        boost::join(
-            boost::irange(from + Integer{2},
-                          to - Integer{2},
-                          (to - from) / Integer{5}),
-            boost::irange(to - Integer{2}, to)));
+    if (to - from < Integer{3})
+        return boost::join(
+            boost::irange(Integer{}, Integer{}),
+            boost::join(boost::irange(from, to, 1),
+                        boost::irange(Integer{}, Integer{})));
+    else
+        return boost::join(
+            boost::irange(from, from + Integer{2}),
+            boost::join(
+                boost::irange(from + Integer{2},
+                              to - Integer{2},
+                              (to - from) / Integer{5}),
+                boost::irange(to - Integer{2}, to)));
 #endif
 }
 
