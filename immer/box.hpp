@@ -52,6 +52,7 @@ class box
     box(holder* impl) : impl_{impl} {}
 
 public:
+    using value_type    = T;
     using memory_policy = MemoryPolicy;
 
     /*!
