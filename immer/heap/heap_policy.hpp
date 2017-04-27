@@ -106,15 +106,6 @@ struct enable_heap_policy
  *    return a node that was just accessed.  When batches of immutable
  *    updates are made, this can make a significant difference.
  *
- * .. admonition:: Todo
- *
- *    It might be a bad idea to use this allocator when immutable data
- *    structures are seldom used, specially if, when used, very big
- *    structures requiring a lot of memory are created.  If no
- *    immutable data is created later, this memory is wasted. We
- *    should add *bound* the maximum amount of memory that is allowed
- *    to be parked in the free list.
- *
  * @endrst
  */
 template <typename Heap,
