@@ -13,7 +13,7 @@
 
 .. raw:: html
 
-   <img style="display:block; padding:150px 20%; margin:0 auto; width:100%;" src="https://sinusoid.es/immer/_static/logo.svg" alt="Fork me on GitHub"/>
+   <img style="display:block; padding:150px 20%; margin:0 auto; width:100%;" src="https://cdn.rawgit.com/arximboldi/immer/doc/doc/_static/logo.svg" alt="Logotype"/>
 
 **immer** is a library of persistent_ and immutable_ data structures
 written in C++.
