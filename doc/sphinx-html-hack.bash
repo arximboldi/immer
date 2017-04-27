@@ -75,3 +75,11 @@ fix-remove-countainer-css-class-in-member-definitions-causing-overflow()
     sed -i "s@$src@$dst@g" $location/_build/html/*.html
 }
 fix-remove-countainer-css-class-in-member-definitions-causing-overflow
+
+fix-remove-inherits-from()
+{
+    src='<p>Inherits from [^/]*</p>'
+    dst=''
+    sed -i "s@$src@$dst@g" $location/_build/html/*.html
+}
+fix-remove-inherits-from
