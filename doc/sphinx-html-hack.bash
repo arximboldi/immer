@@ -34,6 +34,7 @@ fix-do-not-repeat-type-in-member-using-declaration()
     dst='<em class="property">using </em><code class="descname">\3 = \4</code>'
     sed -i "s@$src@$dst@g" $location/_build/html/*.html
 }
+fix-do-not-repeat-type-in-member-using-declaration
 
 fix-remove-double-class-name()
 {
