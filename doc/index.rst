@@ -8,8 +8,7 @@ Contents
 .. toctree::
     :maxdepth: 3
 
-    Welcome<self>
-    quickstart
+    introduction
     containers
     transients
     memory
