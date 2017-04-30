@@ -6,4 +6,4 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "tools/sinusoidal-sphinx-theme"]
 	path = tools/sinusoidal-sphinx-theme
-	url = git@github.com:arximboldi/sinusoidal-sphinx-theme.git
+        url = https://github.com/arximboldi/sinusoidal-sphinx-theme.git
