@@ -147,6 +147,7 @@ html_theme = 'sinusoidal_sphinx_theme'
 extensions.append("sinusoidal_sphinx_theme")
 html_theme_options = {
     "project_nav_name": "immer",
+    "github_link" : "https://github.com/arximboldi/immer",
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
