@@ -135,10 +135,16 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-import guzzle_sphinx_theme
-html_theme_path = guzzle_sphinx_theme.html_theme_path()
-html_theme = 'guzzle_sphinx_theme'
-extensions.append("guzzle_sphinx_theme")
+
+import sys
+import os.path
+sys.path.append(os.path.join(os.path.dirname(__file__),
+                             '../tools/sinusoidal-sphinx-theme'))
+
+import sinusoidal_sphinx_theme
+html_theme_path = sinusoidal_sphinx_theme.html_theme_path()
+html_theme = 'sinusoidal_sphinx_theme'
+extensions.append("sinusoidal_sphinx_theme")
 html_theme_options = {
     "project_nav_name": "immer",
 }
