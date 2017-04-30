@@ -1,4 +1,3 @@
-
 #include <immer/vector.hpp>
 #include <cassert>
 

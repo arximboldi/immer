@@ -195,6 +195,17 @@ public:
     /*!
      * Returns a flex_vector with `value` inserted at the end.  It may
      * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: push-back/start
+     *      :end-before:  push-back/end
+     *
+     * @endrst
      */
     flex_vector push_back(value_type value) const&
     { return impl_.push_back(std::move(value)); }
@@ -205,6 +216,17 @@ public:
     /*!
      * Returns a flex_vector with `value` inserted at the frony.  It may
      * allocate memory and its complexity is @f$ O(log(size)) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: push-front/start
+     *      :end-before:  push-front/end
+     *
+     * @endrst
      */
     flex_vector push_front(value_type value) const
     { return flex_vector{}.push_back(value) + *this; }
@@ -214,6 +236,17 @@ public:
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: set/start
+     *      :end-before:  set/end
+     *
+     * @endrst
      */
     flex_vector set(size_type index, value_type value) const&
     { return impl_.assoc(index, std::move(value)); }
@@ -227,6 +260,18 @@ public:
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: update/start
+     *      :end-before:  update/end
+     *
+     * @endrst
+
      */
     template <typename FnT>
     flex_vector update(size_type index, FnT&& fn) const&
@@ -240,6 +285,17 @@ public:
      * Returns a vector containing only the first `min(elems, size())`
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: take/start
+     *      :end-before:  take/end
+     *
+     * @endrst
      */
     flex_vector take(size_type elems) const&
     { return impl_.take(elems); }
@@ -251,6 +307,17 @@ public:
      * Returns a vector without the first `min(elems, size())`
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: drop/start
+     *      :end-before:  drop/end
+     *
+     * @endrst
      */
     flex_vector drop(size_type elems) const&
     { return impl_.drop(elems); }
@@ -262,6 +329,17 @@ public:
      * Concatenation operator. Returns a flex_vector with the contents
      * of `l` followed by those of `r`.  It may allocate memory
      * and its complexity is @f$ O(log(max(size_r, size_l))) @f$
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: concat/start
+     *      :end-before:  concat/end
+     *
+     * @endrst
      */
     friend flex_vector operator+ (const flex_vector& l, const flex_vector& r)
     { return l.impl_.concat(r.impl_); }
@@ -279,6 +357,17 @@ public:
      * Returns a flex_vector with the `value` inserted at index
      * `pos`. It may allocate memory and its complexity is @f$
      * O(log(size)) @f$
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: insert/start
+     *      :end-before:  insert/end
+     *
+     * @endrst
      */
     flex_vector insert(size_type pos, T value) const&
     { return take(pos).push_back(std::move(value)) + drop(pos); }
@@ -293,6 +382,17 @@ public:
     /*!
      * Returns a flex_vector without the element at index `pos`. It
      * may allocate memory and its complexity is @f$ O(log(size)) @f$
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: erase/start
+     *      :end-before:  erase/end
+     *
+     * @endrst
      */
     flex_vector erase(size_type pos) const&
     { return take(pos) + drop(pos + 1); }
