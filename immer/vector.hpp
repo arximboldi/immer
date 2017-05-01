@@ -196,6 +196,17 @@ public:
     /*!
      * Returns a vector with `value` inserted at the end.  It may
      * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: push-back/start
+     *      :end-before:  push-back/end
+     *
+     * @endrst
      */
     vector push_back(value_type value) const&
     { return impl_.push_back(std::move(value)); }
@@ -208,6 +219,17 @@ public:
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: set/start
+     *      :end-before:  set/end
+     *
+     * @endrst
      */
     vector set(size_type index, value_type value) const&
     { return impl_.assoc(index, std::move(value)); }
@@ -221,6 +243,17 @@ public:
      * Undefined for `0 >= size()`.
      * It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: update/start
+     *      :end-before:  update/end
+     *
+     * @endrst
      */
     template <typename FnT>
     vector update(size_type index, FnT&& fn) const&
@@ -234,6 +267,17 @@ public:
      * Returns a vector containing only the first `min(elems, size())`
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/vector/vector.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: take/start
+     *      :end-before:  take/end
+     *
+     * @endrst
      */
     vector take(size_type elems) const&
     { return impl_.take(elems); }
