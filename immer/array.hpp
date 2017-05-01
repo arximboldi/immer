@@ -153,8 +153,8 @@ public:
      *   .. literalinclude:: ../example/array/array.cpp
      *      :language: c++
      *      :dedent: 8
-     *      :start-after: push_back/start
-     *      :end-before:  push_back/end
+     *      :start-after: push-back/start
+     *      :end-before:  push-back/end
      *
      * @endrst
      */
