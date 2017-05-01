@@ -27,10 +27,21 @@ namespace detail {
 template <typename T, typename MemoryPolicy>
 struct array_impl
 {
+    template <typename U>
+    static array_impl from_initializer_list(std::initializer_list<U> values)
+    { return {values}; }
+
+    template <typename Iter>
+    static array_impl from_range(Iter first, Iter last)
+    { return {first, last}; }
+
     const T& get(std::size_t index) const
     {
         return (*d)[index];
     }
+
+    bool equals(const array_impl& other) const
+    { return d == other.d; }
 
     array_impl push_back(T value) const
     {

@@ -74,6 +74,22 @@ public:
     array() = default;
 
     /*!
+     * Constructs a vector containing the elements in `values`.
+     */
+    array(std::initializer_list<T> values)
+        : impl_{impl_t::from_initializer_list(values)}
+    {}
+
+    /*!
+     * Constructs a vector containing the elements in the range
+     * defined by the input iterators `first` and `last`.
+     */
+    template <typename Iter>
+    array(Iter first, Iter last)
+        : impl_{impl_t::from_range(first, last)}
+    {}
+
+    /*!
      * Returns an iterator pointing at the first element of the
      * collection. It does not allocate memory and its complexity is
      * @f$ O(1) @f$.
@@ -118,6 +134,14 @@ public:
      */
     reference operator[] (size_type index) const
     { return impl_.get(index); }
+
+    /*!
+     * Returns whether the vectors are equal.
+     */
+    bool operator==(const array& other) const
+    { return impl_.equals(other.impl_); }
+    bool operator!=(const array& other) const
+    { return !(*this == other); }
 
     /*!
      * Returns an array with `value` inserted at the end.  It may

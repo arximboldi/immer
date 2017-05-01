@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 namespace immer {
-template <typename T> class array;
+template <typename T, typename MP> class array;
 } // namespace immer
 
 namespace {
@@ -83,8 +83,8 @@ template <typename T>
 struct get_limit : std::integral_constant<
     std::size_t, std::numeric_limits<std::size_t>::max()> {};
 
-template <typename T>
-struct get_limit<immer::array<T>> : std::integral_constant<
+template <typename T, typename MP>
+struct get_limit<immer::array<T, MP>> : std::integral_constant<
     std::size_t, 10000> {};
 
 auto make_librrb_vector(std::size_t n)
