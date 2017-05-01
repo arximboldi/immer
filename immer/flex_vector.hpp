@@ -199,7 +199,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: push-back/start
@@ -220,7 +220,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: push-front/start
@@ -240,7 +240,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: set/start
@@ -264,7 +264,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: update/start
@@ -289,7 +289,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: take/start
@@ -311,7 +311,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: drop/start
@@ -333,7 +333,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: concat/start
@@ -361,7 +361,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: insert/start
@@ -386,7 +386,7 @@ public:
      * @rst
      *
      * **Example**
-     *   .. literalinclude:: ../example/vector/flex-vector.cpp
+     *   .. literalinclude:: ../example/flex-vector/flex-vector.cpp
      *      :language: c++
      *      :dedent: 8
      *      :start-after: erase/start
