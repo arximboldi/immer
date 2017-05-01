@@ -120,6 +120,17 @@ public:
     /*!
      * Returns an array with `value` inserted at the end.  It may
      * allocate memory and its complexity is @f$ O(size) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/array/array.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: push_back/start
+     *      :end-before:  push_back/end
+     *
+     * @endrst
      */
     array push_back(value_type value) const
     { return { impl_.push_back(std::move(value)) }; }
@@ -128,6 +139,17 @@ public:
      * Returns an array containing value `value` at position `idx`.
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is @f$ O(size) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/array/array.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: set/start
+     *      :end-before:  set/end
+     *
+     * @endrst
      */
     array set(std::size_t index, value_type value) const
     { return { impl_.assoc(index, std::move(value)) }; }
@@ -137,6 +159,17 @@ public:
      * `fn((*this)[idx])` at position `idx`.
      * Undefined for `index >= size()`.
      * It may allocate memory and its complexity is @f$ O(size) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/array/array.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: update/start
+     *      :end-before:  update/end
+     *
+     * @endrst
      */
     template <typename FnT>
     array update(std::size_t index, FnT&& fn) const
