@@ -119,6 +119,17 @@ public:
     /*!
      * Returns a new box built by applying the `fn` to the underlying
      * value.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/box/box.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: update/start
+     *      :end-before:  update/end
+     *
+     * @endrst
      */
     template <typename Fn>
     box update(Fn&& fn) const&
