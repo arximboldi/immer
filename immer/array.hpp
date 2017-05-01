@@ -49,10 +49,10 @@ namespace immer {
  *
  * @endrst
  */
-template <typename T>
+template <typename T, typename MemoryPolicy = default_memory_policy>
 class array
 {
-    using impl_t = detail::array_impl<T>;
+    using impl_t = detail::array_impl<T, MemoryPolicy>;
 
 public:
     using value_type = T;
@@ -61,9 +61,11 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = typename std::vector<T>::iterator;
+    using iterator         = typename std::vector<T>::const_iterator;
     using const_iterator   = iterator;
-    using reverse_iterator = typename std::vector<T>::reverse_iterator;
+    using reverse_iterator = typename std::vector<T>::const_reverse_iterator;
+
+    using memory_policy = MemoryPolicy;
 
     /*!
      * Default constructor.  It creates an array of `size() == 0`.  It
@@ -133,7 +135,7 @@ public:
      * @endrst
      */
     array push_back(value_type value) const
-    { return { impl_.push_back(std::move(value)) }; }
+    { return impl_.push_back(std::move(value)); }
 
     /*!
      * Returns an array containing value `value` at position `idx`.
@@ -152,7 +154,7 @@ public:
      * @endrst
      */
     array set(std::size_t index, value_type value) const
-    { return { impl_.assoc(index, std::move(value)) }; }
+    { return impl_.assoc(index, std::move(value)); }
 
     /*!
      * Returns an array containing the result of the expression
@@ -173,11 +175,11 @@ public:
      */
     template <typename FnT>
     array update(std::size_t index, FnT&& fn) const
-    { return { impl_.update(index, std::forward<FnT>(fn)) }; }
+    { return impl_.update(index, std::forward<FnT>(fn)); }
 
 private:
     array(impl_t impl) : impl_(std::move(impl)) {}
-    impl_t impl_ = impl_t::empty;
+    impl_t impl_;
 };
 
 } /* namespace immer */

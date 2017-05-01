@@ -18,27 +18,15 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <immer/detail/ref_count_base.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <immer/box.hpp>
 #include <vector>
 
 namespace immer {
 namespace detail {
 
-template <typename T>
-struct array_data : std::vector<T>, ref_count_base<array_data<T>>
-{
-    using std::vector<T>::vector;
-
-    array_data(const array_data& v) : std::vector<T> (v) {}
-    array_data(array_data&& v) : std::vector<T> (std::move(v)) {}
-};
-
-template <typename T>
+template <typename T, typename MemoryPolicy>
 struct array_impl
 {
-    static const array_impl empty;
-
     const T& get(std::size_t index) const
     {
         return (*d)[index];
@@ -69,16 +57,20 @@ struct array_impl
     template <typename Fn>
     array_impl mutated(Fn&& op) const
     {
-        auto x = new array_data<T>(*d);
-        std::forward<Fn>(op) (*x);
-        return { x };
+        return {d.update([&] (auto v) {
+            std::forward<Fn>(op) (v);
+            return v;
+        })};
     }
 
-    boost::intrusive_ptr<array_data<T>> d;
+    using data_t = box<std::vector<T>, MemoryPolicy>;
+
+    static const data_t empty;
+    data_t d = empty;
 };
 
-template <typename T>
-const array_impl<T> array_impl<T>::empty = { new array_data<T>{} };
+template <typename T, typename MP>
+const typename array_impl<T, MP>::data_t array_impl<T, MP>::empty = {};
 
 } // namespace detail
 } // namespace immer

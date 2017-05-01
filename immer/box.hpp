@@ -106,6 +106,12 @@ public:
     /*! Conversion to the boxed type. */
     operator const T&() const { return get(); }
 
+    /*! Access via dereference */
+    const T& operator* () const { return get(); }
+
+    /*! Access via pointer member access */
+    const T* operator-> () const { return &get(); }
+
     /*! Comparison. */
     bool operator==(detail::exact_t<const box&> other) const
     { return impl_ == other.value.impl_ || get() == other.value.get(); }
@@ -134,7 +140,7 @@ public:
     template <typename Fn>
     box update(Fn&& fn) const&
     {
-        return std::forward<Fn>(fn)(impl_->value);
+        return std::forward<Fn>(fn)(get());
     }
     template <typename Fn>
     box&& update(Fn&& fn) &&
