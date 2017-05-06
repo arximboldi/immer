@@ -64,7 +64,7 @@ using inner_node = std::array<node_ptr<T, B, MP>, 1 << B>;
 
 template <typename T, int B, typename MP>
 struct node : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
-            , enable_heap_policy<node<T, B, MP>, typename MP::heap>
+            , enable_optimized_heap_policy<node<T, B, MP>, typename MP::heap>
 {
     using leaf_node_t  = leaf_node<T, B>;
     using inner_node_t = inner_node<T, B, MP>;

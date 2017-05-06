@@ -45,7 +45,7 @@ struct gc_transience_policy
     {
         struct type
         {
-            using heap_ = typename HeapPolicy::template apply<1>::type;
+            using heap_ = typename HeapPolicy::type;
 
             using edit = void*;
 

@@ -159,6 +159,8 @@ allocators.
 
 .. doxygenstruct:: immer::debug_size_heap
 
+.. doxygenstruct:: immer::split_heap
+
 .. _rc:
 
 Reference counting

@@ -151,10 +151,12 @@ struct dadaist_memory_policy : MP
 {
     struct heap
     {
-        template <std::size_t... Sizes>
-        struct apply
+        using type = dadaist_heap<typename MP::heap::type>;
+
+        template <std::size_t Size>
+        struct optimized
         {
-            using base = typename MP::heap::template apply<Sizes...>::type;
+            using base = typename MP::heap::template optimized<Size>::type;
             using type = dadaist_heap<base>;
         };
     };

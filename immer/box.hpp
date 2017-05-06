@@ -44,8 +44,7 @@ class box
         holder(Args&&... args) : value{std::forward<Args>(args)...} {}
     };
 
-    using heap = typename MemoryPolicy::heap::
-        template apply<sizeof(holder)>::type;
+    using heap = typename MemoryPolicy::heap::type;
 
     holder* impl_ = nullptr;
 

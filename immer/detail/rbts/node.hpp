@@ -199,11 +199,8 @@ struct node
     constexpr static std::size_t sizeof_leaf_n(count_t n)
     { return keep_headroom ? max_sizeof_leaf : sizeof_packed_leaf_n(n); }
 
-    using heap = typename heap_policy::template apply<
-        max_sizeof_inner,
-        max_sizeof_inner_r,
-        max_sizeof_leaf
-    >::type;
+    using heap = typename heap_policy::template
+        optimized<max_sizeof_inner>::type;
 
 #if IMMER_RBTS_TAGGED_NODE
     kind_t kind() const
