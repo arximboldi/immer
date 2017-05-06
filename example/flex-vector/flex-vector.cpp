@@ -14,11 +14,11 @@ int main()
     }
     {
 // include:push-front/start
-    auto v1 = immer::flex_vector<int>{1};
-    auto v2 = v1.push_front(8);
+        auto v1 = immer::flex_vector<int>{1};
+        auto v2 = v1.push_front(8);
 
-    assert((v1 == immer::flex_vector<int>{1}));
-    assert((v2 == immer::flex_vector<int>{8,1}));
+        assert((v1 == immer::flex_vector<int>{1}));
+        assert((v2 == immer::flex_vector<int>{8,1}));
 // include:push-front/end
     }
 
