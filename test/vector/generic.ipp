@@ -43,6 +43,11 @@ auto make_test_vector(unsigned min, unsigned max)
     return v;
 }
 
+struct big_object
+{
+    std::array<std::size_t, 42> v;
+};
+
 TEST_CASE("instantiation")
 {
     SECTION("default")
@@ -55,6 +60,12 @@ TEST_CASE("instantiation")
     {
         auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+    }
+
+    SECTION("big object")
+    {
+        auto v = VECTOR_T<big_object>{{}, {}, {}, {}};
+        CHECK(v.size() == 4);
     }
 
     SECTION("range")

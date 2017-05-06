@@ -974,12 +974,6 @@ constexpr bits_t derive_bits_leaf_aux()
     constexpr auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0);
     constexpr auto full_elems = space / sizeof_elem;
     constexpr auto BL = log2(full_elems);
-    using result_t = node<T, MP, B, BL>;
-    static_assert(
-        result_t::max_sizeof_leaf <= result_t::max_sizeof_inner,
-        "TODO: fix the heap policy design such that, in this case,\
-we do not create free lists for degenerately big free nodes and\
-always use the same sized free lists for all types!");
     return BL;
 }
 
