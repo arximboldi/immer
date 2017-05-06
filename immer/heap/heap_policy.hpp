@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/heap/debug_size_heap.hpp>
 #include <immer/heap/free_list_heap.hpp>
 #include <immer/heap/malloc_heap.hpp>
 #include <immer/heap/thread_local_free_list_heap.hpp>
@@ -121,7 +122,9 @@ struct free_list_heap_policy
             thread_local_free_list_heap<
                 max_size,
                 Limit,
-                free_list_heap<max_size, Limit, Heap>>>;
+                free_list_heap<
+                    max_size, Limit,
+                    debug_size_heap<Heap>>>>;
     };
 };
 
@@ -140,7 +143,9 @@ struct unsafe_free_list_heap_policy
         static constexpr auto max_size = std::max({Sizes...});
 
         using type = with_free_list_node<
-            unsafe_free_list_heap<max_size, Limit, Heap>>;
+            unsafe_free_list_heap<
+                max_size, Limit,
+                debug_size_heap<Heap>>>;
     };
 };
 

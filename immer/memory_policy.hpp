@@ -121,7 +121,7 @@ struct memory_policy
  * then it just uses the standard heap.
  */
 #if IMMER_NO_FREE_LIST
-using default_heap_policy = heap_policy<malloc_heap>;
+using default_heap_policy = heap_policy<debug_size_heap<malloc_heap>>;
 #else
 #if IMMER_NO_THREAD_SAFETY
 using default_heap_policy = unsafe_free_list_heap_policy<malloc_heap>;
