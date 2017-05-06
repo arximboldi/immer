@@ -79,7 +79,7 @@ allocate objects of those sizes.
 A **heap** is a type with a methods ``void* allocate(std::size_t)``
 and ``void deallocate(void*)`` that return and release raw memory.
 For a canonical model of this concept check the
-:cpp:class:`immer::malloc_heap`.
+:cpp:class:`immer::cpp_heap`.
 
 .. note:: Currently, *heaps* can only have **global state**.  Having
           internal state poses conceptual problems for immutable data
@@ -117,6 +117,12 @@ Heap policies
 
 .. doxygenstruct:: immer::free_list_heap_policy
 
+Standard heap
+~~~~~~~~~~~~~
+
+.. doxygenstruct:: immer::cpp_heap
+   :members:
+
 Malloc heap
 ~~~~~~~~~~~
 
@@ -148,6 +154,10 @@ allocators.
 .. doxygenstruct:: immer::thread_local_free_list_heap
 
 .. doxygenstruct:: immer::unsafe_free_list_heap
+
+.. doxygenstruct:: immer::identity_heap
+
+.. doxygenstruct:: immer::debug_size_heap
 
 .. _rc:
 

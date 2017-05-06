@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/heap/cpp_heap.hpp>
 #include <immer/heap/heap_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
@@ -54,7 +55,7 @@ struct get_prefer_fewer_bigger_objects
     : std::integral_constant<bool,
                              std::is_same<
                                  HeapPolicy,
-                                 heap_policy<malloc_heap>
+                                 heap_policy<cpp_heap>
                                  >::value>
 {};
 
@@ -121,12 +122,12 @@ struct memory_policy
  * then it just uses the standard heap.
  */
 #if IMMER_NO_FREE_LIST
-using default_heap_policy = heap_policy<debug_size_heap<malloc_heap>>;
+using default_heap_policy = heap_policy<debug_size_heap<cpp_heap>>;
 #else
 #if IMMER_NO_THREAD_SAFETY
-using default_heap_policy = unsafe_free_list_heap_policy<malloc_heap>;
+using default_heap_policy = unsafe_free_list_heap_policy<cpp_heap>;
 #else
-using default_heap_policy = free_list_heap_policy<malloc_heap>;
+using default_heap_policy = free_list_heap_policy<cpp_heap>;
 #endif
 #endif
 
