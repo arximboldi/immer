@@ -52,6 +52,14 @@ fix-remove-straneous-typedefs()
     sed -i "s@$src@$dst@g" $location/_build/html/*.html
 }
 
+fix-remove-straneous-typedefs-2()
+{
+    src='= typedef '
+    dst='= '
+    sed -i "s@$src@$dst@g" $location/_build/html/*.html
+}
+fix-remove-straneous-typedefs-2
+
 fix-remove-straneous-using-declarations()
 {
     src='<em class="property">using </em>template&lt;&gt;<br />'
