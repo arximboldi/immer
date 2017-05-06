@@ -59,14 +59,22 @@ fix-remove-straneous-using-declarations()
     sed -i "s@$src@$dst@g" $location/_build/html/*.html
 }
 
-fix-remove-straneous-template-in-using-declarations()
+fix-remove-straneous-template-in-using-declarations-1()
 {
     src='\(<dl class="type">\n<dt[^>]*>\)\ntemplate&lt;&gt;<br />'
     dst='\1'
     pre=':a;N;$!ba;'
     sed -i "$pre;s@$src@$dst@g" $location/_build/html/*.html
 }
-fix-remove-straneous-template-in-using-declarations
+fix-remove-straneous-template-in-using-declarations-1
+
+fix-remove-straneous-template-in-using-declarations-2()
+{
+    src='></span>template&lt;&gt;<br /><span '
+    dst='></span><span '
+    sed -i "s@$src@$dst@g" $location/_build/html/*.html
+}
+fix-remove-straneous-template-in-using-declarations-2
 
 fix-remove-countainer-css-class-in-member-definitions-causing-overflow()
 {
