@@ -198,29 +198,48 @@ results of running the benchmarks will be saved to a folder
 License
 -------
 
-This software is licensed under the `GPLv3 license`_.
+**This software is licensed under the GNU Lesser General Public
+License v3 (LGPLv3+)**.
 
-.. admonition:: License header
+.. image:: https://www.gnu.org/graphics/lgplv3-147x51.png
+   :alt: LGPL3 logo
+   :target: https://www.gnu.org/licenses/lgpl-3.0.en.html
+   :align: right
 
-    Copyright (C) 2016 Juan Pedro Bolivar Puente
+The full text of the license is can be accessed `via this link
+<https://www.gnu.org/licenses/lgpl-3.0.en.html>`_ and is also included
+in the ``LICENSE`` file of this software package.
 
-    This file is part of immer.
+This is a header-only library.  As such, under the terms of the LGPLv3
+license, you can **use** it to build any kind of software.  However, if you
+distribute software containing a **modified** version of Immer, you
+need to make your version of Immer available to your users under the
+LGPLv3 license.  For further details please refer to the ``LICENSE``
+file.
 
-    immer is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+**Alternatively, you can purchase a custom license tailored to your
+business needs.**
 
-    immer is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+**For any licensing questions, contact us on** immer@sinusoid.al
 
-    You should have received a copy of the GNU General Public License
-    along with immer.  If not, see <http://www.gnu.org/licenses/>.
+----
 
-.. _gplv3 license: https://www.gnu.org/licenses/gpl-3.0.en.html
+.. code-block:: plain
 
-.. image:: https://www.gnu.org/graphics/gplv3-127x51.png
-   :alt: GPL3 logo
-   :target: https://www.gnu.org/licenses/gpl-3.0.en.html
+   immer - immutable data structures for C++
+   Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+
+   This file is part of immer.
+
+   immer is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   immer is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with immer.  If not, see <http://www.gnu.org/licenses/>.
