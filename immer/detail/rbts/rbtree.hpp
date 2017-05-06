@@ -38,8 +38,9 @@ template <typename T,
           bits_t BL>
 struct rbtree
 {
-    using node_t = node<T, MemoryPolicy, B, BL>;
-    using edit_t = typename node_t::edit_t;
+    using node_t  = node<T, MemoryPolicy, B, BL>;
+    using edit_t  = typename node_t::edit_t;
+    using owner_t = typename MemoryPolicy::transience_t::owner;
 
     size_t   size;
     shift_t  shift;
@@ -51,7 +52,7 @@ struct rbtree
     template <typename U>
     static auto from_initializer_list(std::initializer_list<U> values)
     {
-        auto e = edit_t{};
+        auto e = owner_t{};
         auto result = rbtree{empty};
         for (auto&& v : values)
             result.push_back_mut(e, v);
@@ -61,7 +62,7 @@ struct rbtree
     template <typename Iter>
     static auto from_range(Iter first, Iter last)
     {
-        auto e = edit_t{};
+        auto e = owner_t{};
         auto result = rbtree{empty};
         for (; first != last; ++first)
             result.push_back_mut(e, *first);

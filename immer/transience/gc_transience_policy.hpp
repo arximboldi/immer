@@ -47,11 +47,17 @@ struct gc_transience_policy
         {
             using heap_ = typename HeapPolicy::type;
 
-            using edit = void*;
+            struct edit
+            {
+                void* v;
+                edit() = delete;
+                bool operator==(edit x) const { return v == x.v; }
+                bool operator!=(edit x) const { return v != x.v; }
+            };
 
             struct owner
             {
-                edit token_ = heap_::allocate(1, norefs_tag{});
+                edit token_ {heap_::allocate(1, norefs_tag{})};
 
                 operator edit () { return token_; }
 
@@ -68,18 +74,18 @@ struct gc_transience_policy
 
             struct ownee
             {
-                edit token_ = nullptr;
+                edit token_ {nullptr};
 
                 ownee& operator=(edit e)
                 {
-                    assert(token_ == e ||
-                           token_ == nullptr);
+                    assert(e != noone);
+                    assert(token_ == e || token_ == edit{nullptr});
                     token_ = e;
                     return *this;
                 }
 
                 bool can_mutate(edit t) const { return token_ == t; }
-                bool owned() const { return token_ != nullptr; }
+                bool owned() const { return token_ != edit{nullptr}; }
             };
 
             static owner noone;
