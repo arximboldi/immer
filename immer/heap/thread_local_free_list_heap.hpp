@@ -89,10 +89,13 @@ public:
     }
 
     template <typename... Tags>
-    static void deallocate(void* data, Tags...)
+    static void deallocate(std::size_t size, void* data, Tags...)
     {
+        assert(size <= sizeof(free_list_node) + Size);
+        assert(size >= sizeof(free_list_node));
+
         if (storage::head.count >= Limit)
-            base_t::deallocate(data);
+            base_t::deallocate(Size + sizeof(free_list_node), data);
         else {
             auto n = static_cast<free_list_node*>(data);
             n->next = storage::head.data;
@@ -105,7 +108,7 @@ public:
     {
         while (storage::head.data) {
             auto n = storage::head.data->next;
-            base_t::deallocate(storage::head.data);
+            base_t::deallocate(Size + sizeof(free_list_node), storage::head.data);
             storage::head.data = n;
             --storage::head.count;
         }

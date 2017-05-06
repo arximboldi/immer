@@ -41,7 +41,7 @@ TEST_CASE("malloc")
     {
         auto p = heap::allocate(42u);
         do_stuff_to(p, 42u);
-        heap::deallocate(p);
+        heap::deallocate(42, p);
     }
 }
 
@@ -53,7 +53,7 @@ TEST_CASE("gc")
     {
         auto p = heap::allocate(42u);
         do_stuff_to(p, 42u);
-        heap::deallocate(p);
+        heap::deallocate(42, p);
     }
 }
 
@@ -66,18 +66,18 @@ void test_free_list_heap()
     {
         auto p = heap::allocate(42u);
         do_stuff_to(p, 42u);
-        heap::deallocate(p);
+        heap::deallocate(42, p);
     }
 
     SECTION("reuse")
     {
         auto p = heap::allocate(42u);
         do_stuff_to(p, 42u);
-        heap::deallocate(p);
+        heap::deallocate(42, p);
 
         auto u = heap::allocate(12u);
         do_stuff_to(u, 12u);
-        heap::deallocate(u);
+        heap::deallocate(12, u);
         CHECK(u == p);
     }
 }
@@ -91,7 +91,6 @@ TEST_CASE("thread local free list")
 {
     test_free_list_heap<immer::thread_local_free_list_heap<42u, 2, immer::malloc_heap>>();
 }
-
 
 TEST_CASE("unsafe free_list")
 {

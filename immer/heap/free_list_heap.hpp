@@ -60,12 +60,15 @@ struct free_list_heap : Base
     }
 
     template <typename... Tags>
-    static void deallocate(void* data, Tags...)
+    static void deallocate(std::size_t size, void* data, Tags...)
     {
+        assert(size <= sizeof(free_list_node) + Size);
+        assert(size >= sizeof(free_list_node));
+
         // we use relaxed, because we are fine with temporarily having
         // a few more/less buffers in free list
         if (head_.count.load(std::memory_order_relaxed) >= Limit) {
-            base_t::deallocate(data);
+            base_t::deallocate(Size + sizeof(free_list_node), data);
         } else {
             auto n = static_cast<free_list_node*>(data);
             do {

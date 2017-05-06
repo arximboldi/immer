@@ -44,6 +44,7 @@ struct no_transience_policy
             {
                 ownee& operator=(edit) { return *this; };
                 bool can_mutate(edit) const { return false; }
+                bool owned() const { return false; }
             };
 
             static owner noone;

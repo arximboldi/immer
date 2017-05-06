@@ -54,12 +54,12 @@ struct enable_heap_policy
         return heap_type::allocate(size);
     }
 
-    static void operator delete (void* data)
+    static void operator delete (void* data, std::size_t size)
     {
         using heap_type = typename HeapPolicy
             ::template apply<sizeof(Deriv)>::type;
 
-        heap_type::deallocate(data);
+        heap_type::deallocate(size, data);
     }
 };
 

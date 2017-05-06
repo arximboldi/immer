@@ -266,7 +266,7 @@ struct rrbtree
             if (new_root)
                 return { shift, new_root };
             else {
-                auto new_root = node_t::make_inner_r_n(2u);
+                auto new_root = node_t::make_inner_r_n(2);
                 try {
                     auto new_path = node_t::make_path(shift, tail);
                     new_root->inner() [0] = root->inc();
@@ -275,19 +275,19 @@ struct rrbtree
                     new_root->relaxed()->sizes [1] = size + tail_size;
                     new_root->relaxed()->count = 2u;
                 } catch (...) {
-                    node_t::delete_inner_r(new_root);
+                    node_t::delete_inner_r(new_root, 2);
                     throw;
                 }
                 return { shift + B, new_root };
             }
         } else if (size == size_t{branches<B>} << shift) {
-            auto new_root = node_t::make_inner_n(2u);
+            auto new_root = node_t::make_inner_n(2);
             try {
                 auto new_path = node_t::make_path(shift, tail);
                 new_root->inner() [0] = root->inc();
                 new_root->inner() [1] = new_path;
             } catch (...) {
-                node_t::delete_inner(new_root);
+                node_t::delete_inner(new_root, 2);
                 throw;
             }
             return { shift + B, new_root };
@@ -320,7 +320,7 @@ struct rrbtree
                     root = new_root;
                     shift += B;
                 } catch (...) {
-                    node_t::delete_inner_r(new_root);
+                    node_t::delete_inner_r_e(new_root);
                     throw;
                 }
             }
@@ -333,7 +333,7 @@ struct rrbtree
                 root = new_root;
                 shift += B;
             } catch (...) {
-                node_t::delete_inner(new_root);
+                node_t::delete_inner_e(new_root);
                 throw;
             }
         } else if (tail_off) {

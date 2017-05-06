@@ -227,7 +227,7 @@ struct rbtree
                         tail = new_tail;
                         shift += B;
                     } catch (...) {
-                        node_t::delete_inner(new_root);
+                        node_t::delete_inner_e(new_root);
                         throw;
                     }
                 } else if (tail_off) {
@@ -271,7 +271,7 @@ struct rbtree
                         tail->inc();
                         return { size + 1, shift + B, new_root, new_tail };
                     } catch (...) {
-                        node_t::delete_inner(new_root);
+                        node_t::delete_inner(new_root, 2);
                         throw;
                     }
                 } else if (tail_off) {

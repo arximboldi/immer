@@ -79,6 +79,7 @@ struct gc_transience_policy
                 }
 
                 bool can_mutate(edit t) const { return token_ == t; }
+                bool owned() const { return token_ != nullptr; }
             };
 
             static owner noone;

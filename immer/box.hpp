@@ -96,7 +96,7 @@ public:
     {
         if (impl_ && impl_->dec()) {
             impl_->~holder();
-            heap::deallocate(impl_);
+            heap::deallocate(sizeof(holder), impl_);
         }
     }
 

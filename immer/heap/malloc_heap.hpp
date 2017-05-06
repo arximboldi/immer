@@ -44,7 +44,7 @@ struct malloc_heap
      * `allocate`.  One must not use nor deallocate again a memory
      * region that once it has been deallocated.
      */
-    static void deallocate(void* data)
+    static void deallocate(std::size_t, void* data)
     {
         std::free(data);
     }

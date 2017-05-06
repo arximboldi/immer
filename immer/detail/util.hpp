@@ -60,7 +60,7 @@ T* make(Args&& ...args)
     try {
         return new (ptr) T{std::forward<Args>(args)...};
     } catch (...) {
-        Heap::deallocate(ptr);
+        Heap::deallocate(sizeof(T), ptr);
         throw;
     }
 }

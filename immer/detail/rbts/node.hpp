@@ -194,7 +194,7 @@ struct node
     { return keep_headroom ? max_sizeof_inner_r : sizeof_packed_inner_r_n(n); }
 
     constexpr static std::size_t sizeof_relaxed_n(count_t n)
-    { return keep_headroom ? max_sizeof_inner : sizeof_packed_relaxed_n(n); }
+    { return keep_headroom ? max_sizeof_relaxed : sizeof_packed_relaxed_n(n); }
 
     constexpr static std::size_t sizeof_leaf_n(count_t n)
     { return keep_headroom ? max_sizeof_leaf : sizeof_packed_leaf_n(n); }
@@ -286,7 +286,7 @@ struct node
             try {
                 mr = check_alloc(heap::allocate(sizeof_relaxed_n(n), norefs_tag{}));
             } catch (...) {
-                heap::deallocate(mp);
+                heap::deallocate(sizeof_inner_r_n(n), mp);
                 throw;
             }
         }
@@ -328,7 +328,7 @@ struct node
             try {
                 mr = check_alloc(heap::allocate(max_sizeof_relaxed, norefs_tag{}));
             } catch (...) {
-                heap::deallocate(mp);
+                heap::deallocate(max_sizeof_inner_r, mp);
                 throw;
             }
         }
@@ -494,7 +494,7 @@ struct node
         try {
             new (p->leaf()) T{ std::forward<U>(x) };
         } catch (...) {
-            heap::deallocate(p);
+            heap::deallocate(node_t::sizeof_leaf_n(n), p);
             throw;
         }
         return p;
@@ -507,7 +507,7 @@ struct node
         try {
             new (p->leaf()) T{ std::forward<U>(x) };
         } catch (...) {
-            heap::deallocate(p);
+            heap::deallocate(node_t::max_sizeof_leaf, p);
             throw;
         }
         return p;
@@ -523,7 +523,7 @@ struct node
             try {
                 n->inner() [0] = make_path(shift - B, node);
             } catch (...) {
-                heap::deallocate(n);
+                heap::deallocate(node_t::sizeof_inner_n(1), n);
                 throw;
             }
             return n;
@@ -540,7 +540,7 @@ struct node
             try {
                 n->inner() [0] = make_path_e(e, shift - B, node);
             } catch (...) {
-                heap::deallocate(n);
+                heap::deallocate(node_t::max_sizeof_inner, n);
                 throw;
             }
             return n;
@@ -641,7 +641,7 @@ struct node
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(n), dst);
             throw;
         }
         return dst;
@@ -654,7 +654,7 @@ struct node
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(node_t::max_sizeof_leaf, dst);
             throw;
         }
         return dst;
@@ -668,7 +668,7 @@ struct node
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(allocn), dst);
             throw;
         }
         return dst;
@@ -684,7 +684,7 @@ struct node
             std::uninitialized_copy(
                 src1->leaf(), src1->leaf() + n1, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(n1 + n2), dst);
             throw;
         }
         try {
@@ -692,7 +692,7 @@ struct node
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         } catch (...) {
             destroy_n(dst->leaf(), n1);
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(n1 + n2), dst);
             throw;
         }
         return dst;
@@ -709,7 +709,7 @@ struct node
             std::uninitialized_copy(
                 src1->leaf(), src1->leaf() + n1, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(max_sizeof_leaf, dst);
             throw;
         }
         try {
@@ -717,7 +717,7 @@ struct node
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         } catch (...) {
             destroy_n(dst->leaf(), n1);
-            heap::deallocate(dst);
+            heap::deallocate(max_sizeof_leaf, dst);
             throw;
         }
         return dst;
@@ -731,7 +731,7 @@ struct node
             std::uninitialized_copy(
                 src->leaf() + idx, src->leaf() + last, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(max_sizeof_leaf, dst);
             throw;
         }
         return dst;
@@ -745,7 +745,7 @@ struct node
             std::uninitialized_copy(
                 src->leaf() + idx, src->leaf() + last, dst->leaf());
         } catch (...) {
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(last - idx), dst);
             throw;
         }
         return dst;
@@ -759,44 +759,71 @@ struct node
             new (dst->leaf() + n) T{std::forward<U>(x)};
         } catch (...) {
             destroy_n(dst->leaf(), n);
-            heap::deallocate(dst);
+            heap::deallocate(node_t::sizeof_leaf_n(n + 1), dst);
             throw;
         }
         return dst;
     }
 
-    static void delete_inner(node_t* p)
+    static void delete_inner(node_t* p, count_t n)
     {
         assert(p->kind() == kind_t::inner);
         assert(!p->relaxed());
-        heap::deallocate(p);
+        heap::deallocate(ownee(p).owned()
+                         ? node_t::max_sizeof_inner
+                         : node_t::sizeof_inner_n(n), p);
     }
 
-    static void delete_inner_any(node_t* p)
+    static void delete_inner_e(node_t* p)
+    {
+        assert(p->kind() == kind_t::inner);
+        assert(!p->relaxed());
+        heap::deallocate(node_t::max_sizeof_inner, p);
+    }
+
+    static void delete_inner_any(node_t* p, count_t n)
     {
         if (p->relaxed())
-            delete_inner_r(p);
+            delete_inner_r(p, n);
         else
-            delete_inner(p);
+            delete_inner(p, n);
     }
 
-    static void delete_inner_r(node_t* p)
+    static void delete_inner_r(node_t* p, count_t n)
     {
         assert(p->kind() == kind_t::inner);
         auto r = p->relaxed();
         assert(r);
         static_if<!embed_relaxed>([&] (auto) {
             if (refs(r).dec())
-                heap::deallocate(r);
+                heap::deallocate(ownee(r).owned()
+                                 ? node_t::max_sizeof_relaxed
+                                 : node_t::sizeof_relaxed_n(n), r);
         });
-        heap::deallocate(p);
+        heap::deallocate(ownee(p).owned()
+                         ? node_t::max_sizeof_inner_r
+                         : node_t::sizeof_inner_r_n(n), p);
+    }
+
+    static void delete_inner_r_e(node_t* p)
+    {
+        assert(p->kind() == kind_t::inner);
+        auto r = p->relaxed();
+        assert(r);
+        static_if<!embed_relaxed>([&] (auto) {
+            if (refs(r).dec())
+                heap::deallocate(node_t::max_sizeof_relaxed, r);
+        });
+        heap::deallocate(node_t::max_sizeof_inner_r, p);
     }
 
     static void delete_leaf(node_t* p, count_t n)
     {
         assert(p->kind() == kind_t::leaf);
         destroy_n(p->leaf(), n);
-        heap::deallocate(p);
+        heap::deallocate(ownee(p).owned()
+                         ? node_t::max_sizeof_leaf
+                         : node_t::sizeof_leaf_n(n), p);
     }
 
     bool can_mutate(edit_t e) const

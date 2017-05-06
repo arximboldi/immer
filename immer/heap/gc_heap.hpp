@@ -120,12 +120,12 @@ public:
         return GC_malloc_atomic(n);
     }
 
-    static void deallocate(void* data)
+    static void deallocate(std::size_t, void* data)
     {
         GC_free(data);
     }
 
-    static void deallocate(void* data, norefs_tag)
+    static void deallocate(std::size_t, void* data, norefs_tag)
     {
         GC_free(data);
     }

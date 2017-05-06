@@ -44,11 +44,11 @@ struct with_data : Base
     }
 
     template <typename... Tags>
-    static void deallocate(void* p, Tags... tags)
+    static void deallocate(std::size_t size, void* p, Tags... tags)
     {
         auto dp = static_cast<T*>(p) - 1;
         dp->~T();
-        base_t::deallocate(dp, tags...);
+        base_t::deallocate(size + sizeof(T), dp, tags...);
     }
 };
 

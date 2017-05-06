@@ -40,7 +40,6 @@
 #else
 #define IMMER_TRACE(...)
 #endif
-
 #define IMMER_TRACE_F(...)                                              \
     IMMER_TRACE(__FILE__ << ":" << __LINE__ << ": " << __VA_ARGS__)
 #define IMMER_TRACE_E(expr)                             \
@@ -54,6 +53,12 @@
 #define IMMER_FORCEINLINE inline __attribute__ ((always_inline))
 
 #define IMMER_DESCENT_DEEP 0
+
+#ifdef NDEBUG
+#define IMMER_ENABLE_DEBUG_SIZE_HEAP 0
+#else
+#define IMMER_ENABLE_DEBUG_SIZE_HEAP 1
+#endif
 
 namespace immer {
 

@@ -360,7 +360,7 @@ struct update_visitor
             node->inner()[offset] = child;
             return node;
         } catch (...) {
-            node_t::delete_inner_r(node);
+            node_t::delete_inner_r(node, count);
             throw;
         }
     }
@@ -378,7 +378,7 @@ struct update_visitor
             node->inner()[offset] = child;
             return node;
         } catch (...) {
-            node_t::delete_inner(node);
+            node_t::delete_inner(node, count);
             throw;
         }
     }
@@ -410,7 +410,7 @@ struct dec_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each(this_t{});
-            node_t::delete_inner_r(node);
+            node_t::delete_inner_r(node, p.count());
         }
     }
 
@@ -421,7 +421,7 @@ struct dec_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each(this_t{});
-            node_t::delete_inner(node);
+            node_t::delete_inner(node, p.count());
         }
     }
 
@@ -431,8 +431,7 @@ struct dec_visitor
         using node_t = node_type<Pos>;
         auto node = p.node();
         if (node->dec()) {
-            auto count = p.count();
-            node_t::delete_leaf(node, count);
+            node_t::delete_leaf(node, p.count());
         }
     }
 };
@@ -633,7 +632,7 @@ struct push_tail_mut_visitor
                 if (Mutating) pos.visit(dec_visitor{});
                 return new_parent;
             } catch (...) {
-                node_t::delete_inner(new_parent);
+                node_t::delete_inner_e(new_parent);
                 throw;
             }
         }
@@ -706,7 +705,7 @@ struct push_tail_visitor
                 idx == new_idx  ? pos.last_oh(this_t{}, idx, tail)
                 /* otherwise */ : node_t::make_path(pos.shift() - B, tail);
         } catch (...) {
-            node_t::delete_inner(new_parent);
+            node_t::delete_inner(new_parent, count);
             throw;
         }
         return node_t::do_copy_inner(new_parent, pos.node(), new_idx);
@@ -729,7 +728,7 @@ struct dec_right_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each_right(dec_t{}, idx);
-            node_t::delete_inner_r(node);
+            node_t::delete_inner_r(node, p.count());
         }
     }
 
@@ -740,7 +739,7 @@ struct dec_right_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each_right(dec_t{}, idx);
-            node_t::delete_inner(node);
+            node_t::delete_inner(node, p.count());
         }
     }
 
@@ -1028,7 +1027,7 @@ struct dec_left_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each_left(dec_t{}, idx);
-            node_t::delete_inner_r(node);
+            node_t::delete_inner_r(node, p.count());
         }
     }
 
@@ -1039,7 +1038,7 @@ struct dec_left_visitor
         auto node = p.node();
         if (node->dec()) {
             p.each_left(dec_t{}, idx);
-            node_t::delete_inner(node);
+            node_t::delete_inner(node, p.count());
         }
     }
 
@@ -1110,7 +1109,7 @@ struct slice_left_mut_visitor
                 }
                 return { pos.shift(), newn };
             } catch (...) {
-                if (!mutate) node_t::delete_inner_r(newn);
+                if (!mutate) node_t::delete_inner_r_e(newn);
                 throw;
             }
         }
@@ -1172,11 +1171,12 @@ struct slice_left_mut_visitor
                 }
                 return { pos.shift(), newn };
             } catch (...) {
-                if (!mutate) node_t::delete_inner_r(newn);
+                if (!mutate) node_t::delete_inner_r_e(newn);
                 else {
                     // restore the regular node that we were
                     // attempting to relax...
-                    node_t::heap::deallocate(node->impl.data.inner.relaxed);
+                    node_t::heap::deallocate(node_t::max_sizeof_relaxed,
+                                             node->impl.data.inner.relaxed);
                     node->impl.data.inner.relaxed = nullptr;
                 }
                 throw;
@@ -1234,7 +1234,8 @@ struct slice_left_visitor
         } else {
             using std::get;
             auto n     = pos.node();
-            auto newn  = node_t::make_inner_r_n(count - idx);
+            auto newc  = count - idx;
+            auto newn  = node_t::make_inner_r_n(newc);
             try {
                 auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
                 auto newr  = newn->relaxed();
@@ -1250,7 +1251,7 @@ struct slice_left_visitor
                 node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
                 return { pos.shift(), newn };
             } catch (...) {
-                node_t::delete_inner_r(newn);
+                node_t::delete_inner_r(newn, newc);
                 throw;
             }
         }

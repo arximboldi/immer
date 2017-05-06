@@ -54,7 +54,8 @@ struct get_prefer_fewer_bigger_objects
     : std::integral_constant<bool,
                              std::is_same<
                                  HeapPolicy,
-                                 heap_policy<malloc_heap>>::value>
+                                 heap_policy<malloc_heap>
+                                 >::value>
 {};
 
 template <typename T>
