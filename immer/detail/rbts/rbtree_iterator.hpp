@@ -21,20 +21,18 @@
 #pragma once
 
 #include <immer/detail/rbts/rbtree.hpp>
-
-#include <boost/iterator/iterator_facade.hpp>
-#include <boost/iterator/iterator_facade.hpp>
+#include <immer/detail/iterator_facade.hpp>
 
 namespace immer {
 namespace detail {
 namespace rbts {
 
 template <typename T, typename MP, bits_t B, bits_t BL>
-struct rbtree_iterator : boost::iterator_facade<
-    rbtree_iterator<T, MP, B, BL>,
-    T,
-    boost::random_access_traversal_tag,
-    const T&>
+struct rbtree_iterator
+    : iterator_facade<rbtree_iterator<T, MP, B, BL>,
+                      std::random_access_iterator_tag,
+                      T,
+                      const T&>
 {
     using tree_t = rbtree<T, MP, B, BL>;
 
@@ -60,7 +58,7 @@ struct rbtree_iterator : boost::iterator_facade<
     size_t index() const { return i_; }
 
 private:
-    friend class boost::iterator_core_access;
+    friend iterator_core_access;
 
     const tree_t*    v_;
     size_t           i_;
