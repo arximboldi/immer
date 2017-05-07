@@ -51,17 +51,10 @@ void destroy_n(T* p, Size n)
         p->~T();
 }
 
-inline void* check_alloc(void* p)
-{
-    if (IMMER_UNLIKELY(!p))
-        throw std::bad_alloc{};
-    return p;
-}
-
 template <typename Heap, typename T, typename... Args>
 T* make(Args&& ...args)
 {
-    auto ptr = check_alloc(Heap::allocate(sizeof(T)));
+    auto ptr = Heap::allocate(sizeof(T));
     try {
         return new (ptr) T{std::forward<Args>(args)...};
     } catch (...) {

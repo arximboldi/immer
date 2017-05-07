@@ -26,6 +26,7 @@
 #include <utility>
 
 #include <immer/config.hpp>
+#include <immer/heap/tags.hpp>
 #include <immer/detail/rbts/position.hpp>
 #include <immer/detail/rbts/visitor.hpp>
 
@@ -1146,9 +1147,9 @@ struct slice_left_mut_visitor
             auto newcount = count - idx;
             auto newn = mutate
                 ? (node->impl.d.data.inner.relaxed = new (
-                       check_alloc(node_t::heap::allocate(
-                                       node_t::max_sizeof_relaxed,
-                                       norefs_tag{}))) relaxed_t,
+                       node_t::heap::allocate(
+                           node_t::max_sizeof_relaxed,
+                           norefs_tag{})) relaxed_t,
                    node)
                 : node_t::make_inner_r_e(e);
             auto newr = newn->relaxed();

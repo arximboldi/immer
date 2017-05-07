@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/heap/tags.hpp>
 
 #if IMMER_HAS_LIBGC
@@ -29,6 +30,7 @@
 #endif
 
 #include <cstdlib>
+#include <memory>
 
 namespace immer {
 
@@ -111,13 +113,19 @@ public:
     static void* allocate(std::size_t n)
     {
         IMMER_GC_INIT_GUARD_;
-        return GC_malloc(n);
+        auto p = GC_malloc(n);
+        if (IMMER_UNLIKELY(!p))
+            throw std::bad_alloc{};
+        return p;
     }
 
     static void* allocate(std::size_t n, norefs_tag)
     {
         IMMER_GC_INIT_GUARD_;
-        return GC_malloc_atomic(n);
+        auto p = GC_malloc_atomic(n);
+        if (IMMER_UNLIKELY(!p))
+            throw std::bad_alloc{};
+        return p;
     }
 
     static void deallocate(std::size_t, void* data)

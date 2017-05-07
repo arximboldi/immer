@@ -20,6 +20,9 @@
 
 #pragma once
 
+#include <immer/config.hpp>
+
+#include <memory>
 #include <cstdlib>
 
 namespace immer {
@@ -31,12 +34,15 @@ struct malloc_heap
 {
     /*!
      * Returns a pointer to a memory region of size `size`, if the
-     * allocation was successful, or `nullptr` otherwise.
+     * allocation was successful and throws `std::bad_alloc` otherwise.
      */
     template <typename... Tags>
     static void* allocate(std::size_t size, Tags...)
     {
-        return std::malloc(size);
+        auto p = std::malloc(size);
+        if (IMMER_UNLIKELY(!p))
+            throw std::bad_alloc{};
+        return p;
     }
 
     /*!

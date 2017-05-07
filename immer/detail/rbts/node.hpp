@@ -217,7 +217,7 @@ struct node
     static node_t* make_inner_n(count_t n)
     {
         assert(n <= branches<B>);
-        auto m = check_alloc(heap::allocate(sizeof_inner_n(n)));
+        auto m = heap::allocate(sizeof_inner_n(n));
         auto p = new (m) node_t;
         p->impl.d.data.inner.relaxed = nullptr;
 #if IMMER_RBTS_TAGGED_NODE
@@ -228,7 +228,7 @@ struct node
 
     static node_t* make_inner_e(edit_t e)
     {
-        auto m = check_alloc(heap::allocate(max_sizeof_inner));
+        auto m = heap::allocate(max_sizeof_inner);
         auto p = new (m) node_t;
         ownee(p) = e;
         p->impl.d.data.inner.relaxed = nullptr;
@@ -241,13 +241,13 @@ struct node
     static node_t* make_inner_r_n(count_t n)
     {
         assert(n <= branches<B>);
-        auto mp = check_alloc(heap::allocate(sizeof_inner_r_n(n)));
+        auto mp = heap::allocate(sizeof_inner_r_n(n));
         auto mr = (void*){};
         if (embed_relaxed) {
             mr = reinterpret_cast<unsigned char*>(mp) + sizeof_inner_n(n);
         } else {
             try {
-                mr = check_alloc(heap::allocate(sizeof_relaxed_n(n), norefs_tag{}));
+                mr = heap::allocate(sizeof_relaxed_n(n), norefs_tag{});
             } catch (...) {
                 heap::deallocate(sizeof_inner_r_n(n), mp);
                 throw;
@@ -270,7 +270,7 @@ struct node
                 return node_t::make_inner_r_n(n);
             },
             [&] (auto) {
-                auto p = new (check_alloc(heap::allocate(node_t::sizeof_inner_r_n(n)))) node_t;
+                auto p = new (heap::allocate(node_t::sizeof_inner_r_n(n))) node_t;
                 assert(r->d.count >= n);
                 node_t::refs(r).inc();
                 p->impl.d.data.inner.relaxed = r;
@@ -283,13 +283,13 @@ struct node
 
     static node_t* make_inner_r_e(edit_t e)
     {
-        auto mp = check_alloc(heap::allocate(max_sizeof_inner_r));
+        auto mp = heap::allocate(max_sizeof_inner_r);
         auto mr = (void*){};
         if (embed_relaxed) {
             mr = reinterpret_cast<unsigned char*>(mp) + max_sizeof_inner;
         } else {
             try {
-                mr = check_alloc(heap::allocate(max_sizeof_relaxed, norefs_tag{}));
+                mr = heap::allocate(max_sizeof_relaxed, norefs_tag{});
             } catch (...) {
                 heap::deallocate(max_sizeof_inner_r, mp);
                 throw;
@@ -314,7 +314,7 @@ struct node
                 return node_t::make_inner_r_e(e);
             },
             [&] (auto) {
-                auto p = new (check_alloc(heap::allocate(node_t::max_sizeof_inner_r))) node_t;
+                auto p = new (heap::allocate(node_t::max_sizeof_inner_r)) node_t;
                 node_t::refs(r).inc();
                 p->impl.d.data.inner.relaxed = r;
                 node_t::ownee(p) = e;
@@ -328,7 +328,7 @@ struct node
     static node_t* make_leaf_n(count_t n)
     {
         assert(n <= branches<BL>);
-        auto p = new (check_alloc(heap::allocate(sizeof_leaf_n(n)))) node_t;
+        auto p = new (heap::allocate(sizeof_leaf_n(n))) node_t;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::leaf;
 #endif
@@ -337,7 +337,7 @@ struct node
 
     static node_t* make_leaf_e(edit_t e)
     {
-        auto p = new (check_alloc(heap::allocate(max_sizeof_leaf))) node_t;
+        auto p = new (heap::allocate(max_sizeof_leaf)) node_t;
         ownee(p) = e;
 #if IMMER_RBTS_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::leaf;
@@ -811,7 +811,7 @@ struct node
                     return src_r;
                 else {
                     auto dst_r = impl.d.data.inner.relaxed =
-                        new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
+                        new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     node_t::ownee(dst_r) = e;
                     return dst_r;
                 }
@@ -832,7 +832,7 @@ struct node
                     if (src_r)
                         node_t::refs(src_r).dec_unsafe();
                     auto dst_r = impl.d.data.inner.relaxed =
-                        new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
+                        new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     node_t::ownee(dst_r) = ec;
                     return dst_r;
                 }
@@ -850,7 +850,7 @@ struct node
                     return src_r;
                 else {
                     auto dst_r =
-                        new (check_alloc(heap::allocate(max_sizeof_relaxed))) relaxed_t;
+                        new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     std::copy(src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
                     node_t::ownee(dst_r) = e;
                     return impl.d.data.inner.relaxed = dst_r;
