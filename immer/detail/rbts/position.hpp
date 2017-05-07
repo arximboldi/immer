@@ -1141,15 +1141,15 @@ struct relaxed_pos
     shift_t shift_;
     relaxed_t* relaxed_;
 
-    count_t count() const { return relaxed_->count; }
+    count_t count() const { return relaxed_->d.count; }
     node_t* node()  const { return node_; }
-    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    size_t  size()  const { return relaxed_->d.sizes[relaxed_->d.count - 1]; }
     shift_t shift() const { return shift_; }
     count_t subindex(size_t idx) const { return index(idx); }
     relaxed_t* relaxed() const { return relaxed_; }
 
     size_t size_before(count_t offset) const
-    { return offset ? relaxed_->sizes[offset - 1] : 0; }
+    { return offset ? relaxed_->d.sizes[offset - 1] : 0; }
 
     size_t size(count_t offset) const
     { return size_sbh(offset, size_before(offset)); }
@@ -1157,13 +1157,13 @@ struct relaxed_pos
     size_t size_sbh(count_t offset, size_t size_before_hint) const
     {
         assert(size_before_hint == size_before(offset));
-        return relaxed_->sizes[offset] - size_before_hint;
+        return relaxed_->d.sizes[offset] - size_before_hint;
     }
 
     count_t index(size_t idx) const
     {
         auto offset = idx >> shift_;
-        while (relaxed_->sizes[offset] <= idx) ++offset;
+        while (relaxed_->d.sizes[offset] <= idx) ++offset;
         return offset;
     }
 
@@ -1174,7 +1174,7 @@ struct relaxed_pos
     {
         auto e = sizes + n;
         auto prev = size_before(offset);
-        auto these = relaxed_->sizes + offset;
+        auto these = relaxed_->d.sizes + offset;
         for (; sizes != e; ++sizes, ++these) {
             auto this_size = *these;
             init = *sizes = init + (this_size - prev);
@@ -1184,7 +1184,7 @@ struct relaxed_pos
 
     template <typename Visitor, typename... Args>
     void each(Visitor v, Args&&... args)
-    { each_left(v, relaxed_->count, args...); }
+    { each_left(v, relaxed_->d.count, args...); }
 
     template <typename Visitor, typename... Args>
     bool each_pred(Visitor v, Args&&... args)
@@ -1194,18 +1194,18 @@ struct relaxed_pos
         auto n = count();
         if (shift_ == BL) {
             for (auto i = count_t{0}; i < n; ++i) {
-                if (!make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
+                if (!make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...))
                     return false;
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         } else {
             auto ss = shift_ - B;
             for (auto i = count_t{0}; i < n; ++i) {
-                if (!visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
+                if (!visit_maybe_relaxed_sub(p[i], ss, relaxed_->d.sizes[i] - s,
                                              v, args...))
                     return false;
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         }
         return true;
@@ -1216,31 +1216,31 @@ struct relaxed_pos
     {
         if (shift_ == BL) {
             auto p = node_->inner();
-            auto s = i > 0 ? relaxed_->sizes[i - 1] : 0;
+            auto s = i > 0 ? relaxed_->d.sizes[i - 1] : 0;
             for (; i < n; ++i) {
-                make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
+                make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         } else {
             auto p = node_->inner();
-            auto s = i > 0 ? relaxed_->sizes[i - 1] : 0;
+            auto s = i > 0 ? relaxed_->d.sizes[i - 1] : 0;
             auto ss = shift_ - B;
             for (; i < n; ++i) {
-                visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
+                visit_maybe_relaxed_sub(p[i], ss, relaxed_->d.sizes[i] - s,
                                         v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         }
     }
 
     template <typename Visitor, typename... Args>
     void each_sub(Visitor v, Args&&... args)
-    { each_left(v, relaxed_->count, args...); }
+    { each_left(v, relaxed_->d.count, args...); }
 
     template <typename Visitor, typename... Args>
     void each_left_sub(Visitor v, Args&&... args)
-    { each_left(v, relaxed_->count - 1, args...); }
+    { each_left(v, relaxed_->d.count - 1, args...); }
 
     template <typename Visitor, typename... Args>
     void each_left(Visitor v, count_t n, Args&&... args)
@@ -1249,16 +1249,16 @@ struct relaxed_pos
         auto s = size_t{};
         if (shift_ == BL) {
             for (auto i = count_t{0}; i < n; ++i) {
-                make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
+                make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         } else {
             auto ss = shift_ - B;
             for (auto i = count_t{0}; i < n; ++i) {
-                visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
+                visit_maybe_relaxed_sub(p[i], ss, relaxed_->d.sizes[i] - s,
                                         v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         }
     }
@@ -1271,21 +1271,21 @@ struct relaxed_pos
     void each_right(Visitor v, count_t start, Args&&... args)
     {
         assert(start > 0);
-        assert(start <= relaxed_->count);
-        auto s = relaxed_->sizes[start - 1];
+        assert(start <= relaxed_->d.count);
+        auto s = relaxed_->d.sizes[start - 1];
         auto p = node_->inner();
         if (shift_ == BL) {
-            for (auto i = start; i < relaxed_->count; ++i) {
-                make_leaf_sub_pos(p[i], relaxed_->sizes[i] - s)
+            for (auto i = start; i < relaxed_->d.count; ++i) {
+                make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         } else {
             auto ss = shift_ - B;
-            for (auto i = start; i < relaxed_->count; ++i) {
-                visit_maybe_relaxed_sub(p[i], ss, relaxed_->sizes[i] - s,
+            for (auto i = start; i < relaxed_->d.count; ++i) {
+                visit_maybe_relaxed_sub(p[i], ss, relaxed_->d.sizes[i] - s,
                                         v, args...);
-                s = relaxed_->sizes[i];
+                s = relaxed_->d.sizes[i];
             }
         }
     }
@@ -1300,7 +1300,7 @@ struct relaxed_pos
                               Args&&... args)
     {
         assert(offset_hint == index(idx));
-        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
+        auto left_size = offset_hint ? relaxed_->d.sizes[offset_hint - 1] : 0;
         return towards_oh_sbh(v, idx, offset_hint, left_size, args...);
     }
 
@@ -1317,7 +1317,7 @@ struct relaxed_pos
                                   Args&&... args)
     {
         assert(offset_hint == index(idx));
-        auto left_size = offset_hint ? relaxed_->sizes[offset_hint - 1] : 0;
+        auto left_size = offset_hint ? relaxed_->d.sizes[offset_hint - 1] : 0;
         return towards_sub_oh_sbh(v, idx, offset_hint, left_size, args...);
     }
 
@@ -1329,10 +1329,10 @@ struct relaxed_pos
     {
         assert(offset_hint == index(idx));
         assert(left_size_hint ==
-               (offset_hint ? relaxed_->sizes[offset_hint - 1] : 0));
+               (offset_hint ? relaxed_->d.sizes[offset_hint - 1] : 0));
         auto child     = node_->inner() [offset_hint];
         auto is_leaf   = shift_ == BL;
-        auto next_size = relaxed_->sizes[offset_hint] - left_size_hint;
+        auto next_size = relaxed_->d.sizes[offset_hint] - left_size_hint;
         auto next_idx  = idx - left_size_hint;
         return is_leaf
             ? make_leaf_sub_pos(child, next_size).visit(
@@ -1360,7 +1360,7 @@ struct relaxed_pos
     template <typename Visitor, typename... Args>
     decltype(auto) last_sub(Visitor v, Args&&... args)
     {
-        auto offset     = relaxed_->count - 1;
+        auto offset     = relaxed_->d.count - 1;
         auto child      = node_->inner() [offset];
         auto child_size = size(offset);
         auto is_leaf    = shift_ == BL;
@@ -1373,7 +1373,7 @@ struct relaxed_pos
     decltype(auto) first_sub(Visitor v, Args&&... args)
     {
         auto child      = node_->inner() [0];
-        auto child_size = relaxed_->sizes[0];
+        auto child_size = relaxed_->d.sizes[0];
         auto is_leaf    = shift_ == BL;
         return is_leaf
             ? make_leaf_sub_pos(child, child_size).visit(v, args...)
@@ -1385,7 +1385,7 @@ struct relaxed_pos
     {
         assert(shift_ == BL);
         auto child      = node_->inner() [0];
-        auto child_size = relaxed_->sizes[0];
+        auto child_size = relaxed_->d.sizes[0];
         return make_leaf_sub_pos(child, child_size).visit(v, args...);
     }
 
@@ -1394,7 +1394,7 @@ struct relaxed_pos
     {
         assert(shift_ > BL);
         auto child      = node_->inner() [0];
-        auto child_size = relaxed_->sizes[0];
+        auto child_size = relaxed_->d.sizes[0];
         return visit_maybe_relaxed_sub(child, shift_ - B, child_size, v, args...);
     }
 
@@ -1450,7 +1450,7 @@ decltype(auto) visit_maybe_relaxed_sub(NodeT* node, shift_t shift, size_t size,
     assert(node);
     auto relaxed = node->relaxed();
     if (relaxed) {
-        //assert(size == relaxed->sizes[relaxed->count - 1]);
+        assert(size == relaxed->d.sizes[relaxed->d.count - 1]);
         return make_relaxed_pos(node, shift, relaxed)
             .visit(v, std::forward<Args>(args)...);
     } else {
@@ -1471,10 +1471,10 @@ struct relaxed_descent_pos
     node_t* node_;
     relaxed_t* relaxed_;
 
-    count_t count() const { return relaxed_->count; }
+    count_t count() const { return relaxed_->d.count; }
     node_t* node()  const { return node_; }
     shift_t shift() const { return Shift; }
-    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    size_t  size()  const { return relaxed_->d.sizes[relaxed_->d.count - 1]; }
 
     count_t index(size_t idx) const
     {
@@ -1483,7 +1483,7 @@ struct relaxed_descent_pos
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
         auto offset = idx >> Shift;
 #pragma GCC diagnostic pop
-        while (relaxed_->sizes[offset] <= idx) ++offset;
+        while (relaxed_->d.sizes[offset] <= idx) ++offset;
         return offset;
     }
 
@@ -1492,7 +1492,7 @@ struct relaxed_descent_pos
     {
         auto offset    = index(idx);
         auto child     = node_->inner() [offset];
-        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
+        auto left_size = offset ? relaxed_->d.sizes[offset - 1] : 0;
         auto next_idx  = idx - left_size;
         auto r  = child->relaxed();
         return r
@@ -1515,15 +1515,15 @@ struct relaxed_descent_pos<NodeT, BL, B, BL>
     node_t* node_;
     relaxed_t* relaxed_;
 
-    count_t count() const { return relaxed_->count; }
+    count_t count() const { return relaxed_->d.count; }
     node_t* node()  const { return node_; }
     shift_t shift() const { return BL; }
-    size_t  size()  const { return relaxed_->sizes[relaxed_->count - 1]; }
+    size_t  size()  const { return relaxed_->d.sizes[relaxed_->d.count - 1]; }
 
     count_t index(size_t idx) const
     {
         auto offset = (idx >> BL) & mask<B>;
-        while (relaxed_->sizes[offset] <= idx) ++offset;
+        while (relaxed_->d.sizes[offset] <= idx) ++offset;
         return offset;
     }
 
@@ -1532,7 +1532,7 @@ struct relaxed_descent_pos<NodeT, BL, B, BL>
     {
         auto offset    = index(idx);
         auto child     = node_->inner() [offset];
-        auto left_size = offset ? relaxed_->sizes[offset - 1] : 0;
+        auto left_size = offset ? relaxed_->d.sizes[offset - 1] : 0;
         auto next_idx  = idx - left_size;
         return leaf_descent_pos<NodeT>{child}.visit(v, next_idx);
     }
@@ -1567,8 +1567,8 @@ decltype(auto) visit_maybe_relaxed_descent(NodeT* node, shift_t shift,
                 auto r = node->relaxed();
                 if (r) {
                     auto node_idx = (idx >> level) & mask<B>;
-                    while (r->sizes[node_idx] <= idx) ++node_idx;
-                    if (node_idx) idx -= r->sizes[node_idx - 1];
+                    while (r->d.sizes[node_idx] <= idx) ++node_idx;
+                    if (node_idx) idx -= r->d.sizes[node_idx - 1];
                     node = node->inner() [node_idx];
                 } else {
                     do {

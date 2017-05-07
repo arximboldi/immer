@@ -30,6 +30,11 @@
 namespace immer {
 namespace detail {
 
+template <typename T>
+T& auto_const_cast(const T& x) { return const_cast<T&>(x); }
+template <typename T>
+T&& auto_const_cast(const T&& x) { return const_cast<T&&>(std::move(x)); }
+
 template <typename Iter1, typename Iter2>
 auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
 {

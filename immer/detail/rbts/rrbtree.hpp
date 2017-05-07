@@ -140,9 +140,9 @@ struct rrbtree
     auto tail_offset() const
     {
         auto r = root->relaxed();
-        assert(r == nullptr || r->count);
+        assert(r == nullptr || r->d.count);
         return
-            r               ? r->sizes[r->count - 1] :
+            r               ? r->d.sizes[r->d.count - 1] :
             size            ? (size - 1) & ~mask<BL>
             /* otherwise */ : 0;
     }
@@ -272,9 +272,9 @@ struct rrbtree
                     auto new_path = node_t::make_path(shift, tail);
                     new_root->inner() [0] = root->inc();
                     new_root->inner() [1] = new_path;
-                    new_root->relaxed()->sizes [0] = size;
-                    new_root->relaxed()->sizes [1] = size + tail_size;
-                    new_root->relaxed()->count = 2u;
+                    new_root->relaxed()->d.sizes [0] = size;
+                    new_root->relaxed()->d.sizes [1] = size + tail_size;
+                    new_root->relaxed()->d.count = 2u;
                 } catch (...) {
                     node_t::delete_inner_r(new_root, 2);
                     throw;
@@ -315,9 +315,9 @@ struct rrbtree
                     auto new_path = node_t::make_path_e(e, shift, tail);
                     new_root->inner() [0] = root;
                     new_root->inner() [1] = new_path;
-                    new_root->relaxed()->sizes [0] = tail_off;
-                    new_root->relaxed()->sizes [1] = tail_off + tail_size;
-                    new_root->relaxed()->count = 2u;
+                    new_root->relaxed()->d.sizes [0] = tail_off;
+                    new_root->relaxed()->d.sizes [1] = tail_off + tail_size;
+                    new_root->relaxed()->d.count = 2u;
                     root = new_root;
                     shift += B;
                 } catch (...) {
@@ -1172,18 +1172,18 @@ struct rrbtree
                       << pretty_print_array(node->leaf(), size)
                       << std::endl;
         } else if (auto r = node->relaxed()) {
-            auto count = r->count;
+            auto count = r->d.count;
             debug_print_indent(indent);
             std::cerr << "# {" << size << "} "
-                      << pretty_print_array(r->sizes, r->count)
+                      << pretty_print_array(r->d.sizes, r->d.count)
                       << std::endl;
             auto last_size = size_t{};
             for (auto i = 0; i < count; ++i) {
                 debug_print_node(node->inner()[i],
                                  shift - B,
-                                 r->sizes[i] - last_size,
+                                 r->d.sizes[i] - last_size,
                                  indent + indent_step);
-                last_size = r->sizes[i];
+                last_size = r->d.sizes[i];
             }
         } else {
             debug_print_indent(indent);

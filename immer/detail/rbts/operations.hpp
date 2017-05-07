@@ -584,8 +584,8 @@ struct push_tail_mut_visitor
             auto count = new_idx + 1;
             auto relaxed = node->ensure_mutable_relaxed_n(e, new_idx);
             node->inner()[new_idx]  = new_child;
-            relaxed->sizes[new_idx] = pos.size() + ts;
-            relaxed->count = count;
+            relaxed->d.sizes[new_idx] = pos.size() + ts;
+            relaxed->d.count = count;
             return node;
         } else {
             try {
@@ -593,8 +593,8 @@ struct push_tail_mut_visitor
                 auto new_node = node_t::copy_inner_r_e(e, pos.node(), new_idx);
                 auto relaxed  = new_node->relaxed();
                 new_node->inner()[new_idx] = new_child;
-                relaxed->sizes[new_idx] = pos.size() + ts;
-                relaxed->count = count;
+                relaxed->d.sizes[new_idx] = pos.size() + ts;
+                relaxed->d.count = count;
                 if (Mutating) pos.visit(dec_visitor{});
                 return new_node;
             } catch (...) {
@@ -678,8 +678,8 @@ struct push_tail_visitor
             auto new_parent  = node_t::copy_inner_r_n(count, pos.node(), new_idx);
             auto new_relaxed = new_parent->relaxed();
             new_parent->inner()[new_idx] = new_child;
-            new_relaxed->sizes[new_idx] = pos.size() + ts;
-            new_relaxed->count = count;
+            new_relaxed->d.sizes[new_idx] = pos.size() + ts;
+            new_relaxed->d.count = count;
             return new_parent;
         } catch (...) {
             auto shift = pos.shift();
@@ -790,15 +790,15 @@ struct slice_right_mut_visitor
                         auto nodr = node->ensure_mutable_relaxed_n(e, idx);
                         pos.each_right(dec_visitor{}, idx + 1);
                         node->inner()[idx] = next;
-                        nodr->sizes[idx] = last + 1 - ts;
-                        nodr->count = idx + 1;
+                        nodr->d.sizes[idx] = last + 1 - ts;
+                        nodr->d.count = idx + 1;
                         return { pos.shift(), node, ts, tail };
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
                         auto newr = newn->relaxed();
                         newn->inner()[idx] = next;
-                        newr->sizes[idx] = last + 1 - ts;
-                        newr->count = idx + 1;
+                        newr->d.sizes[idx] = last + 1 - ts;
+                        newr->d.count = idx + 1;
                         if (Mutating) pos.visit(dec_visitor{});
                         return { pos.shift(), newn, ts, tail };
                     }
@@ -812,7 +812,7 @@ struct slice_right_mut_visitor
                 } else {
                     if (mutate) {
                         pos.each_right(dec_visitor{}, idx + 1);
-                        node->ensure_mutable_relaxed_n(e, idx)->count = idx;
+                        node->ensure_mutable_relaxed_n(e, idx)->d.count = idx;
                         return { pos.shift(), node, ts, tail };
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
@@ -945,8 +945,8 @@ struct slice_right_visitor
                     auto newn  = node_t::copy_inner_r_n(count, pos.node(), idx);
                     auto newr  = newn->relaxed();
                     newn->inner()[idx] = next;
-                    newr->sizes[idx] = last + 1 - ts;
-                    newr->count = count;
+                    newr->d.sizes[idx] = last + 1 - ts;
+                    newr->d.count = count;
                     return { pos.shift(), newn, ts, tail };
                 } else if (idx == 0) {
                     return { pos.shift(), nullptr, ts, tail };
@@ -1096,13 +1096,13 @@ struct slice_left_mut_visitor
                     : pos.towards_sub_oh(no_collapse_no_mut_t{}, first, idx, e);
                 if (mutate) pos.each_left(dec_visitor{}, idx);
                 pos.copy_sizes(idx + 1, newcount - 1,
-                               new_child_size, newr->sizes + 1);
+                               new_child_size, newr->d.sizes + 1);
                 std::uninitialized_copy(node->inner() + idx + 1,
                                         node->inner() + count,
                                         newn->inner() + 1);
                 newn->inner()[0] = get<1>(subs);
-                newr->sizes[0] = new_child_size;
-                newr->count = newcount;
+                newr->d.sizes[0] = new_child_size;
+                newr->d.count = newcount;
                 if (!mutate) {
                     node_t::inc_nodes(newn->inner() + 1, newcount - 1);
                     if (Mutating) pos.visit(dec_visitor{});
@@ -1145,7 +1145,7 @@ struct slice_left_mut_visitor
             // `node<...>` static method...
             auto newcount = count - idx;
             auto newn = mutate
-                ? (node->impl.data.inner.relaxed = new (
+                ? (node->impl.d.data.inner.relaxed = new (
                        check_alloc(node_t::heap::allocate(
                                        node_t::max_sizeof_relaxed,
                                        norefs_tag{}))) relaxed_t,
@@ -1157,10 +1157,10 @@ struct slice_left_mut_visitor
                     ? pos.towards_sub_oh(no_collapse_t{}, first, idx, e)
                     : pos.towards_sub_oh(no_collapse_no_mut_t{}, first, idx, e);
                 if (mutate) pos.each_left(dec_visitor{}, idx);
-                newr->sizes[0] = child_size - child_dropped_size;
+                newr->d.sizes[0] = child_size - child_dropped_size;
                 pos.copy_sizes(idx + 1, newcount - 1,
-                               newr->sizes[0], newr->sizes + 1);
-                newr->count = newcount;
+                               newr->d.sizes[0], newr->d.sizes + 1);
+                newr->d.count = newcount;
                 newn->inner()[0] = get<1>(subs);
                 std::uninitialized_copy(node->inner() + idx + 1,
                                         node->inner() + count,
@@ -1176,8 +1176,8 @@ struct slice_left_mut_visitor
                     // restore the regular node that we were
                     // attempting to relax...
                     node_t::heap::deallocate(node_t::max_sizeof_relaxed,
-                                             node->impl.data.inner.relaxed);
-                    node->impl.data.inner.relaxed = nullptr;
+                                             node->impl.d.data.inner.relaxed);
+                    node->impl.d.data.inner.relaxed = nullptr;
                 }
                 throw;
             }
@@ -1239,16 +1239,16 @@ struct slice_left_visitor
             try {
                 auto subs  = pos.towards_sub_oh(no_collapse_t{}, first, idx);
                 auto newr  = newn->relaxed();
-                newr->count = count - idx;
-                newr->sizes[0] = child_size - child_dropped_size;
-                pos.copy_sizes(idx + 1, newr->count - 1,
-                               newr->sizes[0], newr->sizes + 1);
-                assert(newr->sizes[newr->count - 1] == pos.size() - dropped_size);
+                newr->d.count = count - idx;
+                newr->d.sizes[0] = child_size - child_dropped_size;
+                pos.copy_sizes(idx + 1, newr->d.count - 1,
+                               newr->d.sizes[0], newr->d.sizes + 1);
+                assert(newr->d.sizes[newr->d.count - 1] == pos.size() - dropped_size);
                 newn->inner()[0] = get<1>(subs);
                 std::uninitialized_copy(n->inner() + idx + 1,
                                         n->inner() + count,
                                         newn->inner() + 1);
-                node_t::inc_nodes(newn->inner() + 1, newr->count - 1);
+                node_t::inc_nodes(newn->inner() + 1, newr->d.count - 1);
                 return { pos.shift(), newn };
             } catch (...) {
                 node_t::delete_inner_r(newn, newc);
@@ -1316,9 +1316,9 @@ struct concat_center_pos
             try {
                 auto result = node_t::make_inner_r_n(count_);
                 auto r      = result->relaxed();
-                r->count    = count_;
+                r->d.count    = count_;
                 std::copy(nodes_, nodes_ + count_, result->inner());
-                std::copy(sizes_, sizes_ + count_, r->sizes);
+                std::copy(sizes_, sizes_ + count_, r->d.sizes);
                 return { result, shift_, r };
             } catch (...) {
                 each_sub(dec_visitor{});
@@ -1335,9 +1335,9 @@ struct concat_center_pos
         if (count_ > 1) {
             auto result = node_t::make_inner_r_e(e);
             auto r      = result->relaxed();
-            r->count    = count_;
+            r->d.count    = count_;
             std::copy(nodes_, nodes_ + count_, result->inner());
-            std::copy(sizes_, sizes_ + count_, r->sizes);
+            std::copy(sizes_, sizes_ + count_, r->d.sizes);
             return { result, shift_, r };
         } else {
             assert(shift_ >= B + BL);
@@ -1374,7 +1374,7 @@ struct concat_merger
         ++curr_;
         auto parent  = result_.nodes_[result_.count_ - 1];
         auto relaxed = parent->relaxed();
-        if (relaxed->count == branches<B>) {
+        if (relaxed->d.count == branches<B>) {
             assert(result_.count_ < result_t::max_children);
             n_ -= branches<B>;
             parent  = node_t::make_inner_r_n(std::min(n_, branches<B>));
@@ -1383,9 +1383,9 @@ struct concat_merger
             result_.sizes_[result_.count_] = result_.sizes_[result_.count_ - 1];
             ++result_.count_;
         }
-        auto idx = relaxed->count++;
+        auto idx = relaxed->d.count++;
         result_.sizes_[result_.count_ - 1] += size;
-        relaxed->sizes[idx] = size + (idx ? relaxed->sizes[idx - 1] : 0);
+        relaxed->d.sizes[idx] = size + (idx ? relaxed->d.sizes[idx - 1] : 0);
         parent->inner() [idx] = p;
     };
 
@@ -1449,14 +1449,14 @@ struct concat_merger
                                         from_data + from_offset + to_copy,
                                         data + to_offset_);
                 node_t::inc_nodes(from_data + from_offset, to_copy);
-                auto sizes   = to_->relaxed()->sizes;
+                auto sizes   = to_->relaxed()->d.sizes;
                 p.copy_sizes(from_offset, to_copy,
                              to_size_, sizes + to_offset_);
                 to_offset_  += to_copy;
                 from_offset += to_copy;
                 to_size_     = sizes[to_offset_ - 1];
                 if (*curr_ == to_offset_) {
-                    to_->relaxed()->count = to_offset_;
+                    to_->relaxed()->d.count = to_offset_;
                     add_child(to_, to_size_);
                     to_ = nullptr;
                 }
@@ -1477,7 +1477,7 @@ struct concat_merger
             if (shift == BL)
                 node_t::delete_leaf(to_, to_offset_);
             else {
-                to_->relaxed()->count = to_offset_;
+                to_->relaxed()->d.count = to_offset_;
                 dec_relaxed(to_, shift - B);
             }
         }
@@ -1799,7 +1799,7 @@ struct concat_merger_mut
         auto parent  = result_.nodes_[result_.count_ - 1];
         auto relaxed = parent->relaxed();
         if (count_ == branches<B>) {
-            parent->relaxed()->count = count_;
+            parent->relaxed()->d.count = count_;
             assert(result_.count_ < result_t::max_children);
             n_ -= branches<B>;
             if (candidate_) {
@@ -1816,7 +1816,7 @@ struct concat_merger_mut
         }
         auto idx = count_++;
         result_.sizes_[result_.count_ - 1] += size;
-        relaxed->sizes[idx] = size + (idx ? relaxed->sizes[idx - 1] : 0);
+        relaxed->d.sizes[idx] = size + (idx ? relaxed->d.sizes[idx - 1] : 0);
         parent->inner() [idx] = p;
     };
 
@@ -1900,7 +1900,7 @@ struct concat_merger_mut
                 auto data    = to_->inner();
                 auto to_copy = std::min(from_count - from_offset,
                                         *curr_ - to_offset_);
-                auto sizes   = to_->relaxed()->sizes;
+                auto sizes   = to_->relaxed()->d.sizes;
                 if (from != to_ || from_offset != to_offset_) {
                     std::copy(from_data + from_offset,
                               from_data + from_offset + to_copy,
@@ -1912,7 +1912,7 @@ struct concat_merger_mut
                 from_offset += to_copy;
                 to_size_     = sizes[to_offset_ - 1];
                 if (*curr_ == to_offset_) {
-                    to_->relaxed()->count = to_offset_;
+                    to_->relaxed()->d.count = to_offset_;
                     add_child(to_, to_size_);
                     to_ = nullptr;
                 }
@@ -1923,7 +1923,7 @@ struct concat_merger_mut
     concat_center_pos<Node> finish() const
     {
         assert(!to_);
-        result_.nodes_[result_.count_ - 1]->relaxed()->count = count_;
+        result_.nodes_[result_.count_ - 1]->relaxed()->d.count = count_;
         return result_;
     }
 
