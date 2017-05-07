@@ -115,7 +115,8 @@ TEST_CASE("iterator")
 
     SUBCASE("can go back from end")
     {
-        CHECK(n-1 == *--v.end());
+        auto last = v.end();
+        CHECK(n-1 == *--last);
     }
 
     SUBCASE("works with reversed range adaptor")

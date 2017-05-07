@@ -31,6 +31,10 @@ namespace immer {
 namespace detail {
 
 template <typename T>
+using aligned_storage_for =
+    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
+template <typename T>
 T& auto_const_cast(const T& x) { return const_cast<T&>(x); }
 template <typename T>
 T&& auto_const_cast(const T&& x) { return const_cast<T&&>(std::move(x)); }

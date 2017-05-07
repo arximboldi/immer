@@ -40,10 +40,6 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
-template <typename T>
-using aligned_storage_for =
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
-
 template <typename T,
           typename MemoryPolicy,
           bits_t   B,

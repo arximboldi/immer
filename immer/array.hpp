@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/memory_policy.hpp>
 #include <immer/detail/array_impl.hpp>
 
 namespace immer {
@@ -61,9 +62,9 @@ public:
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = typename std::vector<T>::const_iterator;
+    using iterator         = const T*;
     using const_iterator   = iterator;
-    using reverse_iterator = typename std::vector<T>::const_reverse_iterator;
+    using reverse_iterator = std::reverse_iterator<iterator>;
 
     using memory_policy = MemoryPolicy;
 
@@ -94,33 +95,33 @@ public:
      * collection. It does not allocate memory and its complexity is
      * @f$ O(1) @f$.
      */
-    iterator begin() const { return impl_.d->begin(); }
+    iterator begin() const { return impl_.data(); }
 
     /*!
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    iterator end()   const { return impl_.d->end(); }
+    iterator end()   const { return impl_.data() + impl_.size; }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing at the first element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    reverse_iterator rbegin() const { return impl_.d->rbegin(); }
+    reverse_iterator rbegin() const { return reverse_iterator{end()}; }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing after the last element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    reverse_iterator rend()   const { return impl_.d->rend(); }
+    reverse_iterator rend()   const { return reverse_iterator{begin()}; }
 
     /*!
      * Returns the number of elements in the container.  It does
      * not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    std::size_t size() const { return impl_.d->size(); }
+    std::size_t size() const { return impl_.size; }
 
     /*!
      * Returns `true` if there are no elements in the container.  It
@@ -203,7 +204,8 @@ public:
 
 private:
     array(impl_t impl) : impl_(std::move(impl)) {}
-    impl_t impl_;
+
+    impl_t impl_ = impl_t::empty;
 };
 
 } /* namespace immer */
