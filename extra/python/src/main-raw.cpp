@@ -40,7 +40,7 @@ struct heap_t
     }
 
     template <typename ...Tags>
-    static void deallocate(void* obj)
+    static void deallocate(std::size_t, void* obj, Tags...)
     {
         PyMem_Free(obj);
     }
