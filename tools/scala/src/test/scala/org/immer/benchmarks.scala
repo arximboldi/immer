@@ -5,8 +5,8 @@ import scala.collection.immutable.Vector
 import scala.collection.immutable.rrbvector.RRBVector
 
 class BenchmarkBase extends Bench.ForkedTime {
-  val runs = 3
-  val size = 10000000
+  val runs = 20
+  val size = 1000
   val step = 10
   val sizes = Gen.range("size")(size, size, 1)
 
