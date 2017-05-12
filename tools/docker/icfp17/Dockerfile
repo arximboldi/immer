@@ -6,7 +6,7 @@ MAINTAINER arximboldi
 
 RUN apt-get update && \
     apt-get install -y git
-RUN git clone https://github.com/arximboldi/immer.git -b docker
+RUN git clone https://github.com/arximboldi/immer.git
 
 ## prepare test dependencies
 
