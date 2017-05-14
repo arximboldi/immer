@@ -155,11 +155,14 @@ struct transient_tester
     {
         auto s = d.next();
         if (soft_dada()) {
-            transient = !transient;
-            if (transient)
-                vt = vp.transient();
-            else
-                vp = vt.persistent();
+            auto new_transient = !transient;
+            try {
+                if (new_transient)
+                    vt = vp.transient();
+                else
+                    vp = vt.persistent();
+            } catch (const dada_error&) { return false; }
+            transient = new_transient;
             return true;
         } else
             return false;

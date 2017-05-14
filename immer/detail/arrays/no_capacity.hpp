@@ -18,6 +18,8 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#pragma once
+
 #include <immer/detail/arrays/node.hpp>
 
 namespace immer {

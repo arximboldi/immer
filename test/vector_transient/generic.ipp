@@ -65,8 +65,10 @@ TEST_CASE("push back move")
     };
 
     v = check_move(std::move(v).push_back(0));
-    auto addr_before = &v[0];
     v = check_move(std::move(v).push_back(1));
+    v = check_move(std::move(v).push_back(2));
+    auto addr_before = &v[0];
+    v = check_move(std::move(v).push_back(3));
     auto addr_after = &v[0];
 
     if (vector_t::memory_policy::use_transient_rvalues)
@@ -74,7 +76,7 @@ TEST_CASE("push back move")
     else
         CHECK(addr_before != addr_after);
 
-    CHECK_VECTOR_EQUALS(v, boost::irange(0u, 2u));
+    CHECK_VECTOR_EQUALS(v, boost::irange(0u, 4u));
 }
 
 TEST_CASE("set move")
@@ -179,9 +181,9 @@ TEST_CASE("exception safety")
                 else
                     t.vp = t.vp.push_back({i});
                 ++i;
+                if (t.step())
+                    li = i;
             } catch (dada_error) {}
-            if (t.step())
-                li = i;
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
@@ -211,9 +213,9 @@ TEST_CASE("exception safety")
                 else
                     t.vp = t.vp.update(i, [] (auto x) { return dada(), x + 1; });
                 ++i;
+                if (t.step())
+                    li = i;
             } catch (dada_error) {}
-            if (t.step())
-                li = i;
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, join(irange(1u, 1u + i), irange(i, n)));
                 CHECK_VECTOR_EQUALS(t.vp, join(irange(1u, 1u + li), irange(li, n)));
@@ -231,7 +233,7 @@ TEST_CASE("exception safety")
         auto t = as_transient_tester(make_test_vector<dadaist_vector_t>(0, n));
         auto d = dadaism{};
         auto deltas = magic_rotator();
-        auto delta  = deltas.next();
+        auto delta  = 0u;
         for (auto i = n, li = i;;) {
             auto s = d.next();
             auto r = dadaist_vector_t{};

@@ -22,9 +22,11 @@
 
 #include <immer/memory_policy.hpp>
 #include <immer/detail/arrays/with_capacity.hpp>
-#include <immer/detail/arrays/no_capacity.hpp>
 
 namespace immer {
+
+template <typename T, typename MemoryPolicy>
+class array_transient;
 
 /*!
  * Immutable container that stores a sequence of elements in
@@ -73,7 +75,8 @@ public:
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    using memory_policy = MemoryPolicy;
+    using memory_policy  = MemoryPolicy;
+    using transient_type = array_transient<T, MemoryPolicy>;
 
     /*!
      * Default constructor.  It creates an array of `size() == 0`.  It
@@ -256,10 +259,21 @@ public:
     decltype(auto) take(size_type elems) &&
     { return take_move(move_t{}, elems); }
 
+    /*!
+     * Returns an @a transient form of this container, an
+     * `immer::array_transient`.
+     */
+    transient_type transient() const&
+    { return transient_type{ impl_ }; }
+    transient_type transient() &&
+    { return transient_type{ std::move(impl_) }; }
+
     // Semi-private
     const impl_t& impl() const { return impl_; }
 
 private:
+    friend transient_type;
+
     array(impl_t impl) : impl_(std::move(impl)) {}
 
     array&& push_back_move(std::true_type, value_type value)

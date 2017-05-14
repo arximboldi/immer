@@ -18,7 +18,9 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <immer/detail/arrays/node.hpp>
+#pragma once
+
+#include <immer/detail/arrays/no_capacity.hpp>
 
 namespace immer {
 namespace detail {
@@ -27,6 +29,8 @@ namespace arrays {
 template <typename T, typename MemoryPolicy>
 struct with_capacity
 {
+    using no_capacity_t = no_capacity<T, MemoryPolicy>;
+
     using node_t      = node<T, MemoryPolicy>;
     using edit_t      = typename MemoryPolicy::transience_t::edit;
     using size_t      = std::size_t;
@@ -43,6 +47,12 @@ struct with_capacity
 
     with_capacity(const with_capacity& other)
         : with_capacity{other.ptr, other.size, other.capacity}
+    {
+        inc();
+    }
+
+    with_capacity(const no_capacity_t& other)
+        : with_capacity{other.ptr, other.size, other.size}
     {
         inc();
     }
@@ -94,6 +104,16 @@ struct with_capacity
 
     const T* data() const { return ptr->data(); }
     T* data()             { return ptr->data(); }
+
+    operator no_capacity_t() const
+    {
+        if (size == capacity) {
+            ptr->refs().inc();
+            return { ptr, size };
+        } else {
+            return { node_t::copy_n(size, ptr, size), size };
+        }
+    }
 
     template <typename Iter>
     static with_capacity from_range(Iter first, Iter last)
@@ -169,7 +189,7 @@ struct with_capacity
             auto cap = recommend_up(size + 1, capacity);
             auto p = node_t::copy_e(e, cap, ptr, size);
             try {
-                new (data(p) + size) T{std::move(value)};
+                new (p->data() + size) T{std::move(value)};
                 *this = { p, size + 1, cap };
             } catch (...) {
                 node_t::delete_n(p, size, cap);
@@ -229,7 +249,7 @@ struct with_capacity
         } else {
             auto p = node_t::copy_e(e, capacity, ptr, size);
             try {
-                auto& elem = data(p)[idx];
+                auto& elem = p->data()[idx];
                 elem = std::forward<Fn>(op)(std::move(elem));
                 *this = { p, size, capacity };
             } catch (...) {
@@ -249,7 +269,7 @@ struct with_capacity
     void take_mut(edit_t e, std::size_t sz)
     {
         if (ptr->can_mutate(e)) {
-            destroy_n(data() + sz, data() + size);
+            destroy_n(data() + size, size - sz);
             size = sz;
         } else {
             auto cap = recommend_down(sz, capacity);
