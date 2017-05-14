@@ -6,7 +6,7 @@ doc/_doxygen
 tools/travis/ssh-key
 tools/clojure/target/
 tools/scala/target/
-tools/scala/project/
+tools/scala/project/target/
 
 extra/js/out
 extra/js/boost

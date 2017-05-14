@@ -190,7 +190,8 @@ TEST_CASE("iterator")
     SECTION("can go back from end")
     {
         auto expected  = n - 1;
-        CHECK(expected == *--v.end());
+        auto last = v.end();
+        CHECK(expected == *--last);
     }
 
     SECTION("works with reversed range adaptor")

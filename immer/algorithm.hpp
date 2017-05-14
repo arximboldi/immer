@@ -58,9 +58,15 @@ void for_each_chunk(const Range& r, Fn&& fn)
 template <typename Iterator, typename Fn>
 void for_each_chunk(const Iterator& first, const Iterator& last, Fn&& fn)
 {
-   assert(&first.impl() == &last.impl());
-   first.impl().for_each_chunk(first.index(), last.index(),
-                               std::forward<Fn>(fn));
+    assert(&first.impl() == &last.impl());
+    first.impl().for_each_chunk(first.index(), last.index(),
+                                std::forward<Fn>(fn));
+}
+
+template <typename T, typename Fn>
+void for_each_chunk(const T* first, const T* last, Fn&& fn)
+{
+    std::forward<Fn>(fn)(first, last);
 }
 
 /*!

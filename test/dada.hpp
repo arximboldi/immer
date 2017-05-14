@@ -191,4 +191,11 @@ struct dadaist_vector<V<T, MP, B, BL>>
     using type = V<dadaist<T>, dadaist_memory_policy<MP>, B, BL>;
 };
 
+template <template <class, class> class V,
+          typename T, typename MP>
+struct dadaist_vector<V<T, MP>>
+{
+    using type = V<dadaist<T>, dadaist_memory_policy<MP>>;
+};
+
 } // anonymous namespace

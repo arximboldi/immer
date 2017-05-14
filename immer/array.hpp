@@ -21,7 +21,8 @@
 #pragma once
 
 #include <immer/memory_policy.hpp>
-#include <immer/detail/array_impl.hpp>
+#include <immer/detail/arrays/with_capacity.hpp>
+#include <immer/detail/arrays/no_capacity.hpp>
 
 namespace immer {
 
@@ -53,7 +54,13 @@ namespace immer {
 template <typename T, typename MemoryPolicy = default_memory_policy>
 class array
 {
-    using impl_t = detail::array_impl<T, MemoryPolicy>;
+    using impl_t = std::conditional_t<
+        MemoryPolicy::use_transient_rvalues,
+        detail::arrays::with_capacity<T, MemoryPolicy>,
+        detail::arrays::no_capacity<T, MemoryPolicy>>;
+
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
 
 public:
     using value_type = T;
@@ -130,6 +137,21 @@ public:
     bool empty() const { return impl_.d->empty(); }
 
     /*!
+     * Access the raw data.
+     */
+    const T* data() const { return impl_.data(); }
+
+    /*!
+     * Access the last element.
+     */
+    const T& back() const { return data()[size() - 1]; }
+
+    /*!
+     * Access the first element.
+     */
+    const T& front() const { return data()[0]; }
+
+    /*!
      * Returns a `const` reference to the element at position `index`.
      * It does not allocate memory and its complexity is @f$ O(1) @f$.
      */
@@ -159,8 +181,11 @@ public:
      *
      * @endrst
      */
-    array push_back(value_type value) const
+    array push_back(value_type value) const&
     { return impl_.push_back(std::move(value)); }
+
+    decltype(auto) push_back(value_type value) &&
+    { return push_back_move(move_t{}, std::move(value)); }
 
     /*!
      * Returns an array containing value `value` at position `idx`.
@@ -178,8 +203,11 @@ public:
      *
      * @endrst
      */
-    array set(std::size_t index, value_type value) const
+    array set(std::size_t index, value_type value) const&
     { return impl_.assoc(index, std::move(value)); }
+
+    decltype(auto) set(size_type index, value_type value) &&
+    { return set_move(move_t{}, index, std::move(value)); }
 
     /*!
      * Returns an array containing the result of the expression
@@ -199,11 +227,62 @@ public:
      * @endrst
      */
     template <typename FnT>
-    array update(std::size_t index, FnT&& fn) const
+    array update(std::size_t index, FnT&& fn) const&
     { return impl_.update(index, std::forward<FnT>(fn)); }
+
+    template <typename FnT>
+    decltype(auto) update(size_type index, FnT&& fn) &&
+    { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
+
+    /*!
+     * Returns a array containing only the first `min(elems, size())`
+     * elements. It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/array/array.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: take/start
+     *      :end-before:  take/end
+     *
+     * @endrst
+     */
+    array take(size_type elems) const&
+    { return impl_.take(elems); }
+
+    decltype(auto) take(size_type elems) &&
+    { return take_move(move_t{}, elems); }
+
+    // Semi-private
+    const impl_t& impl() const { return impl_; }
 
 private:
     array(impl_t impl) : impl_(std::move(impl)) {}
+
+    array&& push_back_move(std::true_type, value_type value)
+    { impl_.push_back_mut({}, std::move(value)); return std::move(*this); }
+    array push_back_move(std::false_type, value_type value)
+    { return impl_.push_back(std::move(value)); }
+
+    array&& set_move(std::true_type, size_type index, value_type value)
+    { impl_.assoc_mut({}, index, std::move(value)); return std::move(*this); }
+    array set_move(std::false_type, size_type index, value_type value)
+    { return impl_.assoc(index, std::move(value)); }
+
+    template <typename Fn>
+    array&& update_move(std::true_type, size_type index, Fn&& fn)
+    { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
+    template <typename Fn>
+    array update_move(std::false_type, size_type index, Fn&& fn)
+    { return impl_.update(index, std::forward<Fn>(fn)); }
+
+    array&& take_move(std::true_type, size_type elems)
+    { impl_.take_mut({}, elems); return std::move(*this); }
+    array take_move(std::false_type, size_type elems)
+    { return impl_.take(elems); }
 
     impl_t impl_ = impl_t::empty;
 };
