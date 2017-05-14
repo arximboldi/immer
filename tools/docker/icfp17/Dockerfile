@@ -39,6 +39,7 @@ RUN curl https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
 
 WORKDIR /immer/tools/clojure
 ENV LEIN_ROOT ok
+RUN lein deps
 RUN lein compile
 
 ## prepare scala dependencies
@@ -65,6 +66,11 @@ RUN pip install \
         pyrsistent
 
 RUN pip install /immer
+
+## add some editors
+
+RUN apt-get update && \
+    apt-get install -y emacs vim nano
 
 ## go to a useful working dir
 
