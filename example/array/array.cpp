@@ -54,4 +54,14 @@ int main()
         assert((v2 == immer::array<int>{1,2,4,4}));
 // include:update/end
     }
+
+    {
+// include:take/start
+        auto v1 = immer::array<int>{1,2,3,4,5,6};
+        auto v2 = v1.take(3);
+
+        assert((v1 == immer::array<int>{1,2,3,4,5,6}));
+        assert((v2 == immer::array<int>{1,2,3}));
+// include:take/end
+    }
 }
