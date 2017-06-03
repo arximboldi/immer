@@ -20,8 +20,9 @@
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/arrays/with_capacity.hpp>
+#include <immer/detail/immutable.hpp>
+#include <immer/memory_policy.hpp>
 
 namespace immer {
 
@@ -236,6 +237,14 @@ public:
     template <typename FnT>
     decltype(auto) update(size_type index, FnT&& fn) &&
     { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
+
+    template <typename ... Rest>
+    auto setIn(size_type index, Rest const & ... rest) const
+    { return detail::setIn(*this, index, rest ...); }
+
+    template <typename ... Rest>
+    auto updateIn(size_type index, Rest const & ... rest) const
+    { return detail::updateIn(*this, index, rest ...); }
 
     /*!
      * Returns a array containing only the first `min(elems, size())`
