@@ -307,8 +307,10 @@ void each_regular(Pos&& p, Visitor v, Args&&... args)
     auto last = p.count() - 1;
     auto e = n + last;
     if (p.shift() == BL) {
-        for (; n != e; ++n)
+        for (; n != e; ++n) {
+            IMMER_PREFETCH(n + 1);
             make_full_leaf_pos(*n).visit(v, args...);
+        }
         make_leaf_pos(*n, p.size()).visit(v, args...);
     } else {
         auto ss = p.shift() - B;
@@ -327,9 +329,11 @@ bool each_pred_regular(Pos&& p, Visitor v, Args&&... args)
     auto last = p.count() - 1;
     auto e = n + last;
     if (p.shift() == BL) {
-        for (; n != e; ++n)
+        for (; n != e; ++n) {
+            IMMER_PREFETCH(n + 1);
             if (!make_full_leaf_pos(*n).visit(v, args...))
                 return false;
+        }
         return make_leaf_pos(*n, p.size()).visit(v, args...);
     } else {
         auto ss = p.shift() - B;
@@ -351,9 +355,12 @@ bool each_pred_zip_regular(Pos&& p, Visitor v, node_type<Pos>* other, Args&&... 
     auto last = p.count() - 1;
     auto e = n + last;
     if (p.shift() == BL) {
-        for (; n != e; ++n, ++n2)
+        for (; n != e; ++n, ++n2) {
+            IMMER_PREFETCH(n + 1);
+            IMMER_PREFETCH(n2 + 1);
             if (!make_full_leaf_pos(*n).visit(v, *n2, args...))
                 return false;
+        }
         return make_leaf_pos(*n, p.size()).visit(v, *n2, args...);
     } else {
         auto ss = p.shift() - B;
@@ -375,13 +382,17 @@ void each_i_regular(Pos&& p, Visitor v, count_t f, count_t l, Args&&... args)
             if (l < p.count()) {
                 auto n = p.node()->inner() + f;
                 auto e = p.node()->inner() + l;
-                for (; n < e; ++n)
+                for (; n < e; ++n) {
+                    IMMER_PREFETCH(n + 1);
                     make_full_leaf_pos(*n).visit(v, args...);
+                }
             } else {
                 auto n = p.node()->inner() + f;
                 auto e = p.node()->inner() + l - 1;
-                for (; n < e; ++n)
+                for (; n < e; ++n) {
+                    IMMER_PREFETCH(n + 1);
                     make_full_leaf_pos(*n).visit(v, args...);
+                }
                 make_leaf_pos(*n, p.size()).visit(v, args...);
             }
         }
@@ -413,8 +424,10 @@ void each_left_regular(Pos&& p, Visitor v, count_t last, Args&&... args)
     if (p.shift() == BL) {
         auto n = p.node()->inner();
         auto e = n + last;
-        for (; n != e; ++n)
+        for (; n != e; ++n) {
+            IMMER_PREFETCH(n + 1);
             make_full_leaf_pos(*n).visit(v, args...);
+        }
     } else {
         auto n = p.node()->inner();
         auto e = n + last;
@@ -435,8 +448,10 @@ void each_right_regular(Pos&& p, Visitor v, count_t start, Args&&... args)
         auto last = p.count() - 1;
         auto e = p.node()->inner() + last;
         if (n <= e) {
-            for (; n != e; ++n)
+            for (; n != e; ++n) {
+                IMMER_PREFETCH(n + 1);
                 make_full_leaf_pos(*n).visit(v, args...);
+            }
             make_leaf_pos(*n, p.size()).visit(v, args...);
         }
     } else {
@@ -667,8 +682,10 @@ struct regular_sub_pos
         auto n = node()->inner() + i;
         auto e = node()->inner() + last;
         if (shift() == BL) {
-            for (; n != e; ++n)
+            for (; n != e; ++n) {
+                IMMER_PREFETCH(n + 1);
                 make_full_leaf_pos(*n).visit(v, args...);
+            }
             make_leaf_sub_pos(*n, lsize).visit(v, args...);
         } else {
             auto ss = shift_ - B;
@@ -697,8 +714,10 @@ struct regular_sub_pos
         auto n = node_->inner();
         auto e = n + last;
         if (shift_ == BL) {
-            for (; n != e; ++n)
+            for (; n != e; ++n) {
+                IMMER_PREFETCH(n + 1);
                 make_full_leaf_pos(*n).visit(v, args...);
+            }
         } else {
             auto ss = shift_ - B;
             for (; n != e; ++n)
@@ -950,8 +969,10 @@ struct full_pos
         auto p = node_->inner();
         auto e = p + branches<B>;
         if (shift_ == BL) {
-            for (; p != e; ++p)
+            for (; p != e; ++p) {
+                IMMER_PREFETCH(p + 1);
                 make_full_leaf_pos(*p).visit(v, args...);
+            }
         } else {
             auto ss = shift_ - B;
             for (; p != e; ++p)
@@ -965,9 +986,11 @@ struct full_pos
         auto p = node_->inner();
         auto e = p + branches<B>;
         if (shift_ == BL) {
-            for (; p != e; ++p)
+            for (; p != e; ++p) {
+                IMMER_PREFETCH(p + 1);
                 if (!make_full_leaf_pos(*p).visit(v, args...))
                     return false;
+            }
         } else {
             auto ss = shift_ - B;
             for (; p != e; ++p)
@@ -984,9 +1007,11 @@ struct full_pos
         auto p2 = other->inner();
         auto e = p + branches<B>;
         if (shift_ == BL) {
-            for (; p != e; ++p, ++p2)
+            for (; p != e; ++p, ++p2) {
+                IMMER_PREFETCH(p + 1);
                 if (!make_full_leaf_pos(*p).visit(v, *p2, args...))
                     return false;
+            }
         } else {
             auto ss = shift_ - B;
             for (; p != e; ++p, ++p2)
@@ -1002,8 +1027,10 @@ struct full_pos
         auto p = node_->inner() + i;
         auto e = node_->inner() + n;
         if (shift_ == BL) {
-            for (; p != e; ++p)
+            for (; p != e; ++p) {
+                IMMER_PREFETCH(p + 1);
                 make_full_leaf_pos(*p).visit(v, args...);
+            }
         } else {
             auto ss = shift_ - B;
             for (; p != e; ++p)
@@ -1194,6 +1221,7 @@ struct relaxed_pos
         auto n = count();
         if (shift_ == BL) {
             for (auto i = count_t{0}; i < n; ++i) {
+                IMMER_PREFETCH(p + i + 1);
                 if (!make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...))
                     return false;
@@ -1218,6 +1246,7 @@ struct relaxed_pos
             auto p = node_->inner();
             auto s = i > 0 ? relaxed_->d.sizes[i - 1] : 0;
             for (; i < n; ++i) {
+                IMMER_PREFETCH(p + i + 1);
                 make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->d.sizes[i];
@@ -1249,6 +1278,7 @@ struct relaxed_pos
         auto s = size_t{};
         if (shift_ == BL) {
             for (auto i = count_t{0}; i < n; ++i) {
+                IMMER_PREFETCH(p + i + 1);
                 make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->d.sizes[i];
@@ -1276,6 +1306,7 @@ struct relaxed_pos
         auto p = node_->inner();
         if (shift_ == BL) {
             for (auto i = start; i < relaxed_->d.count; ++i) {
+                IMMER_PREFETCH(p + i + 1);
                 make_leaf_sub_pos(p[i], relaxed_->d.sizes[i] - s)
                     .visit(v, args...);
                 s = relaxed_->d.sizes[i];
