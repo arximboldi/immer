@@ -29,5 +29,6 @@ NONIUS_BENCHMARK("ours/unsafe",  benchmark_concat_incr<immer::flex_vector<unsign
 NONIUS_BENCHMARK("ours/gc",      benchmark_concat_incr<immer::flex_vector<unsigned,gc_memory>>())
 NONIUS_BENCHMARK("librrb",       benchmark_concat_incr_librrb(make_librrb_vector))
 
-NONIUS_BENCHMARK("transient ours/gc", benchmark_concat_incr_mut<immer::flex_vector<unsigned,gc_memory>>())
+NONIUS_BENCHMARK("transient ours/gc",      benchmark_concat_incr_mut<immer::flex_vector<unsigned,gc_memory>>())
 NONIUS_BENCHMARK("transient chunkedseq32", benchmark_concat_incr_chunkedseq<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())
+NONIUS_BENCHMARK("transient chunkedseq",   benchmark_concat_incr_chunkedseq<pasl::data::chunkedseq::bootstrapped::deque<unsigned>>())

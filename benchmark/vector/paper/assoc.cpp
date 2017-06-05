@@ -47,5 +47,6 @@ NONIUS_BENCHMARK("transient relaxed ours/unsafe",  benchmark_assoc_mut<immer::fl
 NONIUS_BENCHMARK("transient relaxed ours/gc",      benchmark_assoc_mut<immer::flex_vector<unsigned,gc_memory>,push_back_fn>())
 NONIUS_BENCHMARK("transient relaxed librrb",       benchmark_assoc_mut_librrb(make_librrb_vector_f))
 
-NONIUS_BENCHMARK("transient std::vector", benchmark_assoc_std<std::vector<unsigned>>())
-NONIUS_BENCHMARK("transient chunkedseq",  benchmark_assoc_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())
+NONIUS_BENCHMARK("transient std::vector",  benchmark_assoc_std<std::vector<unsigned>>())
+NONIUS_BENCHMARK("transient chunkedseq32", benchmark_assoc_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())
+NONIUS_BENCHMARK("transient chunkedseq",   benchmark_assoc_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned>>())
