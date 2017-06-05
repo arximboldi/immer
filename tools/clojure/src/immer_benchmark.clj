@@ -56,11 +56,27 @@
                (inc i))
         v)))
 
+  (defn vector-update-random [v]
+    (loop [v v
+           i 0]
+      (if (< i N)
+        (recur (assoc v (rand-int N) i)
+               (inc i))
+        v)))
+
   (defn vector-update! [v]
     (loop [v (transient v)
            i 0]
       (if (< i N)
         (recur (assoc! v i (+ i 1))
+               (inc i))
+        (persistent! v))))
+
+  (defn vector-update-random! [v]
+    (loop [v (transient v)
+           i 0]
+      (if (< i N)
+        (recur (assoc! v (rand-int N) i)
                (inc i))
         (persistent! v))))
 
@@ -71,14 +87,21 @@
     (def full-v (into empty-v (range N)))
     (h2 "iter")
     (c/bench (vector-iter full-v) :samples S)
-    (h2 "update!")
-    (c/bench (vector-update! full-v) :samples S)
-    (h2 "push!")
-    (c/bench (vector-push! empty-v) :samples S)
-    (h2 "update")
-    (c/bench (vector-update full-v) :samples S)
-    (h2 "push")
-    (c/bench (vector-push empty-v) :samples S))
+    (if (> N 100000)
+      (h2 "skipping updates 'cuz N > 100000 (would run out of mem)")
+      (do
+        (h2 "update!")
+        (c/bench (vector-update! full-v) :samples S)
+        (h2 "update-random!")
+        (c/bench (vector-update-random! full-v) :samples S)
+        (h2 "push!")
+        (c/bench (vector-push! empty-v) :samples S)
+        (h2 "update")
+        (c/bench (vector-update full-v) :samples S)
+        (h2 "update-random")
+        (c/bench (vector-update-random full-v) :samples S)
+        (h2 "push")
+        (c/bench (vector-push empty-v) :samples S))))
 
   (defn the-rrb-benchmarks [empty-v]
     (if (> N 1000)
@@ -88,7 +111,9 @@
         (h2 "iter/f")
         (c/bench (vector-iter full-v) :samples S)
         (h2 "update/f")
-        (c/bench (vector-update full-v) :samples S)))
+        (c/bench (vector-update full-v) :samples S)
+        (h2 "update-random/f")
+        (c/bench (vector-update-random full-v) :samples S)))
     (def short-v (into empty-v (range (/ N c-steps))))
     (h2 "concat")
     (c/bench (vector-concat empty-v short-v)) :samples S)
