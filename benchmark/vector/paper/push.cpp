@@ -21,6 +21,7 @@
 #include "benchmark/vector/push.hpp"
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
+#include <chunkedseq.hpp>
 
 NONIUS_BENCHMARK("ours/basic",   benchmark_push<immer::flex_vector<unsigned,basic_memory>>())
 NONIUS_BENCHMARK("ours/safe",    benchmark_push<immer::flex_vector<unsigned,def_memory>>())
@@ -35,3 +36,4 @@ NONIUS_BENCHMARK("transient ours/gc",      benchmark_push_mut<immer::flex_vector
 NONIUS_BENCHMARK("transient librrb",       benchmark_push_mut_librrb)
 NONIUS_BENCHMARK("transient std::vector",  benchmark_push_mut_std<std::vector<unsigned>>())
 NONIUS_BENCHMARK("transient std::list",    benchmark_push_mut_std<std::list<unsigned>>())
+NONIUS_BENCHMARK("transient chunkedseq32", benchmark_push_mut_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())

@@ -31,7 +31,7 @@ auto benchmark_assoc_std()
         [] (nonius::chronometer meter)
         {
             auto n = meter.param<N>();
-            auto v = Vektor(n);
+            auto v = Vektor(n, 0);
             std::iota(v.begin(), v.end(), 0u);
             auto all = std::vector<Vektor>(meter.runs(), v);
             meter.measure([&] (int iter) {
@@ -51,7 +51,7 @@ auto benchmark_assoc_random_std()
         {
             auto n = meter.param<N>();
             auto g = make_generator(n);
-            auto v = Vektor(n);
+            auto v = Vektor(n, 0);
             std::iota(v.begin(), v.end(), 0u);
             auto all = std::vector<Vektor>(meter.runs(), v);
             meter.measure([&] (int iter) {
@@ -111,6 +111,7 @@ auto benchmark_assoc_move()
 };
 
 template <typename Vektor,
+          typename PushFn=push_back_fn,
           typename SetFn=set_fn>
 auto benchmark_assoc_random()
 {
@@ -123,7 +124,7 @@ auto benchmark_assoc_random()
         auto g = make_generator(n);
         auto v = Vektor{};
         for (auto i = 0u; i < n; ++i)
-            v = v.push_back(i);
+            v = PushFn{}(std::move(v), i);
 
         measure(meter, [&] {
             auto r = v;

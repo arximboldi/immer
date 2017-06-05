@@ -98,7 +98,7 @@ NONIUS_BENCHMARK("dvektor/UN", benchmark_assoc<immer::dvektor<unsigned,unsafe_me
 NONIUS_BENCHMARK("array",      benchmark_assoc<immer::array<unsigned>>())
 
 #if IMMER_BENCHMARK_STEADY
-NONIUS_BENCHMARK("steady/random",      benchmark_assoc_random<steady::vector<unsigned>, store_fn>())
+NONIUS_BENCHMARK("steady/random",      benchmark_assoc_random<steady::vector<unsigned>, push_back_fn, store_fn>())
 #endif
 
 NONIUS_BENCHMARK("flex/5B/random",     benchmark_assoc_random<immer::flex_vector<unsigned,def_memory,5>>())

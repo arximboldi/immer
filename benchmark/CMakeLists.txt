@@ -12,6 +12,10 @@ set(NONIUS_INCLUDE_DIR
   "${DEPS_DIR}/Source/nonius/include")
 set(STEADY_INCLUDE_DIR
   "${DEPS_DIR}/Source/steady/steady")
+set(CHUNKEDSEQ_INCLUDE_DIR
+  "${DEPS_DIR}/Source/chunkedseq/include")
+set(IMMUTABLE_CPP_INCLUDE_DIR
+  "${DEPS_DIR}/Source/immutable-cpp")
 set(LIBRRB_INCLUDE_DIR
   "${DEPS_DIR}/Install/librrb/include")
 set(LIBRRB_LIBS
@@ -30,6 +34,12 @@ immer_external_dep_nobuild(deps-benchmark nonius
 
 immer_external_dep_nobuild(deps-benchmark steady
   GIT_REPOSITORY https://github.com/marcusz/steady)
+
+immer_external_dep_nobuild(deps-benchmark chunkedseq
+  GIT_REPOSITORY https://github.com/deepsea-inria/chunkedseq.git)
+
+immer_external_dep_nobuild(deps-benchmark immutable-cpp
+  GIT_REPOSITORY https://github.com/rsms/immutable-cpp.git)
 
 immer_external_dep(deps-benchmark librrb
   DEPENDS libgc
@@ -54,7 +64,9 @@ set(immer_benchmark_include_dirs
   ${LIBGC_INCLUDE_DIR}
   ${NONIUS_INCLUDE_DIR}
   ${LIBRRB_INCLUDE_DIR}
-  ${STEADY_INCLUDE_DIR})
+  ${STEADY_INCLUDE_DIR}
+  ${CHUNKEDSEQ_INCLUDE_DIR}
+  ${IMMUTABLE_CPP_INCLUDE_DIR})
 set(immer_benchmark_libs
   ${LIBGC_LIBS}
   ${LIBRRB_LIBS}

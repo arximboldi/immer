@@ -70,7 +70,7 @@ auto benchmark_concat_incr()
                 v = PushFn{}(std::move(v), i);
 
             measure(meter, [&] {
-                    auto r = v;
+                    auto r = Vektor{};
                     for (auto i = 0u; i < steps; ++i)
                         r = r + v;
                     return r;
@@ -78,26 +78,64 @@ auto benchmark_concat_incr()
         };
 };
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
+template <typename Vektor>
 auto benchmark_concat_incr_mut()
 {
     return
         [] (nonius::chronometer meter)
         {
-            auto steps = 10u;
+            constexpr auto steps = 10u;
             auto n = meter.param<N>();
 
-            auto v = Vektor{};
-            for (auto i = 0u; i < n / steps; ++i)
-                v = PushFn{}(std::move(v), i);
-            auto vv = v.transient();
-            measure(meter, [&] {
-                    auto r = v.transient();
-                    for (auto i = 0u; i < steps; ++i)
-                        r.append(vv);
-                    return r;
-                });
+            using transient_t = typename Vektor::transient_type;
+            using steps_t = std::vector<transient_t, gc_allocator<transient_t>>;
+            auto vs = std::vector<steps_t, gc_allocator<steps_t>>(meter.runs());
+            for (auto k = 0u; k < vs.size(); ++k) {
+                vs[k].reserve(steps);
+                for (auto j = 0u; j < steps; ++j) {
+                    auto vv = Vektor{}.transient();
+                    for (auto i = 0u; i < n / steps; ++i)
+                        vv.push_back(i);
+                    vs[k].push_back(std::move(vv));
+                }
+            }
+            measure(meter, [&] (int run) {
+                auto& vr = vs[run];
+                auto r = Vektor{}.transient();
+                assert(vr.size() == steps);
+                for (auto i = 0u; i < steps; ++i)
+                    r.append(std::move(vr[i]));
+                return r;
+            });
+        };
+};
+
+template <typename Vektor>
+auto benchmark_concat_incr_chunkedseq()
+{
+    return
+        [] (nonius::chronometer meter)
+        {
+            constexpr auto steps = 10u;
+            auto n = meter.param<N>();
+
+            using steps_t = std::vector<Vektor>;
+            auto vs = std::vector<steps_t>(meter.runs());
+            for (auto k = 0u; k < vs.size(); ++k) {
+                for (auto j = 0u; j < steps; ++j) {
+                    auto vv = Vektor{};
+                    for (auto i = 0u; i < n / steps; ++i)
+                        vv.push_back(i);
+                    vs[k].push_back(std::move(vv));
+                }
+            }
+            measure(meter, [&] (int run) {
+                auto& vr = vs[run];
+                auto r = Vektor{};
+                for (auto i = 0u; i < steps; ++i)
+                    r.concat(vr[i]);
+                return r;
+            });
         };
 };
 
@@ -110,7 +148,7 @@ auto benchmark_concat_incr_librrb(Fn maker)
             auto steps = 10u;
             auto v = maker(n / steps);
             measure(meter, [&] {
-                    auto r = v;
+                    auto r = rrb_create();
                     for (auto i = 0ul; i < steps; ++i)
                         r = rrb_concat(r, v);
                     return r;

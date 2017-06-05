@@ -21,6 +21,7 @@
 #include "benchmark/vector/concat.hpp"
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
+#include <chunkedseq.hpp>
 
 NONIUS_BENCHMARK("ours/basic",   benchmark_concat_incr<immer::flex_vector<unsigned,basic_memory>>())
 NONIUS_BENCHMARK("ours/safe",    benchmark_concat_incr<immer::flex_vector<unsigned,def_memory>>())
@@ -29,3 +30,4 @@ NONIUS_BENCHMARK("ours/gc",      benchmark_concat_incr<immer::flex_vector<unsign
 NONIUS_BENCHMARK("librrb",       benchmark_concat_incr_librrb(make_librrb_vector))
 
 NONIUS_BENCHMARK("transient ours/gc", benchmark_concat_incr_mut<immer::flex_vector<unsigned,gc_memory>>())
+NONIUS_BENCHMARK("transient chunkedseq32", benchmark_concat_incr_chunkedseq<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())

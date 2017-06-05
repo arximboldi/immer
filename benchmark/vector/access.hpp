@@ -31,6 +31,25 @@
 namespace {
 
 template <typename Vektor>
+auto benchmark_access_reduce_chunkedseq()
+{
+    return [] (nonius::parameters params)
+    {
+        auto n = params.get<N>();
+        auto v = Vektor{};
+        for (auto i = 0u; i < n; ++i)
+            v.push_back(i);
+        return [=] {
+            auto init = 0u;
+            v.for_each_segment([&] (auto first, auto last) {
+                init = std::accumulate(first, last, init);
+            });
+            return init;
+        };
+    };
+}
+
+template <typename Vektor>
 auto benchmark_access_iter_std()
 {
     return [] (nonius::parameters params)
