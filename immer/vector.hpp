@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/detail/immutable.hpp>
 #include <immer/detail/rbts/rbtree.hpp>
 #include <immer/detail/rbts/rbtree_iterator.hpp>
 #include <immer/memory_policy.hpp>
@@ -262,6 +263,14 @@ public:
     template <typename FnT>
     decltype(auto) update(size_type index, FnT&& fn) &&
     { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
+
+    template <typename ... Rest>
+    auto setIn(size_type index, Rest const & ... rest) const
+    { return detail::setIn(*this, index, rest ...); }
+
+    template <typename ... Rest>
+    auto updateIn(size_type index, Rest const & ... rest) const
+    { return detail::updateIn(*this, index, rest ...); }
 
     /*!
      * Returns a vector containing only the first `min(elems, size())`
