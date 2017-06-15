@@ -112,7 +112,9 @@ function travis-before-script
         BENCHMARK=true
     fi
     if [[ "${CONFIGURATION}" == Debug ]]; then
-        slow_tests=true
+        # For now this is too slow on clang... :(
+        # slow_tests=true
+        slow_tests=false
     fi
     if [[ "${SANITIZE}" == true ]]; then
         disable_free_list=true
