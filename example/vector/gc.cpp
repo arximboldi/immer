@@ -18,6 +18,7 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+// include:example/start
 #include <immer/heap/gc_heap.hpp>
 #include <immer/heap/heap_policy.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
@@ -46,3 +47,4 @@ int main()
 
     for (auto s : v) std::cout << s;
 }
+// include:example/end

@@ -63,6 +63,9 @@ make scanning references faster.  So it makes most sense to use
 
 .. literalinclude:: ../example/vector/gc.cpp
    :language: c++
+   :start-after: example/start
+   :end-before:  example/end
+
 
 .. _boehm's conservative garbage collector: https://github.com/ivmai/bdwgc
 .. _tracing garbage collector: https://en.wikipedia.org/wiki/Tracing_garbage_collection
