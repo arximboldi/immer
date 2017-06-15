@@ -14,50 +14,29 @@
 .. include:introduction/start
 
 **immer** is a library of persistent_ and immutable_ data structures
-written in C++.
+written in C++.  These enable whole new kinds of architectures for
+interactive and concurrent programs of striking simplicity,
+correctness, and performance.
 
 .. _persistent: https://en.wikipedia.org/wiki/Persistent_data_structure
 .. _immutable:  https://en.wikipedia.org/wiki/Immutable_object
 
-- **Persistent** means that when you modify the data structure, the
-  old value is preserved.
+* **Documentation** (Contents_)
+* **Code** (GitHub_)
+* **C++Now17 Talk**: *Postmodern Immutable Data Structures* (YouTube_, Slides_)
+* **ICFP'17 Paper**: *Persistence for the masses* (Preprint_)
 
-- **Immutable** means that all *manipulation* methods are ``const``.
+.. _contents: file:///home/raskolnikov/dev/immer/doc/_build/html/index.html#contents
+.. _github: https://github.com/arximboldi/immer
+.. _youtube: https://www.youtube.com/watch?v=ZsryQp0UAC8
+.. _slides: https://sinusoid.es/talks/immer-cppnow17
+.. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17-preprint-00.pdf
 
-  An object is never modified in place but *a new value* is returned
-  instead.  Since the old value is still there and it will never
-  change, the new value can transparently keep references to common
-  parts of it.  This property is called *structural sharing*.
-
-----
-
-**Read the docs**
-  https://sinusoid.es/immer
-**Check the code**
-  https://github.com/arximboldi/immer
-**Talks**
-  `[Video (7min)] <https://www.youtube.com/watch?v=9nupb1SNo3Q>`_
-  `[Slides] <https://sinusoid.es/talks/meetingcpp16>`_
-  *The tragedy of the value based architecture* (MeetingC++ 2016)
-
-
-.. attention::
-   This library is *work in progress* and its API is not complete
-   enough yet.
-
-   A **stable release** is scheduled for early Q2 2017.  This release
-   will use a more liberal license, which is yet to be determined.
-
-.. admonition:: Sponsorship
-   :class: tip
-
-   This library is so far a non-remunerated full time job and months
-   of research and development are invested in it.  To ensure it's
-   long term sustainability, we will be launching a sponsoring program
-   in early 2017.
-
-   **Should your organization be interested in supporting it,
-   contact:** raskolnikov@gnu.org.
+  This library has full-time months of research and development are
+  invested in it.  This is just the first step in a long-term vision
+  of making interactive and concurrent C++ programs easier to
+  write. **To ensure this project's long term sustainability please
+  consider becoming a sponsor:** immer@sinusoid.al
 
 .. include:index/end
 
@@ -65,7 +44,7 @@ Example
 -------
 
 .. github does not support the ``literalinclude`` directive.  This
-   example is copy pasted form ``example/vector/intro.cpp``
+   example is copy pasted from ``example/vector/intro.cpp``
 
 .. code-block:: c++
 
@@ -79,6 +58,12 @@ Example
        const auto v2 = v1.set(0, 42);
        assert(v1[0] == 13 && v2[0] == 42);
    }
+..
+
+  For a **complete example** check `Ewig, a simple didactic
+  text-editor <https://github.com/arximboldi/ewig>`_ built with this
+  library.
+
 
 Why?
 ----
@@ -90,20 +75,20 @@ Clojure_ and Scala_ provide them by default, and implementations
 for JavaScript like Mori_ and Immutable.js_ are widely used,
 specially in combination with modern UI frameworks like React_.
 
-**Interactivity**
+Interactivity
     Thanks to *persistence* and *structural sharing*, new values can
     be efficiently compared with old ones.  This enables simpler ways of
     *reasoning about change* that sit at the core of modern
     interactive systems programming paradigms like `reactive
     programming`_.
 
-**Concurrency**
+Concurrency
     Passing immutable data structures by value does not need to copy
     any data. In the absence of mutation, data can be safely read
     from multiple concurrent processes, and enable concurrency
     patterns like `share by communicating`_ efficiently.
 
-**Parallelism**
+Parallelism
    Some recent immutable data structures have interesting properties
    like :math:`O(log(n))` concatenation, which enable new kinds of
    `parallelization algorithms`_.
@@ -119,8 +104,8 @@ specially in combination with modern UI frameworks like React_.
 .. _share by communicating: https://blog.golang.org/share-memory-by-communicating
 .. _parallelization algorithms: http://docs.scala-lang.org/overviews/parallel-collections/overview.html
 
-Goals
------
+Features
+--------
 
 Idiomatic
     This library doesn't pretend that it is written in Haskell.  It
@@ -142,7 +127,7 @@ Customizable
     We leverage templates and `policy-based design`_ to build
     data-structures that can be adapted to work efficiently for
     various purposes and architectures, for example, by choosing among
-    various :doc:`memory management strategies<memory>`.  This turns
+    various `memory management strategies`.  This turns
     *immer* into a good foundation to provide immutable data
     structures to higher level languages with a C runtime, like
     Python_ or Guile_.
@@ -150,6 +135,7 @@ Customizable
 .. _python: https://www.python.org/
 .. _guile: https://www.gnu.org/software/guile/
 .. _policy-based design: https://en.wikipedia.org/wiki/Policy-based_design
+.. _memory management strategies: https://sinusoid.es/immer/memory.html
 
 Dependencies
 ------------
@@ -161,9 +147,6 @@ it might work with other compilers and versions.
 No external library is necessary and there are no other requirements.
 
 .. _continuously tested: https://travis-ci.org/arximboldi/immer
-
-.. note:: Some optional modules do have other dependencies, but this
-          is noted in their respective documentation pages.
 
 Usage
 -----
