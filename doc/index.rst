@@ -11,9 +11,8 @@ Contents
     introduction
     containers
     transients
-    memory
     algorithms
-    implementation
+    memory
 
 ----
 
