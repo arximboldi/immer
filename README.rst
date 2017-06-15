@@ -26,7 +26,7 @@ correctness, and performance.
 * **C++Now17 Talk**: *Postmodern Immutable Data Structures* (YouTube_, Slides_)
 * **ICFP'17 Paper**: *Persistence for the masses* (Preprint_)
 
-.. _contents: file:///home/raskolnikov/dev/immer/doc/_build/html/index.html#contents
+.. _contents: https://sinusoid.es/immer/#contents
 .. _github: https://github.com/arximboldi/immer
 .. _youtube: https://www.youtube.com/watch?v=ZsryQp0UAC8
 .. _slides: https://sinusoid.es/talks/immer-cppnow17
