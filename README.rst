@@ -32,7 +32,7 @@ correctness, and performance.
 .. _slides: https://sinusoid.es/talks/immer-cppnow17
 .. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17-preprint-00.pdf
 
-  This library has full-time months of research and development are
+  This library has full months of *pro bono* research and development
   invested in it.  This is just the first step in a long-term vision
   of making interactive and concurrent C++ programs easier to
   write. **To ensure this project's long term sustainability please
