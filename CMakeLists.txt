@@ -1,10 +1,10 @@
 
+cmake_minimum_required(VERSION 3.5.1)
 cmake_policy(SET CMP0048 NEW) # enable project VERSION
 cmake_policy(SET CMP0056 NEW) # honor link flags in try_compile()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(immer VERSION 0.4.0)
-cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
@@ -81,30 +81,30 @@ ExternalProject_Add_Step(libgc ln-libatomic_ops
   DEPENDERS configure
   COMMAND ln -sf ${DEPS_DIR}/Source/libatomic_ops <SOURCE_DIR>/libatomic_ops)
 
-#  Config
-#  ======
-
-add_definitions(-DIMMER_HAS_LIBGC=1)
-
-if (DISABLE_FREE_LIST)
-  add_definitions(-DIMMER_NO_FREE_LIST=1)
-endif()
-
-if (DISABLE_THREAD_SAFETY)
-  add_definitions(-DIMMER_NO_THREAD_SAFETY=1)
-endif()
-
-if (CHECK_SLOW_TESTS)
-  add_definitions(-DIMMER_SLOW_TESTS=1)
-endif()
-
-if (ENABLE_COVERAGE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-endif()
-
-set(immer_include_dirs ${PROJECT_SOURCE_DIR})
-
 #  Targets
+#  =======
+
+immer_canonicalize_cmake_booleans(
+  DISABLE_FREE_LIST
+  DISABLE_THREAD_SAFETY
+  CHECK_SLOW_TESTS)
+
+add_library(immer INTERFACE)
+target_include_directories(immer INTERFACE
+  $<BUILD_INTERFACE:${immer_BINARY_DIR}/>
+  $<BUILD_INTERFACE:${immer_SOURCE_DIR}/>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(immer INTERFACE
+  -DIMMER_HAS_LIBGC=1
+  -DIMMER_NO_FREE_LIST=${DISABLE_FREE_LIST}
+  -DIMMER_NO_THREAD_SAFETY=${DISABLE_THREAD_SAFETY}
+  -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS})
+if (ENABLE_COVERAGE)
+  target_compile_options(immer INTERFACE "--coverage")
+  target_link_libraries(immer INTERFACE "--coverage")
+endif()
+
+#  Testing
 #  =======
 
 enable_testing()
@@ -120,3 +120,4 @@ add_subdirectory(test)
 add_subdirectory(benchmark)
 add_subdirectory(example)
 add_subdirectory(doc)
+add_subdirectory(extra/fuzzer)

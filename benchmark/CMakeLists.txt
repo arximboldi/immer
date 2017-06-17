@@ -7,7 +7,6 @@ option(BENCHMARK_DISABLE_GC "Disable gc during a measurement")
 set(BENCHMARK_PARAM   "N:1000" CACHE STRING "Benchmark parameters")
 set(BENCHMARK_SAMPLES "20"     CACHE STRING "Benchmark samples")
 
-
 set(NONIUS_INCLUDE_DIR
   "${DEPS_DIR}/Source/nonius/include")
 set(STEADY_INCLUDE_DIR
@@ -57,21 +56,6 @@ ExternalProject_Add_Step(librrb autoreconf
 
 #  Targets
 #  =======
-
-set(immer_benchmark_include_dirs
-  ${Boost_INCLUDE_DIR}
-  ${PRETTYPRINT_INCLUDE_DIR}
-  ${LIBGC_INCLUDE_DIR}
-  ${NONIUS_INCLUDE_DIR}
-  ${LIBRRB_INCLUDE_DIR}
-  ${STEADY_INCLUDE_DIR}
-  ${CHUNKEDSEQ_INCLUDE_DIR}
-  ${IMMUTABLE_CPP_INCLUDE_DIR})
-set(immer_benchmark_libs
-  ${LIBGC_LIBS}
-  ${LIBRRB_LIBS}
-  ${Boost_LIBRARIES}
-  ${CMAKE_THREAD_LIBS_INIT})
 
 add_custom_target(benchmarks
   COMMENT "Build all benchmarks.")
@@ -139,9 +123,21 @@ foreach(_file IN LISTS immer_benchmarks)
     IMMER_BENCHMARK_EXPERIMENTAL=0
     IMMER_BENCHMARK_DISABLE_GC=${BENCHMARK_DISABLE_GC}
     IMMER_BENCHMARK_BOOST_COROUTINE=${ENABLE_BOOST_COROUTINE})
-  target_link_libraries(${_target} PUBLIC ${immer_benchmark_libs})
-  target_include_directories(${_target} PUBLIC ${immer_include_dirs})
-  target_include_directories(${_target} SYSTEM PUBLIC ${immer_benchmark_include_dirs})
+  target_link_libraries(${_target} PUBLIC
+    immer
+    ${LIBGC_LIBS}
+    ${LIBRRB_LIBS}
+    ${Boost_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT})
+  target_include_directories(${_target} SYSTEM PUBLIC
+    ${Boost_INCLUDE_DIR}
+    ${PRETTYPRINT_INCLUDE_DIR}
+    ${LIBGC_INCLUDE_DIR}
+    ${NONIUS_INCLUDE_DIR}
+    ${LIBRRB_INCLUDE_DIR}
+    ${STEADY_INCLUDE_DIR}
+    ${CHUNKEDSEQ_INCLUDE_DIR}
+    ${IMMUTABLE_CPP_INCLUDE_DIR})
   if(CHECK_BENCHMARKS)
     add_test("benchmark/${_output}" "${CMAKE_SOURCE_DIR}/tools/with-tee.bash"
       ${immer_benchmark_report_dir}/${_target}.out

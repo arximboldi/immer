@@ -24,16 +24,6 @@ immer_external_dep_nobuild(deps-test catch
 #  Targets
 #  =======
 
-set(immer_test_include_dirs
-  ${Boost_INCLUDE_DIR}
-  ${PRETTYPRINT_INCLUDE_DIR}
-  ${LIBGC_INCLUDE_DIR}
-  ${CATCH_INCLUDE_DIR}
-  ${DOCTEST_INCLUDE_DIR})
-set(immer_test_libs
-  ${LIBGC_LIBS}
-  ${CMAKE_THREAD_LIBS_INIT})
-
 add_custom_target(tests
   COMMENT "Build all the unit tests.")
 add_dependencies(check tests)
@@ -47,8 +37,15 @@ foreach(_file IN LISTS immer_unit_tests)
   target_compile_definitions(${_target} PUBLIC
     DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
     CATCH_CONFIG_MAIN)
-  target_link_libraries(${_target} PUBLIC ${immer_test_libs})
-  target_include_directories(${_target} PUBLIC ${immer_include_dirs})
-  target_include_directories(${_target} SYSTEM PUBLIC ${immer_test_include_dirs})
+  target_link_libraries(${_target} PUBLIC
+    immer
+    ${LIBGC_LIBS}
+    ${CMAKE_THREAD_LIBS_INIT})
+  target_include_directories(${_target} SYSTEM PUBLIC
+    ${Boost_INCLUDE_DIR}
+    ${PRETTYPRINT_INCLUDE_DIR}
+    ${LIBGC_INCLUDE_DIR}
+    ${CATCH_INCLUDE_DIR}
+    ${DOCTEST_INCLUDE_DIR})
   add_test("test/${_output}" ${_output})
 endforeach()
