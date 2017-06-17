@@ -1,6 +1,7 @@
 
 cmake_policy(SET CMP0048 NEW) # enable project VERSION
 cmake_policy(SET CMP0056 NEW) # honor link flags in try_compile()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(immer VERSION 0.4.0)
 cmake_minimum_required(VERSION 3.5.1)
@@ -10,6 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
+
+include(ImmerUtils)
 
 #  Options
 #  =======
@@ -38,18 +41,6 @@ set_directory_properties(PROPERTIES EP_BASE "${DEPS_DIR}")
 add_custom_target(deps COMMENT "Download and prepare dependencies")
 add_custom_target(deps-core COMMENT "Get core dependencies")
 add_dependencies(deps deps-core)
-
-function(immer_external_dep target name)
-  ExternalProject_Add(${name} EXCLUDE_FROM_ALL 1 "${ARGN}")
-  add_dependencies(${target} ${name})
-endfunction()
-
-function(immer_external_dep_nobuild target name)
-  immer_external_dep(${target} ${name} "${ARGN}"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND "")
-endfunction()
 
 if (ENABLE_BOOST_COROUTINE)
   find_package(Boost 1.56 REQUIRED COMPONENTS coroutine)
@@ -124,20 +115,6 @@ add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   COMMENT "Buld and run all the tests and examples.")
-
-function(immer_target_name_for out_target out_file file)
-  get_filename_component(_extension ${_file} EXT)
-
-  file(RELATIVE_PATH _relative ${PROJECT_SOURCE_DIR} ${file})
-  string(REPLACE "${_extension}" "" _name ${_relative})
-  string(REGEX REPLACE "/" "-" _name ${_name})
-  set(${out_target} "${_name}" PARENT_SCOPE)
-
-  file(RELATIVE_PATH _relative ${CMAKE_CURRENT_LIST_DIR} ${file})
-  string(REPLACE "${_extension}" "" _name ${_relative})
-  string(REGEX REPLACE "/" "-" _name ${_name})
-  set(${out_file} "${_name}" PARENT_SCOPE)
-endfunction()
 
 add_subdirectory(test)
 add_subdirectory(benchmark)
