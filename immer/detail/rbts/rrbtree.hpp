@@ -784,7 +784,7 @@ struct rrbtree
         assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (r.size == 0)
-            r = l;
+            r = std::move(l);
         else if (l.size == 0)
             return;
         else if (r.tail_offset() == 0) {
@@ -827,7 +827,7 @@ struct rrbtree
                         // this could be improved by making sure that the
                         // newly created nodes as part of the `push_tail()`
                         // are tagged with `er`
-                        auto new_root = l.push_tail(l.root, r.shift, tail_offst,
+                        auto new_root = l.push_tail(l.root, l.shift, tail_offst,
                                                     add_tail, branches<BL>);
                         r = { l.size + r.size,
                               get<0>(new_root), get<1>(new_root),
