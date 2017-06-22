@@ -338,11 +338,12 @@ TEST_CASE("equals bugs")
     {
         const auto n = 666u;
         auto v = FLEX_VECTOR_T<unsigned>{};
+        using size_t = decltype(v.size());
         for (auto i : test_irange(0u, n)) {
             while (v.size() < i)
                 v = std::move(v).push_back(i);
             auto vv = v;
-            for (auto j : test_irange(0u, v.size())) {
+            for (auto j : test_irange(size_t{}, v.size())) {
                 auto vz = vv.insert(j, 42).erase(j);
                 CHECK(v == vz);
                 CHECK(vv == vz);
