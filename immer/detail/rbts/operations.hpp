@@ -808,6 +808,7 @@ struct slice_right_mut_visitor
                     return { pos.shift(), nullptr, ts, tail };
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
+                    if (!mutate) newn->inc();
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
                     return { pos.shift() - B, newn, ts, tail };
                 } else {
@@ -870,6 +871,7 @@ struct slice_right_mut_visitor
                     return { pos.shift(), nullptr, ts, tail };
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
+                    if (!mutate) newn->inc();
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
                     return { pos.shift() - B, newn, ts, tail };
                 } else {
