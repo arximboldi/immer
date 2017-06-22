@@ -18,6 +18,7 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+// include:intro/start
 #include <immer/vector.hpp>
 int main()
 {
@@ -28,3 +29,4 @@ int main()
     const auto v2 = v1.set(0, 42);
     assert(v1[0] == 13 && v2[0] == 42);
 }
+// include:intro/end

@@ -74,6 +74,8 @@ class vector_transient;
  * **Example**
  *   .. literalinclude:: ../example/vector/intro.cpp
  *      :language: c++
+ *      :start-after: intro/start
+ *      :end-before:  intro/end
  *
  * @endrst
  */
