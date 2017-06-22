@@ -614,6 +614,7 @@ struct rrbtree
 
     rrbtree concat(const rrbtree& r) const
     {
+        assert(r.size < (std::numeric_limits<size_t>::max() - size));
         using std::get;
         if (size == 0)
             return r;
@@ -683,6 +684,7 @@ struct rrbtree
 
     friend void concat_mut_l(rrbtree& l, edit_t el, const rrbtree& r)
     {
+        assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (l.size == 0)
             l = r;
@@ -779,6 +781,7 @@ struct rrbtree
 
     friend void concat_mut_r(const rrbtree& l, rrbtree& r, edit_t er)
     {
+        assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (r.size == 0)
             r = l;
@@ -892,6 +895,7 @@ struct rrbtree
 
     friend void concat_mut_lr_l(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
     {
+        assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (l.size == 0)
             l = r;
@@ -996,6 +1000,7 @@ struct rrbtree
 
     friend void concat_mut_lr_r(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
     {
+        assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (r.size == 0)
             r = l;
@@ -1107,9 +1112,10 @@ struct rrbtree
 
     bool check_tree() const
     {
-#if IMMER_DEBUG_DEEP_CHECK
+        assert(shift <= sizeof(size_t) * 8 - BL);
         assert(shift >= BL);
         assert(tail_offset() <= size);
+#if IMMER_DEBUG_DEEP_CHECK
         assert(check_root());
         assert(check_tail());
 #endif

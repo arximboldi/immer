@@ -806,6 +806,8 @@ struct node
                     node_t::ownee(src_r).can_mutate(e))
                     return src_r;
                 else {
+                    if (src_r)
+                        node_t::refs(src_r).dec_unsafe();
                     auto dst_r = impl.d.data.inner.relaxed =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     node_t::ownee(dst_r) = e;
@@ -845,6 +847,8 @@ struct node
                     node_t::ownee(src_r).can_mutate(e))
                     return src_r;
                 else {
+                    if (src_r)
+                        node_t::refs(src_r).dec_unsafe();
                     auto dst_r =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     std::copy(src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
