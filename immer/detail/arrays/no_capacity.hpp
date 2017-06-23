@@ -118,6 +118,12 @@ struct no_capacity
         std::forward<Fn>(fn)(data(), data() + size);
     }
 
+    template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        return std::forward<Fn>(fn)(data(), data() + size);
+    }
+
     const T& get(std::size_t index) const
     {
         return data()[index];

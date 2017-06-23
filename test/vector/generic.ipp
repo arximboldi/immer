@@ -247,6 +247,37 @@ TEST_CASE("equals")
           .set(v.size()-2, v[v.size()-2]));
 }
 
+TEST_CASE("all of")
+{
+    const auto n = 666u;
+    auto v = make_test_vector(0, n);
+
+    SECTION("false")
+    {
+        auto res = immer::all_of(v, [] (auto x) { return x < 100; });
+        CHECK(res == false);
+    }
+    SECTION("true")
+    {
+        auto res = immer::all_of(v, [] (auto x) { return x < 1000; });
+        CHECK(res == true);
+    }
+    SECTION("bounded, true")
+    {
+        auto res = immer::all_of(v.begin() + 101,
+                                 v.end() - 10,
+                                 [] (auto x) { return x > 100; });
+        CHECK(res == true);
+    }
+    SECTION("bounded, false")
+    {
+        auto res = immer::all_of(v.begin() + 101,
+                                 v.end() - 10,
+                                 [] (auto x) { return x < 600; });
+        CHECK(res == false);
+    }
+}
+
 TEST_CASE("accumulate")
 {
     const auto n = 666u;

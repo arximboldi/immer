@@ -216,6 +216,116 @@ struct for_each_chunk_i_visitor
     }
 };
 
+struct for_each_chunk_p_left_visitor
+{
+    using this_t = for_each_chunk_p_left_visitor;
+
+    template <typename Pos, typename Fn>
+    friend bool visit_inner(this_t, Pos&& pos,
+                            size_t last, Fn&& fn)
+    {
+        auto l = pos.index(last);
+        return pos.each_pred_left(for_each_chunk_p_visitor{}, l, fn)
+            && pos.towards_oh(this_t{}, last, l, fn);
+    }
+
+    template <typename Pos, typename Fn>
+    friend bool visit_leaf(this_t, Pos&& pos,
+                           size_t last,
+                           Fn&& fn)
+    {
+        auto data = pos.node()->leaf();
+        auto l = pos.index(last);
+        return std::forward<Fn>(fn)(data, data + l + 1);
+    }
+};
+
+struct for_each_chunk_p_right_visitor
+{
+    using this_t = for_each_chunk_p_right_visitor;
+
+    template <typename Pos, typename Fn>
+    friend bool visit_inner(this_t, Pos&& pos,
+                            size_t first, Fn&& fn)
+    {
+        auto f = pos.index(first);
+        return pos.towards_oh(this_t{}, first, f, fn)
+            && pos.each_pred_right(for_each_chunk_p_visitor{}, f + 1, fn);
+    }
+
+    template <typename Pos, typename Fn>
+    friend bool visit_leaf(this_t, Pos&& pos,
+                           size_t first,
+                           Fn&& fn)
+    {
+        auto data = pos.node()->leaf();
+        auto f = pos.index(first);
+        return std::forward<Fn>(fn)(data + f, data + pos.count());
+    }
+};
+
+struct for_each_chunk_p_i_visitor
+{
+    using this_t = for_each_chunk_p_i_visitor;
+
+    template <typename Pos, typename Fn>
+    friend bool visit_relaxed(this_t, Pos&& pos,
+                              size_t first, size_t last,
+                              Fn&& fn)
+    {
+        // we are going towards *two* indices, so we need to do the
+        // relaxed as a special case to correct the second index
+        if (first < last)  {
+            auto f = pos.index(first);
+            auto l = pos.index(last - 1);
+            if (f == l) {
+                auto sbh = pos.size_before(f);
+                return pos.towards_oh_sbh(this_t{}, first, f, sbh, last - sbh, fn);
+            } else {
+                assert(f < l);
+                return pos.towards_oh(for_each_chunk_p_right_visitor{}, first, f, fn)
+                    && pos.each_pred_i(for_each_chunk_p_visitor{}, f + 1, l, fn)
+                    && pos.towards_oh(for_each_chunk_p_left_visitor{}, last - 1, l, fn);
+            }
+        }
+        return true;
+    }
+
+    template <typename Pos, typename Fn>
+    friend bool visit_regular(this_t, Pos&& pos,
+                              size_t first, size_t last,
+                              Fn&& fn)
+    {
+        if (first < last)  {
+            auto f = pos.index(first);
+            auto l = pos.index(last - 1);
+            if (f == l)
+                return pos.towards_oh(this_t{}, first, f, last, fn);
+            else {
+                assert(f < l);
+                return pos.towards_oh(for_each_chunk_p_right_visitor{}, first, f, fn)
+                    && pos.each_pred_i(for_each_chunk_p_visitor{}, f + 1, l, fn)
+                    && pos.towards_oh(for_each_chunk_p_left_visitor{}, last - 1, l, fn);
+            }
+        }
+        return true;
+    }
+
+    template <typename Pos, typename Fn>
+    friend bool visit_leaf(this_t, Pos&& pos,
+                           size_t first, size_t last,
+                           Fn&& fn)
+    {
+        auto data = pos.node()->leaf();
+        if (first < last) {
+            auto f = pos.index(first);
+            auto l = pos.index(last - 1);
+            return std::forward<Fn>(fn)(data + f, data + l + 1);
+        }
+        return true;
+    }
+};
+
 struct equals_visitor
 {
     using this_t = equals_visitor;

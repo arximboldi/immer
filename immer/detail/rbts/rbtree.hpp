@@ -167,6 +167,40 @@ struct rbtree
                 args...);
     }
 
+    template <typename Visitor, typename... Args>
+    bool traverse_p(Visitor v, Args&&... args) const
+    {
+        auto tail_off  = tail_offset();
+        auto tail_size = size - tail_off;
+        return (tail_off
+                ? make_regular_sub_pos(root, shift, tail_off).visit(v, args...)
+                : make_empty_regular_pos(root).visit(v, args...))
+            && make_leaf_sub_pos(tail, tail_size).visit(v, args...);
+    }
+
+    template <typename Visitor, typename... Args>
+    bool traverse_p(Visitor v, size_t first, size_t last, Args&&... args) const
+    {
+        auto tail_off  = tail_offset();
+        auto tail_size = size - tail_off;
+
+        return
+            (first < tail_off
+             ? make_regular_sub_pos(root, shift, tail_off).visit(
+                 v,
+                 first,
+                 last < tail_off ? last : tail_off,
+                 args...)
+             : true)
+         && (last > tail_off
+             ? make_leaf_sub_pos(tail, tail_size).visit(
+                 v,
+                 first > tail_off ? first - tail_off : 0,
+                 last - tail_off,
+                 args...)
+             : true);
+    }
+
     template <typename Visitor>
     decltype(auto) descend(Visitor v, size_t idx) const
     {
@@ -186,6 +220,18 @@ struct rbtree
     void for_each_chunk(size_t first, size_t last, Fn&& fn) const
     {
         traverse(for_each_chunk_i_visitor{}, first, last, std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        return traverse_p(for_each_chunk_p_visitor{}, std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
+    bool for_each_chunk_p(size_t first, size_t last, Fn&& fn) const
+    {
+        return traverse_p(for_each_chunk_p_i_visitor{}, first, last, std::forward<Fn>(fn));
     }
 
     bool equals(const rbtree& other) const
