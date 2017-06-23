@@ -25,9 +25,11 @@
 extern "C"
 int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
 {
-    using vector_t = immer::vector<int, immer::default_memory_policy, 3, 3>;
-    using size_t   = std::uint8_t;
     constexpr auto var_count = 4;
+    constexpr auto bits      = 2;
+
+    using vector_t = immer::vector<int, immer::default_memory_policy, bits, bits>;
+    using size_t   = std::uint8_t;
 
     auto vars = std::array<vector_t, var_count>{};
 
@@ -55,33 +57,33 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
         auto dst = read<char>(in, is_valid_var);
         switch (read<char>(in))
         {
-        case op_push_back:
-            vars[dst] = vars[src]
-                .push_back(42);
+        case op_push_back: {
+            vars[dst] = vars[src].push_back(42);
             break;
-        case op_update:
-            vars[dst] = vars[src]
-                .update(read<size_t>(in, is_valid_index(vars[src])),
-                        [] (auto x) { return x + 1; });
+        }
+        case op_update: {
+            auto idx = read<size_t>(in, is_valid_index(vars[src]));
+            vars[dst] = vars[src].update(idx, [] (auto x) { return x + 1; });
             break;
-        case op_take:
-            vars[dst] = vars[src]
-                .take(read<std::size_t>(in, is_valid_size(vars[src])));
+        }
+        case op_take: {
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = vars[src].take(idx);
             break;
+        }
         case op_push_back_move: {
-            vars[dst] = std::move(vars[src])
-                .push_back(read<char>(in));
+            vars[dst] = std::move(vars[src]).push_back(12);
             break;
         }
         case op_update_move: {
+            auto idx = read<size_t>(in, is_valid_index(vars[src]));
             vars[dst] = std::move(vars[src])
-                .update(read<size_t>(in, is_valid_index(vars[src])),
-                        [] (auto x) { return x + 1; });
+                .update(idx, [] (auto x) { return x + 1; });
             break;
         }
         case op_take_move: {
-            vars[dst] = std::move(vars[src])
-                .take(read<size_t>(in, is_valid_size(vars[src])));
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = std::move(vars[src]).take(idx);
             break;
         }
         default:

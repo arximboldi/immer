@@ -72,23 +72,25 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
         auto dst = read<char>(in, is_valid_var);
         switch (read<char>(in))
         {
-        case op_push_back:
-            vars[dst] = vars[src]
-                .push_back(42);
+        case op_push_back: {
+            vars[dst] = vars[src].push_back(42);
             break;
-        case op_update:
-            vars[dst] = vars[src]
-                .update(read<size_t>(in, is_valid_index(vars[src])),
-                        [] (auto x) { return x + 1; });
+        }
+        case op_update: {
+            auto idx = read<size_t>(in, is_valid_index(vars[src]));
+            vars[dst] = vars[src].update(idx, [] (auto x) { return x + 1; });
             break;
-        case op_take:
-            vars[dst] = vars[src]
-                .take(read<size_t>(in, is_valid_size(vars[src])));
+        }
+        case op_take: {
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = vars[src].take(idx);
             break;
-        case op_drop:
-            vars[dst] = vars[src]
-                .drop(read<size_t>(in, is_valid_size(vars[src])));
+        }
+        case op_drop: {
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = vars[src].drop(idx);
             break;
+        }
         case op_concat: {
             auto src2 = read<char>(in, is_valid_var);
             if (can_concat(vars[src], vars[src2]))
@@ -96,24 +98,23 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
             break;
         }
         case op_push_back_move: {
-            vars[dst] = std::move(vars[src])
-                .push_back(21);
+            vars[dst] = std::move(vars[src]).push_back(21);
             break;
         }
         case op_update_move: {
+            auto idx = read<size_t>(in, is_valid_index(vars[src]));
             vars[dst] = std::move(vars[src])
-                .update(read<size_t>(in, is_valid_index(vars[src])),
-                        [] (auto x) { return x + 1; });
+                .update(idx, [] (auto x) { return x + 1; });
             break;
         }
         case op_take_move: {
-            vars[dst] = std::move(vars[src])
-                .take(read<size_t>(in, is_valid_size(vars[src])));
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = std::move(vars[src]).take(idx);
             break;
         }
         case op_drop_move: {
-            vars[dst] = std::move(vars[src])
-                .drop(read<size_t>(in, is_valid_size(vars[src])));
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = std::move(vars[src]).drop(idx);
             break;
         }
         case op_concat_move_l: {
