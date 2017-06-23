@@ -38,6 +38,7 @@ struct no_transience_policy
             struct owner
             {
                 operator edit () const { return {}; }
+                owner& operator=(const owner&) { return *this; };
             };
 
             struct ownee

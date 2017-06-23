@@ -44,6 +44,7 @@ class array_transient
 {
     using impl_t = detail::arrays::with_capacity<T, MemoryPolicy>;
     using impl_no_capacity_t = detail::arrays::no_capacity<T, MemoryPolicy>;
+    using owner_t = typename MemoryPolicy::transience_t::owner;
 
 public:
     using value_type = T;
@@ -166,8 +167,11 @@ public:
      * Returns an @a immutable form of this container, an
      * `immer::array`.
      */
-    persistent_type persistent() const&
-    { return persistent_type{ impl_ }; }
+    persistent_type persistent() &
+    {
+        this->owner_t::operator=(owner_t{});
+        return persistent_type{ impl_ };
+    }
     persistent_type persistent() &&
     { return persistent_type{ std::move(impl_) }; }
 

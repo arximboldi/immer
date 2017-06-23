@@ -50,6 +50,16 @@ TEST_CASE("from vector and to vector")
     CHECK_VECTOR_EQUALS(p, boost::irange(0u, n));
 }
 
+TEST_CASE("protect persistence")
+{
+    auto v = VECTOR_T<unsigned>{}.transient();
+    v.push_back(12);
+    auto p = v.persistent();
+    v.set(0, 42);
+    CHECK(p[0] == 12);
+    CHECK(v[0] == 42);
+}
+
 TEST_CASE("push back move")
 {
     using vector_t = VECTOR_T<unsigned>;

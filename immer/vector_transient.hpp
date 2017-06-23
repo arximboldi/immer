@@ -57,6 +57,7 @@ class vector_transient
 {
     using impl_t = detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
     using flex_t = flex_vector_transient<T, MemoryPolicy, B, BL>;
+    using owner_t = typename MemoryPolicy::transience_t::owner;
 
 public:
     static constexpr auto bits = B;
@@ -168,8 +169,11 @@ public:
      * Returns an @a immutable form of this container, an
      * `immer::vector`.
      */
-    persistent_type persistent() const&
-    { return persistent_type{ impl_ }; }
+    persistent_type persistent() &
+    {
+        this->owner_t::operator=(owner_t{});
+        return persistent_type{ impl_ };
+    }
     persistent_type persistent() &&
     { return persistent_type{ std::move(impl_) }; }
 

@@ -447,7 +447,7 @@ private:
     { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
     template <typename Fn>
     flex_vector update_move(std::false_type, size_type index, Fn&& fn)
-    { return impl_.assoc(index, std::forward<Fn>(fn)); }
+    { return impl_.update(index, std::forward<Fn>(fn)); }
 
     flex_vector&& take_move(std::true_type, size_type elems)
     { impl_.take_mut({}, elems); return std::move(*this); }
