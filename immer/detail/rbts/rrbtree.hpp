@@ -684,6 +684,7 @@ struct rrbtree
 
     friend void concat_mut_l(rrbtree& l, edit_t el, const rrbtree& r)
     {
+        assert(&l != &r);
         assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (l.size == 0)
@@ -781,6 +782,7 @@ struct rrbtree
 
     friend void concat_mut_r(const rrbtree& l, rrbtree& r, edit_t er)
     {
+        assert(&l != &r);
         assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (r.size == 0)
@@ -895,6 +897,7 @@ struct rrbtree
 
     friend void concat_mut_lr_l(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
     {
+        assert(&l != &r);
         assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (l.size == 0)
@@ -963,6 +966,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                r.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -986,6 +990,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                r.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -1000,6 +1005,7 @@ struct rrbtree
 
     friend void concat_mut_lr_r(rrbtree& l, edit_t el, rrbtree& r, edit_t er)
     {
+        assert(&l != &r);
         assert(r.size < (std::numeric_limits<size_t>::max() - l.size));
         using std::get;
         if (r.size == 0)
@@ -1045,7 +1051,7 @@ struct rrbtree
                         // this could be improved by making sure that the
                         // newly created nodes as part of the `push_tail()`
                         // are tagged with `er`
-                        auto new_root = l.push_tail(l.root, r.shift, tail_offst,
+                        auto new_root = l.push_tail(l.root, l.shift, tail_offst,
                                                     add_tail, branches<BL>);
                         r = { l.size + r.size,
                               get<0>(new_root), get<1>(new_root),
@@ -1074,6 +1080,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
+                l.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -1096,7 +1103,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
-                return;
+                l.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -1105,9 +1112,17 @@ struct rrbtree
                                                r.root, r.shift, r.tail_offset());
                 r = { l.size + r.size, concated.shift(),
                       concated.node(), r.tail->inc() };
-                return;
             }
         }
+    }
+
+    void hard_reset()
+    {
+        assert(supports_transient_concat);
+        size = empty.size;
+        shift = empty.shift;
+        root = empty.root;
+        tail = empty.tail;
     }
 
     bool check_tree() const
@@ -1115,6 +1130,7 @@ struct rrbtree
         assert(shift <= sizeof(size_t) * 8 - BL);
         assert(shift >= BL);
         assert(tail_offset() <= size);
+        assert(tail_size() <= branches<BL>);
 #if IMMER_DEBUG_DEEP_CHECK
         assert(check_root());
         assert(check_tail());

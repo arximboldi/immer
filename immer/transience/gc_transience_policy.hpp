@@ -79,7 +79,9 @@ struct gc_transience_policy
                 ownee& operator=(edit e)
                 {
                     assert(e != noone);
-                    assert(token_ == e || token_ == edit{nullptr});
+                    // This would be a nice safety plug but it sadly
+                    // does not hold during transient concatenation.
+                    // assert(token_ == e || token_ == edit{nullptr});
                     token_ = e;
                     return *this;
                 }

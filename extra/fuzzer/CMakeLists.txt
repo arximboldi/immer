@@ -13,6 +13,9 @@ foreach(_file IN LISTS immer_fuzzers)
   target_link_libraries(${_target} PUBLIC
     "-fsanitize=address"
     immer
-    Fuzzer)
+    Fuzzer
+    ${LIBGC_LIBS})
+  target_include_directories(${_target} SYSTEM PUBLIC
+    ${LIBGC_INCLUDE_DIR})
   add_dependencies(fuzzers ${_target})
 endforeach()
