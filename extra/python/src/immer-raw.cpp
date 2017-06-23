@@ -205,8 +205,8 @@ vector_t* vector_set(vector_t* self, PyObject* args)
     }
     if (pos < 0)
         pos += self->impl.size();
-    if (pos < 0 || pos > self->impl.size()) {
-        PyErr_Format(PyExc_IndexError, "Index out of range: %i", pos);
+    if (pos < 0 || pos > (Py_ssize_t)self->impl.size()) {
+        PyErr_Format(PyExc_IndexError, "Index out of range: %zi", pos);
         return nullptr;
     }
     return make_vector(self->impl.set(pos, object_t::adopt(obj)));
@@ -228,8 +228,8 @@ PyObject* vector_get_item(vector_t* self, Py_ssize_t pos)
 {
     if (pos < 0)
         pos += self->impl.size();
-    if (pos < 0 || pos >= self->impl.size()) {
-        PyErr_Format(PyExc_IndexError, "Index out of range: %i", pos);
+    if (pos < 0 || pos >= (Py_ssize_t)self->impl.size()) {
+        PyErr_Format(PyExc_IndexError, "Index out of range: %zi", pos);
         return nullptr;
     }
     auto r = self->impl[pos];
@@ -260,10 +260,14 @@ PyObject* vector_repeat(vector_t* self, Py_ssize_t n)
 
 int vector_traverse(vector_t* self, visitproc visit, void* arg)
 {
-    immer::for_each(self->impl, [&] (auto&& o) {
-            Py_VISIT(o.get());
+    auto result = 0;
+    immer::all_of(self->impl, [&] (auto&& o) {
+            return 0 == (result = [&] {
+                Py_VISIT(o.get());
+                return 0;
+            }());
         });
-    return 0;
+    return result;
 }
 
 PyObject* vector_richcompare(PyObject* v, PyObject* w, int op)
@@ -357,7 +361,7 @@ PyTypeObject vector_t::type =
 struct PyModuleDef module_def =
 {
     PyModuleDef_HEAD_INIT,
-    "immer",             /* m_name */
+    "immer_python_module", /* m_name */
     "",                  /* m_doc */
     -1,                  /* m_size */
     /module_methods,     /* m_methods */
@@ -380,7 +384,7 @@ PyObject* module_init()
 #if PY_MAJOR_VERSION >= 3
     auto m = PyModule_Create(&module_def);
 #else
-    auto m = Py_InitModule3("immer", module_methods, "");
+    auto m = Py_InitModule3("immer_python_module", module_methods, "");
 #endif
     if (!m)
         return nullptr;
@@ -397,12 +401,12 @@ PyObject* module_init()
 
 extern "C" {
 #if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC PyInit_immer()
+PyMODINIT_FUNC PyInit_immer_python_module()
 {
     return module_init();
 }
 #else
-PyMODINIT_FUNC initimmer()
+PyMODINIT_FUNC initimmer_python_module()
 {
     module_init();
 }

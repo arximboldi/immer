@@ -48,7 +48,7 @@ using memory_t = immer::memory_policy<
 
 namespace py = pybind11;
 
-PYBIND11_PLUGIN(immer)
+PYBIND11_PLUGIN(immer_python_module)
 {
     py::module m("immer", R"pbdoc(
         Immer

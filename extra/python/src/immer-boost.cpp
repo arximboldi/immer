@@ -72,7 +72,7 @@ struct immer_vector_indexing_suite : boost::python::vector_indexing_suite<
 } // anonymous namespace
 
 
-BOOST_PYTHON_MODULE(immer)
+BOOST_PYTHON_MODULE(immer_python_module)
 {
     using namespace boost::python;
 

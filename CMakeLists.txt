@@ -8,7 +8,7 @@ project(immer VERSION 0.4.0)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
 
@@ -19,6 +19,7 @@ include(ImmerUtils)
 
 set(DEPS_DIR "${CMAKE_BINARY_DIR}/deps")
 
+option(DISABLE_WERROR "enable --werror")
 option(ENABLE_COVERAGE "compile with test coverage support")
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine")
 option(DISABLE_FREE_LIST "disables the free list heap")
@@ -30,6 +31,10 @@ set(LIBGC_LIBS
   "${DEPS_DIR}/Install/libgc/lib/libgc.a")
 set(PRETTYPRINT_INCLUDE_DIR
   "${DEPS_DIR}/Source/prettyprint")
+
+if (NOT DISABLE_WERROR)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
 
 #  Dependencies
 #  ============
@@ -121,3 +126,4 @@ add_subdirectory(benchmark)
 add_subdirectory(example)
 add_subdirectory(doc)
 add_subdirectory(extra/fuzzer)
+add_subdirectory(extra/python)
