@@ -39,6 +39,22 @@
 #
 #    Guile executable (optional).
 #
+# .. variable:: Guile_CONFIG_EXECUTABLE
+#
+#    Guile configuration executable (optional).
+#
+# .. variable:: Guile_ROOT_DIR
+#
+#    Guile installation root dir (optional).
+#
+# .. variable:: Guile_SITE_DIR
+#
+#    Guile installation module site dir (optional).
+#
+# .. variable:: Guile_EXTENSION_DIR
+#
+#    Guile installation extension dir (optional).
+#
 # Control VARS
 # ~~~~~~~~~~~~
 # :envvar:`Guile_ROOT_DIR`
@@ -273,7 +289,7 @@ if (Guile_FOUND)
 
     set_target_properties (Guile::Library
       PROPERTIES
-      INTERFACE_INCLUDE_DIRS
+      INTERFACE_INCLUDE_DIRSr
       "${Guile_INCLUDE_DIR}"
       IMPORTED_LOCATION "${Guile_LIBRARY}"
       IMPORTED_LOCATION_RELEASE
@@ -281,6 +297,24 @@ if (Guile_FOUND)
 
     set (Guile_LIBRARIES Guile::Library Guile::GC::Library)
   endif ()
+endif ()
+
+find_program(Guile_CONFIG_EXECUTABLE
+  NAMES guile-config
+  DOC "Guile configutration binary")
+
+if (Guile_CONFIG_EXECUTABLE)
+  execute_process (COMMAND ${Guile_CONFIG_EXECUTABLE} info prefix
+    OUTPUT_VARIABLE Guile_ROOT_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  execute_process (COMMAND ${Guile_CONFIG_EXECUTABLE} info sitedir
+    OUTPUT_VARIABLE Guile_SITE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  execute_process (COMMAND ${Guile_CONFIG_EXECUTABLE} info extensiondir
+    OUTPUT_VARIABLE Guile_EXTENSION_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif ()
 
 mark_as_advanced (Guile_EXECUTABLE
