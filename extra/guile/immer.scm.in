@@ -1,0 +1,4 @@
+(define-module (immer))
+
+(load-extension "@IMMER_GUILE_EXTENSION_DIR@/libguile-immer" "init_immer")
+(export j0)
