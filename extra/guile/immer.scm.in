@@ -1,4 +1,5 @@
 (define-module (immer))
 
-(load-extension "@IMMER_GUILE_EXTENSION_DIR@/libguile-immer" "init_immer")
-(export j0)
+;; The extension automatically exports the names via 'scm_c_export'
+(load-extension "@IMMER_GUILE_EXTENSION_DIR@/libguile-immer"
+                "init_immer")

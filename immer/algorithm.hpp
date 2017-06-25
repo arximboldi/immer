@@ -115,6 +115,15 @@ T accumulate(Range&& r, T init)
     return init;
 }
 
+template <typename Range, typename T, typename Fn>
+T accumulate(Range&& r, T init, Fn fn)
+{
+    for_each_chunk(r, [&] (auto first, auto last) {
+        init = std::accumulate(first, last, init, fn);
+    });
+    return init;
+}
+
 /*!
  * Equivalent of `std::accumulate` applied to the range @f$ [first,
  * last) @f$.
@@ -124,6 +133,15 @@ T accumulate(Iterator first, Iterator last, T init)
 {
     for_each_chunk(first, last, [&] (auto first, auto last) {
         init = std::accumulate(first, last, init);
+    });
+    return init;
+}
+
+template <typename Iterator, typename T, typename Fn>
+T accumulate(Iterator first, Iterator last, T init, Fn fn)
+{
+    for_each_chunk(first, last, [&] (auto first, auto last) {
+        init = std::accumulate(first, last, init, fn);
     });
     return init;
 }

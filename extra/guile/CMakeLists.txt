@@ -1,5 +1,7 @@
 
-find_package(Guile)
+find_package(PkgConfig)
+
+pkg_check_modules(Guile guile-2.2)
 
 set(IMMER_GUILE_EXTENSION_DIR ${CMAKE_CURRENT_BINARY_DIR})
 configure_file(immer.scm.in immer.scm)
