@@ -64,29 +64,29 @@ SCM_INIT(immer)
                           ? SCM_UNSPECIFIED
                           : *rest);
         })
-        .method("ref", &self_t::operator[])
-        .method("length", &self_t::size)
-        .method("set", [] (const self_t& v, size_t i, SCM x) {
+        .define("ref", &self_t::operator[])
+        .define("length", &self_t::size)
+        .define("set", [] (const self_t& v, size_t i, SCM x) {
             return v.set(i, x);
         })
-        .method("update", [] (const self_t& v, size_t i, SCM fn) {
+        .define("update", [] (const self_t& v, size_t i, SCM fn) {
             return v.update(i, [&] (SCM x) { return scm_call_1(fn, x); });
         })
-        .method("push", [] (const self_t& v, SCM x) {
+        .define("push", [] (const self_t& v, SCM x) {
             return v.push_back(x);
         })
-        .method("take", [] (const self_t& v, size_t s) {
+        .define("take", [] (const self_t& v, size_t s) {
             return v.take(s);
         })
-        .method("drop", [] (const self_t& v, size_t s) {
+        .define("drop", [] (const self_t& v, size_t s) {
             return v.drop(s);
         })
-        .method("append", [] (self_t v, scm::args rest) {
+        .define("append", [] (self_t v, scm::args rest) {
             for (auto x : rest)
                 v = v + scm::to_cpp<self_t>(x);
             return v;
         })
-        .method("fold", [] (SCM fn, SCM first, const self_t& v) {
+        .define("fold", [] (SCM fn, SCM first, const self_t& v) {
             return immer::accumulate(v, first, [&] (SCM acc, SCM x) {
                 return scm_call_2(fn, acc, x);
             });

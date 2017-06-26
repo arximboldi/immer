@@ -148,9 +148,9 @@ struct type_registrar
     }
 
     template <typename Fn>
-    next_t method(std::string method_name, Fn fn) &&
+    next_t define(std::string define_name, Fn fn) &&
     {
-        subr_id_t::define(type_name + "-" + method_name, fn);
+        subr_id_t::define(type_name + "-" + define_name, fn);
         return { std::move(type_name) };
     }
 };
