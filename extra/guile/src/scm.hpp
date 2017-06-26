@@ -21,34 +21,65 @@
 #pragma once
 
 #include <libguile.h>
+#include <type_traits>
+#include <utility>
 #include <cstdint>
 
 namespace scm {
 
-SCM from_cpp(SCM v)           { return v; };
-SCM from_cpp(float v)         { return scm_from_double(v); };
-SCM from_cpp(double v)        { return scm_from_double(v); };
-SCM from_cpp(std::int8_t v)   { return scm_from_int8(v); };
-SCM from_cpp(std::int16_t v)  { return scm_from_int16(v); };
-SCM from_cpp(std::int32_t v)  { return scm_from_int32(v); };
-SCM from_cpp(std::int64_t v)  { return scm_from_int64(v); };
-SCM from_cpp(std::uint8_t v)  { return scm_from_uint8(v); };
-SCM from_cpp(std::uint16_t v) { return scm_from_uint16(v); };
-SCM from_cpp(std::uint32_t v) { return scm_from_uint32(v); };
-SCM from_cpp(std::uint64_t v) { return scm_from_uint64(v); };
+namespace detail {
 
 template <typename T>
-auto to_cpp(SCM v);
-template <> auto to_cpp<SCM>           (SCM v) { return v; };
-template <> auto to_cpp<float>         (SCM v) { return scm_to_double(v); };
-template <> auto to_cpp<double>        (SCM v) { return scm_to_double(v); };
-template <> auto to_cpp<std::int8_t>   (SCM v) { return scm_to_int8(v); };
-template <> auto to_cpp<std::int16_t>  (SCM v) { return scm_to_int16(v); };
-template <> auto to_cpp<std::int32_t>  (SCM v) { return scm_to_int32(v); };
-template <> auto to_cpp<std::int64_t>  (SCM v) { return scm_to_int64(v); };
-template <> auto to_cpp<std::uint8_t>  (SCM v) { return scm_to_uint8(v); };
-template <> auto to_cpp<std::uint16_t> (SCM v) { return scm_to_uint16(v); };
-template <> auto to_cpp<std::uint32_t> (SCM v) { return scm_to_uint32(v); };
-template <> auto to_cpp<std::uint64_t> (SCM v) { return scm_to_uint64(v); };
+struct type_meta;
+
+template <>
+struct type_meta<SCM>
+{
+    struct convert
+    {
+        static SCM to_cpp(SCM v) { return v; }
+        static SCM to_scm(SCM v) { return v; }
+    };
+};
+
+} // namespace detail
+
+template <typename T>
+SCM to_scm(T&& v)
+{
+    using meta_t = detail::type_meta<std::decay_t<T>>;
+    return meta_t::convert::to_scm(std::forward<T>(v));
+}
+
+template <typename T>
+T to_cpp(SCM v)
+{
+    using meta_t = detail::type_meta<std::decay_t<T>>;
+    return meta_t::convert::to_cpp(v);
+}
 
 } // namespace scm
+
+#define SCM_DECLARE_NUMERIC_TYPE(cpp_name__, scm_name__)                \
+    namespace scm {                                                     \
+    namespace detail {                                                  \
+    template <>                                                         \
+    struct type_meta<cpp_name__> {                                      \
+        struct convert {                                                \
+            static cpp_name__ to_cpp(SCM v) { return scm_to_ ## scm_name__(v); } \
+            static SCM to_scm(cpp_name__ v) { return scm_from_ ## scm_name__(v); } \
+        };                                                              \
+    };                                                                  \
+    }} /* namespace scm::detail */                                      \
+    /**/
+
+SCM_DECLARE_NUMERIC_TYPE(float,         double);
+SCM_DECLARE_NUMERIC_TYPE(double,        double);
+SCM_DECLARE_NUMERIC_TYPE(std::int8_t,   int8);
+SCM_DECLARE_NUMERIC_TYPE(std::int16_t,  int16);
+SCM_DECLARE_NUMERIC_TYPE(std::int32_t,  int32);
+SCM_DECLARE_NUMERIC_TYPE(std::int64_t,  int64);
+SCM_DECLARE_NUMERIC_TYPE(std::uint8_t,  uint8);
+SCM_DECLARE_NUMERIC_TYPE(std::uint16_t, uint16);
+SCM_DECLARE_NUMERIC_TYPE(std::uint32_t, uint32);
+SCM_DECLARE_NUMERIC_TYPE(std::uint64_t, uint64);

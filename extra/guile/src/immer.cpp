@@ -88,7 +88,7 @@ void init_vector(std::string prefix = "")
         {
             scm_assert_foreign_object_type(ivector_type, self);
             auto v = *(ivector_t*) scm_foreign_object_ref(self, 0);
-            return scm::from_cpp(v[scm::to_cpp<size_t>(index)]);
+            return scm::to_scm(v[scm::to_cpp<size_t>(index)]);
         });
     scm_c_export(iname_ref.c_str());
 
@@ -99,7 +99,7 @@ void init_vector(std::string prefix = "")
         {
             scm_assert_foreign_object_type(ivector_type, self);
             auto v = *(ivector_t*) scm_foreign_object_ref(self, 0);
-            return scm::from_cpp(v.size());
+            return scm::to_scm(v.size());
         });
     scm_c_export(iname_length.c_str());
 
@@ -131,6 +131,26 @@ void init_vector(std::string prefix = "")
                                 scm::to_cpp<T>(value))});
         });
     scm_c_export(iname_set.c_str());
+
+    static auto iname_update = iname + "-update"s;
+    scm_c_define_gsubr(
+        iname_update.c_str(), 3, 0, 0,
+        (scm_t_subr) +[] (SCM self, SCM index, SCM fn)
+        {
+            scm_assert_foreign_object_type(ivector_type, self);
+            auto v = *(ivector_t*) scm_foreign_object_ref(self, 0);
+            return scm_make_foreign_object_1(
+                ivector_type,
+                new (scm_gc_malloc(sizeof(ivector_t), "immer"))
+                ivector_t{
+                    v.update(
+                        scm::to_cpp<size_t>(index),
+                        [&] (auto value) {
+                            return scm::to_cpp<T>(
+                                scm_call_1(fn, scm::to_scm(value)));
+                        })});
+        });
+    scm_c_export(iname_update.c_str());
 
     static auto iname_drop = iname + "-drop"s;
     scm_c_define_gsubr(
@@ -187,7 +207,7 @@ void init_vector(std::string prefix = "")
             scm_assert_foreign_object_type(ivector_type, self);
             auto v = *(ivector_t*) scm_foreign_object_ref(self, 0);
             return immer::accumulate(v, first, [=] (auto acc, auto item) {
-                return scm_call_2(fn, acc, scm::from_cpp(item));
+                return scm_call_2(fn, acc, scm::to_scm(item));
             });
         });
     scm_c_export(iname_fold.c_str());
