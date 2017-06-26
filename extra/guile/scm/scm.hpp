@@ -134,6 +134,19 @@ struct type_registrar
         return { std::move(type_name) };
     }
 
+    next_t maker() &&
+    {
+        subr_id_t::define("make-" + type_name, [] { return T{}; });
+        return { std::move(type_name) };
+    }
+
+    template <typename Fn>
+    next_t maker(Fn fn) &&
+    {
+        subr_id_t::define("make-" + type_name, fn);
+        return { std::move(type_name) };
+    }
+
     template <typename Fn>
     next_t method(std::string method_name, Fn fn) &&
     {

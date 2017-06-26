@@ -27,6 +27,12 @@
   (assert (eq? (ivector-length (ivector-drop v 3)) 7))
   (assert (eq? (ivector-length (ivector-take v 3)) 3)))
 
+(let ((v1 (make-ivector 3))
+      (v2 (make-ivector 3 ":)")))
+  (assert (eq? (ivector-ref v1 2)
+               (vector-ref (make-vector 3) 2)))
+  (assert (eq? (ivector-ref v2 2) ":)")))
+
 ;;
 ;; Some micro benchmakrs
 ;;

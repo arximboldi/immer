@@ -59,6 +59,11 @@ SCM_INIT(immer)
 
     scm::type<self_t>("ivector")
         .constructor([] (scm::args rest) { return self_t(rest, {}); })
+        .maker([] (size_t sz, scm::args rest) {
+            return self_t(sz, rest.begin() == rest.end()
+                          ? SCM_UNSPECIFIED
+                          : *rest);
+        })
         .method("ref", &self_t::operator[])
         .method("length", &self_t::size)
         .method("set", [] (const self_t& v, size_t i, SCM x) {
