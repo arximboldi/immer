@@ -52,7 +52,8 @@ using guile_ivector = immer::flex_vector<T, guile_memory>;
 
 SCM_DECLARE_FOREIGN_TYPE(guile_ivector<SCM>);
 
-SCM_INIT(immer)
+extern "C"
+void init_immer()
 {
     using self_t = guile_ivector<SCM>;
     using size_t = typename self_t::size_type;

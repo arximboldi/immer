@@ -170,7 +170,3 @@ detail::type_registrar<Tag, T> type(std::string type_name)
 }
 
 } // namespace scm
-
-#define SCM_INIT(name__)                                \
-    extern "C" void init_ ## name__()                   \
-    /**/
