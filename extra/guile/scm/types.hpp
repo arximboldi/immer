@@ -21,12 +21,10 @@
 #pragma once
 
 #include <libguile.h>
-#include <type_traits>
-#include <utility>
 #include <cstdint>
+#include <utility>
 
 namespace scm {
-
 namespace detail {
 
 template <typename T>
@@ -40,6 +38,31 @@ struct type_meta<SCM>
         static SCM to_cpp(SCM v) { return v; }
         static SCM to_scm(SCM v) { return v; }
     };
+};
+
+template <typename T>
+struct convert_foreign_type
+{
+    static T& to_cpp(SCM v)
+    {
+        scm_assert_foreign_object_type(
+            type_meta<T>::foreign_type, v);
+        return *(T*)scm_foreign_object_ref(v, 0);
+    }
+
+    static SCM to_scm(const T& v)
+    {
+        return scm_make_foreign_object_1(
+            type_meta<T>::foreign_type,
+            new (scm_gc_malloc(sizeof(T), "scmpp")) T{v});
+    }
+
+    static SCM to_scm(T&& v)
+    {
+        return scm_make_foreign_object_1(
+            type_meta<T>::foreign_type,
+            new (scm_gc_malloc(sizeof(T), "scmpp")) T{std::move(v)});
+    }
 };
 
 } // namespace detail
@@ -59,6 +82,18 @@ T to_cpp(SCM v)
 }
 
 } // namespace scm
+
+#define SCM_DECLARE_FOREIGN_TYPE(cpp_name__)                            \
+    namespace scm {                                                     \
+    namespace detail {                                                  \
+    template <>                                                         \
+    struct type_meta<cpp_name__> {                                      \
+        static SCM foreign_type;                                        \
+        using convert = convert_foreign_type<cpp_name__>;               \
+    };                                                                  \
+    SCM type_meta<cpp_name__>::foreign_type = nullptr;                  \
+    }} /* namespace scm::detail */                                      \
+    /**/
 
 #define SCM_DECLARE_NUMERIC_TYPE(cpp_name__, scm_name__)                \
     namespace scm {                                                     \
