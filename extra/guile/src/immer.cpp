@@ -70,7 +70,7 @@ SCM_INIT(immer)
             return v.set(i, x);
         })
         .define("update", [] (const self_t& v, size_t i, SCM fn) {
-            return v.update(i, [&] (SCM x) { return scm_call_1(fn, x); });
+            return v.update(i, [&] (auto x) { return scm::call(fn, x); });
         })
         .define("push", [] (const self_t& v, SCM x) {
             return v.push_back(x);
@@ -87,8 +87,8 @@ SCM_INIT(immer)
             return v;
         })
         .define("fold", [] (SCM fn, SCM first, const self_t& v) {
-            return immer::accumulate(v, first, [&] (SCM acc, SCM x) {
-                return scm_call_2(fn, acc, x);
+            return immer::accumulate(v, first, [&] (auto acc, auto x) {
+                return scm::call(fn, acc, x);
             });
         })
         ;

@@ -71,6 +71,32 @@ T to_cpp(SCM v)
     return meta_t::convert::to_cpp(v);
 }
 
+template <typename T=SCM>
+T call(SCM fn)
+{
+    return to_cpp<T>(scm_call_0(fn));
+}
+template <typename T=SCM, typename T0>
+T call(SCM fn, T0&& a0)
+{
+    return to_cpp<T>(scm_call_1(fn, to_scm(std::forward<T0>(a0))));
+}
+template <typename T=SCM, typename T0, typename T1>
+T call(SCM fn, T0&& a0, T1&& a1)
+{
+    return to_cpp<T>(scm_call_2(fn,
+                                to_scm(std::forward<T0>(a0)),
+                                to_scm(std::forward<T1>(a1))));
+}
+template <typename T=SCM, typename T0, typename T1, typename T2>
+T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
+{
+    return to_cpp<T>(scm_call_2(fn,
+                                to_scm(std::forward<T0>(a0)),
+                                to_scm(std::forward<T1>(a1)),
+                                to_scm(std::forward<T2>(a2))));
+}
+
 } // namespace scm
 
 #define SCM_DECLARE_FOREIGN_TYPE(cpp_name__)                            \
