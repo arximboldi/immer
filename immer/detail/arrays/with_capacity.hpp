@@ -133,6 +133,11 @@ struct with_capacity
         return from_range(begin(values), end(values));
     }
 
+    static with_capacity from_fill(size_t n, T v)
+    {
+        return { node_t::fill_n(n, v), n, n };
+    }
+
     template <typename Fn>
     void for_each_chunk(Fn&& fn) const
     {

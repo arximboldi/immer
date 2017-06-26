@@ -69,6 +69,15 @@ struct rbtree
         return result;
     }
 
+    static auto from_fill(size_t n, T v)
+    {
+        auto e = owner_t{};
+        auto result = rbtree{empty};
+        while (n --> 0)
+            result.push_back_mut(e, v);
+        return result;
+    }
+
     rbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
         : size{sz}, shift{sh}, root{r}, tail{t}
     {

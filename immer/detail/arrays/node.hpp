@@ -92,6 +92,18 @@ struct node
         return p;
     }
 
+    static node_t* fill_n(size_t n, T v)
+    {
+        auto p = make_n(n);
+        try {
+            std::uninitialized_fill_n(p->data(), n, v);
+            return p;
+        } catch (...) {
+            heap::deallocate(sizeof_n(n), p);
+            throw;
+        }
+    }
+
     template <typename Iter>
     static node_t* copy_n(size_t n, Iter first, Iter last)
     {

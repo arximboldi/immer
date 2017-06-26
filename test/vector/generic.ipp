@@ -74,6 +74,15 @@ TEST_CASE("instantiation")
         auto v = VECTOR_T<unsigned>{r.begin(), r.end()};
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
     }
+
+    SECTION("fill")
+    {
+        auto v1 = VECTOR_T<int>(4);
+        CHECK(v1.size() == 4);
+        auto v2 = VECTOR_T<int>(size_t{4}, 42);
+        CHECK(v2.size() == 4);
+        CHECK(v2[2] == 42);
+    }
 }
 
 TEST_CASE("back and front")

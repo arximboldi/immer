@@ -117,6 +117,14 @@ public:
     {}
 
     /*!
+     * Constructs a vector containing the element `val` repeated `n`
+     * times.
+     */
+    flex_vector(size_type n, T v = {})
+        : impl_{impl_t::from_fill(n, v)}
+    {}
+
+    /*!
      * Default constructor.  It creates a flex_vector with the same
      * contents as `v`.  It does not allocate memory and is
      * @f$ O(1) @f$.

@@ -131,6 +131,14 @@ public:
     {}
 
     /*!
+     * Constructs a vector containing the element `val` repeated `n`
+     * times.
+     */
+    vector(size_type n, T v = {})
+        : impl_{impl_t::from_fill(n, v)}
+    {}
+
+    /*!
      * Returns an iterator pointing at the first element of the
      * collection. It does not allocate memory and its complexity is
      * @f$ O(1) @f$.

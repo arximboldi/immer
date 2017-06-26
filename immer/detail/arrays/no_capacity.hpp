@@ -105,6 +105,11 @@ struct no_capacity
         };
     }
 
+    static no_capacity from_fill(size_t n, T v)
+    {
+        return { node_t::fill_n(n, v), n };
+    }
+
     template <typename U>
     static no_capacity from_initializer_list(std::initializer_list<U> values)
     {
