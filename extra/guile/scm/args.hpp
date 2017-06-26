@@ -29,10 +29,13 @@ struct list
 {
     list() = default;
     list(SCM value) : handle_{value} {}
-    operator SCM () { return handle_; }
 
-    list end() { return {}; }
-    list begin() { return *this; }
+    operator SCM () const { return handle_; }
+
+    list end() const { return {}; }
+    list begin() const { return *this; }
+
+    explicit operator bool() { return handle_ != SCM_EOL; }
 
     SCM operator* () const { return scm_car(handle_); }
 

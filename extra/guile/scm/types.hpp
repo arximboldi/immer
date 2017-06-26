@@ -137,7 +137,6 @@ T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
     }} /* namespace scm::detail */                                      \
     /**/
 
-
 SCM_DECLARE_WRAPPER_TYPE(SCM);
 
 SCM_DECLARE_NUMERIC_TYPE(float,         double);
