@@ -23,6 +23,7 @@
 #include <scm/detail/invoke.hpp>
 #include <scm/detail/function_args.hpp>
 #include <scm/types.hpp>
+#include <scm/args.hpp>
 
 #include <string>
 #include <type_traits>
@@ -30,6 +31,8 @@
 
 #include <boost/optional.hpp>
 #include <boost/utility/typed_in_place_factory.hpp>
+
+#include <iostream>
 
 namespace scm {
 namespace detail {
@@ -52,8 +55,8 @@ template <typename Storage, typename T1>
 auto subr_invoker_aux(pack<T1>)
 {
     return [] (SCM a1) -> SCM {
-        return to_scm(invoke(*Storage::data),
-                      to_cpp<T1>(a1));
+        return to_scm(invoke(*Storage::data,
+                             to_cpp<T1>(a1)));
     };
 }
 template <typename Storage, typename T1, typename T2>
@@ -101,8 +104,11 @@ struct subr_id
         store(fn);
         using args_t = function_args_t<Fn>;
         constexpr auto args_size = pack_size_v<args_t>;
+        constexpr auto has_rest  = std::is_same<pack_last_t<args_t>,
+                                                scm::args>{};
+        constexpr auto arg_count = args_size - has_rest;
         auto subr = (scm_t_subr) +invoker<Fn>();
-        scm_c_define_gsubr(name.c_str(), args_size, 0, 0, subr);
+        scm_c_define_gsubr(name.c_str(), arg_count, 0, has_rest, subr);
         scm_c_export(name.c_str());
     }
 };

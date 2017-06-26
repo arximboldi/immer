@@ -20,45 +20,48 @@
 
 #pragma once
 
+#include <scm/types.hpp>
+#include <iostream>
+
 namespace scm {
-namespace detail {
 
-struct none_t;
-
-template <typename... Ts>
-struct pack {};
-
-template <typename Pack>
-struct pack_size;
-
-template <typename... Ts>
-struct pack_size<pack<Ts...>>
+struct list
 {
-    static constexpr auto value = sizeof...(Ts);
+    list() = default;
+    list(SCM value) : handle_{value} {}
+    operator SCM () { return handle_; }
+
+    list end() { return {}; }
+    list begin() { return *this; }
+
+    SCM operator* () const { return scm_car(handle_); }
+
+    list& operator++ ()
+    {
+        handle_ = scm_cdr(handle_);
+        return *this;
+    }
+
+    list operator++ (int)
+    {
+        auto result = *this;
+        result.handle_ = scm_cdr(handle_);
+        return result;
+    }
+
+    bool operator==(list other) { return handle_ == other.handle_; }
+    bool operator!=(list other) { return handle_ != other.handle_; }
+
+private:
+    SCM handle_ = SCM_EOL;
 };
 
-template <typename Pack>
-constexpr auto pack_size_v = pack_size<Pack>::value;
-
-template <typename Pack>
-struct pack_last
+struct args : list
 {
-    using type = none_t;
+    using list::list;
 };
 
-template <typename T, typename ...Ts>
-struct pack_last<pack<T, Ts...>>
-    : pack_last<pack<Ts...>>
-{};
-
-template <typename T>
-struct pack_last<pack<T>>
-{
-    using type = T;
-};
-
-template <typename Pack>
-using pack_last_t = typename pack_last<Pack>::type;
-
-} // namespace detail
 } // namespace scm
+
+SCM_DECLARE_WRAPPER_TYPE(scm::list);
+SCM_DECLARE_WRAPPER_TYPE(scm::args);

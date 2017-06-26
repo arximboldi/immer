@@ -30,16 +30,6 @@ namespace detail {
 template <typename T>
 struct type_meta;
 
-template <>
-struct type_meta<SCM>
-{
-    struct convert
-    {
-        static SCM to_cpp(SCM v) { return v; }
-        static SCM to_scm(SCM v) { return v; }
-    };
-};
-
 template <typename T>
 struct convert_foreign_type
 {
@@ -107,6 +97,22 @@ T to_cpp(SCM v)
     };                                                                  \
     }} /* namespace scm::detail */                                      \
     /**/
+
+#define SCM_DECLARE_WRAPPER_TYPE(cpp_name__)                            \
+    namespace scm {                                                     \
+    namespace detail {                                                  \
+    template <>                                                         \
+    struct type_meta<cpp_name__> {                                      \
+        struct convert {                                                \
+            static cpp_name__ to_cpp(SCM v) { return v; }               \
+            static SCM to_scm(cpp_name__ v) { return v; }               \
+        };                                                              \
+    };                                                                  \
+    }} /* namespace scm::detail */                                      \
+    /**/
+
+
+SCM_DECLARE_WRAPPER_TYPE(SCM);
 
 SCM_DECLARE_NUMERIC_TYPE(float,         double);
 SCM_DECLARE_NUMERIC_TYPE(double,        double);
