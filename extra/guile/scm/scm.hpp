@@ -113,11 +113,11 @@ struct subr_id
     }
 };
 
-template <typename T, int Seq=0>
+template <typename Tag, typename T, int Seq=0>
 struct type_registrar
 {
-    using next_t    = type_registrar<T, Seq + 1>;
-    using subr_id_t = subr_id<T, Seq>;
+    using next_t    = type_registrar<Tag, T, Seq + 1>;
+    using subr_id_t = subr_id<Tag, Seq>;
 
     std::string type_name;
 
@@ -157,8 +157,8 @@ struct type_registrar
 
 } // namespace detail
 
-template <typename T>
-detail::type_registrar<T> type(std::string type_name)
+template <typename Tag, typename T=Tag>
+detail::type_registrar<Tag, T> type(std::string type_name)
 {
     using meta_t = detail::type_meta<T>;
     assert(!meta_t::foreign_type);
