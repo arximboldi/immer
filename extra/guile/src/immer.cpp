@@ -50,12 +50,12 @@ using guile_ivector = immer::flex_vector<T, guile_memory>;
 
 } // anonymous namespace
 
-SCM_DECLARE_FOREIGN_TYPE(guile_ivector<SCM>);
+SCM_DECLARE_FOREIGN_TYPE(guile_ivector<scm::val>);
 
 extern "C"
 void init_immer()
 {
-    using self_t = guile_ivector<SCM>;
+    using self_t = guile_ivector<scm::val>;
     using size_t = typename self_t::size_type;
 
     scm::type<self_t>("ivector")
@@ -63,17 +63,17 @@ void init_immer()
             return self_t(rest.begin(), rest.end());
         })
         .maker([] (size_t n, scm::args rest) {
-            return self_t(n, rest ? *rest : SCM_UNSPECIFIED);
+            return self_t(n, rest ? *rest : scm::val{});
         })
         .define("ref", &self_t::operator[])
         .define("length", &self_t::size)
-        .define("set", [] (const self_t& v, size_t i, SCM x) {
+        .define("set", [] (const self_t& v, size_t i, scm::val x) {
             return v.set(i, x);
         })
-        .define("update", [] (const self_t& v, size_t i, SCM fn) {
-            return v.update(i, [&] (auto x) { return scm::call(fn, x); });
+        .define("update", [] (const self_t& v, size_t i, scm::val fn) {
+            return v.update(i, fn);
         })
-        .define("push", [] (const self_t& v, SCM x) {
+        .define("push", [] (const self_t& v, scm::val x) {
             return v.push_back(x);
         })
         .define("take", [] (const self_t& v, size_t s) {
@@ -84,13 +84,11 @@ void init_immer()
         })
         .define("append", [] (self_t v, scm::args rest) {
             for (auto x : rest)
-                v = v + scm::to_cpp<self_t>(x);
+                v = v + x;
             return v;
         })
         .define("fold", [] (scm::val fn, scm::val first, const self_t& v) {
-            return immer::accumulate(v, first, [&] (auto acc, auto x) {
-                return scm::call(fn, acc, x);
-            });
+            return immer::accumulate(v, first, fn);
         })
         ;
 }

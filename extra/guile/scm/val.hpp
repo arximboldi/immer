@@ -20,24 +20,24 @@
 
 #pragma once
 
-#include <libguile.h>
+#include <scm/detail/util.hpp>
+
 #include <cstdint>
 #include <utility>
 
+#include <libguile.h>
+
 namespace scm {
-
-using val = SCM;
-
 namespace detail {
 
 template <typename T>
 struct foreign_type_storage
 {
-    static val data;
+    static SCM data;
 };
 
 template <typename T>
-val foreign_type_storage<T>::data = SCM_UNSPECIFIED;
+SCM foreign_type_storage<T>::data = SCM_UNSPECIFIED;
 
 template <typename T>
 struct convert;
@@ -45,22 +45,22 @@ struct convert;
 template <typename T>
 struct convert_wrapper_type
 {
-    static T to_cpp(val v) { return v; }
-    static val to_scm(T v) { return v; }
+    static T to_cpp(SCM v) { return T{v}; }
+    static SCM to_scm(T v) { return v.get(); }
 };
 
 template <typename T>
 struct convert_foreign_type
 {
     using storage_t = foreign_type_storage<T>;
-    static T& to_cpp(val v)
+    static T& to_cpp(SCM v)
     {
         scm_assert_foreign_object_type(storage_t::data, v);
         return *(T*)scm_foreign_object_ref(v, 0);
     }
 
     template <typename U>
-    static val to_scm(U&& v)
+    static SCM to_scm(U&& v)
     {
         return scm_make_foreign_object_1(
             storage_t::data,
@@ -69,45 +69,67 @@ struct convert_foreign_type
     }
 };
 
+template <typename T>
+auto to_scm(T&& v)
+    -> SCM_DECLTYPE_RETURN(
+        detail::convert<std::decay_t<T>>::to_scm(std::forward<T>(v)));
+
+template <typename T>
+auto to_cpp(SCM v)
+    -> SCM_DECLTYPE_RETURN(
+        detail::convert<std::decay_t<T>>::to_cpp(v));
+
+struct wrapper
+{
+    wrapper() = default;
+    wrapper(SCM hdl) : handle_{hdl} {}
+    SCM get() const { return handle_; }
+    operator SCM () const { return handle_; }
+
+    bool operator==(wrapper other) { return handle_ == other.handle_; }
+    bool operator!=(wrapper other) { return handle_ != other.handle_; }
+
+protected:
+    SCM handle_ = SCM_UNSPECIFIED;
+};
+
 } // namespace detail
 
-template <typename T>
-val to_scm(T&& v)
+struct val : detail::wrapper
 {
-    return detail::convert<std::decay_t<T>>::to_scm(std::forward<T>(v));
-}
+    using base_t = detail::wrapper;
+    using base_t::base_t;
 
-template <typename T>
-T to_cpp(val v)
-{
-    return detail::convert<std::decay_t<T>>::to_cpp(v);
-}
+    template <typename T,
+              typename Enable=std::enable_if_t<
+                  (!std::is_same<std::decay_t<T>, val>{} &&
+                   !std::is_same<std::decay_t<T>, SCM>{})>>
+    explicit val(T&& x)
+        : base_t(detail::to_scm(std::forward<T>(x)))
+    {}
 
-template <typename T=val>
-T call(val fn)
-{
-    return to_cpp<T>(scm_call_0(fn));
-}
-template <typename T=val, typename T0>
-T call(val fn, T0&& a0)
-{
-    return to_cpp<T>(scm_call_1(fn, to_scm(std::forward<T0>(a0))));
-}
-template <typename T=val, typename T0, typename T1>
-T call(val fn, T0&& a0, T1&& a1)
-{
-    return to_cpp<T>(scm_call_2(fn,
-                                to_scm(std::forward<T0>(a0)),
-                                to_scm(std::forward<T1>(a1))));
-}
-template <typename T=val, typename T0, typename T1, typename T2>
-T call(val fn, T0&& a0, T1&& a1, T2&& a2)
-{
-    return to_cpp<T>(scm_call_2(fn,
-                                to_scm(std::forward<T0>(a0)),
-                                to_scm(std::forward<T1>(a1)),
-                                to_scm(std::forward<T2>(a2))));
-}
+    template <typename T,
+              typename Enable=detail::is_valid_t<
+                  decltype(static_cast<T>(detail::to_cpp<T>(SCM{})))>>
+    operator T() const { return detail::to_cpp<T>(handle_); }
+    template <typename T,
+              typename Enable=detail::is_valid_t<
+                  decltype(static_cast<T&>(detail::to_cpp<T>(SCM{})))>>
+    operator T&() { return detail::to_cpp<T>(handle_); }
+    template <typename T,
+              typename Enable=detail::is_valid_t<
+                  decltype(static_cast<const T&>(detail::to_cpp<T>(SCM{})))>>
+    operator const T&() { return detail::to_cpp<T>(handle_); }
+
+    val operator() () const
+    { return val{scm_call_0(get())}; }
+    val operator() (val a0) const
+    { return val{scm_call_1(get(), a0)}; }
+    val operator() (val a0, val a1) const
+    { return val{scm_call_2(get(), a0, a1)}; }
+    val operator() (val a0, val a1, val a3) const
+    { return val{scm_call_3(get(), a0, a1, a3)}; }
+};
 
 } // namespace scm
 
@@ -140,7 +162,7 @@ T call(val fn, T0&& a0, T1&& a1, T2&& a2)
     }} /* namespace scm::detail */                                      \
     /**/
 
-SCM_DECLARE_WRAPPER_TYPE(SCM);
+SCM_DECLARE_WRAPPER_TYPE(val);
 
 SCM_DECLARE_NUMERIC_TYPE(float,         double);
 SCM_DECLARE_NUMERIC_TYPE(double,        double);

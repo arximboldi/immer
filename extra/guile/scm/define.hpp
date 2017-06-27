@@ -22,7 +22,7 @@
 
 #include <scm/detail/invoke.hpp>
 #include <scm/detail/function_args.hpp>
-#include <scm/types.hpp>
+#include <scm/val.hpp>
 #include <scm/list.hpp>
 
 #include <string>
@@ -56,14 +56,14 @@ auto subr_wrapper(Fn fn, pack<>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] () -> val { return to_scm(invoke(fn_)); };
+    return [] () -> SCM { return to_scm(invoke(fn_)); };
 }
 template <typename Tag, typename Fn, typename T1>
 auto subr_wrapper(Fn fn, pack<T1>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (val a1) -> val {
+    return [] (SCM a1) -> SCM {
         return to_scm(invoke(fn_,
                              to_cpp<T1>(a1)));
     };
@@ -73,7 +73,7 @@ auto subr_wrapper(Fn fn, pack<T1, T2>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (val a1, val a2) -> val {
+    return [] (SCM a1, SCM a2) -> SCM {
         return to_scm(invoke(fn_,
                              to_cpp<T1>(a1),
                              to_cpp<T2>(a2)));
@@ -84,7 +84,7 @@ auto subr_wrapper(Fn fn, pack<T1, T2, T3>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (val a1, val a2, val a3) -> val {
+    return [] (SCM a1, SCM a2, SCM a3) -> SCM {
         return to_scm(invoke(fn_,
                              to_cpp<T1>(a1),
                              to_cpp<T2>(a2),

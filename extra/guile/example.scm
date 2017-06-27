@@ -53,7 +53,7 @@
          (display " s")
          (newline))))))
 
-(define bench-size 1000000)
+(define bench-size 100000)
 
 (newline)
 (display "== benchmarking creation...") (newline)
