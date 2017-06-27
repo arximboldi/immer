@@ -47,5 +47,15 @@ binding group.", SCM_EOL);
     called = true;
 }
 
+struct move_sequence
+{
+    move_sequence() = default;
+    move_sequence(const move_sequence&) = delete;
+    move_sequence(move_sequence&& other)
+    { other.moved_from_ = true; };
+
+    bool moved_from_ = false;
+};
+
 } // namespace detail
 } // namespace scm

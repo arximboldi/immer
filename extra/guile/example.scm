@@ -12,6 +12,10 @@
   (dummy-foo d))
 (gc)
 
+(foo)
+(bar)
+(foo-bar)
+
 ;;
 ;; Showcase immer API
 ;;

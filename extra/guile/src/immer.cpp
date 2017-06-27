@@ -62,10 +62,15 @@ struct dummy : scm::detail::move_sequence
     }
 };
 
+void bar()
+{ scm_puts("~~ bar\n", scm_current_warning_port()); }
+
 } // anonymous namespace
 
 SCM_DECLARE_FOREIGN_TYPE(guile_ivector<scm::val>);
 SCM_DECLARE_FOREIGN_TYPE(dummy);
+
+struct bar_tag_t {};
 
 extern "C"
 void init_immer()
@@ -73,10 +78,19 @@ void init_immer()
     using self_t = guile_ivector<scm::val>;
     using size_t = typename self_t::size_type;
 
+    scm::group()
+        .define("foo", bar);
+
+    scm::group<bar_tag_t>()
+        .define("bar", bar);
+
+    scm::group("foo")
+        .define("bar", bar);
+
     scm::type<dummy>("dummy")
         .constructor()
-        .define("foo", &dummy::foo)
-        .finalizer();
+        .finalizer()
+        .define("foo", &dummy::foo);
 
     scm::type<self_t>("ivector")
         .constructor([] (scm::args rest) {
