@@ -48,15 +48,35 @@ using guile_memory = immer::memory_policy<
 template <typename T>
 using guile_ivector = immer::flex_vector<T, guile_memory>;
 
+struct dummy : scm::detail::move_sequence
+{
+    dummy(dummy&&) = default;
+    dummy()
+    { scm_puts("~~ dummy constructor\n", scm_current_warning_port()); }
+    void foo()
+    { scm_puts("~~ dummy foo\n", scm_current_warning_port()); }
+    ~dummy()
+    {
+        if (!moved_from_)
+            scm_puts("~~ dummy finalized\n", scm_current_warning_port());
+    }
+};
+
 } // anonymous namespace
 
 SCM_DECLARE_FOREIGN_TYPE(guile_ivector<scm::val>);
+SCM_DECLARE_FOREIGN_TYPE(dummy);
 
 extern "C"
 void init_immer()
 {
     using self_t = guile_ivector<scm::val>;
     using size_t = typename self_t::size_type;
+
+    scm::type<dummy>("dummy")
+        .constructor()
+        .define("foo", &dummy::foo)
+        .finalizer();
 
     scm::type<self_t>("ivector")
         .constructor([] (scm::args rest) {

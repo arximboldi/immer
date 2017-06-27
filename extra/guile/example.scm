@@ -5,7 +5,15 @@
              (rnrs base))
 
 ;;
-;; Showcase of the API
+;; Experiments
+;;
+
+(let ((d (dummy)))
+  (dummy-foo d))
+(gc)
+
+;;
+;; Showcase immer API
 ;;
 
 (let ((v1 (ivector 1 "hola" 3 'que #:tal)))

@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <libguile.h>
+
 namespace scm {
 namespace detail {
 
@@ -33,6 +35,17 @@ constexpr bool is_valid_v = true;
 
 template <typename... Ts>
 using is_valid_t = void;
+
+template <typename... Ts>
+void check_call_once()
+{
+    static bool called = false;
+    if (called) scm_misc_error (nullptr, "Double defined binding. \
+This may be caused because there are multiple C++ binding groups in the same \
+translation unit.  You may solve this by using different type tags for each \
+binding group.", SCM_EOL);
+    called = true;
+}
 
 } // namespace detail
 } // namespace scm
