@@ -54,7 +54,7 @@ struct val : detail::wrapper
     using base_t::base_t;
 
     template <typename T,
-              typename Enable=std::enable_if_t<
+              typename = std::enable_if_t<
                   (!std::is_same<std::decay_t<T>, val>{} &&
                    !std::is_same<std::decay_t<T>, SCM>{})>>
     explicit val(T&& x)
@@ -62,17 +62,19 @@ struct val : detail::wrapper
     {}
 
     template <typename T,
-              typename Enable=detail::is_valid_t<
-                  decltype(static_cast<T>(detail::to_cpp<T>(SCM{})))>>
+              typename = std::enable_if_t<
+                  std::is_same<T, decltype(detail::to_cpp<T>(SCM{}))>{}>>
     operator T() const { return detail::to_cpp<T>(handle_); }
+
     template <typename T,
-              typename Enable=detail::is_valid_t<
-                  decltype(static_cast<T&>(detail::to_cpp<T>(SCM{})))>>
-    operator T&() { return detail::to_cpp<T>(handle_); }
+              typename = std::enable_if_t<
+                  std::is_same<T&, decltype(detail::to_cpp<T>(SCM{}))>{}>>
+    operator T& () const { return detail::to_cpp<T>(handle_); }
+
     template <typename T,
-              typename Enable=detail::is_valid_t<
-                  decltype(static_cast<const T&>(detail::to_cpp<T>(SCM{})))>>
-    operator const T&() { return detail::to_cpp<T>(handle_); }
+              typename = std::enable_if_t<
+                  std::is_same<const T&, decltype(detail::to_cpp<T>(SCM{}))>{}>>
+    operator const T& () const { return detail::to_cpp<T>(handle_); }
 
     val operator() () const
     { return val{scm_call_0(get())}; }
