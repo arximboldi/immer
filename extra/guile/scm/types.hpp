@@ -25,71 +25,83 @@
 #include <utility>
 
 namespace scm {
+
+using val = SCM;
+
 namespace detail {
 
 template <typename T>
-struct type_meta;
+struct foreign_type_storage
+{
+    static val data;
+};
+
+template <typename T>
+val foreign_type_storage<T>::data = SCM_UNSPECIFIED;
+
+template <typename T>
+struct convert;
+
+template <typename T>
+struct convert_wrapper_type
+{
+    static T to_cpp(val v) { return v; }
+    static val to_scm(T v) { return v; }
+};
 
 template <typename T>
 struct convert_foreign_type
 {
-    static T& to_cpp(SCM v)
+    using storage_t = foreign_type_storage<T>;
+    static T& to_cpp(val v)
     {
-        scm_assert_foreign_object_type(
-            type_meta<T>::foreign_type, v);
+        scm_assert_foreign_object_type(storage_t::data, v);
         return *(T*)scm_foreign_object_ref(v, 0);
     }
 
-    static SCM to_scm(const T& v)
+    template <typename U>
+    static val to_scm(U&& v)
     {
         return scm_make_foreign_object_1(
-            type_meta<T>::foreign_type,
-            new (scm_gc_malloc(sizeof(T), "scmpp")) T{v});
-    }
-
-    static SCM to_scm(T&& v)
-    {
-        return scm_make_foreign_object_1(
-            type_meta<T>::foreign_type,
-            new (scm_gc_malloc(sizeof(T), "scmpp")) T{std::move(v)});
+            storage_t::data,
+            new (scm_gc_malloc(sizeof(T), "scmpp")) T{
+                std::forward<U>(v)});
     }
 };
 
 } // namespace detail
 
 template <typename T>
-SCM to_scm(T&& v)
+val to_scm(T&& v)
 {
-    using meta_t = detail::type_meta<std::decay_t<T>>;
-    return meta_t::convert::to_scm(std::forward<T>(v));
+    return detail::convert<std::decay_t<T>>::to_scm(std::forward<T>(v));
 }
 
 template <typename T>
-T to_cpp(SCM v)
+T to_cpp(val v)
 {
-    using meta_t = detail::type_meta<std::decay_t<T>>;
-    return meta_t::convert::to_cpp(v);
+    return detail::convert<std::decay_t<T>>::to_cpp(v);
 }
 
-template <typename T=SCM>
-T call(SCM fn)
+template <typename T=val>
+T call(val fn)
 {
     return to_cpp<T>(scm_call_0(fn));
 }
-template <typename T=SCM, typename T0>
-T call(SCM fn, T0&& a0)
+template <typename T=val, typename T0>
+T call(val fn, T0&& a0)
 {
     return to_cpp<T>(scm_call_1(fn, to_scm(std::forward<T0>(a0))));
 }
-template <typename T=SCM, typename T0, typename T1>
-T call(SCM fn, T0&& a0, T1&& a1)
+template <typename T=val, typename T0, typename T1>
+T call(val fn, T0&& a0, T1&& a1)
 {
     return to_cpp<T>(scm_call_2(fn,
                                 to_scm(std::forward<T0>(a0)),
                                 to_scm(std::forward<T1>(a1))));
 }
-template <typename T=SCM, typename T0, typename T1, typename T2>
-T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
+template <typename T=val, typename T0, typename T1, typename T2>
+T call(val fn, T0&& a0, T1&& a1, T2&& a2)
 {
     return to_cpp<T>(scm_call_2(fn,
                                 to_scm(std::forward<T0>(a0)),
@@ -103,11 +115,8 @@ T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
     namespace scm {                                                     \
     namespace detail {                                                  \
     template <>                                                         \
-    struct type_meta<cpp_name__> {                                      \
-        static SCM foreign_type;                                        \
-        using convert = convert_foreign_type<cpp_name__>;               \
-    };                                                                  \
-    SCM type_meta<cpp_name__>::foreign_type = nullptr;                  \
+    struct convert<cpp_name__>                                          \
+        : convert_foreign_type<cpp_name__> {};                          \
     }} /* namespace scm::detail */                                      \
     /**/
 
@@ -115,11 +124,9 @@ T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
     namespace scm {                                                     \
     namespace detail {                                                  \
     template <>                                                         \
-    struct type_meta<cpp_name__> {                                      \
-        struct convert {                                                \
-            static cpp_name__ to_cpp(SCM v) { return scm_to_ ## scm_name__(v); } \
-            static SCM to_scm(cpp_name__ v) { return scm_from_ ## scm_name__(v); } \
-        };                                                              \
+    struct convert<cpp_name__> {                                        \
+        static cpp_name__ to_cpp(SCM v) { return scm_to_ ## scm_name__(v); } \
+        static SCM to_scm(cpp_name__ v) { return scm_from_ ## scm_name__(v); } \
     };                                                                  \
     }} /* namespace scm::detail */                                      \
     /**/
@@ -128,12 +135,8 @@ T call(SCM fn, T0&& a0, T1&& a1, T2&& a2)
     namespace scm {                                                     \
     namespace detail {                                                  \
     template <>                                                         \
-    struct type_meta<cpp_name__> {                                      \
-        struct convert {                                                \
-            static cpp_name__ to_cpp(SCM v) { return v; }               \
-            static SCM to_scm(cpp_name__ v) { return v; }               \
-        };                                                              \
-    };                                                                  \
+    struct convert<cpp_name__>                                          \
+        : convert_wrapper_type<cpp_name__> {};                          \
     }} /* namespace scm::detail */                                      \
     /**/
 

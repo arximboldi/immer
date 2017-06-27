@@ -20,7 +20,6 @@ add_library(guile-immer SHARED
 target_include_directories(guile-immer PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CALLABLE_TRAITS_INCLUDE_DIR}
-  ${Boost_INCLUDE_DIR}
   ${Guile_INCLUDE_DIRS})
 target_link_libraries(guile-immer PUBLIC
   immer

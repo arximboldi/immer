@@ -85,7 +85,7 @@ void init_immer()
                 v = v + scm::to_cpp<self_t>(x);
             return v;
         })
-        .define("fold", [] (SCM fn, SCM first, const self_t& v) {
+        .define("fold", [] (scm::val fn, scm::val first, const self_t& v) {
             return immer::accumulate(v, first, [&] (auto acc, auto x) {
                 return scm::call(fn, acc, x);
             });
