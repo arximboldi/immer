@@ -20,27 +20,10 @@
 
 #pragma once
 
-#include <scm/detail/util.hpp>
-
-#include <cstdint>
-#include <utility>
-
-#include <libguile.h>
+#include <scm/detail/convert.hpp>
 
 namespace scm {
 namespace detail {
-
-template <typename T>
-struct foreign_type_storage
-{
-    static SCM data;
-};
-
-template <typename T>
-SCM foreign_type_storage<T>::data = SCM_UNSPECIFIED;
-
-template <typename T>
-struct convert;
 
 template <typename T>
 struct convert_wrapper_type
@@ -48,36 +31,6 @@ struct convert_wrapper_type
     static T to_cpp(SCM v) { return T{v}; }
     static SCM to_scm(T v) { return v.get(); }
 };
-
-template <typename T>
-struct convert_foreign_type
-{
-    using storage_t = foreign_type_storage<T>;
-    static T& to_cpp(SCM v)
-    {
-        scm_assert_foreign_object_type(storage_t::data, v);
-        return *(T*)scm_foreign_object_ref(v, 0);
-    }
-
-    template <typename U>
-    static SCM to_scm(U&& v)
-    {
-        return scm_make_foreign_object_1(
-            storage_t::data,
-            new (scm_gc_malloc(sizeof(T), "scmpp")) T{
-                std::forward<U>(v)});
-    }
-};
-
-template <typename T>
-auto to_scm(T&& v)
-    -> SCM_DECLTYPE_RETURN(
-        detail::convert<std::decay_t<T>>::to_scm(std::forward<T>(v)));
-
-template <typename T>
-auto to_cpp(SCM v)
-    -> SCM_DECLTYPE_RETURN(
-        detail::convert<std::decay_t<T>>::to_cpp(v));
 
 struct wrapper
 {
@@ -133,26 +86,6 @@ struct val : detail::wrapper
 
 } // namespace scm
 
-#define SCM_DECLARE_FOREIGN_TYPE(cpp_name__)                            \
-    namespace scm {                                                     \
-    namespace detail {                                                  \
-    template <>                                                         \
-    struct convert<cpp_name__>                                          \
-        : convert_foreign_type<cpp_name__> {};                          \
-    }} /* namespace scm::detail */                                      \
-    /**/
-
-#define SCM_DECLARE_NUMERIC_TYPE(cpp_name__, scm_name__)                \
-    namespace scm {                                                     \
-    namespace detail {                                                  \
-    template <>                                                         \
-    struct convert<cpp_name__> {                                        \
-        static cpp_name__ to_cpp(SCM v) { return scm_to_ ## scm_name__(v); } \
-        static SCM to_scm(cpp_name__ v) { return scm_from_ ## scm_name__(v); } \
-    };                                                                  \
-    }} /* namespace scm::detail */                                      \
-    /**/
-
 #define SCM_DECLARE_WRAPPER_TYPE(cpp_name__)                            \
     namespace scm {                                                     \
     namespace detail {                                                  \
@@ -163,14 +96,3 @@ struct val : detail::wrapper
     /**/
 
 SCM_DECLARE_WRAPPER_TYPE(val);
-
-SCM_DECLARE_NUMERIC_TYPE(float,         double);
-SCM_DECLARE_NUMERIC_TYPE(double,        double);
-SCM_DECLARE_NUMERIC_TYPE(std::int8_t,   int8);
-SCM_DECLARE_NUMERIC_TYPE(std::int16_t,  int16);
-SCM_DECLARE_NUMERIC_TYPE(std::int32_t,  int32);
-SCM_DECLARE_NUMERIC_TYPE(std::int64_t,  int64);
-SCM_DECLARE_NUMERIC_TYPE(std::uint8_t,  uint8);
-SCM_DECLARE_NUMERIC_TYPE(std::uint16_t, uint16);
-SCM_DECLARE_NUMERIC_TYPE(std::uint32_t, uint32);
-SCM_DECLARE_NUMERIC_TYPE(std::uint64_t, uint64);

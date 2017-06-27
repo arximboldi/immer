@@ -36,7 +36,7 @@
 namespace scm {
 namespace detail {
 
-// This anonymous namespace should help avoiding registration clashes
+// this anonymous namespace should help avoiding registration clashes
 // among translation units.
 namespace {
 
@@ -148,6 +148,35 @@ struct type_registrar
     }
 };
 
+template <typename T>
+struct foreign_type_storage
+{
+    static SCM data;
+};
+
+template <typename T>
+SCM foreign_type_storage<T>::data = SCM_UNSPECIFIED;
+
+template <typename T>
+struct convert_foreign_type
+{
+    using storage_t = foreign_type_storage<T>;
+    static T& to_cpp(SCM v)
+    {
+        scm_assert_foreign_object_type(storage_t::data, v);
+        return *(T*)scm_foreign_object_ref(v, 0);
+    }
+
+    template <typename U>
+    static SCM to_scm(U&& v)
+    {
+        return scm_make_foreign_object_1(
+            storage_t::data,
+            new (scm_gc_malloc(sizeof(T), "scmpp")) T{
+                std::forward<U>(v)});
+    }
+};
+
 } // namespace detail
 
 template <typename Tag, typename T=Tag>
@@ -163,3 +192,12 @@ detail::type_registrar<Tag, T> type(std::string type_name)
 }
 
 } // namespace scm
+
+#define SCM_DECLARE_FOREIGN_TYPE(cpp_name__)                            \
+    namespace scm {                                                     \
+    namespace detail {                                                  \
+    template <>                                                         \
+    struct convert<cpp_name__>                                          \
+        : convert_foreign_type<cpp_name__> {};                          \
+    }} /* namespace scm::detail */                                      \
+    /**/
