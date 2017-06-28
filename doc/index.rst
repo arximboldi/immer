@@ -6,13 +6,20 @@ Contents
 --------
 
 .. toctree::
-    :maxdepth: 3
+   :caption: User Manual
+   :maxdepth: 3
 
-    introduction
-    containers
-    transients
-    algorithms
-    memory
+   introduction
+   containers
+   transients
+   algorithms
+   memory
+
+.. toctree::
+   :caption: Experimental
+   :maxdepth: 3
+
+   python
 
 ----
 

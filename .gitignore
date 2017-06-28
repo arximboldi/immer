@@ -17,3 +17,5 @@ __pycache__
 
 .cache
 tools/clojure/.lein*
+
+*.pyc
