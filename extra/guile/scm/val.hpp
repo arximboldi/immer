@@ -57,7 +57,7 @@ struct val : detail::wrapper
               typename = std::enable_if_t<
                   (!std::is_same<std::decay_t<T>, val>{} &&
                    !std::is_same<std::decay_t<T>, SCM>{})>>
-    explicit val(T&& x)
+    val(T&& x)
         : base_t(detail::to_scm(std::forward<T>(x)))
     {}
 

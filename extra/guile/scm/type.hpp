@@ -55,8 +55,8 @@ struct convert_foreign_type
                "can not convert from undefined type");
         return scm_make_foreign_object_1(
             storage_t::data,
-            new (scm_gc_malloc(sizeof(T), "scmpp")) T{
-                std::forward<U>(v)});
+            new (scm_gc_malloc(sizeof(T), "scmpp")) T(
+                std::forward<U>(v)));
     }
 };
 

@@ -83,33 +83,17 @@ void func()
     scm_newline(port);
 }
 
-} // anonymous namespace
-
-struct bar_tag_t {};
-
-extern "C"
-void init_immer()
+template <typename T = scm::val>
+void init_ivector(std::string type_name = "")
 {
-    using self_t = guile_ivector<scm::val>;
+    using namespace std::string_literals;
+
+    using self_t = guile_ivector<T>;
     using size_t = typename self_t::size_type;
 
-    scm::type<dummy>("dummy")
-        .constructor()
-        .finalizer()
-        .define("foo", &dummy::foo)
-        .define("bar", &dummy::bar);
+    auto name = "ivector"s + (type_name.empty() ? ""s : "-" + type_name);
 
-    scm::group()
-        .define("func1", func<1>);
-
-    scm::group<bar_tag_t>()
-        .define("func2", func<2>)
-        .define("func3", &dummy::bar);
-
-    scm::group("foo")
-        .define("func1", func<1>);
-
-    scm::type<self_t>("ivector")
+    scm::type<self_t>(name)
         .constructor([] (scm::args rest) {
             return self_t(rest.begin(), rest.end());
         })
@@ -142,4 +126,40 @@ void init_immer()
             return immer::accumulate(v, first, fn);
         })
         ;
+}
+
+} // anonymous namespace
+
+struct bar_tag_t {};
+
+extern "C"
+void init_immer()
+{
+    scm::type<dummy>("dummy")
+        .constructor()
+        .finalizer()
+        .define("foo", &dummy::foo)
+        .define("bar", &dummy::bar);
+
+    scm::group()
+        .define("func1", func<1>);
+
+    scm::group<bar_tag_t>()
+        .define("func2", func<2>)
+        .define("func3", &dummy::bar);
+
+    scm::group("foo")
+        .define("func1", func<1>);
+
+    init_ivector();
+    init_ivector<std::uint8_t>("u8");
+    init_ivector<std::uint16_t>("u16");
+    init_ivector<std::uint32_t>("u32");
+    init_ivector<std::uint64_t>("u64");
+    init_ivector<std::int8_t>("s8");
+    init_ivector<std::int16_t>("s16");
+    init_ivector<std::int32_t>("s32");
+    init_ivector<std::int64_t>("s64");
+    init_ivector<float>("f32");
+    init_ivector<double>("f64");
 }

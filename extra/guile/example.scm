@@ -17,6 +17,7 @@
 (func2)
 (func3 (dummy) 12)
 (foo-func1)
+(gc)
 
 ;;
 ;; Showcase immer API
@@ -51,6 +52,17 @@
 ;; Some micro benchmakrs
 ;;
 
+(define (average . ns) (/ (apply + ns) (length ns)))
+
+
+(define (generate-n n fn)
+  (unfold (lambda (x) (= x n))
+          (lambda (x) (fn))
+          (lambda (x) (+ x 1))
+          0))
+
+(define mini-bench-samples 5)
+
 (define-syntax mini-bench
   (syntax-rules ()
     ((_ expr)
@@ -58,28 +70,42 @@
        (display "-- evaluating:    ")
        (display 'expr)
        (newline)
-       (let* ((t0 (get-internal-real-time))
-              (r  expr)
-              (t1 (get-internal-real-time))
-              (dt (/ (- t1 t0) internal-time-units-per-second)))
-         (display "   evaluated in:  ")
-         (display (exact->inexact dt))
-         (display " s")
+       (let* ((sample (lambda ()
+                        (gc)
+                        (let* ((t0 (get-internal-real-time))
+                               (r  expr)
+                               (t1 (get-internal-real-time)))
+                          (/ (- t1 t0) internal-time-units-per-second))))
+              (samples (generate-n mini-bench-samples sample))
+              (result (apply average samples)))
+         (display "   evaluated in:    ")
+         (display (exact->inexact result))
+         (display " s      avg. of ")
+         (display mini-bench-samples)
+         (display " samples")
          (newline))))))
 
-(define bench-size 100000)
+(define-syntax display-expr
+  (syntax-rules ()
+    ((_ expr)
+     (begin (newline)
+            (display 'expr)
+            (newline)
+            expr))))
+
+(display-expr (define bench-size 1000000))
 
 (newline)
 (display "== benchmarking creation...") (newline)
 (mini-bench (apply ivector (iota bench-size)))
-;;(mini-bench (apply ivector-u32 (iota bench-size)))
+(mini-bench (apply ivector-u32 (iota bench-size)))
 (mini-bench (iota bench-size))
 (mini-bench (apply vector (iota bench-size)))
 (mini-bench (apply u32vector (iota bench-size)))
 (mini-bench (list->vlist (iota bench-size)))
 
 (define bench-ivector (apply ivector (iota bench-size)))
-;;(define bench-ivector-u32 (apply ivector-u32 (iota bench-size)))
+(define bench-ivector-u32 (apply ivector-u32 (iota bench-size)))
 (define bench-list (iota bench-size))
 (define bench-vector (apply vector (iota bench-size)))
 (define bench-u32vector (apply u32vector (iota bench-size)))
@@ -88,7 +114,7 @@
 (newline)
 (display "== benchmarking iteration...") (newline)
 (mini-bench (ivector-fold + 0 bench-ivector))
-;;(mini-bench (ivector-u32-fold + 0 bench-ivector-u32))
+(mini-bench (ivector-u32-fold + 0 bench-ivector-u32))
 (mini-bench (fold + 0 bench-list))
 (mini-bench (vector-fold + 0 bench-vector))
 (mini-bench (vlist-fold + 0 bench-vlist))
@@ -100,7 +126,7 @@
                   (iter (+ i 1)
                         (+ acc (ivector-ref bench-ivector i)))
                   acc)))
-#;(mini-bench (let iter ((i 0) (acc 0))
+(mini-bench (let iter ((i 0) (acc 0))
               (if (< i (ivector-u32-length bench-ivector-u32))
                   (iter (+ i 1)
                         (+ acc (ivector-u32-ref bench-ivector-u32 i)))
@@ -124,7 +150,7 @@
 (newline)
 (display "== benchmarking concatenation...") (newline)
 (mini-bench (ivector-append bench-ivector bench-ivector))
-;;(mini-bench (ivector-u32-append bench-ivector-u32 bench-ivector-u32))
+(mini-bench (ivector-u32-append bench-ivector-u32 bench-ivector-u32))
 (mini-bench (append bench-list bench-list))
 (mini-bench (vector-append bench-vector bench-vector))
 (mini-bench (vlist-append bench-vlist bench-vlist))
