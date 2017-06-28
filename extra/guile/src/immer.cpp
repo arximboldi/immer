@@ -67,9 +67,6 @@ void bar()
 
 } // anonymous namespace
 
-SCM_DECLARE_FOREIGN_TYPE(guile_ivector<scm::val>);
-SCM_DECLARE_FOREIGN_TYPE(dummy);
-
 struct bar_tag_t {};
 
 extern "C"

@@ -42,6 +42,8 @@ struct convert_foreign_type
     using storage_t = foreign_type_storage<T>;
     static T& to_cpp(SCM v)
     {
+        assert(storage_t::data != SCM_UNSPECIFIED &&
+               "can not convert to undefined type");
         scm_assert_foreign_object_type(storage_t::data, v);
         return *(T*)scm_foreign_object_ref(v, 0);
     }
@@ -49,11 +51,25 @@ struct convert_foreign_type
     template <typename U>
     static SCM to_scm(U&& v)
     {
+        assert(storage_t::data != SCM_UNSPECIFIED &&
+               "can not convert from undefined type");
         return scm_make_foreign_object_1(
             storage_t::data,
             new (scm_gc_malloc(sizeof(T), "scmpp")) T{
                 std::forward<U>(v)});
     }
+};
+
+// Assume that every other type is foreign
+template <typename T>
+struct convert<T,
+               std::enable_if_t<!std::is_fundamental<T>::value &&
+                                // only value types are supported at
+                                // the moment but the story might
+                                // change later...
+                                !std::is_pointer<T>::value>>
+    : convert_foreign_type<T>
+{
 };
 
 template <typename Tag, typename T, int Seq=0>
@@ -85,7 +101,8 @@ struct type_definer : move_sequence
 
     template <int Seq2, typename Enable=std::enable_if_t<Seq2 + 1 == Seq>>
     type_definer(type_definer<Tag, T, Seq2> r)
-        : type_name_{std::move(r.type_name_)}
+        : move_sequence{std::move(r)}
+        , type_name_{std::move(r.type_name_)}
         , finalizer_{std::move(r.finalizer_)}
     {}
 
@@ -146,12 +163,3 @@ detail::type_definer<Tag, T> type(std::string type_name)
 }
 
 } // namespace scm
-
-#define SCM_DECLARE_FOREIGN_TYPE(cpp_name__)                            \
-    namespace scm {                                                     \
-    namespace detail {                                                  \
-    template <>                                                         \
-    struct convert<cpp_name__>                                          \
-        : convert_foreign_type<cpp_name__> {};                          \
-    }} /* namespace scm::detail */                                      \
-    /**/

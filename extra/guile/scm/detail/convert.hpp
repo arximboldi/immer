@@ -31,7 +31,7 @@
 namespace scm {
 namespace detail {
 
-template <typename T>
+template <typename T, typename Enable=void>
 struct convert;
 
 template <typename T>
