@@ -9,12 +9,14 @@
 ;;
 
 (let ((d (dummy)))
-  (dummy-foo d))
+  (dummy-foo d)
+  (dummy-bar d 42))
 (gc)
 
-(foo)
-(bar)
-(foo-bar)
+(func1)
+(func2)
+(func3 (dummy) 12)
+(foo-func1)
 
 ;;
 ;; Showcase immer API
