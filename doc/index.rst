@@ -20,6 +20,7 @@ Contents
    :maxdepth: 3
 
    python
+   guile
 
 ----
 

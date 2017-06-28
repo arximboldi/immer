@@ -12,7 +12,7 @@ immer_external_dep_nobuild(deps-guile callable_traits
 
 pkg_check_modules(Guile guile-2.2)
 
-set(IMMER_GUILE_EXTENSION_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(GUILE_EXTENSION_DIR ${CMAKE_CURRENT_BINARY_DIR})
 configure_file(immer.scm.in immer.scm)
 
 add_library(guile-immer SHARED
