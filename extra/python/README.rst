@@ -39,4 +39,4 @@ Then you need to clone the `project repository
 
      pytest extra/python/benchmark
 
-.. _ICFP'17 paper: https://public.sinusoid.es/misc/immer/immer-icfp17-preprint-00.pdf
+.. _ICFP'17 paper: https://public.sinusoid.es/misc/immer/immer-icfp17.pdf

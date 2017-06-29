@@ -30,7 +30,7 @@ correctness, and performance.
 .. _github: https://github.com/arximboldi/immer
 .. _youtube: https://www.youtube.com/watch?v=ZsryQp0UAC8
 .. _slides: https://sinusoid.es/talks/immer-cppnow17
-.. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17-preprint-00.pdf
+.. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17.pdf
 
   This library has full months of *pro bono* research and development
   invested in it.  This is just the first step in a long-term vision
