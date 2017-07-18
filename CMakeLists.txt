@@ -119,7 +119,7 @@ set(CTEST_ENVIRONMENT "GC_INITIAL_HEAP_SIZE=8G")
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Buld and run all the tests and examples.")
+  COMMENT "Build and run all the tests and examples.")
 
 add_subdirectory(test)
 add_subdirectory(benchmark)
