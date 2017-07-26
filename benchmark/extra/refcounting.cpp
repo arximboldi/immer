@@ -20,7 +20,7 @@
 
 #include <immer/detail/ref_count_base.hpp>
 
-#include <nonius/nonius_single.h++>
+#include <nonius.h++>
 #include <boost/intrusive_ptr.hpp>
 
 #include <atomic>

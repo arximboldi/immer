@@ -21,7 +21,7 @@
 #include "benchmark/vector/push.hpp"
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
-#include <chunkedseq.hpp>
+#include <chunkedseq/chunkedseq.hpp>
 
 NONIUS_BENCHMARK("ours/basic",   benchmark_push<immer::flex_vector<unsigned,basic_memory>>())
 NONIUS_BENCHMARK("ours/safe",    benchmark_push<immer::flex_vector<unsigned,def_memory>>())

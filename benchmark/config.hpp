@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include <nonius/nonius_single.h++>
+#include <nonius.h++>
 
 #include <immer/heap/gc_heap.hpp>
 #include <immer/memory_policy.hpp>

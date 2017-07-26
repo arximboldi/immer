@@ -39,7 +39,7 @@
 
 #if IMMER_BENCHMARK_STEADY
 #define QUARK_ASSERT_ON 0
-#include <steady_vector.h>
+#include <steady/steady_vector.h>
 #endif
 
 #if IMMER_BENCHMARK_LIBRRB

@@ -20,7 +20,7 @@
 
 #include "benchmark/vector/access.hpp"
 #include <immer/flex_vector.hpp>
-#include <chunkedseq.hpp>
+#include <chunkedseq/chunkedseq.hpp>
 
 NONIUS_BENCHMARK("idx owrs", benchmark_access_idx<immer::flex_vector<unsigned,def_memory>>())
 NONIUS_BENCHMARK("idx librrb", benchmark_access_librrb(make_librrb_vector))
