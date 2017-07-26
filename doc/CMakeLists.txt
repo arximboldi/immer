@@ -11,9 +11,13 @@ add_custom_target(docs
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/doc")
 add_dependencies(docs doxygen)
 
+set(immer_ssh_method
+  ssh -p 5488
+      -o StrictHostKeyChecking=no
+      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key)
+
 add_custom_target(upload-docs
   COMMAND
-  scp -P 5488 -o StrictHostKeyChecking=no -p
-      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key
-      -r ${CMAKE_SOURCE_DIR}/doc/_build/html/*
-      raskolnikov@sinusoid.es:public/immer/)
+  rsync -av -e \"${immer_ssh_method}\"
+        ${CMAKE_SOURCE_DIR}/doc/_build/html/*
+        raskolnikov@sinusoid.es:public/immer/)

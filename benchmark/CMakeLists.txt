@@ -111,14 +111,18 @@ foreach(_file IN LISTS immer_benchmarks)
   endif()
 endforeach()
 
+set(immer_ssh_method
+  ssh -p 5488
+      -o StrictHostKeyChecking=no
+      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key)
+
 add_custom_target(upload-benchmark-reports
   COMMAND
-  scp -P 5488 -o StrictHostKeyChecking=no -p
-      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key
-      -r ${immer_benchmark_report_base_dir}/*
-      raskolnikov@sinusoid.es:public/misc/immer/reports/)
+  rsync -av -e \"${immer_ssh_method}\"
+        ${immer_benchmark_report_base_dir}
+        raskolnikov@sinusoid.es:public/misc/immer/)
 
 add_custom_target(copy-benchmark-reports
   COMMAND
-  cp -p -r ${immer_benchmark_report_base_dir}/*
-      ~/public/misc/immer/reports/)
+  rsync -av ${immer_benchmark_report_base_dir}
+        ~/public/misc/immer/)
