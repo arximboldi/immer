@@ -3,8 +3,8 @@ dist: trusty
 
 matrix:
   include:
-    - env: DO=check TYPE=Debug COMPILER=clang_38 SANITIZE=true
-    - env: DO=check TYPE=Release COMPILER=clang_38
+    - env: DO=check TYPE=Debug COMPILER=clang_39 SANITIZE=true
+    - env: DO=check TYPE=Release COMPILER=clang_39
     - env: DO=check TYPE=Debug COMPILER=gcc6 COVERAGE=true
     - env: DO=check TYPE=Release COMPILER=gcc6
     - env: DO=build
