@@ -60,7 +60,7 @@ script:
   - |
     set -e
     ! build-p || nix-build
-    ! check-p || with-nix "cd build && make check"
+    ! check-p || with-nix "cd build && make -j2 check"
     ! docs-p  || with-nix "cd build && make docs"
 
 after_success:
