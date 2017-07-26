@@ -151,21 +151,40 @@ No external library is necessary and there are no other requirements.
 Usage
 -----
 
-This is a **header only** library.  Just make sure that the project
-root is in your include path.
+This is a **header only** library.  You can just copy the `immer`
+subfolder somewhere in your *include path*.
+
+If you are using the `Nix package manager`_ (we strongly recommend it)
+you can just::
+
+    nix-env -if https://github.com/arximboldi/immer/archive/master.tar.gz
+
+Alternatively, you can use `CMake`_ to install the library in your
+system once you have manually cloned the repository::
+
+    mkdir -p build && cd build
+    cmake .. && sudo make install
+
+.. _nix package manager: https://nixos.org/nix
 
 Development
 -----------
 
-One may generate a development project using `CMake`_::
+In order to develop the library, you will need to compile and run the
+examples, tests and benchmarks.  These require some additional tools.
+The easiest way to install them is by using the `Nix package
+manager`_.  At the root of the repository just type::
+
+    nix-shell
+
+This will download all required dependencies and create an isolated
+environment in which you can use these dependencies, without polluting
+your system.
+
+Then you can proceed to generate a development project using `CMake`_::
 
     mkdir build && cd build
     cmake ..
-
-To automatically fetch and build all depedencies required to build and
-run the *tests* and *benchmarks* run::
-
-    make deps
 
 From then on, one may build and run all tests by doing::
 
