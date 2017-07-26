@@ -2,57 +2,28 @@
 #  Config
 #  ======
 
+option(CHECK_BENCHMARKS "Run benchmarks on check target" off)
 option(BENCHMARK_DISABLE_GC "Disable gc during a measurement")
 
 set(BENCHMARK_PARAM   "N:1000" CACHE STRING "Benchmark parameters")
 set(BENCHMARK_SAMPLES "20"     CACHE STRING "Benchmark samples")
 
-set(NONIUS_INCLUDE_DIR
-  "${DEPS_DIR}/Source/nonius/include")
-set(STEADY_INCLUDE_DIR
-  "${DEPS_DIR}/Source/steady/steady")
-set(CHUNKEDSEQ_INCLUDE_DIR
-  "${DEPS_DIR}/Source/chunkedseq/include")
-set(IMMUTABLE_CPP_INCLUDE_DIR
-  "${DEPS_DIR}/Source/immutable-cpp")
-set(LIBRRB_INCLUDE_DIR
-  "${DEPS_DIR}/Install/librrb/include")
-set(LIBRRB_LIBS
-  "${DEPS_DIR}/Install/librrb/lib/librrb.a"
-  ${LIBGC_LIBS})
-
 #  Dependencies
 #  ============
 
-add_custom_target(deps-benchmark COMMENT "Get benchmarking dependencies")
-add_dependencies(deps deps-benchmark)
+find_package(RRB)
 
-immer_external_dep_nobuild(deps-benchmark nonius
-  GIT_REPOSITORY https://github.com/arximboldi/nonius.git
-  GIT_TAG hacks)
+if (NOT RRB_FOUND)
+  message(STATUS "Disabling benchmarks")
+  return()
+endif()
 
-immer_external_dep_nobuild(deps-benchmark steady
-  GIT_REPOSITORY https://github.com/marcusz/steady)
-
-immer_external_dep_nobuild(deps-benchmark chunkedseq
-  GIT_REPOSITORY https://github.com/deepsea-inria/chunkedseq.git)
-
-immer_external_dep_nobuild(deps-benchmark immutable-cpp
-  GIT_REPOSITORY https://github.com/rsms/immutable-cpp.git)
-
-immer_external_dep(deps-benchmark librrb
-  DEPENDS libgc
-  GIT_REPOSITORY https://github.com/hyPiRion/c-rrb.git
-  GIT_TAG development
-  BUILD_IN_SOURCE 1
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3\ -I${DEPS_DIR}/Install/libgc/include LDFLAGS=-L${DEPS_DIR}/Install/libgc/lib
-  BUILD_COMMAND make
-  INSTALL_COMMAND make install)
-ExternalProject_Add_Step(librrb autoreconf
-  DEPENDEES download update patch
-  DEPENDERS configure
-  COMMAND autoreconf -vif <SOURCE_DIR>)
+# These are expected to be in the include path, the nix-shell
+# environment installs them:
+#
+#    https://github.com/marcusz/steady
+#    https://github.com/deepsea-inria/chunkedseq.git
+#    https://github.com/rsms/immutable-cpp.git
 
 #  Targets
 #  =======
@@ -124,20 +95,10 @@ foreach(_file IN LISTS immer_benchmarks)
     IMMER_BENCHMARK_DISABLE_GC=${BENCHMARK_DISABLE_GC}
     IMMER_BENCHMARK_BOOST_COROUTINE=${ENABLE_BOOST_COROUTINE})
   target_link_libraries(${_target} PUBLIC
-    immer
-    ${LIBGC_LIBS}
-    ${LIBRRB_LIBS}
-    ${Boost_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT})
+    immer-dev
+    ${RRB_LIBRARIES})
   target_include_directories(${_target} SYSTEM PUBLIC
-    ${Boost_INCLUDE_DIR}
-    ${PRETTYPRINT_INCLUDE_DIR}
-    ${LIBGC_INCLUDE_DIR}
-    ${NONIUS_INCLUDE_DIR}
-    ${LIBRRB_INCLUDE_DIR}
-    ${STEADY_INCLUDE_DIR}
-    ${CHUNKEDSEQ_INCLUDE_DIR}
-    ${IMMUTABLE_CPP_INCLUDE_DIR})
+    ${RRB_INCLUDE_DIR})
   if(CHECK_BENCHMARKS)
     add_test("benchmark/${_output}" "${CMAKE_SOURCE_DIR}/tools/with-tee.bash"
       ${immer_benchmark_report_dir}/${_target}.out

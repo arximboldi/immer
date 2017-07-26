@@ -1,6 +1,6 @@
 
 option(USE_PYBIND "bind with pybind1" off)
-option(USE_BOOST  "bind with boost::python" off)
+option(USE_BOOST_PYTHON  "bind with boost::python" off)
 
 if (USE_PYBIND)
   set(PYBIND11_CPP_STANDARD -std=c++14)
@@ -10,7 +10,7 @@ if (USE_PYBIND)
   target_link_libraries(immer_python_module PUBLIC
     immer)
 
-elseif(USE_BOOST)
+elseif(USE_BOOST_PYTHON)
   find_package(PythonInterp)
   find_package(PythonLibs)
   find_package(Boost 1.56 COMPONENTS python)
@@ -27,7 +27,14 @@ elseif(USE_BOOST)
 else()
   find_package(PythonInterp)
   find_package(PythonLibs)
-  python_add_module(immer_python_module src/immer-raw.cpp)
+
+  if (NOT PYTHONLIBS_FOUND)
+    message(STATUS "Disabling Python modules")
+    return()
+  endif()
+
+  python_add_module(immer_python_module EXCLUDE_FROM_ALL
+    src/immer-raw.cpp)
   target_include_directories(immer_python_module PUBLIC
     ${PYTHON_INCLUDE_DIRS})
   target_link_libraries(immer_python_module PUBLIC

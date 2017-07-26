@@ -12,13 +12,6 @@ foreach(_file IN LISTS immer_examples)
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   add_dependencies(examples ${_target})
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
-  target_link_libraries(${_target} PUBLIC
-    immer
-    ${LIBGC_LIBS}
-    ${CMAKE_THREAD_LIBS_INIT})
-  target_include_directories(${_target} SYSTEM PUBLIC
-    ${Boost_INCLUDE_DIR}
-    ${PRETTYPRINT_INCLUDE_DIR}
-    ${LIBGC_INCLUDE_DIR})
+  target_link_libraries(${_target} PUBLIC immer-dev)
   add_test("example/${_output}" ${_output})
 endforeach()

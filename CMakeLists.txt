@@ -17,20 +17,14 @@ include(ImmerUtils)
 #  Options
 #  =======
 
-set(DEPS_DIR "${CMAKE_BINARY_DIR}/deps")
-
 option(DISABLE_WERROR "enable --werror")
 option(ENABLE_COVERAGE "compile with test coverage support")
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine")
 option(DISABLE_FREE_LIST "disables the free list heap")
 option(DISABLE_THREAD_SAFETY "disables thread safety by default")
 
-set(LIBGC_INCLUDE_DIR
-  "${DEPS_DIR}/Install/libgc/include")
-set(LIBGC_LIBS
-  "${DEPS_DIR}/Install/libgc/lib/libgc.a")
-set(PRETTYPRINT_INCLUDE_DIR
-  "${DEPS_DIR}/Source/prettyprint")
+option(ENABLE_PYTHON "enable building python module" off)
+option(ENABLE_GUILE "enable building guile module" off)
 
 if (NOT DISABLE_WERROR)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
@@ -39,21 +33,13 @@ endif()
 #  Dependencies
 #  ============
 
-include(ExternalProject)
-
-set_directory_properties(PROPERTIES EP_BASE "${DEPS_DIR}")
-
-add_custom_target(deps COMMENT "Download and prepare dependencies")
-add_custom_target(deps-core COMMENT "Get core dependencies")
-add_dependencies(deps deps-core)
-
 if (ENABLE_BOOST_COROUTINE)
-  find_package(Boost 1.56 REQUIRED COMPONENTS coroutine)
-else ()
-  find_package(Boost 1.56 REQUIRED)
-endif ()
+  set(immer_boost_components coroutine)
+endif()
 
 find_package(Threads)
+find_package(BoehmGC)
+find_package(Boost 1.56 COMPONENTS ${immer_boost_components})
 
 find_program(CCACHE ccache)
 if (CCACHE)
@@ -64,57 +50,47 @@ else()
   message(STATUS "Could not find ccache")
 endif()
 
-immer_external_dep_nobuild(deps-core prettyprint
-  GIT_REPOSITORY https://github.com/louisdx/cxx-prettyprint.git)
-
-immer_external_dep_nobuild(deps-core libatomic_ops
-  GIT_REPOSITORY https://github.com/ivmai/libatomic_ops.git
-  UPDATE_COMMAND "")
-
-immer_external_dep(deps-core libgc
-  DEPENDS libatomic_ops
-  GIT_REPOSITORY https://github.com/ivmai/bdwgc.git
-  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> CFLAGS=-O3
-  BUILD_COMMAND make
-  INSTALL_COMMAND make install)
-ExternalProject_Add_Step(libgc autoreconf
-  DEPENDEES download update patch
-  DEPENDERS configure
-  COMMAND autoreconf -vif <SOURCE_DIR>)
-ExternalProject_Add_Step(libgc ln-libatomic_ops
-  DEPENDEES download update patch
-  DEPENDERS configure
-  COMMAND ln -sf ${DEPS_DIR}/Source/libatomic_ops <SOURCE_DIR>/libatomic_ops)
-
 #  Targets
 #  =======
 
-immer_canonicalize_cmake_booleans(
-  DISABLE_FREE_LIST
-  DISABLE_THREAD_SAFETY
-  CHECK_SLOW_TESTS)
-
+# the library
 add_library(immer INTERFACE)
 target_include_directories(immer INTERFACE
   $<BUILD_INTERFACE:${immer_BINARY_DIR}/>
   $<BUILD_INTERFACE:${immer_SOURCE_DIR}/>
   $<INSTALL_INTERFACE:include>)
-target_compile_definitions(immer INTERFACE
+install(TARGETS immer EXPORT ImmerConfig)
+install(EXPORT ImmerConfig DESTINATION lib/cmake/Immer)
+install(DIRECTORY immer DESTINATION include)
+
+# development target to be used in tests, examples, benchmarks...
+immer_canonicalize_cmake_booleans(
+  DISABLE_FREE_LIST
+  DISABLE_THREAD_SAFETY
+  CHECK_SLOW_TESTS)
+add_library(immer-dev INTERFACE)
+target_include_directories(immer-dev SYSTEM INTERFACE
+  ${Boost_INCLUDE_DIR}
+  ${BOEHM_GC_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/tools/include)
+target_link_libraries(immer-dev INTERFACE
+  immer
+  ${BOEHM_GC_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT})
+target_compile_definitions(immer-dev INTERFACE
   -DIMMER_HAS_LIBGC=1
   -DIMMER_NO_FREE_LIST=${DISABLE_FREE_LIST}
   -DIMMER_NO_THREAD_SAFETY=${DISABLE_THREAD_SAFETY}
   -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS})
 if (ENABLE_COVERAGE)
-  target_compile_options(immer INTERFACE "--coverage")
-  target_link_libraries(immer INTERFACE "--coverage")
+  target_compile_options(immer-dev INTERFACE "--coverage")
+  target_link_libraries(immer-dev INTERFACE "--coverage")
 endif()
 
 #  Testing
 #  =======
 
 enable_testing()
-
-set(CTEST_ENVIRONMENT "GC_INITIAL_HEAP_SIZE=8G")
 
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure

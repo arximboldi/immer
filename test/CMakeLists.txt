@@ -1,26 +1,4 @@
 
-#  Config
-#  ======
-
-set(DOCTEST_INCLUDE_DIR
-  "${DEPS_DIR}/Source/doctest/doctest")
-set(CATCH_INCLUDE_DIR
-  "${DEPS_DIR}/Source/catch/single_include")
-
-#  Dependencies
-#  ============
-
-add_custom_target(deps-test COMMENT "Get test dependencies")
-add_dependencies(deps deps-test)
-
-immer_external_dep_nobuild(deps-test doctest
-  GIT_REPOSITORY https://github.com/onqtam/doctest.git)
-
-immer_external_dep_nobuild(deps-test catch
-  # GIT_REPOSITORY git@github.com:philsquared/Catch.git
-  # This fork has --break for GDB
-  GIT_REPOSITORY https://github.com/lorenzhs/Catch.git)
-
 #  Targets
 #  =======
 
@@ -37,15 +15,6 @@ foreach(_file IN LISTS immer_unit_tests)
   target_compile_definitions(${_target} PUBLIC
     DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
     CATCH_CONFIG_MAIN)
-  target_link_libraries(${_target} PUBLIC
-    immer
-    ${LIBGC_LIBS}
-    ${CMAKE_THREAD_LIBS_INIT})
-  target_include_directories(${_target} SYSTEM PUBLIC
-    ${Boost_INCLUDE_DIR}
-    ${PRETTYPRINT_INCLUDE_DIR}
-    ${LIBGC_INCLUDE_DIR}
-    ${CATCH_INCLUDE_DIR}
-    ${DOCTEST_INCLUDE_DIR})
+  target_link_libraries(${_target} PUBLIC immer-dev)
   add_test("test/${_output}" ${_output})
 endforeach()
