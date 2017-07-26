@@ -11,21 +11,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+endif()
 
 include(ImmerUtils)
 
 #  Options
 #  =======
 
-option(DISABLE_WERROR "enable --werror")
+option(ENABLE_SANITIZE "compile with sanitizers enabled")
 option(ENABLE_COVERAGE "compile with test coverage support")
-option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine")
+option(DISABLE_WERROR "enable --werror")
 option(DISABLE_FREE_LIST "disables the free list heap")
 option(DISABLE_THREAD_SAFETY "disables thread safety by default")
 
 option(ENABLE_PYTHON "enable building python module" off)
 option(ENABLE_GUILE "enable building guile module" off)
+option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
 
+if (ENABLE_SANITIZE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak")
+endif()
 if (NOT DISABLE_WERROR)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
