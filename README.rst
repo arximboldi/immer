@@ -151,7 +151,7 @@ No external library is necessary and there are no other requirements.
 Usage
 -----
 
-This is a **header only** library.  You can just copy the `immer`
+This is a **header only** library.  You can just copy the ``immer``
 subfolder somewhere in your *include path*.
 
 If you are using the `Nix package manager`_ (we strongly recommend it)
@@ -166,6 +166,7 @@ system once you have manually cloned the repository::
     cmake .. && sudo make install
 
 .. _nix package manager: https://nixos.org/nix
+.. _cmake: https://cmake.org/
 
 Development
 -----------
@@ -194,8 +195,6 @@ In order to build and run all benchmarks when running ``make check``,
 run ``cmake`` again with the option ``-DCHECK_BENCHMARKS=1``.  The
 results of running the benchmarks will be saved to a folder
 ``reports/`` in the project root.
-
-.. _cmake: https://cmake.org/
 
 License
 -------
