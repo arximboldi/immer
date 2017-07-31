@@ -6,8 +6,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(immer VERSION 0.4.0)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
@@ -29,6 +27,11 @@ option(DISABLE_THREAD_SAFETY "disables thread safety by default")
 option(ENABLE_PYTHON "enable building python module" off)
 option(ENABLE_GUILE "enable building guile module" off)
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
+
+set(CXX_STANDARD 14 CACHE STRING "c++ standard number")
+
+set(CMAKE_CXX_STANDARD ${CXX_STANDARD})
+set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (ENABLE_SANITIZE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak")
