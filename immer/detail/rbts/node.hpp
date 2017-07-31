@@ -121,19 +121,19 @@ struct node
 
     constexpr static std::size_t sizeof_packed_leaf_n(count_t count)
     {
-        return offsetof(impl_t, d.data.leaf.buffer)
+        return immer_offsetof(impl_t, d.data.leaf.buffer)
             +  sizeof(leaf_t::buffer) * count;
     }
 
     constexpr static std::size_t sizeof_packed_inner_n(count_t count)
     {
-        return offsetof(impl_t, d.data.inner.buffer)
+        return immer_offsetof(impl_t, d.data.inner.buffer)
             +  sizeof(inner_t::buffer) * count;
     }
 
     constexpr static std::size_t sizeof_packed_relaxed_n(count_t count)
     {
-        return offsetof(relaxed_t, d.sizes)
+        return immer_offsetof(relaxed_t, d.sizes)
             +  sizeof(size_t) * count;
     }
 
@@ -939,7 +939,7 @@ template <typename T, typename MP, bits_t B>
 constexpr bits_t derive_bits_leaf_aux()
 {
     using node_t = node<T, MP, B, B>;
-    constexpr auto sizeof_elem = sizeof(node_t::leaf_t::buffer);
+    constexpr auto sizeof_elem = sizeof(T);
     constexpr auto space = node_t::max_sizeof_inner - node_t::sizeof_packed_leaf_n(0);
     constexpr auto full_elems = space / sizeof_elem;
     constexpr auto BL = log2(full_elems);

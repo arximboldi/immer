@@ -22,6 +22,14 @@
 
 #include <type_traits>
 
+#if __GNUC__ == 7 || __GNUC_MINOR__ == 1
+#define IMMER_BROKEN_STANDARD_LAYOUT_DETECTION 1
+#define immer_offsetof(st, m) ((std::size_t) &(((st*)0)->m))
+#else
+#define IMMER_BROKEN_STANDARD_LAYOUT_DETECTION 0
+#define immer_offsetof offsetof
+#endif
+
 namespace immer {
 namespace detail {
 
@@ -191,7 +199,9 @@ template <typename... Ts>
 struct combine_standard_layout
 {
     using type = typename csl::combine_standard_layout_aux<Ts...>::type;
+#if !IMMER_BROKEN_STANDARD_LAYOUT_DETECTION
     static_assert(std::is_standard_layout<type>::value, "");
+#endif
 };
 
 } // namespace detail

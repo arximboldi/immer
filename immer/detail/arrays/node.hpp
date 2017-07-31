@@ -53,7 +53,7 @@ struct node
 
     constexpr static std::size_t sizeof_n(size_t count)
     {
-        return offsetof(impl_t, d.buffer) + sizeof(T) * count;
+        return immer_offsetof(impl_t, d.buffer) + sizeof(T) * count;
     }
 
     refs_t& refs() const
