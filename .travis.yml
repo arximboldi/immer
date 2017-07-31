@@ -4,17 +4,18 @@ dist: trusty
 matrix:
   include:
     - env: DO=check TYPE=Debug COMPILER=clang_39 SANITIZE=true
-    - env: DO=check TYPE=Release COMPILER=clang_39
+    - env: DO=check TYPE=Release COMPILER=clang_39 BENCHMARKS=true
     - env: DO=check TYPE=Debug COMPILER=gcc6 COVERAGE=true
-    - env: DO=check TYPE=Release COMPILER=gcc6
+    - env: DO=check TYPE=Release COMPILER=gcc6 BENCHMARKS=true
+    - env: DO=check TYPE=Debug COMPILER=gcc7 STD=17
     - env: DO=build
     - env: DO=docs
 
 before_install:
   - |
-    [[ -n "${COMPILER}" ]]     || export COMPILER=gcc6
-    [[ -n "${TYPE}" ]]         || export TYPE=Debug
-    [[ "${TYPE}" != Release ]] || export BENCHMARKS=true
+    : ${COMPILER:=gcc6}
+    : ${TYPE:=Debug}
+    : ${STD:=14}
     function build-p { [[ "${DO}" == build ]]; }
     function check-p { [[ "${DO}" == check ]]; }
     function docs-p  { [[ "${DO}" == docs ]]; }
@@ -48,8 +49,9 @@ before_script:
     with-nix "
         mkdir build && cd build
         cmake .. \
-            -DCHECK_SLOW_TESTS=false \
             -DCMAKE_BUILD_TYPE=${TYPE} \
+            -DCHECK_SLOW_TESTS=false \
+            -DCXX_STANDARD=${STD} \
             -DCHECK_BENCHMARKS=${BENCHMARKS} \
             -DENABLE_COVERAGE=${COVERAGE} \
             -DENABLE_SANITIZE=${SANITIZE} \
