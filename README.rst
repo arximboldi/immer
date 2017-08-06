@@ -36,7 +36,7 @@ correctness, and performance.
   .. raw:: html
 
      <a href="https://www.patreon.com/sinusoidal">
-         <img align="right" src="https://sinusoid.es/misc/caca/patreon.svg">
+         <img align="right" src="https://cdn.rawgit.com/arximboldi/immer/master/doc/_static/patreon.svg">
      </a>
 
   This library has full months of *pro bono* research and development
