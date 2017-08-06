@@ -32,11 +32,18 @@ correctness, and performance.
 .. _slides: https://sinusoid.es/talks/immer-cppnow17
 .. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17.pdf
 
+
+  .. raw:: html
+
+     <a href="https://www.patreon.com/sinusoidal">
+         <img align="right" src="https://sinusoid.es/misc/caca/patreon.svg">
+     </a>
+
   This library has full months of *pro bono* research and development
   invested in it.  This is just the first step in a long-term vision
   of making interactive and concurrent C++ programs easier to
-  write. **To ensure this project's long term sustainability please
-  consider becoming a sponsor:** immer@sinusoid.al
+  write. **Put your logo here and help this project's long term
+  sustainability by buying a sponsorship package:** immer@sinusoid.al
 
 .. include:index/end
 
