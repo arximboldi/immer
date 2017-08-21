@@ -235,6 +235,11 @@ TEST_CASE("erase")
     CHECK_VECTOR_EQUALS(v.erase(v.size() - 1), boost::irange(0u, n - 1));
     CHECK_VECTOR_EQUALS(v.erase(42), boost::join(boost::irange(0u, 42u),
                                                  boost::irange(43u, n)));
+    CHECK_VECTOR_EQUALS(v.erase(v.size() - 1, v.size()),
+                        boost::irange(0u, n - 1));
+    CHECK_VECTOR_EQUALS(v.erase(0, 0), boost::irange(0u, n));
+    CHECK_VECTOR_EQUALS(v.erase(42, 50), boost::join(boost::irange(0u, 42u),
+                                                    boost::irange(50u, n)));
 }
 
 TEST_CASE("accumulate relaxed")

@@ -419,6 +419,18 @@ public:
         return std::move(*this).take(pos) + std::move(rs);
     }
 
+    flex_vector erase(size_type pos, size_type lpos) const&
+    { return lpos > pos ? take(pos) + drop(lpos) : *this; }
+    decltype(auto) erase(size_type pos, size_type lpos) &&
+    {
+        if (lpos > pos) {
+            auto rs = drop(lpos);
+            return std::move(*this).take(pos) + std::move(rs);
+        } else {
+            return std::move(*this);
+        }
+    }
+
     /*!
      * Returns an @a transient form of this container, an
      * `immer::flex_vector_transient`.
