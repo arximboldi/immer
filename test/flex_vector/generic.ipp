@@ -191,7 +191,7 @@ TEST_CASE("insert")
                                             boost::irange(42u, n))));
     }
 
-    SECTION("normal")
+    SECTION("move")
     {
         const auto n = 666u;
         auto v = make_test_flex_vector(0, n);
@@ -199,6 +199,28 @@ TEST_CASE("insert")
         CHECK_VECTOR_EQUALS(v, boost::join(
                                 boost::irange(0u, 42u),
                                 boost::join(boost::irange(100u, 101u),
+                                            boost::irange(42u, n))));
+    }
+
+    SECTION("vec")
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector(0, n);
+        v = std::move(v).insert(42, {100, 101, 102});
+        CHECK_VECTOR_EQUALS(v, boost::join(
+                                boost::irange(0u, 42u),
+                                boost::join(boost::irange(100u, 103u),
+                                            boost::irange(42u, n))));
+    }
+
+    SECTION("vec move")
+    {
+        const auto n = 666u;
+        auto v = make_test_flex_vector(0, n);
+        v = std::move(v).insert(42, {100, 101, 102});
+        CHECK_VECTOR_EQUALS(v, boost::join(
+                                boost::irange(0u, 42u),
+                                boost::join(boost::irange(100u, 103u),
                                             boost::irange(42u, n))));
     }
 }

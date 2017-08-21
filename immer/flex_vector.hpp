@@ -387,6 +387,15 @@ public:
             std::move(value)) + std::move(rs);
     }
 
+    flex_vector insert(size_type pos, flex_vector value) const&
+    { return take(pos) + std::move(value) + drop(pos); }
+    decltype(auto) insert(size_type pos, flex_vector value) &&
+    {
+        using std::move;
+        auto rs = drop(pos);
+        return std::move(*this).take(pos) + std::move(value) + std::move(rs);
+    }
+
     /*!
      * Returns a flex_vector without the element at index `pos`. It
      * may allocate memory and its complexity is @f$ O(log(size)) @f$
