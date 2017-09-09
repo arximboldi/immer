@@ -20,17 +20,7 @@
 
 #pragma once
 
-#include <immer/detail/combine_standard_layout.hpp>
-#include <immer/detail/util.hpp>
-#include <immer/detail/hamts/bits.hpp>
-
-#include <cassert>
-
-#ifdef NDEBUG
-#define IMMER_HAMTS_TAGGED_NODE 0
-#else
-#define IMMER_HAMTS_TAGGED_NODE 1
-#endif
+#include <immer/detail/hamts/cnode.hpp>
 
 namespace immer {
 namespace detail {
@@ -43,101 +33,109 @@ template <typename T,
           bits_t B>
 struct champ
 {
-    struct node;
-    static constexpr auto bits      = B;
+    static constexpr auto bits = B;
 
-    using node_t      = node;
-    using memory      = MemoryPolicy;
-    using heap_policy = typename memory::heap;
-    using heap        = typename heap_policy::type;
-    using transience  = typename memory::transience_t;
-    using refs_t      = typename memory::refcount;
-    using ownee_t     = typename transience::ownee;
-    using edit_t      = typename transience::edit;
-    using value_t     = T;
-
-    struct node
-    {
-        enum class kind_t
-        {
-            leaf,
-            inner
-        };
-
-        struct leaf_t
-        {
-            aligned_storage_for<T> buffer;
-        };
-
-        using values_t = combine_standard_layout_t<
-            leaf_t, refs_t>;
-
-        struct inner_t
-        {
-            bitmap_t  map_children;
-            bitmap_t  map_values;
-            values_t* values;
-            aligned_storage_for<node_t*> buffer;
-        };
-
-        union data_t
-        {
-            inner_t inner;
-            leaf_t  leaf;
-        };
-
-        struct impl_data_t
-        {
-#if IMMER_HAMTS_TAGGED_NODE
-            kind_t kind;
-#endif
-            data_t data;
-        };
-
-        using impl_t = combine_standard_layout_t<
-            impl_data_t, refs_t>;
-
-        impl_t impl;
-
-        constexpr static std::size_t sizeof_values_n(count_t count)
-        {
-            return immer_offsetof(values_t, d.buffer)
-                + sizeof(leaf_t::buffer) * count;
-        }
-
-        constexpr static std::size_t sizeof_leaf_n(count_t count)
-        {
-            return immer_offsetof(impl_t, d.data.leaf.buffer)
-                + sizeof(leaf_t::buffer) * count;
-        }
-
-        constexpr static std::size_t sizeof_inner_n(count_t count)
-        {
-            return immer_offsetof(impl_t, d.data.inner.buffer)
-                + sizeof(inner_t::buffer) * count;
-        }
-
-        static node_t* make_inner_n(count_t n)
-        {
-            assert(n <= branches<B>);
-            auto m = heap::allocate(sizeof_inner_n(n));
-            auto p = new (m) node_t;
-            p->impl.d.data.inner.values = nullptr;
-#if IMMER_HAMTS_TAGGED_NODE
-            p->impl.d.kind = node_t::kind_t::inner;
-#endif
-            return p;
-        }
-    };
+    using node_t = cnode<T, Hash, Equal, MemoryPolicy, B>;
 
     node_t* root;
     size_t  size;
 
     static const champ empty;
 
-    template <typename K>
-    T* get(const K& k) const
+    champ(node_t* r, size_t sz)
+        : root{r}, size{sz}
     {
+    }
+
+    champ(const champ& other)
+        : champ{other.root, other.size}
+    {
+        inc();
+    }
+
+    champ(champ&& other)
+        : champ{empty}
+    {
+        swap(*this, other);
+    }
+
+    champ& operator=(const champ& other)
+    {
+        auto next = other;
+        swap(*this, next);
+        return *this;
+    }
+
+    champ& operator=(champ&& other)
+    {
+        swap(*this, other);
+        return *this;
+    }
+
+    friend void swap(champ& x, champ& y)
+    {
+        using std::swap;
+        swap(x.root, y.root);
+        swap(x.size, y.size);
+    }
+
+    ~champ()
+    {
+        dec();
+    }
+
+    void inc() const
+    {
+        root->inc();
+    }
+
+    void dec() const
+    {
+        dec_traversal(root, 0);
+    }
+
+    void dec_traversal(node_t* node, count_t depth) const
+    {
+        if (node->dec()) {
+            if (depth < max_depth<B>) {
+                auto fst = node->children();
+                auto lst = fst + popcount(node->nodemap());
+                for (; fst != lst; ++fst)
+                    dec_traversal(*fst, depth + 1);
+                node_t::delete_inner(node);
+            } else {
+                node_t::delete_collision(node);
+            }
+        }
+    }
+
+    template <typename K>
+    const T* get(const K& k) const
+    {
+        auto node = root;
+        auto hash = Hash{}(k);
+        for (auto i = count_t{}; i < max_depth<B>; ++i) {
+            auto idx = hash & mask<B>;
+            if (node->nodemap() & idx) {
+                auto offset = popcount(node->nodemap() & (idx - 1));
+                node = node->children() [offset];
+                hash = hash >> B;
+            } else if (node->datamap() & idx) {
+                auto offset = popcount(node->datamap() & (idx - 1));
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k))
+                    return val;
+                else
+                    return nullptr;
+            } else {
+                return nullptr;
+            }
+        }
+        auto fst = node->collisions();
+        auto lst = fst + node->collision_count();
+        for (; fst != lst; ++fst)
+            if (Equal{}(*fst, k))
+                return fst;
         return nullptr;
     }
 
