@@ -78,4 +78,23 @@ rec {
       license = licenses.mit;
     };
   };
+
+  hash_trie = stdenv.mkDerivation rec {
+    name = "hash_trie-${version}";
+    version = "git-${commit}";
+    commit = "1ce346c74923ba16329332103dc0f425b658c8be";
+    src = fetchFromGitHub {
+      owner = "philsquared";
+      repo = "hash_trie";
+      rev = commit;
+      sha256 = "0rpa1682vm0fvvrs1jr7jdkskcrgkm3qrawrcr7xrmknz5jf0v4l";
+    };
+    dontBuild = true;
+    installPhase = "mkdir -vp $out/include; cp -vr $src/hash_trie.hpp $out/include/";
+    meta = with stdenv.lib; {
+      homepage = "https://github.com/rsms/immutable-cpp";
+      description = "Persistent immutable data structures for C++";
+      license = licenses.mit;
+    };
+  };
 }
