@@ -34,6 +34,8 @@ template <typename T,
           bits_t B>
 struct champ
 {
+    static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
+
     static constexpr auto bits = B;
 
     using node_t = cnode<T, Hash, Equal, MemoryPolicy, B>;
