@@ -16,6 +16,7 @@ stdenv.mkDerivation rec {
     pkgconfig
     doxygen
     ninja
+    ccache
     boost
     boehmgc
     benchmarks.c_rrb
@@ -25,7 +26,7 @@ stdenv.mkDerivation rec {
     docs.sphinx_arximboldi
     docs.breathe_arximboldi
     docs.recommonmark
-  ] ++ stdenv.lib.optionals compiler_pkg.isClang [libcxx libcxxabi];
+  ] ++ stdenv.lib.optionals compiler_pkg.isClang [llvm libcxx libcxxabi];
   propagatedBuildInputs = stdenv.lib.optional (!native_compiler) compiler_pkg;
   nativeBuildInputs = stdenv.lib.optional native_compiler compiler_pkg;
 }
