@@ -42,9 +42,12 @@ constexpr T mask = branches<B, T> - 1;
 template <bits_t B, typename T=count_t>
 constexpr T max_depth = sizeof(hash_t) / B;
 
+template <bits_t B, typename T=count_t>
+constexpr T max_shift = (sizeof(hash_t) / B) * B;
+
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 
-inline auto popcount(bitmap_t x)
+inline count_t popcount(bitmap_t x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
     return __builtin_popcount(x);

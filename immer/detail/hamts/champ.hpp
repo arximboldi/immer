@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/hamts/cnode.hpp>
 
 namespace immer {
@@ -115,19 +116,24 @@ struct champ
         auto node = root;
         auto hash = Hash{}(k);
         for (auto i = count_t{}; i < max_depth<B>; ++i) {
-            auto idx = hash & mask<B>;
-            if (node->nodemap() & idx) {
-                auto offset = popcount(node->nodemap() & (idx - 1));
+            IMMER_TRACE("iterate");
+            IMMER_TRACE_E(i);
+            auto bit = 1 << (hash & mask<B>);
+            if (node->nodemap() & bit) {
+                IMMER_TRACE("node");
+                auto offset = popcount(node->nodemap() & (bit - 1));
                 node = node->children() [offset];
                 hash = hash >> B;
-            } else if (node->datamap() & idx) {
-                auto offset = popcount(node->datamap() & (idx - 1));
+            } else if (node->datamap() & bit) {
+                IMMER_TRACE("data");
+                auto offset = popcount(node->datamap() & (bit - 1));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
                     return val;
                 else
                     return nullptr;
             } else {
+                IMMER_TRACE("return");
                 return nullptr;
             }
         }
@@ -139,9 +145,67 @@ struct champ
         return nullptr;
     }
 
+    std::pair<node_t*, bool>
+    do_add(node_t* node, T v, hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst)
+                if (Equal{}(*fst, std::move(v)))
+                    return {
+                        node_t::copy_collision_replace(node, fst, std::move(v)),
+                        false
+                    };
+            return {
+                node_t::copy_collision_insert(node, std::move(v)),
+                true
+            };
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = 1 << idx;
+            if (node->nodemap() & bit) {
+                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto result = do_add(node->children() [offset],
+                                     std::move(v), hash,
+                                     shift + B);
+                result.first = node_t::copy_inner_replace(
+                    node, offset, result.first);
+                return result;
+            } else if (node->datamap() & bit) {
+                auto offset = popcount(node->datamap() & (bit - 1));
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, v))
+                    return {
+                        node_t::copy_inner_replace_value(
+                            node, offset, std::move(v)),
+                        false
+                    };
+                else {
+                    auto child = node_t::make_merged(shift + B,
+                                                    std::move(v), hash,
+                                                    *val, Hash{}(*val));
+                    return {
+                        node_t::copy_inner_replace_merged(
+                            node, bit, offset, child),
+                        true
+                    };
+                }
+            } else {
+                return {
+                    node_t::copy_inner_insert_value(node, bit, std::move(v)),
+                    true
+                };
+            }
+        }
+    }
+
     champ add(T v) const
     {
-        return *this;
+        auto hash = Hash{}(v);
+        auto res = do_add(root, std::move(v), hash, 0);
+        auto new_size = size + (res.second ? 1 : 0);
+        return { res.first, new_size };
     }
 };
 

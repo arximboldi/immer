@@ -35,7 +35,7 @@ template <typename K,
           detail::hamts::bits_t B = default_bits>
 class map
 {
-    using value_t = std::pair<const K, T>;
+    using value_t = std::pair<K, T>;
 
     struct hash_key
     {
@@ -61,7 +61,7 @@ class map
 public:
     using key_type = K;
     using mapped_type = T;
-    using value_type = std::pair<const K, T>;
+    using value_type = std::pair<K, T>;
     using size_type = detail::hamts::size_t;
     using diference_type = std::ptrdiff_t;
     using hasher = Hash;
