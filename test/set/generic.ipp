@@ -65,8 +65,41 @@ TEST_CASE("insert a lot")
     constexpr auto N = 666u;
     auto gen = make_generator();
     auto vals = std::vector<int>{};
-    generate_n(back_inserter(vals), 666u, gen);
+    generate_n(back_inserter(vals), N, gen);
     auto s = SET_T<int>{};
+    for (auto i = 0u; i < N; ++i) {
+        s = s.insert(vals[i]);
+        for (auto j = 0u; j <= i; ++j)
+            CHECK(s.count(vals[j]) == 1);
+        for (auto j = i+1; j < N; ++j)
+            CHECK(s.count(vals[j]) == 0);
+    }
+}
+
+struct conflictor
+{
+    int v1;
+    int v2;
+
+    bool operator== (const conflictor& x) const
+    { return v1 == x.v1 && v2 == x.v2; }
+};
+
+struct hash_conflictor
+{
+    std::size_t operator() (const conflictor& x)
+    { return x.v1; }
+};
+
+TEST_CASE("insert conflicts")
+{
+    constexpr auto N = 666u;
+    auto gen = make_generator();
+    auto vals = std::vector<conflictor>{};
+    generate_n(back_inserter(vals), N, [&] {
+        return conflictor{ int(gen() % N), gen() };
+    });
+    auto s = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
         for (auto j = 0u; j <= i; ++j)
