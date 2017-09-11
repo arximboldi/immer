@@ -20,13 +20,15 @@
 
 #pragma once
 
-#ifdef NDEBUG
+#ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
+#endif
+
+#ifndef IMMER_DEBUG_PRINT
 #define IMMER_DEBUG_PRINT 0
-#define IMMER_DEBUG_DEEP_CHECK 0
-#else
-#define IMMER_DEBUG_TRACES 0
-#define IMMER_DEBUG_PRINT 0
+#endif
+
+#ifndef IMMER_DEBUG_DEEP_CHECK
 #define IMMER_DEBUG_DEEP_CHECK 0
 #endif
 
