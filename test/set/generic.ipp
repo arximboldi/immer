@@ -18,11 +18,15 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <catch.hpp>
-
 #ifndef SET_T
 #error "define the set template to use in SET_T"
+#include <immer/set.hpp>
+#define SET_T ::immer::set
 #endif
+
+#include <catch.hpp>
+
+#include <random>
 
 TEST_CASE("instantiation")
 {
@@ -47,3 +51,27 @@ TEST_CASE("basic insertion")
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
 };
+
+template <typename T=int>
+auto make_generator()
+{
+    auto engine = std::default_random_engine{42};
+    auto dist = std::uniform_int_distribution<T>{};
+    return std::bind(dist, engine);
+}
+
+TEST_CASE("insert a lot")
+{
+    constexpr auto N = 666u;
+    auto gen = make_generator();
+    auto vals = std::vector<int>{};
+    generate_n(back_inserter(vals), 666u, gen);
+    auto s = SET_T<int>{};
+    for (auto i = 0u; i < N; ++i) {
+        s = s.insert(vals[i]);
+        for (auto j = 0u; j <= i; ++j)
+            CHECK(s.count(vals[j]) == 1);
+        for (auto j = i+1; j < N; ++j)
+            CHECK(s.count(vals[j]) == 0);
+    }
+}

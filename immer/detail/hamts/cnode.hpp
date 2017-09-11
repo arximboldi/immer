@@ -110,7 +110,7 @@ struct cnode
     constexpr static std::size_t sizeof_collision_n(count_t count)
     {
         return immer_offsetof(impl_t, d.data.collision.buffer)
-            + sizeof(values_data_t::buffer) * count;
+            + sizeof(collision_t::buffer) * count;
     }
 
     constexpr static std::size_t sizeof_inner_n(count_t count)
@@ -186,27 +186,30 @@ struct cnode
 
     static node_t* make_inner_n(count_t n, values_t* values)
     {
-        assert(values);
         auto p = make_inner_n(n);
-        p->impl.d.data.inner.values = values;
-        refs(values).inc();
+        if (values) {
+            p->impl.d.data.inner.values = values;
+            refs(values).inc();
+        }
         return p;
     }
 
     static node_t* make_inner_n(count_t n, count_t nv)
     {
-        assert(nv > 0);
         assert(nv < branches<B>);
         auto p = make_inner_n(n);
-        p->impl.d.data.inner.values =
-            new (heap::allocate(sizeof_values_n(nv))) values_t{};
+        if (nv) {
+            p->impl.d.data.inner.values =
+                new (heap::allocate(sizeof_values_n(nv))) values_t{};
+        }
         return p;
     }
 
-    static node_t* make_inner_n(count_t n, node_t* child)
+    static node_t* make_inner_n(count_t n, count_t idx, node_t* child)
     {
         assert(n >= 1);
         auto p = make_inner_n(n);
+        p->impl.d.data.inner.nodemap = 1 << idx;
         p->children()[0] = child;
         return p;
     }
@@ -244,11 +247,11 @@ struct cnode
     {
         auto m = heap::allocate(sizeof_collision_n(2));
         auto p = new (m) node_t;
-        auto cols = p->collisions();
 #if IMMER_HAMTS_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::collision;
 #endif
         p->impl.d.data.collision.count = 2;
+        auto cols = p->collisions();
         cols[0] = std::move(v1);
         cols[1] = std::move(v2);
         return p;
@@ -258,7 +261,7 @@ struct cnode
     {
         assert(src->kind() == kind_t::collision);
         auto n    = src->collision_count();
-        auto dst  = make_collision_n(n);
+        auto dst  = make_collision_n(n + 1);
         auto srcp = src->collisions();
         auto dstp = dst->collisions();
         new (dstp) T{std::move(v)};
@@ -334,14 +337,14 @@ struct cnode
             src->children(), src->children() + noffset,
             dst->children());
         std::uninitialized_copy(
-            src->children() + noffset + 1, src->children() + n,
+            src->children() + noffset, src->children() + n,
             dst->children() + noffset + 1);
         std::uninitialized_copy(
             src->values(), src->values() + voffset,
             dst->values());
         std::uninitialized_copy(
-            src->values() + noffset + 1, src->values() + nv,
-            dst->values() + noffset + 1);
+            src->values() + voffset + 1, src->values() + nv,
+            dst->values() + voffset);
         dst->children()[noffset] = node;
         return dst;
     }
@@ -371,20 +374,21 @@ struct cnode
                                T v1, hash_t hash1,
                                T v2, hash_t hash2)
     {
-        if (shift == max_shift<B>) {
-            return make_collision(std::move(v1), std::move(v2));
-        } else {
+        if (shift < max_shift<B>) {
             auto idx1 = hash1 & (mask<B> << shift);
             auto idx2 = hash2 & (mask<B> << shift);
             if (idx1 == idx2) {
-                return make_inner_n(1, make_merged(shift + B,
-                                                   std::move(v1), hash1,
-                                                   std::move(v2), hash2));
+                return make_inner_n(1, idx1 >> shift,
+                                    make_merged(shift + B,
+                                                std::move(v1), hash1,
+                                                std::move(v2), hash2));
             } else {
                 return make_inner_n(0,
                                     idx1 >> shift, std::move(v1),
                                     idx2 >> shift, std::move(v2));
             }
+        } else {
+            return make_collision(std::move(v1), std::move(v2));
         }
     }
 

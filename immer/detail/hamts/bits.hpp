@@ -40,10 +40,10 @@ template <bits_t B, typename T=size_t>
 constexpr T mask = branches<B, T> - 1;
 
 template <bits_t B, typename T=count_t>
-constexpr T max_depth = sizeof(hash_t) / B;
+constexpr T max_depth = (sizeof(hash_t) * 8 + B - 1) / B;
 
 template <bits_t B, typename T=count_t>
-constexpr T max_shift = (sizeof(hash_t) / B) * B;
+constexpr T max_shift = max_depth<B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 

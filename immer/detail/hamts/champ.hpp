@@ -116,16 +116,12 @@ struct champ
         auto node = root;
         auto hash = Hash{}(k);
         for (auto i = count_t{}; i < max_depth<B>; ++i) {
-            IMMER_TRACE("iterate");
-            IMMER_TRACE_E(i);
             auto bit = 1 << (hash & mask<B>);
             if (node->nodemap() & bit) {
-                IMMER_TRACE("node");
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 node = node->children() [offset];
                 hash = hash >> B;
             } else if (node->datamap() & bit) {
-                IMMER_TRACE("data");
                 auto offset = popcount(node->datamap() & (bit - 1));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
@@ -133,7 +129,6 @@ struct champ
                 else
                     return nullptr;
             } else {
-                IMMER_TRACE("return");
                 return nullptr;
             }
         }
@@ -152,7 +147,7 @@ struct champ
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
             for (; fst != lst; ++fst)
-                if (Equal{}(*fst, std::move(v)))
+                if (Equal{}(*fst, v))
                     return {
                         node_t::copy_collision_replace(node, fst, std::move(v)),
                         false
