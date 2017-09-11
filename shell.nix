@@ -12,6 +12,7 @@ in
 stdenv.mkDerivation rec {
   name = "immer-env";
   buildInputs = [
+    git
     cmake
     pkgconfig
     doxygen
