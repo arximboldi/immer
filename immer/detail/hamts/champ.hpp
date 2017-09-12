@@ -204,6 +204,105 @@ struct champ
         auto new_size = size + (res.second ? 1 : 0);
         return { res.first, new_size };
     }
+
+    // basically:
+    //      variant<monostate_t, T*, node_t*>
+    // boo bad we are not using... C++17 :'(
+    struct sub_result
+    {
+        enum kind_t
+        {
+            nothing,
+            singleton,
+            tree
+        };
+
+        union data_t
+        {
+            T*      singleton;
+            node_t* tree;
+        };
+
+        kind_t kind;
+        data_t data;
+
+        sub_result()          : kind{nothing}   {};
+        sub_result(T* x)      : kind{singleton} { data.singleton = x; };
+        sub_result(node_t* x) : kind{tree}      { data.tree = x; };
+    };
+
+    template <typename K>
+    sub_result do_sub(node_t* node, const K& k, hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (auto cur = fst; cur != lst; ++cur)
+                if (Equal{}(*cur, k))
+                    return node->collision_count() > 2
+                        ? node_t::copy_collision_remove(node, cur)
+                        : sub_result{fst + (cur == fst)};
+            return {};
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = 1 << idx;
+            if (node->nodemap() & bit) {
+                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto result = do_sub(node->children() [offset],
+                                     k, hash, shift + B);
+                switch (result.kind) {
+                case sub_result::nothing:
+                    return {};
+                case sub_result::singleton:
+                    return popcount(node->datamap()) == 0 &&
+                           popcount(node->nodemap()) == 1
+                        ? result
+                        : node_t::copy_inner_replace_inline(
+                            node, bit, offset, *result.data.singleton);
+                case sub_result::tree:
+                    return node_t::copy_inner_replace(node, offset,
+                                                     result.data.tree);
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = popcount(node->datamap() & (bit - 1));
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k)) {
+                    auto nv = popcount(node->datamap());
+                    if (node->nodemap() || nv > 2)
+                        return node_t::copy_inner_remove_value(node, bit, offset);
+                    else if (nv == 2) {
+                        return shift > 0
+                            ? sub_result{node->values() + !offset}
+                            : node_t::make_inner_n(0,
+                                                  node->datamap() & ~bit,
+                                                  node->values()[!offset]);
+                    } else {
+                        assert(shift == 0);
+                        return empty.root->inc();
+                    }
+                }
+            }
+            return {};
+        }
+    }
+
+    template <typename K>
+    champ sub(const K& k) const
+    {
+        auto hash = Hash{}(k);
+        auto res = do_sub(root, k, hash, 0);
+        switch (res.kind) {
+        case sub_result::nothing:
+            return *this;
+        case sub_result::tree:
+            return {
+                res.data.tree,
+                size - 1
+            };
+        default:
+            IMMER_UNREACHABLE;
+        }
+    }
 };
 
 template <typename T, typename H, typename Eq, typename MP, bits_t B>

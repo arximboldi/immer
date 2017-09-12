@@ -215,6 +215,16 @@ struct cnode
     }
 
     static node_t* make_inner_n(count_t n,
+                                bitmap_t bitmap,
+                                T x)
+    {
+        auto p = make_inner_n(n, 1);
+        p->impl.d.data.inner.datamap = bitmap;
+        p->values()[0] = std::move(x);
+        return p;
+    }
+
+    static node_t* make_inner_n(count_t n,
                                 count_t idx1, T x1,
                                 count_t idx2, T x2)
     {
@@ -266,6 +276,19 @@ struct cnode
         auto dstp = dst->collisions();
         new (dstp) T{std::move(v)};
         std::uninitialized_copy(srcp, srcp + n, dstp + 1);
+        return dst;
+    }
+
+    static node_t* copy_collision_remove(node_t* src, T* v)
+    {
+        assert(src->kind() == kind_t::collision);
+        assert(src->collision_count() > 1);
+        auto n    = src->collision_count();
+        auto dst  = make_collision_n(n - 1);
+        auto srcp = src->collisions();
+        auto dstp = dst->collisions();
+        dstp = std::uninitialized_copy(srcp, v, dstp);
+        std::uninitialized_copy(v + 1, srcp + n, dstp);
         return dst;
     }
 
@@ -346,6 +369,61 @@ struct cnode
             src->values() + voffset + 1, src->values() + nv,
             dst->values() + voffset);
         dst->children()[noffset] = node;
+        return dst;
+    }
+
+    static node_t* copy_inner_replace_inline(
+        node_t* src, bitmap_t bit, count_t noffset, T value)
+    {
+        assert(src->kind() == kind_t::inner);
+        assert(!(src->datamap() & bit));
+        assert(src->nodemap() & bit);
+        assert(noffset == popcount(src->nodemap() & (bit - 1)));
+        auto n       = popcount(src->nodemap());
+        auto nv      = popcount(src->datamap());
+        auto dst     = make_inner_n(n - 1, nv + 1);
+        auto voffset = popcount(src->datamap() & (bit - 1));
+        dst->impl.d.data.inner.nodemap = src->nodemap() & ~bit;
+        dst->impl.d.data.inner.datamap = src->datamap() | bit;
+        inc_nodes(src->children(), n);
+        src->children()[noffset]->dec_unsafe();
+        std::uninitialized_copy(
+            src->children(), src->children() + noffset,
+            dst->children());
+        std::uninitialized_copy(
+            src->children() + noffset + 1, src->children() + n,
+            dst->children() + noffset);
+        std::uninitialized_copy(
+            src->values(), src->values() + voffset,
+            dst->values());
+        new (dst->values() + voffset) T{std::move(value)};
+        std::uninitialized_copy(
+            src->values() + voffset, src->values() + nv,
+            dst->values() + voffset + 1);
+        return dst;
+    }
+
+    static node_t* copy_inner_remove_value(
+        node_t* src, bitmap_t bit, count_t voffset)
+    {
+        assert(src->kind() == kind_t::inner);
+        assert(!(src->nodemap() & bit));
+        assert(src->datamap() & bit);
+        assert(voffset == popcount(src->datamap() & (bit - 1)));
+        auto n       = popcount(src->nodemap());
+        auto nv      = popcount(src->datamap());
+        auto dst     = make_inner_n(n, nv - 1);
+        dst->impl.d.data.inner.datamap = src->datamap() & ~bit;
+        dst->impl.d.data.inner.nodemap = src->nodemap();
+        inc_nodes(src->children(), n);
+        std::uninitialized_copy(
+            src->children(), src->children() + n, dst->children());
+        std::uninitialized_copy(
+            src->values(), src->values() + voffset,
+            dst->values());
+        std::uninitialized_copy(
+            src->values() + voffset + 1, src->values() + nv,
+            dst->values() + voffset);
         return dst;
     }
 

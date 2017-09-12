@@ -57,6 +57,9 @@ public:
     set insert(T v) const
     { return impl_.add(std::move(v)); }
 
+    set erase(const T& v) const
+    { return impl_.sub(v); }
+
     size_type count(const T& v) const
     { return impl_.get(v) ? 1 : 0; }
 

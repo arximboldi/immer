@@ -26,6 +26,7 @@
 
 #include <catch.hpp>
 
+#include <unordered_set>
 #include <random>
 
 TEST_CASE("instantiation")
@@ -69,6 +70,7 @@ TEST_CASE("insert a lot")
     auto s = SET_T<int>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
+        CHECK(s.size() == i + 1);
         for (auto j = 0u; j <= i; ++j)
             CHECK(s.count(vals[j]) == 1);
         for (auto j = i+1; j < N; ++j)
@@ -87,7 +89,7 @@ struct conflictor
 
 struct hash_conflictor
 {
-    std::size_t operator() (const conflictor& x)
+    std::size_t operator() (const conflictor& x) const
     { return x.v1; }
 };
 
@@ -96,15 +98,70 @@ TEST_CASE("insert conflicts")
     constexpr auto N = 666u;
     auto gen = make_generator();
     auto vals = std::vector<conflictor>{};
+    auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
     generate_n(back_inserter(vals), N, [&] {
-        return conflictor{ int(gen() % N), gen() };
+        auto newv = conflictor{};
+        do {
+            newv = { int(gen() % (N/2)), gen() };
+        } while (!vals_.insert(newv).second);
+        return newv;
     });
     auto s = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
+        CHECK(s.size() == i + 1);
         for (auto j = 0u; j <= i; ++j)
             CHECK(s.count(vals[j]) == 1);
         for (auto j = i+1; j < N; ++j)
             CHECK(s.count(vals[j]) == 0);
+    }
+}
+
+TEST_CASE("erase a lot")
+{
+    constexpr auto N = 666u;
+    auto gen = make_generator();
+    auto vals = std::vector<int>{};
+    generate_n(back_inserter(vals), N, gen);
+
+    auto s = SET_T<int>{};
+    for (auto i = 0u; i < N; ++i)
+        s = s.insert(vals[i]);
+
+    for (auto i = 0u; i < N; ++i) {
+        s = s.erase(vals[i]);
+        CHECK(s.size() == N - i - 1);
+        for (auto j = 0u; j <= i; ++j)
+            CHECK(s.count(vals[j]) == 0);
+        for (auto j = i+1; j < N; ++j)
+            CHECK(s.count(vals[j]) == 1);
+    }
+}
+
+TEST_CASE("erase conflicts")
+{
+    constexpr auto N = 666u;
+    auto gen = make_generator();
+    auto vals = std::vector<conflictor>{};
+    auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
+    generate_n(back_inserter(vals), N, [&] {
+        auto newv = conflictor{};
+        do {
+            newv = { int(gen() % (N/2)), gen() };
+        } while (!vals_.insert(newv).second);
+        return newv;
+    });
+
+    auto s = SET_T<conflictor, hash_conflictor>{};
+    for (auto i = 0u; i < N; ++i)
+        s = s.insert(vals[i]);
+
+    for (auto i = 0u; i < N; ++i) {
+        s = s.erase(vals[i]);
+        CHECK(s.size() == N - i - 1);
+        for (auto j = 0u; j <= i; ++j)
+            CHECK(s.count(vals[j]) == 0);
+        for (auto j = i+1; j < N; ++j)
+            CHECK(s.count(vals[j]) == 1);
     }
 }
