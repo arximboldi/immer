@@ -1,11 +1,11 @@
 with import <nixpkgs> {};
 
-{ compiler ? "gcc6" }:
+{ compiler ? "" }:
 
 let
   docs = import ./nix/docs.nix;
   benchmarks = import ./nix/benchmarks.nix;
-  compiler_pkg = pkgs.${compiler};
+  compiler_pkg = if compiler != "" then pkgs.${compiler} else stdenv.cc;
   native_compiler = compiler_pkg.isClang == stdenv.cc.isClang;
 in
 
