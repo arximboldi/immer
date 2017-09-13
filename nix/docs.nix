@@ -18,14 +18,10 @@ rec {
   sphinx_arximboldi = with python27Packages; buildPythonPackage rec {
     name = "${pname}-${version}";
     pname = "Sphinx";
-    version = "git-arximbolid-${commit}";
-    commit = "b03fb3889adbd865070b27dabd84479888af7099";
-    src = fetchFromGitHub {
-      owner = "arximboldi";
-      repo = "sphinx";
-      rev = commit;
-      sha256 = "0z3m6q03h87mp9bxwgz1pk8i8vfygnikhmr9cmgw8krbr6mlv2wy";
-      fetchSubmodules = true;
+    version = "1.6.3";
+    src = fetchPypi {
+      inherit pname version;
+      sha256 = "af8bdb8c714552b77d01d4536e3d6d2879d6cb9d25423d29163d5788e27046e6";
     };
     LC_ALL = "en_US.UTF-8";
     buildInputs = [
