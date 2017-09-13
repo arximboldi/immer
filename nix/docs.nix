@@ -24,7 +24,8 @@ rec {
       owner = "arximboldi";
       repo = "sphinx";
       rev = commit;
-      sha256 = "1lgch4xxbfv4k6ibgkd4jfdpvzqk1pjjj4wwgs6cmr5089g4d3za";
+      sha256 = "0z3m6q03h87mp9bxwgz1pk8i8vfygnikhmr9cmgw8krbr6mlv2wy";
+      fetchSubmodules = true;
     };
     LC_ALL = "en_US.UTF-8";
     buildInputs = [
