@@ -3,10 +3,13 @@ with import <nixpkgs> {};
 { compiler ? "" }:
 
 let
-  docs = import ./nix/docs.nix;
-  benchmarks = import ./nix/benchmarks.nix;
-  compiler_pkg = if compiler != "" then pkgs.${compiler} else stdenv.cc;
-  native_compiler = compiler_pkg.isClang == stdenv.cc.isClang;
+  compiler_pkg       = if compiler != ""
+                       then pkgs.${compiler}
+                       else stdenv.cc;
+  docs               = import ./nix/docs.nix;
+  benchmarks         = import ./nix/benchmarks.nix;
+  propagate_compiler = compiler_pkg.isClang != stdenv.cc.isClang;
+  native_compiler    = compiler_pkg.isClang == stdenv.cc.isClang;
 in
 
 stdenv.mkDerivation rec {
@@ -27,7 +30,12 @@ stdenv.mkDerivation rec {
     docs.sphinx_arximboldi
     docs.breathe_arximboldi
     docs.recommonmark
-  ] ++ stdenv.lib.optionals compiler_pkg.isClang [llvm libcxx libcxxabi];
-  propagatedBuildInputs = stdenv.lib.optional (!native_compiler) compiler_pkg;
-  nativeBuildInputs = stdenv.lib.optional native_compiler compiler_pkg;
+  ]
+  ++ stdenv.lib.optionals compiler_pkg.isClang [
+    llvm libcxx libcxxabi
+  ];
+  propagatedBuildInputs =
+    stdenv.lib.optional propagate_compiler compiler_pkg;
+  nativeBuildInputs =
+    stdenv.lib.optional native_compiler compiler_pkg;
 }
