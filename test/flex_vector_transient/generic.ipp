@@ -115,7 +115,7 @@ TEST_CASE("drop move")
 
 TEST_CASE("exception safety relaxed")
 {
-    using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
+    using dadaist_vector_t = typename dadaist_wrapper<FLEX_VECTOR_T<unsigned>>::type;
     constexpr auto n = 667u;
 
     SECTION("push back")

@@ -417,7 +417,7 @@ TEST_CASE("exception safety")
 {
     constexpr auto n = 666u;
 
-    using dadaist_vector_t = typename dadaist_vector<VECTOR_T<unsigned>>::type;
+    using dadaist_vector_t = typename dadaist_wrapper<VECTOR_T<unsigned>>::type;
 
     SECTION("push back")
     {

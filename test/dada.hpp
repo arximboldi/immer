@@ -25,6 +25,7 @@
 #include <array>
 
 #include <immer/detail/rbts/bits.hpp>
+#include <immer/detail/hamts/bits.hpp>
 
 namespace {
 
@@ -180,22 +181,37 @@ struct dadaist : tristan_tzara
 };
 
 template <typename T>
-struct dadaist_vector;
+struct dadaist_wrapper;
 
-using bits_t = immer::detail::rbts::bits_t;
+using rbits_t = immer::detail::rbts::bits_t;
+using hbits_t = immer::detail::rbts::bits_t;
 
-template <template <class, class, bits_t, bits_t> class V,
-          typename T, typename MP, bits_t B, bits_t BL>
-struct dadaist_vector<V<T, MP, B, BL>>
+template <template <class, class, rbits_t, rbits_t> class V,
+          typename T, typename MP, rbits_t B, rbits_t BL>
+struct dadaist_wrapper<V<T, MP, B, BL>>
 {
     using type = V<dadaist<T>, dadaist_memory_policy<MP>, B, BL>;
 };
 
 template <template <class, class> class V,
           typename T, typename MP>
-struct dadaist_vector<V<T, MP>>
+struct dadaist_wrapper<V<T, MP>>
 {
     using type = V<dadaist<T>, dadaist_memory_policy<MP>>;
+};
+
+template <template <class, class, class, class, hbits_t> class V,
+          typename T, typename E, typename H, typename MP, hbits_t B>
+struct dadaist_wrapper<V<T, H, E, MP, B>>
+{
+    using type = V<dadaist<T>, H, E, dadaist_memory_policy<MP>, B>;
+};
+
+template <template <class, class, class, class, class, hbits_t> class V,
+          typename K, typename T, typename E, typename H, typename MP, hbits_t B>
+struct dadaist_wrapper<V<K, T, H, E, MP, B>>
+{
+    using type = V<K, dadaist<T>, H, E, dadaist_memory_policy<MP>, B>;
 };
 
 } // anonymous namespace
