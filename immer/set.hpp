@@ -22,6 +22,7 @@
 
 #include <immer/memory_policy.hpp>
 #include <immer/detail/hamts/champ.hpp>
+#include <immer/detail/hamts/champ_iterator.hpp>
 
 #include <functional>
 
@@ -46,7 +47,24 @@ public:
     using reference = const T&;
     using const_reference = const T&;
 
+    using iterator         = detail::hamts::champ_iterator<T, Hash, Equal,
+                                                         MemoryPolicy, B>;
+    using const_iterator   = iterator;
+
     set() = default;
+
+    /*!
+     * Returns an iterator pointing at the first element of the
+     * collection. It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
+     */
+    iterator begin() const { return {impl_}; }
+
+    /*!
+     * Returns an iterator pointing just after the last element of the
+     * collection. It does not allocate and its complexity is @f$ O(1) @f$.
+     */
+    iterator end() const { return {impl_, typename iterator::end_t{}}; }
 
     /*!
      * Returns the number of elements in the container.  It does

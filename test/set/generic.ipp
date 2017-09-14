@@ -93,19 +93,25 @@ struct hash_conflictor
     { return x.v1; }
 };
 
-TEST_CASE("insert conflicts")
+auto make_values_with_collisions(unsigned n)
 {
-    constexpr auto N = 666u;
     auto gen = make_generator();
     auto vals = std::vector<conflictor>{};
     auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
-    generate_n(back_inserter(vals), N, [&] {
+    generate_n(back_inserter(vals), n, [&] {
         auto newv = conflictor{};
         do {
-            newv = { int(gen() % (N/2)), gen() };
+            newv = { int(gen() % (n / 2)), gen() };
         } while (!vals_.insert(newv).second);
         return newv;
     });
+    return vals;
+}
+
+TEST_CASE("insert conflicts")
+{
+    constexpr auto N = 666u;
+    auto vals = make_values_with_collisions(N);
     auto s = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
@@ -141,17 +147,7 @@ TEST_CASE("erase a lot")
 TEST_CASE("erase conflicts")
 {
     constexpr auto N = 666u;
-    auto gen = make_generator();
-    auto vals = std::vector<conflictor>{};
-    auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
-    generate_n(back_inserter(vals), N, [&] {
-        auto newv = conflictor{};
-        do {
-            newv = { int(gen() % (N/2)), gen() };
-        } while (!vals_.insert(newv).second);
-        return newv;
-    });
-
+    auto vals = make_values_with_collisions(N);
     auto s = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i)
         s = s.insert(vals[i]);
@@ -163,5 +159,52 @@ TEST_CASE("erase conflicts")
             CHECK(s.count(vals[j]) == 0);
         for (auto j = i+1; j < N; ++j)
             CHECK(s.count(vals[j]) == 1);
+    }
+}
+
+auto make_test_set(unsigned n)
+{
+    auto s = SET_T<unsigned>{};
+    for (auto i = 0u; i < n; ++i)
+        s = s.insert(i);
+    return s;
+}
+
+TEST_CASE("iterator")
+{
+    const auto N = 666u;
+    auto v = make_test_set(N);
+
+    SECTION("empty set")
+    {
+        auto s = SET_T<unsigned>{};
+        CHECK(s.begin() == s.end());
+    }
+
+    SECTION("works with range loop")
+    {
+        auto seen = std::unordered_set<unsigned>{};
+        for (const auto& x : v)
+            CHECK(seen.insert(x).second);
+        CHECK(seen.size() == v.size());
+    }
+
+    SECTION("works with standard algorithms")
+    {
+        auto s = std::vector<unsigned>(N);
+        std::iota(s.begin(), s.end(), 0u);
+        std::equal(v.begin(), v.end(), s.begin(), s.end());
+    }
+
+    SECTION("iterator and collisions")
+    {
+        auto vals = make_values_with_collisions(N);
+        auto s = SET_T<conflictor, hash_conflictor>{};
+        for (auto x : vals)
+            s = s.insert(x);
+        auto seen = std::unordered_set<conflictor, hash_conflictor>{};
+        for (const auto& x : s)
+            CHECK(seen.insert(x).second);
+        CHECK(seen.size() == s.size());
     }
 }
