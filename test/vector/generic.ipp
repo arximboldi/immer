@@ -181,6 +181,12 @@ TEST_CASE("iterator")
     const auto n = 666u;
     auto v = make_test_vector(0, n);
 
+    SECTION("empty vector")
+    {
+        auto v = VECTOR_T<unsigned>{};
+        CHECK(v.begin() == v.end());
+    }
+
     SECTION("works with range loop")
     {
         auto i = 0u;
