@@ -196,7 +196,7 @@ struct cnode
 
     static node_t* make_inner_n(count_t n, count_t nv)
     {
-        assert(nv < branches<B>);
+        assert(nv <= branches<B>);
         auto p = make_inner_n(n);
         if (nv) {
             p->impl.d.data.inner.values =
