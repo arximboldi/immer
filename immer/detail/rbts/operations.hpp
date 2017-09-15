@@ -83,13 +83,13 @@ struct for_each_chunk_visitor
 
     template <typename Pos, typename Fn>
     friend void visit_inner(this_t, Pos&& pos, Fn&& fn)
-    { pos.each(this_t{}, std::forward<Fn>(fn)); }
+    { pos.each(this_t{}, fn); }
 
     template <typename Pos, typename Fn>
     friend void visit_leaf(this_t, Pos&& pos, Fn&& fn)
     {
         auto data = pos.node()->leaf();
-        std::forward<Fn>(fn)(data, data + pos.count());
+        fn(data, data + pos.count());
     }
 };
 
@@ -99,13 +99,13 @@ struct for_each_chunk_p_visitor
 
     template <typename Pos, typename Fn>
     friend bool visit_inner(this_t, Pos&& pos, Fn&& fn)
-    { return pos.each_pred(this_t{}, std::forward<Fn>(fn)); }
+    { return pos.each_pred(this_t{}, fn); }
 
     template <typename Pos, typename Fn>
     friend bool visit_leaf(this_t, Pos&& pos, Fn&& fn)
     {
         auto data = pos.node()->leaf();
-        return std::forward<Fn>(fn)(data, data + pos.count());
+        return fn(data, data + pos.count());
     }
 };
 
@@ -129,7 +129,7 @@ struct for_each_chunk_left_visitor
     {
         auto data = pos.node()->leaf();
         auto l = pos.index(last);
-        std::forward<Fn>(fn)(data, data + l + 1);
+        fn(data, data + l + 1);
     }
 };
 
@@ -153,7 +153,7 @@ struct for_each_chunk_right_visitor
     {
         auto data = pos.node()->leaf();
         auto f = pos.index(first);
-        std::forward<Fn>(fn)(data + f, data + pos.count());
+        fn(data + f, data + pos.count());
     }
 };
 
@@ -211,7 +211,7 @@ struct for_each_chunk_i_visitor
         if (first < last) {
             auto f = pos.index(first);
             auto l = pos.index(last - 1);
-            std::forward<Fn>(fn)(data + f, data + l + 1);
+            fn(data + f, data + l + 1);
         }
     }
 };
@@ -236,7 +236,7 @@ struct for_each_chunk_p_left_visitor
     {
         auto data = pos.node()->leaf();
         auto l = pos.index(last);
-        return std::forward<Fn>(fn)(data, data + l + 1);
+        return fn(data, data + l + 1);
     }
 };
 
@@ -260,7 +260,7 @@ struct for_each_chunk_p_right_visitor
     {
         auto data = pos.node()->leaf();
         auto f = pos.index(first);
-        return std::forward<Fn>(fn)(data + f, data + pos.count());
+        return fn(data + f, data + pos.count());
     }
 };
 
@@ -320,7 +320,7 @@ struct for_each_chunk_p_i_visitor
         if (first < last) {
             auto f = pos.index(first);
             auto l = pos.index(last - 1);
-            return std::forward<Fn>(fn)(data + f, data + l + 1);
+            return fn(data + f, data + l + 1);
         }
         return true;
     }
