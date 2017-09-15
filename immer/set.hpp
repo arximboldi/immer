@@ -81,6 +81,9 @@ public:
     size_type count(const T& v) const
     { return impl_.get(v) ? 1 : 0; }
 
+    // Semi-private
+    const impl_t& impl() const { return impl_; }
+
 private:
     set(impl_t impl)
         : impl_(std::move(impl))

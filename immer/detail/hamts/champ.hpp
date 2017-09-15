@@ -112,6 +112,26 @@ struct champ
         }
     }
 
+    template <typename Fn>
+    void for_each_chunk(Fn&& fn) const
+    {
+        for_each_chunk_traversal(root, 0, fn);
+    }
+
+    template <typename Fn>
+    void for_each_chunk_traversal(node_t* node, count_t depth, Fn&& fn) const
+    {
+        if (depth < max_depth<B>) {
+            fn(node->values(), node->values() + popcount(node->datamap()));
+            auto fst = node->children();
+            auto lst = fst + popcount(node->nodemap());
+            for (; fst != lst; ++fst)
+                for_each_chunk_traversal(*fst, depth + 1, fn);
+        } else {
+            fn(node->collisions(), node->collisions() + node->collision_count());
+        }
+    }
+
     template <typename K>
     const T* get(const K& k) const
     {

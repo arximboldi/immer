@@ -24,6 +24,8 @@
 #define SET_T ::immer::set
 #endif
 
+#include <immer/algorithm.hpp>
+
 #include <catch.hpp>
 
 #include <unordered_set>
@@ -33,14 +35,14 @@ TEST_CASE("instantiation")
 {
     SECTION("default")
     {
-        auto v = SET_T<int>{};
+        auto v = SET_T<unsigned>{};
         CHECK(v.size() == 0u);
     }
 }
 
 TEST_CASE("basic insertion")
 {
-    auto v1 = SET_T<int>{};
+    auto v1 = SET_T<unsigned>{};
     CHECK(v1.count(42) == 0);
 
     auto v2 = v1.insert(42);
@@ -53,7 +55,7 @@ TEST_CASE("basic insertion")
     CHECK(v3.count(42) == 1);
 };
 
-template <typename T=int>
+template <typename T=unsigned>
 auto make_generator()
 {
     auto engine = std::default_random_engine{42};
@@ -65,9 +67,9 @@ TEST_CASE("insert a lot")
 {
     constexpr auto N = 666u;
     auto gen = make_generator();
-    auto vals = std::vector<int>{};
+    auto vals = std::vector<unsigned>{};
     generate_n(back_inserter(vals), N, gen);
-    auto s = SET_T<int>{};
+    auto s = SET_T<unsigned>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
         CHECK(s.size() == i + 1);
@@ -80,8 +82,8 @@ TEST_CASE("insert a lot")
 
 struct conflictor
 {
-    int v1;
-    int v2;
+    unsigned v1;
+    unsigned v2;
 
     bool operator== (const conflictor& x) const
     { return v1 == x.v1 && v2 == x.v2; }
@@ -101,7 +103,7 @@ auto make_values_with_collisions(unsigned n)
     generate_n(back_inserter(vals), n, [&] {
         auto newv = conflictor{};
         do {
-            newv = { int(gen() % (n / 2)), gen() };
+            newv = { unsigned(gen() % (n / 2)), gen() };
         } while (!vals_.insert(newv).second);
         return newv;
     });
@@ -127,10 +129,10 @@ TEST_CASE("erase a lot")
 {
     constexpr auto N = 666u;
     auto gen = make_generator();
-    auto vals = std::vector<int>{};
+    auto vals = std::vector<unsigned>{};
     generate_n(back_inserter(vals), N, gen);
 
-    auto s = SET_T<int>{};
+    auto s = SET_T<unsigned>{};
     for (auto i = 0u; i < N; ++i)
         s = s.insert(vals[i]);
 
@@ -168,6 +170,37 @@ auto make_test_set(unsigned n)
     for (auto i = 0u; i < n; ++i)
         s = s.insert(i);
     return s;
+}
+
+TEST_CASE("accumulate")
+{
+    const auto n = 666u;
+    auto v = make_test_set(n);
+
+    auto expected_n =
+        [] (auto n) {
+            return n * (n - 1) / 2;
+        };
+
+    SECTION("sum collection")
+    {
+        auto sum = immer::accumulate(v, 0u);
+        CHECK(sum == expected_n(v.size()));
+    }
+
+    SECTION("sum collisions") {
+        auto vals = make_values_with_collisions(n);
+        auto s = SET_T<conflictor, hash_conflictor>{};
+        for (auto x : vals)
+            s = s.insert(x);
+
+        auto acc = [] (unsigned r, conflictor x) {
+            return r + x.v1 + x.v2;
+        };
+        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0, acc);
+        auto sum2 = immer::accumulate(s, 0u, acc);
+        CHECK(sum1 == sum2);
+    }
 }
 
 TEST_CASE("iterator")
