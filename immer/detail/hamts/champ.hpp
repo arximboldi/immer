@@ -122,11 +122,16 @@ struct champ
     void for_each_chunk_traversal(node_t* node, count_t depth, Fn&& fn) const
     {
         if (depth < max_depth<B>) {
-            fn(node->values(), node->values() + popcount(node->datamap()));
-            auto fst = node->children();
-            auto lst = fst + popcount(node->nodemap());
-            for (; fst != lst; ++fst)
-                for_each_chunk_traversal(*fst, depth + 1, fn);
+            auto datamap = node->datamap();
+            if (datamap)
+                fn(node->values(), node->values() + popcount(datamap));
+            auto nodemap = node->nodemap();
+            if (nodemap) {
+                auto fst = node->children();
+                auto lst = fst + popcount(nodemap);
+                for (; fst != lst; ++fst)
+                    for_each_chunk_traversal(*fst, depth + 1, fn);
+            }
         } else {
             fn(node->collisions(), node->collisions() + node->collision_count());
         }
