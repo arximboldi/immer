@@ -23,6 +23,8 @@
 #include <immer/heap/tags.hpp>
 
 #include <memory>
+#include <utility>
+#include <atomic>
 
 namespace immer {
 
@@ -57,17 +59,35 @@ struct gc_transience_policy
 
             struct owner
             {
-                edit token_ {heap_::allocate(1, norefs_tag{})};
-
-                operator edit () { return token_; }
-
-                owner() {}
-                owner(const owner&) {}
-                owner(owner&& o) : token_{o.token_} {}
-                owner& operator=(const owner&) { return *this; }
-                owner& operator=(owner&& o)
+                void* make_token_()
                 {
-                    token_ = o.token_;
+                    return heap_::allocate(1, norefs_tag{});
+                };
+
+                mutable std::atomic<void*> token_;
+
+                operator edit () { return { token_ }; }
+
+                owner()
+                    : token_{make_token_()}
+                {}
+                owner(const owner& o)
+                    : token_{make_token_()}
+                {
+                    o.token_ = make_token_();
+                }
+                owner(owner&& o) noexcept
+                    : token_{o.token_.load()}
+                {}
+                owner& operator=(const owner& o)
+                {
+                    o.token_ = make_token_();
+                    token_   = make_token_();
+                    return *this;
+                }
+                owner& operator=(owner&& o) noexcept
+                {
+                    token_ = o.token_.load();
                     return *this;
                 }
             };
