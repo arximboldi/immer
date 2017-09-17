@@ -27,9 +27,11 @@ stdenv.mkDerivation rec {
     benchmarks.steady
     benchmarks.chunkedseq
     benchmarks.immutable_cpp
-    docs.sphinx
-    docs.breathe
-    docs.recommonmark
+    (python.withPackages (ps: [
+      docs.sphinx
+      docs.breathe
+      docs.recommonmark
+    ]))
   ]
   ++ stdenv.lib.optionals compiler_pkg.isClang [
     llvm libcxx libcxxabi
