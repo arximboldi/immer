@@ -1,6 +1,4 @@
-{ nixpkgs ? <nixpkgs>}:
-
-with import nixpkgs {};
+with import <nixpkgs> {};
 
 rec {
   c_rrb = stdenv.mkDerivation rec {

@@ -1,6 +1,4 @@
-{ nixpkgs ? <nixpkgs>}:
-
-with import nixpkgs {};
+with import <nixpkgs> {};
 
 rec {
   sphinxcontrib_websupport = with python27Packages; buildPythonPackage rec {
