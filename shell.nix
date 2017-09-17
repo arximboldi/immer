@@ -34,7 +34,7 @@ stdenv.mkDerivation rec {
     benchmarks.chunkedseq
     benchmarks.immutable_cpp
     (python.withPackages (ps: [
-      docs.sphinx
+      ps.sphinx
       docs.breathe
       docs.recommonmark
     ]))
