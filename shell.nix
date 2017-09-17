@@ -1,13 +1,19 @@
-with import <nixpkgs> {};
+{ compiler ? "",
+  nixpkgs ? (import <nixpkgs> {}).fetchFromGitHub {
+    owner = "NixOS";
+    repo = "nixpkgs";
+    rev = "7db2916648ba8184bf619fc895e8d3fe2de84db3";
+    sha256 = "0b9hkri53hiynawv0hzfnczcs00bm0zsbvw7hy4s8yrxafr5ak1g";
+  }}:
 
-{ compiler ? "" }:
+with import nixpkgs {};
 
 let
   compiler_pkg       = if compiler != ""
                        then pkgs.${compiler}
                        else stdenv.cc;
-  docs               = import ./nix/docs.nix;
-  benchmarks         = import ./nix/benchmarks.nix;
+  docs               = import ./nix/docs.nix { inherit nixpkgs; };
+  benchmarks         = import ./nix/benchmarks.nix { inherit nixpkgs; };
   propagate_compiler = compiler_pkg.isClang != stdenv.cc.isClang;
   native_compiler    = compiler_pkg.isClang == stdenv.cc.isClang;
 in
