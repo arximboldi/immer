@@ -27,8 +27,8 @@ stdenv.mkDerivation rec {
     benchmarks.steady
     benchmarks.chunkedseq
     benchmarks.immutable_cpp
-    docs.sphinx_arximboldi
-    docs.breathe_arximboldi
+    docs.sphinx
+    docs.breathe
     docs.recommonmark
   ]
   ++ stdenv.lib.optionals compiler_pkg.isClang [

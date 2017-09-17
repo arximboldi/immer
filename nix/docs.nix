@@ -15,7 +15,26 @@ rec {
     };
   };
 
-  sphinx_arximboldi = with python27Packages; buildPythonPackage rec {
+  requests = with python27Packages; buildPythonPackage rec {
+    name = "requests-${version}";
+    version = "2.13.0";
+
+    src = pkgs.fetchurl {
+      url = "mirror://pypi/r/requests/${name}.tar.gz";
+      sha256 = "5722cd09762faa01276230270ff16af7acf7c5c45d623868d9ba116f15791ce8";
+    };
+
+    nativeBuildInputs = [ pytest ];
+    doCheck = false;
+
+    meta = with stdenv.lib; {
+      description = "An Apache2 licensed HTTP library, written in Python, for human beings";
+      homepage = http://docs.python-requests.org/en/latest/;
+      license = licenses.asl20;
+    };
+  };
+
+  sphinx = with python27Packages; buildPythonPackage rec {
     name = "${pname}-${version}";
     pname = "Sphinx";
     version = "1.6.3";
@@ -60,7 +79,7 @@ rec {
     };
   };
 
-  breathe_arximboldi = with python27Packages; buildPythonPackage rec {
+  breathe = with python27Packages; buildPythonPackage rec {
     version = "git-arximboldi-${commit}";
     pname = "breathe";
     name = "${pname}-${version}";
@@ -71,12 +90,12 @@ rec {
       rev = commit;
       sha256 = "10kkh3wb0ggyxx1a7x50aklhhw0cq269g3jddf2gb3pv9gpbj7sa";
     };
-    propagatedBuildInputs = [ docutils sphinx_arximboldi ];
+    propagatedBuildInputs = [ docutils sphinx ];
     meta = with stdenv.lib; {
       homepage = https://github.com/michaeljones/breathe;
       license = licenses.bsd3;
       description = "Sphinx Doxygen renderer";
-      inherit (sphinx_arximboldi.meta) platforms;
+      inherit (sphinx.meta) platforms;
     };
   };
 
