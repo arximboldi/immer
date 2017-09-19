@@ -248,3 +248,42 @@ TEST_CASE("iterator")
         CHECK(seen.size() == s.size());
     }
 }
+
+struct non_default
+{
+    unsigned value;
+    non_default() = delete;
+    operator unsigned() const { return value; }
+
+#if IMMER_DEBUG_PRINT
+    friend std::ostream& operator<< (std::ostream& os, non_default x)
+    {
+        os << "ND{" << x.value << "}";
+        return os;
+    }
+#endif
+};
+
+namespace std {
+
+template <>
+struct hash<non_default>
+{
+    std::size_t operator() (const non_default& x)
+    {
+        return std::hash<decltype(x.value)>{}(x.value);
+    }
+};
+
+} // namespace std
+
+TEST_CASE("non default")
+{
+    const auto n = 666u;
+
+    auto v = SET_T<non_default>{};
+    for (auto i = 0u; i < n; ++i)
+        v = v.insert({ i });
+
+    CHECK(v.size() == n);
+}
