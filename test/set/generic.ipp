@@ -25,6 +25,7 @@
 #endif
 
 #include "test/util.hpp"
+#include "test/dada.hpp"
 
 #include <immer/algorithm.hpp>
 
@@ -286,4 +287,47 @@ TEST_CASE("non default")
         v = v.insert({ i });
 
     CHECK(v.size() == n);
+}
+
+TEST_CASE("exception safety")
+{
+    constexpr auto n = 6666u;
+
+    using dadaist_set_t = typename dadaist_wrapper<SET_T<unsigned>>::type;
+    using dadaist_conflictor_set_t = typename dadaist_wrapper<SET_T<conflictor, hash_conflictor>>::type;
+
+    SECTION("insert")
+    {
+        auto v = dadaist_set_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; v.size() < n;) {
+            try {
+                auto s = d.next();
+                v = v.insert({i});
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count({i}) == 1);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("insert collisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v = dadaist_conflictor_set_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; v.size() < n;) {
+            try {
+                auto s = d.next();
+                v = v.insert({vals[i]});
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count({vals[i]}) == 1);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
 }

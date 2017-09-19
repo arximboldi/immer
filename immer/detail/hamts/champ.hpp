@@ -94,22 +94,8 @@ struct champ
 
     void dec() const
     {
-        dec_traversal(root, 0);
-    }
-
-    void dec_traversal(node_t* node, count_t depth) const
-    {
-        if (node->dec()) {
-            if (depth < max_depth<B>) {
-                auto fst = node->children();
-                auto lst = fst + popcount(node->nodemap());
-                for (; fst != lst; ++fst)
-                    dec_traversal(*fst, depth + 1);
-                node_t::delete_inner(node);
-            } else {
-                node_t::delete_collision(node);
-            }
-        }
+        if (root->dec())
+            node_t::delete_deep(root, 0);
     }
 
     template <typename Fn>
@@ -191,9 +177,14 @@ struct champ
                 auto result = do_add(node->children() [offset],
                                      std::move(v), hash,
                                      shift + B);
-                result.first = node_t::copy_inner_replace(
-                    node, offset, result.first);
-                return result;
+                try {
+                    result.first = node_t::copy_inner_replace(
+                        node, offset, result.first);
+                    return result;
+                } catch (...) {
+                    node_t::delete_deep_shift(result.first, shift + B);
+                    throw;
+                }
             } else if (node->datamap() & bit) {
                 auto offset = popcount(node->datamap() & (bit - 1));
                 auto val    = node->values() + offset;
@@ -207,11 +198,16 @@ struct champ
                     auto child = node_t::make_merged(shift + B,
                                                     std::move(v), hash,
                                                     *val, Hash{}(*val));
-                    return {
-                        node_t::copy_inner_replace_merged(
-                            node, bit, offset, child),
-                        true
-                    };
+                    try {
+                        return {
+                            node_t::copy_inner_replace_merged(
+                                node, bit, offset, child),
+                            true
+                        };
+                    } catch (...) {
+                        node_t::delete_deep_shift(child, shift + B);
+                        throw;
+                    }
                 }
             } else {
                 return {

@@ -47,6 +47,13 @@ auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
                                    out);
 }
 
+template <class T>
+void destroy(T* first, T* last)
+{
+    for (; first != last; ++first)
+        first->~T();
+}
+
 template <class T, class Size>
 void destroy_n(T* p, Size n)
 {
