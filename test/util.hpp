@@ -102,7 +102,7 @@ auto test_irange(Integer from, Integer to)
 #if IMMER_SLOW_TESTS
     return boost::irange(from, to);
 #else
-    if (to - from < Integer{3})
+    if (to - from < Integer{10})
         return boost::join(
             boost::irange(Integer{}, Integer{}),
             boost::join(boost::irange(from, to, 1),
