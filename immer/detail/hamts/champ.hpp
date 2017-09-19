@@ -281,8 +281,13 @@ struct champ
                         : node_t::copy_inner_replace_inline(
                             node, bit, offset, *result.data.singleton);
                 case sub_result::tree:
-                    return node_t::copy_inner_replace(node, offset,
-                                                     result.data.tree);
+                    try {
+                        return node_t::copy_inner_replace(node, offset,
+                                                          result.data.tree);
+                    } catch (...) {
+                        node_t::delete_deep_shift(result.data.tree, shift + B);
+                        throw;
+                    }
                 }
             } else if (node->datamap() & bit) {
                 auto offset = popcount(node->datamap() & (bit - 1));

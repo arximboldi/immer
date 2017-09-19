@@ -291,7 +291,7 @@ TEST_CASE("non default")
 
 TEST_CASE("exception safety")
 {
-    constexpr auto n = 6666u;
+    constexpr auto n = 2666u;
 
     using dadaist_set_t = typename dadaist_wrapper<SET_T<unsigned>>::type;
     using dadaist_conflictor_set_t = typename dadaist_wrapper<SET_T<conflictor, hash_conflictor>>::type;
@@ -325,6 +325,49 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
+                CHECK(v.count({vals[i]}) == 1);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("erase collisions")
+    {
+        auto v = dadaist_set_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert({i});
+        for (auto i = 0u; v.size() > 0;) {
+            try {
+                auto s = d.next();
+                v = v.erase({i});
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count({i}) == 0);
+            for (auto i : test_irange(i, n))
+                CHECK(v.count({i}) == 1);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("erase collisisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v = dadaist_conflictor_set_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert({vals[i]});
+        for (auto i = 0u; v.size() > 0;) {
+            try {
+                auto s = d.next();
+                v = v.erase({vals[i]});
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count({vals[i]}) == 0);
+            for (auto i : test_irange(i, n))
                 CHECK(v.count({vals[i]}) == 1);
         }
         CHECK(d.happenings > 0);

@@ -228,7 +228,7 @@ struct node
         try {
             new (p->values()) T{std::move(x)};
         } catch (...) {
-            deallocate_inner(p, n);
+            deallocate_inner(p, n, 1);
             throw;
         }
         return p;
@@ -338,7 +338,7 @@ struct node
                 throw;
             }
         } catch (...) {
-            deallocate_collision(dst, n);
+            deallocate_collision(dst, n - 1);
             throw;
         }
         return dst;
