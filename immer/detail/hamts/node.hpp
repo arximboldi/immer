@@ -41,9 +41,9 @@ template <typename T,
           typename Equal,
           typename MemoryPolicy,
           bits_t B>
-struct cnode
+struct node
 {
-    using node_t      = cnode;
+    using node_t      = node;
 
     using memory      = MemoryPolicy;
     using heap_policy = typename memory::heap;

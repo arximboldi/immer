@@ -21,7 +21,7 @@
 #pragma once
 
 #include <immer/config.hpp>
-#include <immer/detail/hamts/cnode.hpp>
+#include <immer/detail/hamts/node.hpp>
 
 namespace immer {
 namespace detail {
@@ -38,7 +38,7 @@ struct champ
 
     static constexpr auto bits = B;
 
-    using node_t = cnode<T, Hash, Equal, MemoryPolicy, B>;
+    using node_t = node<T, Hash, Equal, MemoryPolicy, B>;
 
     node_t* root;
     size_t  size;
