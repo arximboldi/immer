@@ -46,7 +46,7 @@ struct identity_t
 #endif
 
 #if IMMER_SLOW_TESTS
-#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, xf_)         \
+#define CHECK_VECTOR_EQUALS_RANGE_AUX(v1_, first_, last_, xf_)         \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {           \
         auto size = std::distance(first, last);                      \
         CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);       \
@@ -56,7 +56,7 @@ struct identity_t
     } (v1_, first_, last_, xf_)                                      \
     // CHECK_EQUALS
 #else
-#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, ...)            \
+#define CHECK_VECTOR_EQUALS_RANGE_AUX(v1_, first_, last_, ...)            \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {              \
         auto size = std::distance(first, last);                         \
         CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);          \
@@ -83,16 +83,16 @@ struct identity_t
     // CHECK_EQUALS
 #endif // IMMER_SLOW_TESTS
 
-#define CHECK_VECTOR_EQUALS_X(v1_, v2_, ...)                            \
+#define CHECK_VECTOR_EQUALS_AUX(v1_, v2_, ...)                            \
     [] (auto&& v1, auto&& v2, auto&& ...xs) {                           \
-        CHECK_VECTOR_EQUALS_RANGE_X(v1, v2.begin(), v2.end(), xs...);   \
+        CHECK_VECTOR_EQUALS_RANGE_AUX(v1, v2.begin(), v2.end(), xs...);   \
     } (v1_, v2_, __VA_ARGS__)
 
 #define CHECK_VECTOR_EQUALS_RANGE(v1, b, e)                     \
-    CHECK_VECTOR_EQUALS_RANGE_X((v1), (b), (e), identity_t{})
+    CHECK_VECTOR_EQUALS_RANGE_AUX((v1), (b), (e), identity_t{})
 
 #define CHECK_VECTOR_EQUALS(v1, v2)                             \
-    CHECK_VECTOR_EQUALS_X((v1), (v2), identity_t{})
+    CHECK_VECTOR_EQUALS_AUX((v1), (v2), identity_t{})
 
 namespace {
 
