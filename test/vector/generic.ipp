@@ -18,8 +18,8 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "../util.hpp"
-#include "../dada.hpp"
+#include "test/util.hpp"
+#include "test/dada.hpp"
 
 #include <immer/algorithm.hpp>
 

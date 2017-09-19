@@ -18,7 +18,9 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "../util.hpp"
+#include "test/util.hpp"
+#include "test/dada.hpp"
+#include "test/transient_tester.hpp"
 
 #include <catch.hpp>
 

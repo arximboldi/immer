@@ -24,7 +24,7 @@
 #define SET_T ::immer::set
 #endif
 
-#include "../util.hpp"
+#include "test/util.hpp"
 
 #include <immer/algorithm.hpp>
 
