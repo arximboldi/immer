@@ -22,11 +22,43 @@
 
 #include <immer/memory_policy.hpp>
 #include <immer/detail/hamts/champ.hpp>
+#include <immer/detail/hamts/champ_iterator.hpp>
 
 #include <functional>
 
 namespace immer {
 
+/*!
+ * Immutable unordered mapping of values from type `K` to type `T`.
+ *
+ * @tparam K    The type of the keys.
+ * @tparam T    The type of the values to be stored in the container.
+ * @tparam Hash The type of a function object capable of hashing
+ *              values of type `T`.
+ * @tparam Equal The type of a function object capable of comparing
+ *              values of type `T`.
+ * @tparam MemoryPolicy Memory management policy. See @ref
+ *              memory_policy.
+ *
+ * @rst
+ *
+ * This cotainer provides a good trade-off between cache locality,
+ * search, update performance and structural sharing.  It does so by
+ * storing the data in contiguous chunks of :math:`2^{B}` elements.
+ * When storing big objects, the size of these contiguous chunks can
+ * become too big, damaging performance.  If this is measured to be
+ * problematic for a specific use-case, it can be solved by using a
+ * `immer::box` to wrap the type `T`.
+ *
+ * **Example**
+ *   .. literalinclude:: ../example/set/intro.cpp
+ *      :language: c++
+ *      :start-after: intro/start
+ *      :end-before:  intro/end
+ *
+ * @endrst
+ *
+ */
 template <typename K,
           typename T,
           typename Hash          = std::hash<T>,
@@ -70,6 +102,10 @@ public:
     using reference = const value_type&;
     using const_reference = const value_type&;
 
+    /*!
+     * Default constructor.  It creates a set of `size() == 0`.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     map() = default;
 
     /*!
@@ -81,6 +117,11 @@ public:
     map insert(value_type v) const
     { return impl_.add(std::move(v)); }
 
+    /*!
+     * Returns `1` when the key `k` is contained in the map or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
     size_type count(const K& k) const
     { return impl_.get(k) ? 1 : 0; }
 
