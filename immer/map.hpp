@@ -85,6 +85,15 @@ class map
         }
     };
 
+    struct combine_value
+    {
+        template <typename Kf, typename Tf>
+        value_t operator() (Kf&& k, Tf&& v) const
+        {
+            return { std::forward<Kf>(k), std::forward<Tf>(v) };
+        }
+    };
+
     struct default_value
     {
         const T& operator() () const
@@ -114,10 +123,16 @@ class map
     struct equal_key
     {
         auto operator() (const value_t& a, const value_t& b)
-        { return Equal{}(a.first, b.first) && a.second == b.second; }
+        { return Equal{}(a.first, b.first); }
 
         auto operator() (const value_t& a, const K& b)
         { return Equal{}(a.first, b); }
+    };
+
+    struct equal_value
+    {
+        auto operator() (const value_t& a, const value_t& b)
+        { return Equal{}(a.first, b.first) && a.second == b.second; }
     };
 
     using impl_t = detail::hamts::champ<
@@ -196,7 +211,7 @@ public:
      * Returns whether the sets are equal.
      */
     bool operator==(const map& other) const
-    { return impl_.equals(other.impl_); }
+    { return impl_.template equals<equal_value>(other.impl_); }
     bool operator!=(const map& other) const
     { return !(*this == other); }
 
@@ -239,6 +254,32 @@ public:
      */
     map set(key_type k, mapped_type v) const
     { return impl_.add({std::move(k), std::move(v)}); }
+
+    /*!
+     * Returns a map replacing the association `(k, v)` by the
+     * association new association `(k, fn(v))`, where `v` is the
+     * currently associated value for `k` in the map or a default
+     * constructed value otherwise. It may allocate memory
+     * and its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/map/map.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: update/start
+     *      :end-before:  update/end
+     *
+     * @endrst
+     */
+    template <typename Fn>
+    map update(key_type k, Fn&& fn) const
+    {
+        return impl_
+            .template update<project_value, default_value, combine_value>(
+                std::move(k), std::forward<Fn>(fn));
+    }
 
     /*!
      * Returns a map without the key `k`.  If the key is not

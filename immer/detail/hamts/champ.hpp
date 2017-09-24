@@ -23,6 +23,8 @@
 #include <immer/config.hpp>
 #include <immer/detail/hamts/node.hpp>
 
+#include <algorithm>
+
 namespace immer {
 namespace detail {
 namespace hamts {
@@ -226,6 +228,98 @@ struct champ
         return { res.first, new_size };
     }
 
+    template <typename Project, typename Default, typename Combine,
+              typename K, typename Fn>
+    std::pair<node_t*, bool>
+    do_update(node_t* node, K&& k, Fn&& fn,
+              hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst)
+                if (Equal{}(*fst, k))
+                    return {
+                        node_t::copy_collision_replace(
+                            node, fst, Combine{}(std::forward<K>(k),
+                                                 std::forward<Fn>(fn)(
+                                                     Project{}(*fst)))),
+                        false
+                    };
+            return {
+                node_t::copy_collision_insert(
+                    node, Combine{}(std::forward<K>(k),
+                                    std::forward<Fn>(fn)(
+                                        Default{}()))),
+                true
+            };
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = 1 << idx;
+            if (node->nodemap() & bit) {
+                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto result = do_update<Project, Default, Combine>(
+                    node->children() [offset], k, std::forward<Fn>(fn),
+                    hash, shift + B);
+                try {
+                    result.first = node_t::copy_inner_replace(
+                        node, offset, result.first);
+                    return result;
+                } catch (...) {
+                    node_t::delete_deep_shift(result.first, shift + B);
+                    throw;
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = popcount(node->datamap() & (bit - 1));
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k))
+                    return {
+                        node_t::copy_inner_replace_value(
+                            node, offset, Combine{}(std::forward<K>(k),
+                                                    std::forward<Fn>(fn)(
+                                                        Project{}(*val)))),
+                        false
+                    };
+                else {
+                    auto child = node_t::make_merged(
+                        shift + B, Combine{}(std::forward<K>(k),
+                                             std::forward<Fn>(fn)(
+                                                 Default{}())),
+                        hash, *val, Hash{}(*val));
+                    try {
+                        return {
+                            node_t::copy_inner_replace_merged(
+                                node, bit, offset, child),
+                            true
+                        };
+                    } catch (...) {
+                        node_t::delete_deep_shift(child, shift + B);
+                        throw;
+                    }
+                }
+            } else {
+                return {
+                    node_t::copy_inner_insert_value(
+                        node, bit, Combine{}(std::forward<K>(k),
+                                             std::forward<Fn>(fn)(
+                                                 Default{}()))),
+                    true
+                };
+            }
+        }
+    }
+
+    template <typename Project, typename Default, typename Combine,
+              typename K, typename Fn>
+    champ update(const K& k, Fn&& fn) const
+    {
+        auto hash = Hash{}(k);
+        auto res = do_update<Project, Default, Combine>(
+            root, k, std::forward<Fn>(fn), hash, 0);
+        auto new_size = size + (res.second ? 1 : 0);
+        return { res.first, new_size };
+    }
+
     // basically:
     //      variant<monostate_t, T*, node_t*>
     // boo bad we are not using... C++17 :'(
@@ -331,11 +425,13 @@ struct champ
         }
     }
 
+    template <typename Eq=Equal>
     bool equals(const champ& other) const
     {
-        return size == other.size && equals_tree(root, other.root, 0);
+        return size == other.size && equals_tree<Eq>(root, other.root, 0);
     }
 
+    template <typename Eq>
     static bool equals_tree(const node_t* a, const node_t* b, count_t depth)
     {
         if (a == b)
@@ -343,32 +439,38 @@ struct champ
         else if (depth == max_depth<B>) {
             auto nv = a->collision_count();
             return nv == b->collision_count() &&
-                equals_collisions(a->collisions(), b->collisions(), nv);
+                equals_collisions<Eq>(a->collisions(), b->collisions(), nv);
         } else {
             if (a->nodemap() != b->nodemap() ||
                 a->datamap() != b->datamap())
                 return false;
             auto n = popcount(a->nodemap());
             for (auto i = count_t{}; i < n; ++i)
-                if (!equals_tree(a->children()[i], b->children()[i], depth + 1))
+                if (!equals_tree<Eq>(a->children()[i], b->children()[i], depth + 1))
                     return false;
             auto nv = popcount(a->datamap());
-            return equals_values(a->values(), b->values(), nv);
+            return equals_values<Eq>(a->values(), b->values(), nv);
         }
     }
 
+    template <typename Eq>
     static bool equals_values(const T* a, const T* b, count_t n)
     {
-        return std::equal(a, a + n, b, Equal{});
+        return std::equal(a, a + n, b, Eq{});
     }
 
+    template <typename Eq>
     static bool equals_collisions(const T* a, const T* b, count_t n)
     {
         auto ae = a + n;
         auto be = b + n;
-        for (; a != ae; ++a)
-            if (std::find(b, be, *a) == be)
-                return false;
+        for (; a != ae; ++a) {
+            for (auto fst = b; fst != be; ++fst)
+                if (Eq{}(*a, *fst))
+                    goto good;
+            return false;
+        good: continue;
+        }
         return true;
     }
 };

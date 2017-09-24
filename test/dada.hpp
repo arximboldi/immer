@@ -176,6 +176,8 @@ template <typename T>
 struct dadaist : tristan_tzara
 {
     T value;
+
+    dadaist() : value{} {}
     dadaist(T v) : value{std::move(v)} {}
     operator T() const { return value; }
 };

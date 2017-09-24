@@ -24,6 +24,8 @@
 #define MAP_T ::immer::map
 #endif
 
+#include <immer/algorithm.hpp>
+
 #include "test/util.hpp"
 #include "test/dada.hpp"
 
@@ -57,15 +59,16 @@ struct hash_conflictor
 
 auto make_values_with_collisions(unsigned n)
 {
-    auto gen = make_generator();
-    auto vals = std::vector<conflictor>{};
+    auto gen   = make_generator();
+    auto vals  = std::vector<std::pair<conflictor, unsigned>>{};
     auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
+    auto i = 0u;
     generate_n(back_inserter(vals), n, [&] {
         auto newv = conflictor{};
         do {
             newv = { unsigned(gen() % (n / 2)), gen() };
         } while (!vals_.insert(newv).second);
-        return newv;
+        return std::pair<conflictor, unsigned>{newv, i++};
     });
     return vals;
 }
@@ -78,12 +81,11 @@ auto make_test_map(unsigned n)
     return s;
 }
 
-auto make_test_set(const std::vector<conflictor>& vals)
+auto make_test_map(const std::vector<std::pair<conflictor, unsigned>>& vals)
 {
     auto s = MAP_T<conflictor, unsigned, hash_conflictor>{};
-    auto i = 0u;
     for (auto&& v : vals)
-        s = s.insert(v, i++);
+        s = s.insert(v);
     return s;
 }
 
@@ -141,10 +143,14 @@ TEST_CASE("equals and setting")
     CHECK(v == v);
     CHECK(v != v.insert({1234, 42}));
     CHECK(v != v.erase(32));
-    CHECK(v == v.insert(1234).erase(1234));
+    CHECK(v == v.insert({1234, 42}).erase(1234));
     CHECK(v == v.erase(32).insert({32, 32}));
 
     CHECK(v.set(1234, 42) == v.insert({1234, 42}));
+    CHECK(v.update(1234, [] (auto&& x) { return x + 1; }) ==
+          v.set(1234, 1));
+    CHECK(v.update(42, [] (auto&& x) { return x + 1; }) ==
+          v.set(42, 43));
 }
 
 TEST_CASE("iterator")
@@ -154,7 +160,7 @@ TEST_CASE("iterator")
 
     SECTION("empty set")
     {
-        auto s = SET_T<unsigned>{};
+        auto s = MAP_T<unsigned, unsigned>{};
         CHECK(s.begin() == s.end());
     }
 
@@ -162,24 +168,17 @@ TEST_CASE("iterator")
     {
         auto seen = std::unordered_set<unsigned>{};
         for (const auto& x : v)
-            CHECK(seen.insert(x).second);
+            CHECK(seen.insert(x.first).second);
         CHECK(seen.size() == v.size());
-    }
-
-    SECTION("works with standard algorithms")
-    {
-        auto s = std::vector<unsigned>(N);
-        std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
     }
 
     SECTION("iterator and collisions")
     {
         auto vals = make_values_with_collisions(N);
-        auto s = make_test_set(vals);
+        auto s = make_test_map(vals);
         auto seen = std::unordered_set<conflictor, hash_conflictor>{};
         for (const auto& x : s)
-            CHECK(seen.insert(x).second);
+            CHECK(seen.insert(x.first).second);
         CHECK(seen.size() == s.size());
     }
 }
@@ -187,7 +186,7 @@ TEST_CASE("iterator")
 TEST_CASE("accumulate")
 {
     const auto n = 666u;
-    auto v = make_test_set(n);
+    auto v = make_test_map(n);
 
     auto expected_n =
         [] (auto n) {
@@ -198,7 +197,7 @@ TEST_CASE("accumulate")
     {
         auto acc = [] (unsigned acc, const std::pair<unsigned, unsigned>& x) {
             return acc + x.first + x.second;
-        }
+        };
         auto sum = immer::accumulate(v, 0u, acc);
         CHECK(sum == 2 * expected_n(v.size()));
     }
@@ -206,11 +205,72 @@ TEST_CASE("accumulate")
     SECTION("sum collisions") {
         auto vals = make_values_with_collisions(n);
         auto s = make_test_map(vals);
-        auto acc = [] (unsigned r, const std::pair<conflictor, unsigned> x) {
+        auto acc = [] (unsigned r, std::pair<conflictor, unsigned> x) {
             return r + x.first.v1 + x.first.v2 + x.second;
         };
-        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0, acc);
+        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0u, acc);
         auto sum2 = immer::accumulate(s, 0u, acc);
         CHECK(sum1 == sum2);
+    }
+}
+
+TEST_CASE("update a lot")
+{
+    auto v = make_test_map(666u);
+
+    for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+        v = v.update(i, [] (auto&& x) { return x + 1; });
+        CHECK(v[i] == i+1);
+    }
+}
+
+TEST_CASE("exception safety")
+{
+    constexpr auto n = 2666u;
+
+    using dadaist_map_t = typename dadaist_wrapper<MAP_T<unsigned, unsigned>>::type;
+    using dadaist_conflictor_map_t = typename dadaist_wrapper<MAP_T<conflictor, unsigned, hash_conflictor>>::type;
+
+    SECTION("update collisions")
+    {
+        auto v = dadaist_map_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.set(i, i);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v = v.update(i, [] (auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(i) == i + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(i) == i);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update collisisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v = dadaist_conflictor_map_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v = v.update(vals[i].first, [] (auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
     }
 }
