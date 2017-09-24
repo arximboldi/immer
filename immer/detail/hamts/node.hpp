@@ -132,10 +132,22 @@ struct node
         return (T*) &impl.d.data.inner.values->d.buffer;
     }
 
+    auto values() const
+    {
+        assert(kind() == kind_t::inner);
+        return (const T*) &impl.d.data.inner.values->d.buffer;
+    }
+
     auto children()
     {
         assert(kind() == kind_t::inner);
         return (node_t**) &impl.d.data.inner.buffer;
+    }
+
+    auto children() const
+    {
+        assert(kind() == kind_t::inner);
+        return (const node_t* const*) &impl.d.data.inner.buffer;
     }
 
     auto datamap() const
@@ -160,6 +172,12 @@ struct node
     {
         assert(kind() == kind_t::collision);
         return (T*)&impl.d.data.collision.buffer;
+    }
+
+    const T* collisions() const
+    {
+        assert(kind() == kind_t::collision);
+        return (const T*)&impl.d.data.collision.buffer;
     }
 
     static refs_t& refs(const values_t* x) { return auto_const_cast(get<refs_t>(*x)); }

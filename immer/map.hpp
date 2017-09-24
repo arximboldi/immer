@@ -49,7 +49,8 @@ class map
     struct equal_key
     {
         auto operator() (const value_t& a, const value_t& b)
-        { return Equal{}(a.first, b.first); }
+        { return Equal{}(a.first, b.first) &&
+                            a.second == b.second; }
 
         auto operator() (const value_t& a, const K& b)
         { return Equal{}(a.first, b); }

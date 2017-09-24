@@ -72,6 +72,14 @@ public:
      */
     size_type size() const { return impl_.size; }
 
+    /*!
+     * Returns whether the sets are equal.
+     */
+    bool operator==(const set& other) const
+    { return impl_.equals(other.impl_); }
+    bool operator!=(const set& other) const
+    { return !(*this == other); }
+
     set insert(T v) const
     { return impl_.add(std::move(v)); }
 

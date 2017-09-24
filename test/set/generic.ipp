@@ -289,6 +289,34 @@ TEST_CASE("non default")
     CHECK(v.size() == n);
 }
 
+TEST_CASE("equals")
+{
+    const auto n = 666u;
+    auto v = make_test_set(n);
+
+    CHECK(v == v);
+    CHECK(v != v.insert(1234));
+    CHECK(v == v.erase(1234));
+    CHECK(v == v.insert(1234).erase(1234));
+    CHECK(v == v.erase(64).insert(64));
+    CHECK(v != v.erase(1234).insert(1234));
+}
+
+TEST_CASE("equals collisions")
+{
+    const auto n = 666u;
+    auto vals = make_values_with_collisions(n);
+    auto v = make_test_set(vals);
+
+    CHECK(v == v);
+    CHECK(v != v.erase(vals[42]));
+    CHECK(v == v.erase(vals[42]).insert(vals[42]));
+    CHECK(v == v.erase(vals[42]).erase(vals[13])
+          .insert(vals[42]).insert(vals[13]));
+    CHECK(v == v.erase(vals[42]).erase(vals[13])
+          .insert(vals[13]).insert(vals[42]));
+}
+
 TEST_CASE("exception safety")
 {
     constexpr auto n = 2666u;
@@ -331,7 +359,7 @@ TEST_CASE("exception safety")
         IMMER_TRACE_E(d.happenings);
     }
 
-    SECTION("erase collisions")
+    SECTION("erase")
     {
         auto v = dadaist_set_t{};
         auto d = dadaism{};

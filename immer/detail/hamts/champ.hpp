@@ -329,6 +329,47 @@ struct champ
             IMMER_UNREACHABLE;
         }
     }
+
+    bool equals(const champ& other) const
+    {
+        return size == other.size && equals_tree(root, other.root, 0);
+    }
+
+    static bool equals_tree(const node_t* a, const node_t* b, count_t depth)
+    {
+        if (a == b)
+            return true;
+        else if (depth == max_depth<B>) {
+            auto nv = a->collision_count();
+            return nv == b->collision_count() &&
+                equals_collisions(a->collisions(), b->collisions(), nv);
+        } else {
+            if (a->nodemap() != b->nodemap() ||
+                a->datamap() != b->datamap())
+                return false;
+            auto n = popcount(a->nodemap());
+            for (auto i = count_t{}; i < n; ++i)
+                if (!equals_tree(a->children()[i], b->children()[i], depth + 1))
+                    return false;
+            auto nv = popcount(a->datamap());
+            return equals_values(a->values(), b->values(), nv);
+        }
+    }
+
+    static bool equals_values(const T* a, const T* b, count_t n)
+    {
+        return std::equal(a, a + n, b, Equal{});
+    }
+
+    static bool equals_collisions(const T* a, const T* b, count_t n)
+    {
+        auto ae = a + n;
+        auto be = b + n;
+        for (; a != ae; ++a)
+            if (std::find(b, be, *a) == be)
+                return false;
+        return true;
+    }
 };
 
 template <typename T, typename H, typename Eq, typename MP, bits_t B>
