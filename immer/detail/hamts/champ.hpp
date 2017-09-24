@@ -123,8 +123,8 @@ struct champ
         }
     }
 
-    template <typename K>
-    const T* get(const K& k) const
+    template <typename Project, typename Default, typename K>
+    decltype(auto) get(const K& k) const
     {
         auto node = root;
         auto hash = Hash{}(k);
@@ -138,19 +138,19 @@ struct champ
                 auto offset = popcount(node->datamap() & (bit - 1));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
-                    return val;
+                    return Project{}(*val);
                 else
-                    return nullptr;
+                    return Default{}();
             } else {
-                return nullptr;
+                return Default{}();
             }
         }
         auto fst = node->collisions();
         auto lst = fst + node->collision_count();
         for (; fst != lst; ++fst)
             if (Equal{}(*fst, k))
-                return fst;
-        return nullptr;
+                return Project{}(*fst);
+        return Default{}();
     }
 
     std::pair<node_t*, bool>

@@ -124,5 +124,12 @@ template <bool b, typename R=void, typename F1, typename F2>
 auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<!b, R>
 { return std::forward<F2>(f2)(empty_t{}); }
 
+template <typename T, T value>
+struct constantly
+{
+    template <typename... Args>
+    T operator() (Args&&...) const { return value; }
+};
+
 } // namespace detail
 } // namespace immer

@@ -112,7 +112,8 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     size_type count(const T& value) const
-    { return impl_.get(value) ? 1 : 0; }
+    { return impl_.template get<detail::constantly<size_type, 1>,
+                                detail::constantly<size_type, 0>>(value); }
 
     /*!
      * Returns whether the sets are equal.

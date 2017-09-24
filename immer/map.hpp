@@ -61,13 +61,38 @@ namespace immer {
  */
 template <typename K,
           typename T,
-          typename Hash          = std::hash<T>,
-          typename Equal         = std::equal_to<T>,
+          typename Hash          = std::hash<K>,
+          typename Equal         = std::equal_to<K>,
           typename MemoryPolicy  = default_memory_policy,
           detail::hamts::bits_t B = default_bits>
 class map
 {
     using value_t = std::pair<K, T>;
+
+    struct project_value
+    {
+        const T& operator() (const value_t& v) const noexcept
+        {
+            return v.second;
+        }
+    };
+
+    struct default_value
+    {
+        const T& operator() () const
+        {
+            static T v{};
+            return v;
+        }
+    };
+
+    struct error_value
+    {
+        const T& operator() () const
+        {
+            throw std::out_of_range{"key not found"};
+        }
+    };
 
     struct hash_key
     {
@@ -81,8 +106,7 @@ class map
     struct equal_key
     {
         auto operator() (const value_t& a, const value_t& b)
-        { return Equal{}(a.first, b.first) &&
-                            a.second == b.second; }
+        { return Equal{}(a.first, b.first) && a.second == b.second; }
 
         auto operator() (const value_t& a, const K& b)
         { return Equal{}(a.first, b); }
@@ -102,6 +126,10 @@ public:
     using reference = const value_type&;
     using const_reference = const value_type&;
 
+    using iterator         = detail::hamts::champ_iterator<
+        value_t, hash_key, equal_key, MemoryPolicy, B>;
+    using const_iterator   = iterator;
+
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
@@ -109,13 +137,23 @@ public:
     map() = default;
 
     /*!
+     * Returns an iterator pointing at the first element of the
+     * collection. It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
+     */
+    iterator begin() const { return {impl_}; }
+
+    /*!
+     * Returns an iterator pointing just after the last element of the
+     * collection. It does not allocate and its complexity is @f$ O(1) @f$.
+     */
+    iterator end() const { return {impl_, typename iterator::end_t{}}; }
+
+    /*!
      * Returns the number of elements in the container.  It does
      * not allocate memory and its complexity is @f$ O(1) @f$.
      */
     size_type size() const { return impl_.size; }
-
-    map insert(value_type v) const
-    { return impl_.add(std::move(v)); }
 
     /*!
      * Returns `1` when the key `k` is contained in the map or `0`
@@ -123,7 +161,96 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     size_type count(const K& k) const
-    { return impl_.get(k) ? 1 : 0; }
+    { return impl_.template get<detail::constantly<size_type, 1>,
+                                detail::constantly<size_type, 0>>(k); }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, it returns a
+     * default constructed value.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
+    const T& operator[] (const K& k) const
+    { return impl_.template get<project_value, default_value>(k); }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, throws an
+     * `std::out_of_range` error.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
+    const T& at(const K& k) const
+    { return impl_.template get<project_value, error_value>(k); }
+
+    /*!
+     * Returns whether the sets are equal.
+     */
+    bool operator==(const map& other) const
+    { return impl_.equals(other.impl_); }
+    bool operator!=(const map& other) const
+    { return !(*this == other); }
+
+    /*!
+     * Returns a map containing the association `value`.  If the key is
+     * already in the map, it replaces its association in the map.
+     * It may allocate memory and its complexity is *effectively* @f$
+     * O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/map/map.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: insert/start
+     *      :end-before:  insert/end
+     *
+     * @endrst
+     */
+    map insert(value_type value) const
+    { return impl_.add(std::move(value)); }
+
+    /*!
+     * Returns a map containing the association `(k, v)`.  If the key
+     * is already in the map, it replaces its association in the map.
+     * It may allocate memory and its complexity is *effectively* @f$
+     * O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/map/map.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: set/start
+     *      :end-before:  set/end
+     *
+     * @endrst
+     */
+    map set(key_type k, mapped_type v) const
+    { return impl_.add({std::move(k), std::move(v)}); }
+
+    /*!
+     * Returns a map without the key `k`.  If the key is not
+     * associated in the map it returns the same map.  It may allocate
+     * memory and its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/map/map.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: erase/start
+     *      :end-before:  erase/end
+     *
+     * @endrst
+     */
+    map erase(const K& k) const
+    { return impl_.sub(k); }
+
+    // Semi-private
+    const impl_t& impl() const { return impl_; }
 
 private:
     map(impl_t impl)
