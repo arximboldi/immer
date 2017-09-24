@@ -28,6 +28,36 @@
 
 namespace immer {
 
+/*!
+ * Immutable set representing an unordered bag of values.
+ *
+ * @tparam T    The type of the values to be stored in the container.
+ * @tparam Hash The type of a function object capable of hashing
+ *              values of type `T`.
+ * @tparam Equal The type of a function object capable of comparing
+ *              values of type `T`.
+ * @tparam MemoryPolicy Memory management policy. See @ref
+ *              memory_policy.
+ *
+ * @rst
+ *
+ * This cotainer provides a good trade-off between cache locality,
+ * membership checks, update performance and structural sharing.  It
+ * does so by storing the data in contiguous chunks of :math:`2^{B}`
+ * elements.  When storing big objects, the size of these contiguous
+ * chunks can become too big, damaging performance.  If this is
+ * measured to be problematic for a specific use-case, it can be
+ * solved by using a `immer::box` to wrap the type `T`.
+ *
+ * **Example**
+ *   .. literalinclude:: ../example/set/intro.cpp
+ *      :language: c++
+ *      :start-after: intro/start
+ *      :end-before:  intro/end
+ *
+ * @endrst
+ *
+ */
 template <typename T,
           typename Hash          = std::hash<T>,
           typename Equal         = std::equal_to<T>,
@@ -51,6 +81,10 @@ public:
                                                          MemoryPolicy, B>;
     using const_iterator   = iterator;
 
+    /*!
+     * Default constructor.  It creates a set of `size() == 0`.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     set() = default;
 
     /*!
@@ -73,6 +107,14 @@ public:
     size_type size() const { return impl_.size; }
 
     /*!
+     * Returns `1` when `value` is contained in the set or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    size_type count(const T& value) const
+    { return impl_.get(value) ? 1 : 0; }
+
+    /*!
      * Returns whether the sets are equal.
      */
     bool operator==(const set& other) const
@@ -80,14 +122,43 @@ public:
     bool operator!=(const set& other) const
     { return !(*this == other); }
 
-    set insert(T v) const
-    { return impl_.add(std::move(v)); }
+    /*!
+     * Returns a set containing `value`.  If the `value` is already in
+     * the set, it returns the same set.  It may allocate memory and
+     * its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/set/set.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: insert/start
+     *      :end-before:  insert/end
+     *
+     * @endrst
+     */
+    set insert(T value) const
+    { return impl_.add(std::move(value)); }
 
-    set erase(const T& v) const
-    { return impl_.sub(v); }
-
-    size_type count(const T& v) const
-    { return impl_.get(v) ? 1 : 0; }
+    /*!
+     * Returns a set without `value`.  If the `value` is not in the
+     * set it returns the same set.  It may allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * **Example**
+     *   .. literalinclude:: ../example/set/set.cpp
+     *      :language: c++
+     *      :dedent: 8
+     *      :start-after: erase/start
+     *      :end-before:  erase/end
+     *
+     * @endrst
+     */
+    set erase(const T& value) const
+    { return impl_.sub(value); }
 
     // Semi-private
     const impl_t& impl() const { return impl_; }
