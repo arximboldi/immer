@@ -472,6 +472,13 @@ struct rrbtree
         return descend(get_visitor<T>(), index);
     }
 
+    const T& get_check(size_t index) const
+    {
+        if (index >= size)
+            throw std::out_of_range{"out of range"};
+        return descend(get_visitor<T>(), index);
+    }
+
     const T& front() const
     {
         return get(0);
