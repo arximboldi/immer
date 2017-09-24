@@ -275,8 +275,9 @@ struct champ
                 case sub_result::nothing:
                     return {};
                 case sub_result::singleton:
-                    return popcount(node->datamap()) == 0 &&
-                           popcount(node->nodemap()) == 1
+                    return node->datamap() == 0 &&
+                           popcount(node->nodemap()) == 1 &&
+                           shift > 0
                         ? result
                         : node_t::copy_inner_replace_inline(
                             node, bit, offset, *result.data.singleton);

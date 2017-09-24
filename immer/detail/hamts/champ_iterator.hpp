@@ -126,7 +126,6 @@ private:
 
     void ensure_valid_()
     {
-        assert(cur_ != nullptr);
         while (cur_ == end_) {
             while (step_down())
                 if (cur_ != end_)
