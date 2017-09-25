@@ -28,6 +28,13 @@
 
 namespace immer {
 
+template <typename T,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          detail::hamts::bits_t B>
+class set_transient;
+
 /*!
  * Immutable set representing an unordered bag of values.
  *
@@ -80,6 +87,8 @@ public:
     using iterator         = detail::hamts::champ_iterator<T, Hash, Equal,
                                                          MemoryPolicy, B>;
     using const_iterator   = iterator;
+
+    using transient_type   = set_transient<T, Hash, Equal, MemoryPolicy, B>;
 
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
@@ -161,10 +170,21 @@ public:
     set erase(const T& value) const
     { return impl_.sub(value); }
 
+    /*!
+     * Returns an @a transient form of this container, a
+     * `immer::set_transient`.
+     */
+    transient_type transient() const&
+    { return transient_type{ impl_ }; }
+    transient_type transient() &&
+    { return transient_type{ std::move(impl_) }; }
+
     // Semi-private
     const impl_t& impl() const { return impl_; }
 
 private:
+    friend transient_type;
+
     set(impl_t impl)
         : impl_(std::move(impl))
     {}

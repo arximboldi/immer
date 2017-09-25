@@ -28,6 +28,14 @@
 
 namespace immer {
 
+template <typename K,
+          typename T,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          detail::hamts::bits_t B>
+class map_transient;
+
 /*!
  * Immutable unordered mapping of values from type `K` to type `T`.
  *
@@ -129,6 +137,8 @@ public:
     using iterator         = detail::hamts::champ_iterator<
         value_t, hash_key, equal_key, MemoryPolicy, B>;
     using const_iterator   = iterator;
+
+    using transient_type   = map_transient<K, T, Hash, Equal, MemoryPolicy, B>;
 
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
@@ -249,10 +259,21 @@ public:
     map erase(const K& k) const
     { return impl_.sub(k); }
 
+    /*!
+     * Returns an @a transient form of this container, a
+     * `immer::map_transient`.
+     */
+    transient_type transient() const&
+    { return transient_type{ impl_ }; }
+    transient_type transient() &&
+    { return transient_type{ std::move(impl_) }; }
+
     // Semi-private
     const impl_t& impl() const { return impl_; }
 
 private:
+    friend transient_type;
+
     map(impl_t impl)
         : impl_(std::move(impl))
     {}
