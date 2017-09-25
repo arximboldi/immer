@@ -26,6 +26,8 @@ stdenv.mkDerivation rec {
     pkgconfig
     doxygen
     ninja
+    gdb
+    lldb
     ccache
     boost
     boehmgc
