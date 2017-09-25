@@ -51,7 +51,7 @@ namespace immer {
  * `immer::box` to wrap the type `T`.
  *
  * **Example**
- *   .. literalinclude:: ../example/set/intro.cpp
+ *   .. literalinclude:: ../example/map/intro.cpp
  *      :language: c++
  *      :start-after: intro/start
  *      :end-before:  intro/end
