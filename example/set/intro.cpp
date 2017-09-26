@@ -24,12 +24,11 @@ int main()
 {
     const auto v0 = immer::set<int>{};
     const auto v1 = v0.insert(42);
-    assert(v0.size() == 0 &&
-           v1.size() == 1 &&
-           v1.count(42) == 1);
+    assert(v0.count(42) == 0);
+    assert(v1.count(42) == 1);
 
     const auto v2 = v1.erase(42);
-    assert(v1.count(42) &&
-           !v2.count(42));
+    assert(v1.count(42) == 1);
+    assert(v2.count(42) == 0);
 }
 // include:intro/end

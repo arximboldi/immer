@@ -136,17 +136,6 @@ public:
      * Returns a set containing `value`.  If the `value` is already in
      * the set, it returns the same set.  It may allocate memory and
      * its complexity is *effectively* @f$ O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/set/set.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: insert/start
-     *      :end-before:  insert/end
-     *
-     * @endrst
      */
     set insert(T value) const
     { return impl_.add(std::move(value)); }
@@ -155,17 +144,6 @@ public:
      * Returns a set without `value`.  If the `value` is not in the
      * set it returns the same set.  It may allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/set/set.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: erase/start
-     *      :end-before:  erase/end
-     *
-     * @endrst
      */
     set erase(const T& value) const
     { return impl_.sub(value); }

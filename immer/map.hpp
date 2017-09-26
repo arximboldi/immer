@@ -262,17 +262,6 @@ public:
      * already in the map, it replaces its association in the map.
      * It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/map/map.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: insert/start
-     *      :end-before:  insert/end
-     *
-     * @endrst
      */
     map insert(value_type value) const
     { return impl_.add(std::move(value)); }
@@ -282,17 +271,6 @@ public:
      * is already in the map, it replaces its association in the map.
      * It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/map/map.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: set/start
-     *      :end-before:  set/end
-     *
-     * @endrst
      */
     map set(key_type k, mapped_type v) const
     { return impl_.add({std::move(k), std::move(v)}); }
@@ -303,17 +281,6 @@ public:
      * currently associated value for `k` in the map or a default
      * constructed value otherwise. It may allocate memory
      * and its complexity is *effectively* @f$ O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/map/map.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: update/start
-     *      :end-before:  update/end
-     *
-     * @endrst
      */
     template <typename Fn>
     map update(key_type k, Fn&& fn) const
@@ -327,17 +294,6 @@ public:
      * Returns a map without the key `k`.  If the key is not
      * associated in the map it returns the same map.  It may allocate
      * memory and its complexity is *effectively* @f$ O(1) @f$.
-     *
-     * @rst
-     *
-     * **Example**
-     *   .. literalinclude:: ../example/map/map.cpp
-     *      :language: c++
-     *      :dedent: 8
-     *      :start-after: erase/start
-     *      :end-before:  erase/end
-     *
-     * @endrst
      */
     map erase(const K& k) const
     { return impl_.sub(k); }
