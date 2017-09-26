@@ -85,6 +85,14 @@ class map
         }
     };
 
+    struct project_value_ptr
+    {
+        const T* operator() (const value_t& v) const noexcept
+        {
+            return &v.second;
+        }
+    };
+
     struct combine_value
     {
         template <typename Kf, typename Tf>
@@ -206,6 +214,40 @@ public:
      */
     const T& at(const K& k) const
     { return impl_.template get<project_value, error_value>(k); }
+
+
+    /*!
+     * Returns a pointer to the value associated with the key `k`.  If
+     * the key is not contained in the map, a `nullptr` is returned.
+     * It does not allocate memory and its complexity is *effectively*
+     * @f$ O(1) @f$.
+     *
+     * @rst
+     *
+     * .. admonition:: Why doesn't this function return an iterator?
+     *
+     *   Associative containers from the C++ standard library provide a
+     *   ``find`` method that returns an iterator pointing to the
+     *   element in the container or ``end()`` when the key is missing.
+     *   In the case of an unordered container, the only meaningful
+     *   thing one may do with it is to compare it with the end, to
+     *   test if the find was succesfull, and dereference it.  This
+     *   comparison is cumbersome compared to testing for a non-empty
+     *   optional value.  Furthermore, for an immutable container,
+     *   returning an iterator would have some additional performance
+     *   cost, with no benefits otherwise.
+     *
+     *   In our opinion, this function should return a
+     *   ``std::optional<const T&>`` but this construction is not valid
+     *   in any current standard.  As a compromise we return a
+     *   pointer, which has similar syntactic properties yet it is
+     *   unfortunatelly unnecessarily unrestricted.
+     *
+     * @endrst
+     */
+    const T* find(const K& k) const
+    { return impl_.template get<project_value_ptr,
+                                detail::constantly<const T*, nullptr>>(k); }
 
     /*!
      * Returns whether the sets are equal.

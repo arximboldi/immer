@@ -135,6 +135,17 @@ TEST_CASE("at")
     CHECK_THROWS_AS(v.at(1234), std::out_of_range);
 }
 
+TEST_CASE("find")
+{
+    const auto n = 666u;
+    auto v = make_test_map(n);
+    CHECK(*v.find(0) == 0);
+    CHECK(*v.find(42) == 42);
+    CHECK(*v.find(665) == 665);
+    CHECK(v.find(666) == nullptr);
+    CHECK(v.find(1234) == nullptr);
+}
+
 TEST_CASE("equals and setting")
 {
     const auto n = 666u;
