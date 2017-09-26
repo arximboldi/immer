@@ -120,6 +120,8 @@ public:
     // to a box (which causes an allocation) just to compare it.
     bool operator!=(detail::exact_t<const box&> other) const
     { return !(*this == other.value); }
+    bool operator<(detail::exact_t<const box&> other) const
+    { return get() < other.value.get(); }
 
     /*!
      * Returns a new box built by applying the `fn` to the underlying
@@ -153,3 +155,16 @@ public:
 };
 
 } // namespace immer
+
+namespace std {
+
+template <typename T, typename MP>
+struct hash<immer::box<T, MP>>
+{
+    std::size_t operator() (const immer::box<T, MP>& x) const
+    {
+        return std::hash<T>{}(*x);
+    }
+};
+
+} // namespace std

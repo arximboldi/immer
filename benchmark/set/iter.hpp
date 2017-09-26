@@ -18,93 +18,106 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#pragma once
+
 #include "benchmark/config.hpp"
 
 #include <immer/set.hpp>
+#include <immer/box.hpp>
 #include <immer/algorithm.hpp>
-
 #include <hash_trie.hpp> // Phil Nash
-
 #include <boost/container/flat_set.hpp>
-
 #include <set>
 #include <unordered_set>
 #include <numeric>
 
-template <typename T=unsigned>
-auto make_generator(std::size_t runs)
-{
-    assert(runs > 0);
-    auto engine = std::default_random_engine{42};
-    auto dist = std::uniform_int_distribution<T>{};
-    auto r = std::vector<T>(runs);
-    std::generate_n(r.begin(), runs, std::bind(dist, engine));
-    return r;
-}
+namespace {
 
-template <typename Set>
+template <typename T>
+struct iter_step
+{
+    unsigned operator() (unsigned x, const T& y) const
+    {
+        return x + y;
+    }
+};
+
+template <>
+struct iter_step<std::string>
+{
+    unsigned operator() (unsigned x, const std::string& y) const
+    {
+        return x + (unsigned) y.size();
+    }
+};
+
+template <>
+struct iter_step<immer::box<std::string>>
+{
+    unsigned operator() (unsigned x, const immer::box<std::string>& y) const
+    {
+        return x + (unsigned) y->size();
+    }
+};
+
+template <typename Generator, typename Set>
 auto benchmark_access_std_iter()
 {
     return [] (nonius::chronometer meter)
     {
         auto n  = meter.param<N>();
-        auto g1 = make_generator(n);
+        auto g1 = Generator{}(n);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
             v.insert(g1[i]);
 
+        using step_t = iter_step<typename decltype(g1)::value_type>;
         measure(meter, [&] {
-            volatile auto c = std::accumulate(v.begin(), v.end(), 0u);
+            volatile auto c = std::accumulate(v.begin(), v.end(), 0u, step_t{});
             return c;
         });
     };
 };
 
-template <typename Set>
+template <typename Generator, typename Set>
 auto benchmark_access_reduce()
 {
     return [] (nonius::chronometer meter)
     {
         auto n = meter.param<N>();
-        auto g1 = make_generator(n);
+        auto g1 = Generator{}(n);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
             v = v.insert(g1[i]);
 
+        using step_t = iter_step<typename decltype(g1)::value_type>;
         measure(meter, [&] {
-            volatile auto c = immer::accumulate(v, 0u);
+            volatile auto c = immer::accumulate(v, 0u, step_t{});
             return c;
         });
     };
 };
 
-template <typename Set>
+template <typename Generator, typename Set>
 auto benchmark_access_iter()
 {
     return [] (nonius::chronometer meter)
     {
         auto n = meter.param<N>();
-        auto g1 = make_generator(n);
+        auto g1 = Generator{}(n);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
             v = v.insert(g1[i]);
 
+        using step_t = iter_step<typename decltype(g1)::value_type>;
         measure(meter, [&] {
-            volatile auto c = std::accumulate(v.begin(), v.end(), 0u);
+            volatile auto c = std::accumulate(v.begin(), v.end(), 0u, step_t{});
             return c;
         });
     };
 };
 
-NONIUS_BENCHMARK("iter/std::set", benchmark_access_std_iter<std::set<unsigned>>())
-NONIUS_BENCHMARK("iter/std::unordered_set", benchmark_access_std_iter<std::unordered_set<unsigned>>())
-NONIUS_BENCHMARK("iter/boost::flat_set", benchmark_access_std_iter<boost::container::flat_set<unsigned>>())
-NONIUS_BENCHMARK("iter/hamt::hash_trie", benchmark_access_std_iter<hamt::hash_trie<unsigned>>())
-NONIUS_BENCHMARK("iter/immer::set/5B", benchmark_access_iter<immer::set<unsigned, std::hash<unsigned>,std::equal_to<unsigned>,def_memory,5>>())
-NONIUS_BENCHMARK("iter/immer::set/4B", benchmark_access_iter<immer::set<unsigned, std::hash<unsigned>,std::equal_to<unsigned>,def_memory,4>>())
-
-NONIUS_BENCHMARK("reduce/immer::set/5B", benchmark_access_reduce<immer::set<unsigned, std::hash<unsigned>,std::equal_to<unsigned>,def_memory,5>>())
-NONIUS_BENCHMARK("reduce/immer::set/4B", benchmark_access_reduce<immer::set<unsigned, std::hash<unsigned>,std::equal_to<unsigned>,def_memory,4>>())
+} // namespace
