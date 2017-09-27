@@ -123,10 +123,21 @@ public:
 
     /*!
      * Returns a `const` reference to the element at position `index`.
-     * It does not allocate memory and its complexity is @f$ O(1) @f$.
+     * It is undefined when @f$ 0 index \geq size() @f$.  It does not
+     * allocate memory and its complexity is *effectively* @f$ O(1)
+     * @f$.
      */
     reference operator[] (size_type index) const
     { return impl_.get(index); }
+
+    /*!
+     * Returns a `const` reference to the element at position
+     * `index`. It throws an `std::out_of_range` exception when @f$
+     * index \geq size() @f$.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
+    reference at(size_type index) const
+    { return impl_.get_check(index); }
 
     /*!
      * Inserts `value` at the end.  It may allocate memory and its

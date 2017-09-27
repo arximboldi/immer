@@ -18,8 +18,9 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "../dada.hpp"
-#include "../util.hpp"
+#include "test/dada.hpp"
+#include "test/util.hpp"
+#include "test/transient_tester.hpp"
 
 #include <immer/algorithm.hpp>
 
@@ -549,13 +550,13 @@ TEST_CASE("adopt regular vector contents")
     for (auto i = 0u; i < n; ++i) {
         v = v.push_back(i);
         auto fv = FLEX_VECTOR_T<unsigned>{v};
-        CHECK_VECTOR_EQUALS_X(v, fv, [] (auto&& v) { return &v; });
+        CHECK_VECTOR_EQUALS_AUX(v, fv, [] (auto&& v) { return &v; });
     }
 }
 
 TEST_CASE("exception safety relaxed")
 {
-    using dadaist_vector_t = typename dadaist_vector<FLEX_VECTOR_T<unsigned>>::type;
+    using dadaist_vector_t = typename dadaist_wrapper<FLEX_VECTOR_T<unsigned>>::type;
     constexpr auto n = 666u;
 
     SECTION("push back")

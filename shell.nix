@@ -26,6 +26,8 @@ stdenv.mkDerivation rec {
     pkgconfig
     doxygen
     ninja
+    gdb
+    lldb
     ccache
     boost
     boehmgc
@@ -33,6 +35,7 @@ stdenv.mkDerivation rec {
     benchmarks.steady
     benchmarks.chunkedseq
     benchmarks.immutable_cpp
+    benchmarks.hash_trie
     (python.withPackages (ps: [
       ps.sphinx
       docs.breathe

@@ -47,6 +47,13 @@ auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
                                    out);
 }
 
+template <class T>
+void destroy(T* first, T* last)
+{
+    for (; first != last; ++first)
+        first->~T();
+}
+
 template <class T, class Size>
 void destroy_n(T* p, Size n)
 {
@@ -116,6 +123,13 @@ auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<b, R>
 template <bool b, typename R=void, typename F1, typename F2>
 auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<!b, R>
 { return std::forward<F2>(f2)(empty_t{}); }
+
+template <typename T, T value>
+struct constantly
+{
+    template <typename... Args>
+    T operator() (Args&&...) const { return value; }
+};
 
 } // namespace detail
 } // namespace immer

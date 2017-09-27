@@ -18,8 +18,8 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "../util.hpp"
-#include "../dada.hpp"
+#include "test/util.hpp"
+#include "test/dada.hpp"
 
 #include <immer/algorithm.hpp>
 
@@ -90,6 +90,15 @@ TEST_CASE("back and front")
     auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     CHECK(v.front() == 0);
     CHECK(v.back() == 9);
+}
+
+TEST_CASE("at")
+{
+    auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    CHECK(v.at(0) == 0);
+    CHECK(v.at(5) == 5);
+    CHECK_THROWS_AS(v.at(10), std::out_of_range);
+    CHECK_THROWS_AS(v.at(11), std::out_of_range);
 }
 
 TEST_CASE("push back one element")
@@ -180,6 +189,12 @@ TEST_CASE("iterator")
 {
     const auto n = 666u;
     auto v = make_test_vector(0, n);
+
+    SECTION("empty vector")
+    {
+        auto v = VECTOR_T<unsigned>{};
+        CHECK(v.begin() == v.end());
+    }
 
     SECTION("works with range loop")
     {
@@ -417,7 +432,7 @@ TEST_CASE("exception safety")
 {
     constexpr auto n = 666u;
 
-    using dadaist_vector_t = typename dadaist_vector<VECTOR_T<unsigned>>::type;
+    using dadaist_vector_t = typename dadaist_wrapper<VECTOR_T<unsigned>>::type;
 
     SECTION("push back")
     {

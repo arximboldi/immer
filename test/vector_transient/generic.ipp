@@ -18,7 +18,9 @@
 // along with immer.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "../util.hpp"
+#include "test/util.hpp"
+#include "test/dada.hpp"
+#include "test/transient_tester.hpp"
 
 #include <catch.hpp>
 
@@ -177,7 +179,7 @@ TEST_CASE("exception safety")
 {
     constexpr auto n = 667u;
 
-    using dadaist_vector_t = typename dadaist_vector<VECTOR_T<unsigned>>::type;
+    using dadaist_vector_t = typename dadaist_wrapper<VECTOR_T<unsigned>>::type;
 
     SECTION("push back")
     {

@@ -134,6 +134,13 @@ struct no_capacity
         return data()[index];
     }
 
+    const T& get_check(std::size_t index) const
+    {
+        if (index >= size)
+            throw std::out_of_range{"out of range"};
+        return data()[index];
+    }
+
     bool equals(const no_capacity& other) const
     {
         return ptr == other.ptr ||

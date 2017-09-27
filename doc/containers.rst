@@ -192,3 +192,17 @@ flex_vector
 .. doxygenclass:: immer::flex_vector
     :members:
     :undoc-members:
+
+set
+---
+
+.. doxygenclass:: immer::set
+    :members:
+    :undoc-members:
+
+map
+---
+
+.. doxygenclass:: immer::map
+    :members:
+    :undoc-members:

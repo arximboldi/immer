@@ -20,8 +20,6 @@
 
 #pragma once
 
-#include "dada.hpp"
-
 #include <boost/range/irange.hpp>
 #include <boost/range/join.hpp>
 #include <cstddef>
@@ -37,6 +35,28 @@ struct identity_t
     }
 };
 
+template <typename Integer>
+auto test_irange(Integer from, Integer to)
+{
+#if IMMER_SLOW_TESTS
+    return boost::irange(from, to);
+#else
+    if (to - from < Integer{10})
+        return boost::join(
+            boost::irange(Integer{}, Integer{}),
+            boost::join(boost::irange(from, to, 1),
+                        boost::irange(Integer{}, Integer{})));
+    else
+        return boost::join(
+            boost::irange(from, from + Integer{2}),
+            boost::join(
+                boost::irange(from + Integer{2},
+                              to - Integer{2},
+                              (to - from) / Integer{5}),
+                boost::irange(to - Integer{2}, to)));
+#endif
+}
+
 } // anonymous namespace
 
 #if IMMER_SLOW_TESTS
@@ -46,7 +66,7 @@ struct identity_t
 #endif
 
 #if IMMER_SLOW_TESTS
-#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, xf_)         \
+#define CHECK_VECTOR_EQUALS_RANGE_AUX(v1_, first_, last_, xf_)         \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {           \
         auto size = std::distance(first, last);                      \
         CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);       \
@@ -56,7 +76,7 @@ struct identity_t
     } (v1_, first_, last_, xf_)                                      \
     // CHECK_EQUALS
 #else
-#define CHECK_VECTOR_EQUALS_RANGE_X(v1_, first_, last_, ...)            \
+#define CHECK_VECTOR_EQUALS_RANGE_AUX(v1_, first_, last_, ...)            \
     [] (auto&& v1, auto&& first, auto&& last, auto&& xf) {              \
         auto size = std::distance(first, last);                         \
         CHECK(static_cast<std::ptrdiff_t>(v1.size()) == size);          \
@@ -83,97 +103,13 @@ struct identity_t
     // CHECK_EQUALS
 #endif // IMMER_SLOW_TESTS
 
-#define CHECK_VECTOR_EQUALS_X(v1_, v2_, ...)                            \
+#define CHECK_VECTOR_EQUALS_AUX(v1_, v2_, ...)                            \
     [] (auto&& v1, auto&& v2, auto&& ...xs) {                           \
-        CHECK_VECTOR_EQUALS_RANGE_X(v1, v2.begin(), v2.end(), xs...);   \
+        CHECK_VECTOR_EQUALS_RANGE_AUX(v1, v2.begin(), v2.end(), xs...);   \
     } (v1_, v2_, __VA_ARGS__)
 
 #define CHECK_VECTOR_EQUALS_RANGE(v1, b, e)                     \
-    CHECK_VECTOR_EQUALS_RANGE_X((v1), (b), (e), identity_t{})
+    CHECK_VECTOR_EQUALS_RANGE_AUX((v1), (b), (e), identity_t{})
 
 #define CHECK_VECTOR_EQUALS(v1, v2)                             \
-    CHECK_VECTOR_EQUALS_X((v1), (v2), identity_t{})
-
-namespace {
-
-template <typename Integer>
-auto test_irange(Integer from, Integer to)
-{
-#if IMMER_SLOW_TESTS
-    return boost::irange(from, to);
-#else
-    if (to - from < Integer{3})
-        return boost::join(
-            boost::irange(Integer{}, Integer{}),
-            boost::join(boost::irange(from, to, 1),
-                        boost::irange(Integer{}, Integer{})));
-    else
-        return boost::join(
-            boost::irange(from, from + Integer{2}),
-            boost::join(
-                boost::irange(from + Integer{2},
-                              to - Integer{2},
-                              (to - from) / Integer{5}),
-                boost::irange(to - Integer{2}, to)));
-#endif
-}
-
-struct push_back_fn
-{
-    template <typename T, typename U>
-    auto operator() (T&& v, U&& x)
-    {
-        return std::forward<T>(v)
-            .push_back(std::forward<U>(x));
-    }
-};
-
-struct push_front_fn
-{
-    template <typename T, typename U>
-    auto operator() (T&& v, U&& x)
-    {
-        return std::forward<T>(v)
-            .push_front(std::forward<U>(x));
-    }
-};
-
-template <typename VP, typename VT>
-struct transient_tester
-{
-    VP vp;
-    VT vt;
-    dadaism d = {};
-    bool transient = false;
-
-    transient_tester(VP vp)
-        : vp{vp}
-        , vt{vp.transient()}
-    {}
-
-    bool step()
-    {
-        auto s = d.next();
-        if (soft_dada()) {
-            auto new_transient = !transient;
-            try {
-                if (new_transient)
-                    vt = vp.transient();
-                else
-                    vp = vt.persistent();
-            } catch (const dada_error&) { return false; }
-            transient = new_transient;
-            return true;
-        } else
-            return false;
-    }
-};
-
-template <typename VP>
-transient_tester<VP, typename VP::transient_type>
-as_transient_tester(VP p)
-{
-    return { std::move(p) };
-}
-
-} // anonymous namespace
+    CHECK_VECTOR_EQUALS_AUX((v1), (v2), identity_t{})

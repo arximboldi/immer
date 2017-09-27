@@ -93,3 +93,17 @@ flex_vector_transient
 .. doxygenclass:: immer::flex_vector_transient
     :members:
     :undoc-members:
+
+set_transient
+-------------
+
+.. doxygenclass:: immer::set_transient
+    :members:
+    :undoc-members:
+
+map_transient
+-------------
+
+.. doxygenclass:: immer::map_transient
+    :members:
+    :undoc-members:
