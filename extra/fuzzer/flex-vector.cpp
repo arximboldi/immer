@@ -68,6 +68,9 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
             op_concat_move_l,
             op_concat_move_r,
             op_concat_move_lr,
+            op_insert,
+            op_erase,
+            op_compare,
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
@@ -134,6 +137,21 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
             auto src2 = read<char>(in, is_valid_var_neq(src));
             if (can_concat(vars[src], vars[src2]))
                 vars[dst] = std::move(vars[src]) + std::move(vars[src2]);
+        }
+        case op_compare: {
+            using std::swap;
+            if (vars[src] == vars[dst])
+                swap(vars[src], vars[dst]);
+            break;
+        }
+        case op_erase: {
+            auto idx = read<size_t>(in, is_valid_index(vars[src]));
+            vars[dst] = vars[src].erase(idx);
+            break;
+        }
+        case op_insert: {
+            auto idx = read<size_t>(in, is_valid_size(vars[src]));
+            vars[dst] = vars[src].insert(idx, immer::box<int>{42});
             break;
         }
         default:
