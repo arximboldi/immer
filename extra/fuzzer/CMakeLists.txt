@@ -12,7 +12,7 @@ foreach(_file IN LISTS immer_fuzzers)
     "-fsanitize-coverage=trace-pc-guard")
   target_link_libraries(${_target} PUBLIC
     "-fsanitize=address"
-    immer
+    immer-dev
     Fuzzer
     ${LIBGC_LIBS})
   target_include_directories(${_target} SYSTEM PUBLIC

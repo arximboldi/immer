@@ -21,6 +21,7 @@
 #include "fuzzer_input.hpp"
 #include <immer/vector.hpp>
 #include <iostream>
+#include <array>
 
 extern "C"
 int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
