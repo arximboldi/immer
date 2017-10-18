@@ -190,7 +190,8 @@ struct node
 
     static node_t* make_inner_n(count_t n)
     {
-        assert(n <= branches<B>);
+        constexpr auto i = branches<B, count_t>;
+        assert(n <= i);
         auto m = heap::allocate(sizeof_inner_n(n));
         auto p = new (m) node_t;
 #if IMMER_HAMTS_TAGGED_NODE
@@ -214,7 +215,8 @@ struct node
 
     static node_t* make_inner_n(count_t n, count_t nv)
     {
-        assert(nv <= branches<B>);
+        constexpr auto i = branches<B, count_t>;
+        assert(nv <= i);
         auto p = make_inner_n(n);
         if (nv) {
             try {
@@ -283,7 +285,8 @@ struct node
 
     static node_t* make_collision_n(count_t n)
     {
-        assert(n <= branches<B>);
+        constexpr auto i = branches<B, count_t>;
+        assert(n <= i);
         auto m = heap::allocate(sizeof_collision_n(n));
         auto p = new (m) node_t;
 #if IMMER_HAMTS_TAGGED_NODE
@@ -597,9 +600,9 @@ struct node
                                T v1, hash_t hash1,
                                T v2, hash_t hash2)
     {
-        if (shift < max_shift<B>) {
-            auto idx1 = hash1 & (mask<B> << shift);
-            auto idx2 = hash2 & (mask<B> << shift);
+        if (shift < max_shift<B, count_t>) {
+            auto idx1 = hash1 & (mask<B, size_t> << shift);
+            auto idx2 = hash2 & (mask<B, size_t> << shift);
             if (idx1 == idx2) {
                 auto merged = make_merged(shift + B,
                                           std::move(v1), hash1,
@@ -669,7 +672,7 @@ struct node
 
     static void delete_deep(node_t* p, shift_t s)
     {
-        if (s == max_depth<B>)
+        if (s == max_depth<B, count_t>)
             delete_collision(p);
         else {
             auto fst = p->children();
@@ -683,7 +686,7 @@ struct node
 
     static void delete_deep_shift(node_t* p, shift_t s)
     {
-        if (s == max_shift<B>)
+        if (s == max_shift<B, size_t>)
             delete_collision(p);
         else {
             auto fst = p->children();

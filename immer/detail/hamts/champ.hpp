@@ -36,7 +36,7 @@ template <typename T,
           bits_t B>
 struct champ
 {
-    static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
+    static_assert(branches<B, count_t> <= sizeof(bitmap_t) * 8, "");
 
     static constexpr auto bits = B;
 
@@ -130,8 +130,8 @@ struct champ
     {
         auto node = root;
         auto hash = Hash{}(k);
-        for (auto i = count_t{}; i < max_depth<B>; ++i) {
-            auto bit = 1 << (hash & mask<B>);
+        for (auto i = count_t{}; i < max_depth<B, count_t>; ++i) {
+            auto bit = 1 << (hash & mask<B, count_t>);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 node = node->children() [offset];
@@ -158,7 +158,7 @@ struct champ
     std::pair<node_t*, bool>
     do_add(node_t* node, T v, hash_t hash, shift_t shift) const
     {
-        if (shift == max_shift<B>) {
+        if (shift == max_shift<B, count_t>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
             for (; fst != lst; ++fst)
@@ -172,7 +172,7 @@ struct champ
                 true
             };
         } else {
-            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto idx = (hash & (mask<B, size_t> << shift)) >> shift;
             auto bit = 1 << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
@@ -234,7 +234,7 @@ struct champ
     do_update(node_t* node, K&& k, Fn&& fn,
               hash_t hash, shift_t shift) const
     {
-        if (shift == max_shift<B>) {
+        if (shift == max_shift<B, count_t>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
             for (; fst != lst; ++fst)
@@ -254,7 +254,7 @@ struct champ
                 true
             };
         } else {
-            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto idx = (hash & (mask<B, size_t> << shift)) >> shift;
             auto bit = 1 << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
