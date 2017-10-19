@@ -82,13 +82,13 @@ private:
 
     bool step_down()
     {
-        if (depth_ < max_depth<B, size_t>) {
+        if (depth_ < max_depth<B, count_t>) {
             auto parent = *path_[depth_];
             if (parent->nodemap()) {
                 ++depth_;
                 path_[depth_] = parent->children();
                 auto child = *path_[depth_];
-                if (depth_ < max_depth<B, size_t>) {
+                if (depth_ < max_depth<B, count_t>) {
                     cur_ = child->values();
                     end_ = cur_ + popcount(child->datamap());
                 } else {

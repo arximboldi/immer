@@ -20,6 +20,8 @@
 
 #pragma once
 
+[[noreturn]] static void _unreachable() { }
+
 #ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
 #endif
@@ -47,7 +49,7 @@
 #define IMMER_TRACE_E(expr)                             \
     IMMER_TRACE("    " << #expr << " = " << (expr))
 
-#define IMMER_UNREACHABLE    __builtin_unreachable()
+#define IMMER_UNREACHABLE    _unreachable()
 #define IMMER_LIKELY(cond)   __builtin_expect(!!(cond), 1)
 #define IMMER_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
 // #define IMMER_PREFETCH(p)    __builtin_prefetch(p)

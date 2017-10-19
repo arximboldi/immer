@@ -686,7 +686,7 @@ struct node
 
     static void delete_deep_shift(node_t* p, shift_t s)
     {
-        if (s == max_shift<B, size_t>)
+        if (s == max_shift<B, count_t>)
             delete_collision(p);
         else {
             auto fst = p->children();

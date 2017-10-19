@@ -349,7 +349,7 @@ struct champ
     template <typename K>
     sub_result do_sub(node_t* node, const K& k, hash_t hash, shift_t shift) const
     {
-        if (shift == max_shift<B>) {
+        if (shift == max_shift<B, count_t>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
             for (auto cur = fst; cur != lst; ++cur)
@@ -359,7 +359,7 @@ struct champ
                         : sub_result{fst + (cur == fst)};
             return {};
         } else {
-            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto idx = (hash & (mask<B, size_t> << shift)) >> shift;
             auto bit = 1 << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));

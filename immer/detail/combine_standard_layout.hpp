@@ -144,7 +144,7 @@ struct member_two
         Next n;
         T d;
 
-        type() {}
+        type() { };
 
         template <typename U>
         friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
