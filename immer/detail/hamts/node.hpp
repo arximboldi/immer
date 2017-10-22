@@ -649,7 +649,7 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
-        destroy_n(&p->d.buffer, n);
+        destroy_n<T>(reinterpret_cast<T*>(&p->d.buffer), n);
         deallocate_values(p, n);
     }
 
