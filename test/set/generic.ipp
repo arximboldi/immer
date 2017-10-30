@@ -110,7 +110,7 @@ TEST_CASE("basic insertion")
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
-};
+}
 
 TEST_CASE("insert a lot")
 {

@@ -45,7 +45,7 @@ auto benchmark_insert_mut_std()
             return v;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_insert()
@@ -62,6 +62,6 @@ auto benchmark_insert()
             return v;
         });
     };
-};
+}
 
 } // namespace

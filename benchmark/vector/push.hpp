@@ -40,7 +40,7 @@ auto benchmark_push_mut_std()
             return v;
         });
     };
-};
+}
 
 template <typename Vektor>
 auto benchmark_push_mut()
@@ -58,7 +58,7 @@ auto benchmark_push_mut()
             return v;
         });
     };
-};
+}
 
 template <typename Vektor>
 auto benchmark_push_move()
@@ -76,7 +76,7 @@ auto benchmark_push_move()
             return v;
         });
     };
-};
+}
 
 template <typename Vektor>
 auto benchmark_push()
@@ -94,7 +94,7 @@ auto benchmark_push()
             return v;
         });
     };
-};
+}
 
 auto benchmark_push_librrb(nonius::chronometer meter)
 {

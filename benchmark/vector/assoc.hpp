@@ -85,7 +85,7 @@ auto benchmark_assoc()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -108,7 +108,7 @@ auto benchmark_assoc_move()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn,
@@ -133,7 +133,7 @@ auto benchmark_assoc_random()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -156,7 +156,7 @@ auto benchmark_assoc_mut()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -180,7 +180,7 @@ auto benchmark_assoc_mut_random()
             return r;
         });
     };
-};
+}
 
 template <typename Fn>
 auto benchmark_assoc_librrb(Fn maker)

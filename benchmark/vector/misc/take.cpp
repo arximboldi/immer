@@ -39,10 +39,10 @@ extern "C" {
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", benchmark_take_librrb(make_librrb_vector))
 NONIUS_BENCHMARK("librrb/F", benchmark_take_librrb(make_librrb_vector_f))
-NONIUS_BENCHMARK("l/librrb", benchmark_take_lin_librrb(make_librrb_vector));
-NONIUS_BENCHMARK("l/librrb/F", benchmark_take_lin_librrb(make_librrb_vector_f));
-NONIUS_BENCHMARK("t/librrb", benchmark_take_mut_librrb(make_librrb_vector));
-NONIUS_BENCHMARK("t/librrb/F", benchmark_take_mut_librrb(make_librrb_vector_f));
+NONIUS_BENCHMARK("l/librrb", benchmark_take_lin_librrb(make_librrb_vector))
+NONIUS_BENCHMARK("l/librrb/F", benchmark_take_lin_librrb(make_librrb_vector_f))
+NONIUS_BENCHMARK("t/librrb", benchmark_take_mut_librrb(make_librrb_vector))
+NONIUS_BENCHMARK("t/librrb/F", benchmark_take_mut_librrb(make_librrb_vector_f))
 #endif
 
 NONIUS_BENCHMARK("vector/4B", benchmark_take<immer::vector<unsigned,def_memory,4>>())

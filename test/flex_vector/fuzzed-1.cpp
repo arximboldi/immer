@@ -183,7 +183,7 @@ TEST_CASE("bug: memory leak because of move update")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
-};
+}
 
 TEST_CASE("non-bug: crash")
 {

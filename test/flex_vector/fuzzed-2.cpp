@@ -198,4 +198,4 @@ TEST_CASE("bug: use after free on move-take")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
-};
+}

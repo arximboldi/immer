@@ -42,7 +42,7 @@ auto benchmark_concat()
             return v + v;
         });
     };
-};
+}
 
 template <typename Fn>
 auto benchmark_concat_librrb(Fn maker)
@@ -77,7 +77,7 @@ auto benchmark_concat_incr()
                     return r;
                 });
         };
-};
+}
 
 template <typename Vektor>
 auto benchmark_concat_incr_mut()
@@ -98,7 +98,7 @@ auto benchmark_concat_incr_mut()
                 return r;
             });
         };
-};
+}
 
 template <typename Vektor>
 auto benchmark_concat_incr_mut2()
@@ -129,7 +129,7 @@ auto benchmark_concat_incr_mut2()
                 return r;
             });
         };
-};
+}
 
 template <typename Vektor>
 auto benchmark_concat_incr_chunkedseq()
@@ -157,7 +157,7 @@ auto benchmark_concat_incr_chunkedseq()
                 return r;
             });
         };
-};
+}
 
 template <typename Fn>
 auto benchmark_concat_incr_librrb(Fn maker)

@@ -78,7 +78,7 @@ auto benchmark_access_std_iter()
             return c;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_access_reduce()
@@ -98,7 +98,7 @@ auto benchmark_access_reduce()
             return c;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_access_iter()
@@ -118,6 +118,6 @@ auto benchmark_access_iter()
             return c;
         });
     };
-};
+}
 
 } // namespace

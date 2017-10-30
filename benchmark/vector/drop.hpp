@@ -41,7 +41,7 @@ auto benchmark_drop()
                 v.drop(i);
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -62,7 +62,7 @@ auto benchmark_drop_lin()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -83,7 +83,7 @@ auto benchmark_drop_move()
             return r;
         });
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -103,7 +103,7 @@ auto benchmark_drop_mut()
                 v.drop(1);
         });
     };
-};
+}
 
 template <typename Fn>
 auto benchmark_drop_librrb(Fn make)
