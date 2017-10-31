@@ -85,9 +85,10 @@ struct exact_t
 };
 
 template <typename T>
-inline constexpr auto log2(T x)
+inline constexpr T log2(T n)
 {
-    return std::log2(x);
+	//assert(n);
+	return ((n<2) ? 0 : 1 + log2(n / 2));
 }
 
 
