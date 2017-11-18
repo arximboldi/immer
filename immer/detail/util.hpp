@@ -84,7 +84,7 @@ struct exact_t
     exact_t(T v) : value{v} {};
 };
 
-#ifndef _MSV_VER
+#ifndef _MSC_VER
 
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
