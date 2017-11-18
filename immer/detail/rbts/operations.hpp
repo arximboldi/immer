@@ -673,7 +673,8 @@ struct push_tail_mut_visitor
         auto children    = pos.size(idx);
         auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
-        auto new_child   = (node_t*){};
+        //auto new_child   = (node_t*){};
+        node_t* new_child;
         auto mutate      = Mutating && node->can_mutate(e);
 
         if (new_idx >= branches<B>)
@@ -771,7 +772,8 @@ struct push_tail_visitor
         auto children    = pos.size(idx);
         auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
-        auto new_child   = (node_t*){};
+        //auto new_child   = (node_t*){};
+        node_t* new_child;
         if (new_idx >= branches<B>)
             return nullptr;
         else if (idx == new_idx) {

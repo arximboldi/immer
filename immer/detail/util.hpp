@@ -84,6 +84,8 @@ struct exact_t
     exact_t(T v) : value{v} {};
 };
 
+#ifndef _MSV_VER
+
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
 inline constexpr auto clz_(unsigned int x) { return __builtin_clz(x); }
@@ -109,6 +111,23 @@ inline constexpr auto log2(T x)
 {
     return log2_aux(x);
 }
+
+#else
+
+template <typename T>
+inline constexpr T log2_aux( T x, T r = 0 )
+{
+   return x <= 1 ? r : log2_aux( x >> 1, r + 1 );
+}
+
+
+template <typename T>
+inline constexpr auto log2( T x ) -> T
+{
+   return log2_aux( x );
+}
+
+#endif
 
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<b>
