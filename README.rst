@@ -28,13 +28,13 @@ correctness, and performance.
 
 * **Documentation** (Contents_)
 * **Code** (GitHub_)
-* **C++Now'17 Talk**: *Postmodern Immutable Data Structures* (YouTube_, Slides_)
+* **CppCon'17 Talk**: *Postmodern Immutable Data Structures* (YouTube_, Slides_)
 * **ICFP'17 Paper**: *Persistence for the masses* (Preprint_)
 
 .. _contents: https://sinusoid.es/immer/#contents
 .. _github: https://github.com/arximboldi/immer
-.. _youtube: https://www.youtube.com/watch?v=ZsryQp0UAC8
-.. _slides: https://sinusoid.es/talks/immer-cppnow17
+.. _youtube: https://www.youtube.com/watch?v=sPhpelUfu8Q
+.. _slides: https://sinusoid.es/talks/immer-cppcon17
 .. _preprint: https://public.sinusoid.es/misc/immer/immer-icfp17.pdf
 
 
