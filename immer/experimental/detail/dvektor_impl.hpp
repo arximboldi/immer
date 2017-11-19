@@ -35,10 +35,29 @@ namespace immer {
 namespace detail {
 namespace dvektor {
 
+
+#ifndef _MSC_VER
 constexpr auto fast_log2(std::size_t x)
 {
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
 }
+#else
+#include <intrin.h>
+
+
+   template <typename T>
+   inline constexpr T log2_aux( T x, T r = 0 )
+   {
+      return x <= 1 ? r : log2_aux( x >> 1, r + 1 );
+   }
+
+
+   constexpr auto fast_log2( std::size_t x )
+   {
+      return log2_aux( x );
+   }
+#endif
+
 
 template <int B, typename T=std::size_t>
 constexpr T branches = T{1} << B;
