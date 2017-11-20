@@ -6,62 +6,67 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(immer VERSION 0.4.0)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-set(CMAKE_EXPORT_COMPILE_COMMANDS on)
-set(CMAKE_CXX_EXTENSIONS off)
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
-endif()
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+#set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+#set(CMAKE_CXX_EXTENSIONS off)
+#if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+#endif()
 
 include(ImmerUtils)
 
 #  Options
 #  =======
 
-option(ENABLE_SANITIZE "compile with sanitizers enabled")
-option(ENABLE_COVERAGE "compile with test coverage support")
-option(DISABLE_WERROR "enable --werror")
-option(DISABLE_FREE_LIST "disables the free list heap")
-option(DISABLE_THREAD_SAFETY "disables thread safety by default")
+#option(ENABLE_SANITIZE "compile with sanitizers enabled")
+#option(ENABLE_COVERAGE "compile with test coverage support")
+#option(DISABLE_WERROR "enable --werror")
+#option(DISABLE_FREE_LIST "disables the free list heap")
+#option(DISABLE_THREAD_SAFETY "disables thread safety by default")
 
-option(ENABLE_PYTHON "enable building python module" off)
-option(ENABLE_GUILE "enable building guile module" off)
-option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
+#option(ENABLE_PYTHON "enable building python module" off)
+#option(ENABLE_GUILE "enable building guile module" off)
+#option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
 
-set(CXX_STANDARD 14 CACHE STRING "c++ standard number")
+set(CXX_STANDARD 17 CACHE STRING "c++ standard number")
 
 set(CMAKE_CXX_STANDARD ${CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-if (ENABLE_SANITIZE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak")
-endif()
-if (NOT DISABLE_WERROR)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-endif()
+#if (ENABLE_SANITIZE)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak")
+#endif()
+#if (NOT DISABLE_WERROR)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+#endif()
 
 #  Dependencies
 #  ============
 
-if (ENABLE_BOOST_COROUTINE)
-  set(immer_boost_components coroutine)
-endif()
+#if (ENABLE_BOOST_COROUTINE)
+#  set(immer_boost_components coroutine)
+#endif()
 
-find_package(Threads)
-find_package(BoehmGC)
-find_package(Boost 1.56 COMPONENTS ${immer_boost_components})
+#find_package(Threads)
+#find_package(BoehmGC)
+#find_package(Boost 1.56 COMPONENTS ${immer_boost_components})
 
-find_program(CCACHE ccache)
-if (CCACHE)
-  message(STATUS "Using ccache: ${CCACHE}")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE})
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CCACHE})
-else()
-  message(STATUS "Could not find ccache")
-endif()
+#find_program(CCACHE ccache)
+#if (CCACHE)
+#  message(STATUS "Using ccache: ${CCACHE}")
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE})
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CCACHE})
+#else()
+#  message(STATUS "Could not find ccache")
+#endif()
 
 #  Targets
 #  =======
+
+Set( Boost_INCLUDE_DIR 
+   C:/Work/Externals/boost/1.65
+   D:/work/stuff/gc-7.6.0
+)
 
 # the library
 add_library(immer INTERFACE)
@@ -74,6 +79,11 @@ install(EXPORT ImmerConfig DESTINATION lib/cmake/Immer)
 install(DIRECTORY immer DESTINATION include)
 
 # development target to be used in tests, examples, benchmarks...
+
+
+link_directories( C:\\Work\\Externals\\boost\\1.65\\stage\\lib D:\\work\\stuff\\x86-Release )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -permissive- ")
+
 immer_canonicalize_cmake_booleans(
   DISABLE_FREE_LIST
   DISABLE_THREAD_SAFETY
@@ -81,21 +91,22 @@ immer_canonicalize_cmake_booleans(
 add_library(immer-dev INTERFACE)
 target_include_directories(immer-dev SYSTEM INTERFACE
   ${Boost_INCLUDE_DIR}
-  ${BOEHM_GC_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/tools/include)
 target_link_libraries(immer-dev INTERFACE
   immer
-  ${BOEHM_GC_LIBRARIES}
+  gcmt-lib
   ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(immer-dev INTERFACE
   -DIMMER_HAS_LIBGC=1
   -DIMMER_NO_FREE_LIST=${DISABLE_FREE_LIST}
   -DIMMER_NO_THREAD_SAFETY=${DISABLE_THREAD_SAFETY}
-  -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS})
-if (ENABLE_COVERAGE)
-  target_compile_options(immer-dev INTERFACE "--coverage")
-  target_link_libraries(immer-dev INTERFACE "--coverage")
-endif()
+  -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS}
+  -D_SCL_SECURE_NO_WARNINGS
+)
+#if (ENABLE_COVERAGE)
+#  target_compile_options(immer-dev INTERFACE "--coverage")
+#  target_link_libraries(immer-dev INTERFACE "--coverage")
+#endif()
 
 #  Testing
 #  =======
@@ -108,9 +119,9 @@ add_custom_target(check
   COMMENT "Build and run all the tests and examples.")
 
 add_subdirectory(test)
-add_subdirectory(benchmark)
-add_subdirectory(example)
-add_subdirectory(doc)
-add_subdirectory(extra/fuzzer)
-add_subdirectory(extra/python)
-add_subdirectory(extra/guile)
+#add_subdirectory(benchmark)
+#add_subdirectory(example)
+#add_subdirectory(doc)
+#add_subdirectory(extra/fuzzer)
+#add_subdirectory(extra/python)
+#add_subdirectory(extra/guile)

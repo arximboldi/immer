@@ -64,6 +64,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <random>
 #include <algorithm>
 
 // #included from: catch_compiler_capabilities.h
@@ -3818,7 +3819,7 @@ namespace Clara {
         };
 
         // NOTE: std::auto_ptr is deprecated in c++11/c++0x
-#if defined(__cplusplus) && __cplusplus > 199711L
+#if defined(__cplusplus) // && __cplusplus > 199711L
         typedef std::unique_ptr<Arg> ArgAutoPtr;
 #else
         typedef std::auto_ptr<Arg> ArgAutoPtr;
@@ -5844,8 +5845,9 @@ namespace Catch {
                     break;
                 case RunTests::InRandomOrder:
                 {
-                    RandomNumberGenerator rng;
-                    std::random_shuffle( matchingTestCases.begin(), matchingTestCases.end(), rng );
+                    std::random_device rd;
+                    std::mt19937 rng( rd() );
+                    std::shuffle( matchingTestCases.begin(), matchingTestCases.end(), rng );
                 }
                     break;
                 case RunTests::InDeclarationOrder:

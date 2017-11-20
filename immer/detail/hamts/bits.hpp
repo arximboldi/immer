@@ -47,6 +47,11 @@ constexpr T max_shift = max_depth<B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 inline count_t popcount(bitmap_t x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT

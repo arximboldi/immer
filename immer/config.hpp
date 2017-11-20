@@ -47,9 +47,16 @@
 #define IMMER_TRACE_E(expr)                             \
     IMMER_TRACE("    " << #expr << " = " << (expr))
 
+#ifndef _MSC_VER
 #define IMMER_UNREACHABLE    __builtin_unreachable()
 #define IMMER_LIKELY(cond)   __builtin_expect(!!(cond), 1)
 #define IMMER_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
+#else
+#define IMMER_UNREACHABLE    __assume(0)
+#define IMMER_LIKELY(cond)   (cond)
+#define IMMER_UNLIKELY(cond) (cond)
+#endif
+
 // #define IMMER_PREFETCH(p)    __builtin_prefetch(p)
 #define IMMER_PREFETCH(p)
 #define IMMER_FORCEINLINE    inline __attribute__ ((always_inline))
