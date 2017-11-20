@@ -674,7 +674,6 @@ struct push_tail_mut_visitor
         auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
         auto new_child   = static_cast<node_t*>(nullptr);
-        node_t* new_child;
         auto mutate      = Mutating && node->can_mutate(e);
 
         if (new_idx >= branches<B>)
