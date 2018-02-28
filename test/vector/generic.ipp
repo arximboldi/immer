@@ -75,10 +75,10 @@ TEST_CASE("instantiation")
 
     SECTION("iterator/sentinel")
     {
-        auto r = "012345678";
+        auto r = u8"012345678";
         string_sentinel s;
         auto v = VECTOR_T<unsigned>{r, s};
-        CHECK_VECTOR_EQUALS(v, boost::irange('0', '9'));
+        CHECK_VECTOR_EQUALS(v, boost::irange(u8'0', u8'9'));
     }
 
     SECTION("fill")
