@@ -26,13 +26,13 @@ TEST_CASE("is iterator")
 
     SECTION("input iterator")
     {
-        using Iter = std::istream_iterator;
+        using Iter = std::istream_iterator<double>;
         static_assert(not immer::detail::is_forward_iterator<Iter>, "");
     }
 
     SECTION("output iterator")
     {
-        using Iter = std::ostream_iterator;
+        using Iter = std::ostream_iterator<double>;
         static_assert(not immer::detail::is_forward_iterator<Iter>, "");
     }
 
