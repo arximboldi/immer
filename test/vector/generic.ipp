@@ -36,6 +36,16 @@ struct big_object
     std::array<std::size_t, 42> v;
 };
 
+struct string_sentinel {};
+
+bool operator==(const char* i, string_sentinel ){
+  return *i == '\0';
+}
+
+bool operator!=(const char* i, string_sentinel ){
+  return *i != '\0';
+}
+
 TEST_CASE("instantiation")
 {
     SECTION("default")
@@ -61,6 +71,14 @@ TEST_CASE("instantiation")
         auto r = std::vector<int>{{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}};
         auto v = VECTOR_T<unsigned>{r.begin(), r.end()};
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+    }
+
+    SECTION("iterator/sentinel")
+    {
+        auto r = "012345678";
+        string_sentinel s;
+        auto v = VECTOR_T<unsigned>{r, s};
+        CHECK_VECTOR_EQUALS(v, boost::irange('0', '9'));
     }
 
     SECTION("fill")

@@ -122,6 +122,20 @@ struct with_capacity
         };
     }
 
+    template <typename Iter, typename Sent,
+              std::enable_if_t
+              <is_forward_iterator<Iter> and
+               compatible_sentinel<Iter, Sent>, bool> = true>
+    static with_capacity from_range(Iter first, Sent last)
+    {
+        auto count = static_cast<size_t>(distance(first, last));
+        return {
+            node_t::copy_n(count, first, last),
+            count,
+            count
+        };
+    }
+
     template <typename U>
     static with_capacity from_initializer_list(std::initializer_list<U> values)
     {

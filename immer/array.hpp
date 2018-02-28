@@ -73,23 +73,26 @@ public:
     array() = default;
 
     /*!
-     * Constructs a vector containing the elements in `values`.
+     * Constructs an array containing the elements in `values`.
      */
     array(std::initializer_list<T> values)
         : impl_{impl_t::from_initializer_list(values)}
     {}
 
     /*!
-     * Constructs a vector containing the elements in the range
-     * defined by the input iterators `first` and `last`.
+     * Constructs a array containing the elements in the range
+     * defined by the forward iterator `first` and range sentinel `last`.
      */
-    template <typename Iter>
-    array(Iter first, Iter last)
+    template <typename Iter, typename Sent,
+              std::enable_if_t
+              <detail::compatible_sentinel<Iter, Sent>
+               and detail::is_forward_iterator<Iter>, bool> = true>
+    array(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
     {}
 
     /*!
-     * Constructs a vector containing the element `val` repeated `n`
+     * Constructs a array containing the element `val` repeated `n`
      * times.
      */
     array(size_type n, T v = {})

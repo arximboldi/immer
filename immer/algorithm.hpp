@@ -12,6 +12,8 @@
 #include <numeric>
 #include <type_traits>
 
+#include <immer/detail/type_traits.hpp>
+
 namespace immer {
 
 /**
@@ -135,6 +137,23 @@ T accumulate(Iterator first, Iterator last, T init, Fn fn)
 }
 
 /*!
+ * Equivalent of the `std::distance` applied to the sentinel-delimited
+ * forward range @f$ [first, last) @f$
+ */
+template <typename Iterator, typename Sentinel,
+          std::enable_if_t
+          <detail::is_forward_iterator<Iterator>
+           and detail::compatible_sentinel<Iterator,Sentinel>, bool> = true>
+std::size_t distance(Iterator first, Sentinel last){
+    std::size_t result = 0;
+    while(first != last){
+        ++first;
+        ++result;
+    }
+    return result;
+}
+
+/*!
  * Equivalent of `std::for_each` applied to the range `r`.
  */
 template <typename Range, typename Fn>
@@ -207,6 +226,22 @@ bool all_of(Iter first, Iter last, Pred p)
     return for_each_chunk_p(first, last, [&] (auto first, auto last) {
         return std::all_of(first, last, p);
     });
+}
+
+/*!
+ * Equivalent of the `std::uninitialized_copy` applied to the
+ * sentinel-delimited forward range @f$ [first, last) @f$
+ */
+template <typename SourceIter, typename Sent, typename SinkIter,
+          std::enable_if_t
+          <detail::compatible_sentinel<SourceIter,Sent>
+           and detail::is_forward_iterator<SinkIter>, bool> = true>
+auto uninitialized_copy(SourceIter first, Sent last, SinkIter d_first){
+    while(first != last){
+        *d_first++ = *first;
+        ++first;
+    }
+    return d_first;
 }
 
 /** @} */ // group: algorithm
