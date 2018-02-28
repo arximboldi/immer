@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <immer/algorithm.hpp>
 #include <immer/detail/arrays/node.hpp>
 
 namespace immer {
@@ -94,6 +95,19 @@ struct no_capacity
     static no_capacity from_range(Iter first, Iter last)
     {
         auto count = static_cast<size_t>(std::distance(first, last));
+        return {
+            node_t::copy_n(count, first, last),
+            count,
+        };
+    }
+
+    template <typename Iter, typename Sent,
+              std::enable_if_t
+              <is_forward_iterator<Iter> and
+               compatible_sentinel<Iter, Sent>, bool> = true>
+    static no_capacity from_range(Iter first, Sent last)
+    {
+        auto count = static_cast<size_t>(distance(first, last));
         return {
             node_t::copy_n(count, first, last),
             count,
