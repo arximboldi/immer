@@ -16,7 +16,10 @@
 
 #include <algorithm>
 #include <numeric>
+#include <string>
 #include <vector>
+
+using namespace std::string_literals;
 
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"
@@ -38,11 +41,11 @@ struct big_object
 
 struct string_sentinel {};
 
-bool operator==(const char* i, string_sentinel ){
+bool operator==(const char16_t* i, string_sentinel ){
   return *i == '\0';
 }
 
-bool operator!=(const char* i, string_sentinel ){
+bool operator!=(const char16_t* i, string_sentinel ){
   return *i != '\0';
 }
 
@@ -75,10 +78,10 @@ TEST_CASE("instantiation")
 
     SECTION("iterator/sentinel")
     {
-        auto r = u8"012345678";
+        auto r = u"012345678";
         string_sentinel s;
         auto v = VECTOR_T<unsigned>{r, s};
-        CHECK_VECTOR_EQUALS(v, boost::irange(u8'0', u8'9'));
+        CHECK_VECTOR_EQUALS(v, boost::irange(u'0', u'9'));
     }
 
     SECTION("fill")
