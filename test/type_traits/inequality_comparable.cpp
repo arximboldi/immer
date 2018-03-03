@@ -26,4 +26,9 @@ TEST_CASE("equality comparable")
         using Sent = string_sentinel;
         static_assert(immer::detail::inequality_comparable<Iter, Sent>, "");
     }
+
+    SECTION("not inequality comparable")
+    {
+        static_assert(not immer::detail::inequality_comparable<std::string, double>, "");
+    }
 }
