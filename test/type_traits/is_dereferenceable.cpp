@@ -15,4 +15,9 @@ TEST_CASE("is dereferenceable")
         using Iter = char*;
         static_assert(immer::detail::is_dereferenceable<Iter>, "");
     }
+
+    SECTION("not dereferenceable")
+    {
+        static_assert(not immer::detail::is_dereferenceable<int>, "");
+    }
 }

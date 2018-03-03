@@ -88,7 +88,7 @@ TEST_CASE("instantiation")
     {
         auto v1 = VECTOR_T<int>(4);
         CHECK(v1.size() == 4);
-        auto v2 = VECTOR_T<int>(size_t{4}, 42);
+        auto v2 = VECTOR_T<int>(4, 42);
         CHECK(v2.size() == 4);
         CHECK(v2[2] == 42);
     }

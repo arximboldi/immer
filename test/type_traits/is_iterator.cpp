@@ -15,4 +15,9 @@ TEST_CASE("is iterator")
         using Iter = char*;
         static_assert(immer::detail::is_iterator<Iter>, "");
     }
+
+    SECTION("not iterator")
+    {
+        static_assert(not immer::detail::is_iterator<int>, "");
+    }
 }

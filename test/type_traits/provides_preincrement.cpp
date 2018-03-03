@@ -15,4 +15,10 @@ TEST_CASE("provides preincrement")
         using Iter = char*;
         static_assert(immer::detail::provides_preincrement<Iter>, "");
     }
+
+    SECTION("does not provide preincrement")
+    {
+        struct type{};
+        static_assert(not immer::detail::provides_preincrement<type>, "");
+    }
 }

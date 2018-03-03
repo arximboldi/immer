@@ -26,4 +26,11 @@ TEST_CASE("compatible_sentinel")
         using Sent = string_sentinel;
         static_assert(immer::detail::compatible_sentinel<Iter, Sent>, "");
     }
+
+    SECTION("incompatible pair")
+    {
+        using Iter1 = std::vector<int>::iterator;
+        using Iter2 = std::vector<double>::iterator;
+        static_assert(not immer::detail::compatible_sentinel<Iter1, Iter2>, "");
+    }
 }
