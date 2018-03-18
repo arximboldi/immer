@@ -507,7 +507,7 @@ struct update_visitor
             node_t::delete_leaf(node, pos.count());
             throw;
         }
-    };
+    }
 };
 
 struct dec_visitor
@@ -650,7 +650,7 @@ struct get_mut_visitor
             *location = new_node;
             return new_node->leaf() [pos.index(idx)];
         }
-    };
+    }
 };
 
 template <typename NodeT, bool Mutating = true>
@@ -673,7 +673,7 @@ struct push_tail_mut_visitor
         auto children    = pos.size(idx);
         auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
-        auto new_child   = (node_t*){};
+        auto new_child = static_cast<node_t*>(nullptr);
         auto mutate      = Mutating && node->can_mutate(e);
 
         if (new_idx >= branches<B>)
@@ -751,7 +751,7 @@ struct push_tail_mut_visitor
 
     template <typename Pos, typename... Args>
     friend node_t* visit_leaf(this_t, Pos&& pos, edit_t e, node_t* tail, Args&&...)
-    { IMMER_UNREACHABLE; };
+    { IMMER_UNREACHABLE; }
 };
 
 template <typename NodeT>
@@ -771,7 +771,7 @@ struct push_tail_visitor
         auto children    = pos.size(idx);
         auto new_idx     = children == size_t{1} << level || level == BL
             ? idx + 1 : idx;
-        auto new_child   = (node_t*){};
+        auto new_child = static_cast<node_t*>(nullptr);
         if (new_idx >= branches<B>)
             return nullptr;
         else if (idx == new_idx) {
@@ -824,7 +824,7 @@ struct push_tail_visitor
 
     template <typename Pos, typename... Args>
     friend node_t* visit_leaf(this_t, Pos&& pos, node_t* tail, Args&&...)
-    { IMMER_UNREACHABLE; };
+    { IMMER_UNREACHABLE; }
 };
 
 struct dec_right_visitor
@@ -1024,7 +1024,7 @@ struct slice_right_mut_visitor
             if (Mutating) pos.visit(dec_visitor{});
             return { 0, nullptr, new_tail_size, new_tail };
         }
-    };
+    }
 };
 
 template <typename NodeT, bool Collapse=true>
@@ -1125,7 +1125,7 @@ struct slice_right_visitor
             ? pos.node()->inc()
             : node_t::copy_leaf(pos.node(), new_tail_size);
         return { 0, nullptr, new_tail_size, new_tail };
-    };
+    }
 };
 
 struct dec_left_visitor
@@ -1317,7 +1317,7 @@ struct slice_left_mut_visitor
             if (Mutating) pos.visit(dec_visitor{});
             return { 0, newn };
         }
-    };
+    }
 };
 
 template <typename NodeT, bool Collapse=true>
@@ -1375,7 +1375,7 @@ struct slice_left_visitor
     {
         auto n = node_t::copy_leaf(pos.node(), pos.index(first), pos.count());
         return { 0, n };
-    };
+    }
 };
 
 template <typename Node>

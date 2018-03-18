@@ -62,7 +62,7 @@ auto benchmark_access_std()
             return r;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_access_hamt()
@@ -88,7 +88,7 @@ auto benchmark_access_hamt()
             return r;
         });
     };
-};
+}
 
 
 template <typename Generator, typename Set>
@@ -112,7 +112,7 @@ auto benchmark_access()
             return r;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_bad_access_std()
@@ -134,7 +134,7 @@ auto benchmark_bad_access_std()
             return r;
         });
     };
-};
+}
 
 template <typename Generator, typename Set>
 auto benchmark_bad_access_hamt()
@@ -159,7 +159,7 @@ auto benchmark_bad_access_hamt()
             return r;
         });
     };
-};
+}
 
 
 template <typename Generator, typename Set>
@@ -182,6 +182,6 @@ auto benchmark_bad_access()
             return r;
         });
     };
-};
+}
 
 } // namespace

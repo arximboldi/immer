@@ -232,4 +232,4 @@ TEST_CASE("bug: concat with moving the right side")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
-};
+}

@@ -238,7 +238,7 @@ struct node
     {
         assert(n <= branches<B>);
         auto mp = heap::allocate(sizeof_inner_r_n(n));
-        auto mr = (void*){};
+        auto mr = static_cast<void*>(nullptr);
         if (embed_relaxed) {
             mr = reinterpret_cast<unsigned char*>(mp) + sizeof_inner_n(n);
         } else {
@@ -280,7 +280,7 @@ struct node
     static node_t* make_inner_r_e(edit_t e)
     {
         auto mp = heap::allocate(max_sizeof_inner_r);
-        auto mr = (void*){};
+        auto mr = static_cast<void*>(nullptr);
         if (embed_relaxed) {
             mr = reinterpret_cast<unsigned char*>(mp) + max_sizeof_inner;
         } else {

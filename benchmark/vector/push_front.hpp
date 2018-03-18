@@ -38,7 +38,7 @@ auto bechmark_push_front()
             return v;
         });
     };
-};
+}
 
 auto benchmark_push_front_librrb(nonius::chronometer meter)
 {
@@ -53,6 +53,6 @@ auto benchmark_push_front_librrb(nonius::chronometer meter)
         }
         return v;
     });
-};
+}
 
 } // anonymous namespace

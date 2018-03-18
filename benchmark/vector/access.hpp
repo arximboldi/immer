@@ -170,7 +170,7 @@ auto benchmark_access_idx()
             return rr;
         };
     };
-};
+}
 
 template <typename Vektor,
           typename PushFn=push_back_fn>
@@ -231,7 +231,7 @@ auto benchmark_access_random()
             return rr;
         };
     };
-};
+}
 
 template <typename Fn>
 auto benchmark_access_librrb(Fn maker)
