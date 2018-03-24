@@ -32,7 +32,7 @@ TEST_CASE("compatible_sentinel_v")
     SECTION("incompatible pair")
     {
         using Iter1 = std::vector<int>::iterator;
-        using Iter2 = std::vector<double>::iterator;
+        using Iter2 = std::list<double>::iterator;
         static_assert(not immer::detail::compatible_sentinel_v<Iter1, Iter2>, "");
     }
 }
