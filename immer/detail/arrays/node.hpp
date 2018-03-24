@@ -93,22 +93,9 @@ struct node
         }
     }
 
-    template <typename Iter>
-    static node_t* copy_n(size_t n, Iter first, Iter last)
-    {
-        auto p = make_n(n);
-        try {
-            std::uninitialized_copy(first, last, p->data());
-            return p;
-        } catch (...) {
-            heap::deallocate(sizeof_n(n), p);
-            throw;
-        }
-    }
-
-  template <typename Iter, typename Sent,
+    template <typename Iter, typename Sent,
             std::enable_if_t
-            <detail::compatible_sentinel<Iter,Sent>, bool> = true>
+            <detail::compatible_sentinel_v<Iter,Sent>, bool> = true>
     static node_t* copy_n(size_t n, Iter first, Sent last)
     {
         auto p = make_n(n);

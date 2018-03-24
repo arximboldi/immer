@@ -91,20 +91,10 @@ struct no_capacity
     T* data() { return ptr->data(); }
     const T* data() const { return ptr->data(); }
 
-    template <typename Iter>
-    static no_capacity from_range(Iter first, Iter last)
-    {
-        auto count = static_cast<size_t>(std::distance(first, last));
-        return {
-            node_t::copy_n(count, first, last),
-            count,
-        };
-    }
-
     template <typename Iter, typename Sent,
               std::enable_if_t
-              <is_forward_iterator<Iter> and
-               compatible_sentinel<Iter, Sent>, bool> = true>
+              <is_forward_iterator_v<Iter> 
+	       && compatible_sentinel_v<Iter, Sent>, bool> = true>
     static no_capacity from_range(Iter first, Sent last)
     {
         auto count = static_cast<size_t>(distance(first, last));
