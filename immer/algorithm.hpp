@@ -237,11 +237,20 @@ template <typename SourceIter, typename Sent, typename SinkIter,
           <detail::compatible_sentinel<SourceIter,Sent>
            and detail::is_forward_iterator<SinkIter>, bool> = true>
 auto uninitialized_copy(SourceIter first, Sent last, SinkIter d_first){
-    while(first != last){
-        *d_first++ = *first;
-        ++first;
+    auto current = d_first;
+    try {
+      while(first != last){
+          *current++ = *first;
+          ++first;
+      }
+    } catch (...){
+      using Value = std::iterator_traits<SinkIter>::value_type;
+      for (;d_first != current; ++d_first){
+	d_first->~Value();
+      }
+      throw;
     }
-    return d_first;
+    return current;
 }
 
 /** @} */ // group: algorithm
