@@ -85,8 +85,8 @@ public:
      */
     template <typename Iter, typename Sent,
               std::enable_if_t
-              <detail::compatible_sentinel<Iter, Sent>
-               and detail::is_forward_iterator<Iter>, bool> = true>
+              <detail::compatible_sentinel_v<Iter, Sent>
+               && detail::is_forward_iterator_v<Iter>, bool> = true>
     array(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
     {}

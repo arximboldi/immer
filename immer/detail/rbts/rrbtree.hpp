@@ -67,7 +67,7 @@ struct rrbtree
 
     template <typename Iter, typename Sent,
               std::enable_if_t
-              <compatible_sentinel<Iter, Sent>, bool> = true>
+              <compatible_sentinel_v<Iter, Sent>, bool> = true>
     static auto from_range(Iter first, Sent last)
     {
         auto e = owner_t{};

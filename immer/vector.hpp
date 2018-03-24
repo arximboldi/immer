@@ -115,7 +115,7 @@ public:
      */
     template <typename Iter, typename Sent,
               std::enable_if_t
-              <detail::compatible_sentinel<Iter, Sent>, bool> = true>
+              <detail::compatible_sentinel_v<Iter, Sent>, bool> = true>
     vector(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
     {}
