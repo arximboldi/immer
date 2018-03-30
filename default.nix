@@ -3,13 +3,7 @@ with import <nixpkgs> {};
 stdenv.mkDerivation rec {
   name = "immer-git";
   version = "git";
-  src = builtins.filterSource (path: type:
-            baseNameOf path != ".git" &&
-            baseNameOf path != "build" &&
-            baseNameOf path != "_build" &&
-            baseNameOf path != "reports" &&
-            baseNameOf path != "tools")
-          ./.;
+  src = fetchGit ./.;
   nativeBuildInputs = [ cmake ];
   dontBuild = true;
   meta = with stdenv.lib; {
