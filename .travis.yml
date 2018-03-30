@@ -1,6 +1,9 @@
 language: nix
 dist: trusty
 
+git:
+  depth: false
+
 matrix:
   include:
     - env: DO=check TYPE=Debug COMPILER=clang_39 SANITIZE=true
