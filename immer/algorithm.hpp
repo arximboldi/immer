@@ -12,8 +12,6 @@
 #include <numeric>
 #include <type_traits>
 
-#include <immer/detail/type_traits.hpp>
-
 namespace immer {
 
 /**
@@ -137,52 +135,6 @@ T accumulate(Iterator first, Iterator last, T init, Fn fn)
 }
 
 /*!
- * An alias to `std::distance`
- */
-template <typename Iterator, typename Sentinel,
-          std::enable_if_t
-          <detail::std_distance_supports_v<Iterator,Sentinel>, bool> = true>
-auto distance(Iterator first, Sentinel last)
-{
-    return std::distance(first, last);
-}
-
-/*!
- * Equivalent of the `std::distance` applied to the sentinel-delimited
- * forward range @f$ [first, last) @f$
- */
-template <typename Iterator, typename Sentinel,
-          std::enable_if_t
-          <(!detail::std_distance_supports_v<Iterator,Sentinel>)
-           && detail::is_forward_iterator_v<Iterator>
-           && detail::compatible_sentinel_v<Iterator,Sentinel>
-           && (!detail::is_subtractable_v<Sentinel, Iterator>), bool> = true>
-auto distance(Iterator first, Sentinel last)
-{
-    std::size_t result = 0;
-    while (first != last) {
-        ++first;
-        ++result;
-    }
-    return result;
-}
-
-/*!
- * Equivalent of the `std::distance` applied to the sentinel-delimited
- * random access range @f$ [first, last) @f$
- */
-template <typename Iterator, typename Sentinel,
-          std::enable_if_t
-          <(!detail::std_distance_supports_v<Iterator,Sentinel>)
-           && detail::is_forward_iterator_v<Iterator>
-           && detail::compatible_sentinel_v<Iterator,Sentinel>
-           && detail::is_subtractable_v<Sentinel, Iterator>, bool> = true>
-auto distance(Iterator first, Sentinel last)
-{
-    return last - first;
-}
-
-/*!
  * Equivalent of `std::for_each` applied to the range `r`.
  */
 template <typename Range, typename Fn>
@@ -255,45 +207,6 @@ bool all_of(Iter first, Iter last, Pred p)
     return for_each_chunk_p(first, last, [&] (auto first, auto last) {
         return std::all_of(first, last, p);
     });
-}
-
-/*!
- * An alias to `std::uninitialized_copy`
- */
-template <typename Iterator, typename Sentinel, typename SinkIter,
-          std::enable_if_t
-          <detail::std_uninitialized_copy_supports_v
-           <Iterator,Sentinel,SinkIter>, bool> = true>
-auto uninitialized_copy(Iterator first, Sentinel last, SinkIter d_first)
-{
-    return std::uninitialized_copy(first, last, d_first);
-}
-
-/*!
- * Equivalent of the `std::uninitialized_copy` applied to the
- * sentinel-delimited forward range @f$ [first, last) @f$
- */
-template <typename SourceIter, typename Sent, typename SinkIter,
-          std::enable_if_t
-          <(!detail::std_uninitialized_copy_supports_v<SourceIter, Sent, SinkIter>)
-           && detail::compatible_sentinel_v<SourceIter,Sent>
-           && detail::is_forward_iterator_v<SinkIter>, bool> = true>
-auto uninitialized_copy(SourceIter first, Sent last, SinkIter d_first)
-{
-    auto current = d_first;
-    try {
-        while (first != last) {
-            *current++ = *first;
-            ++first;
-        }
-    } catch (...) {
-        using Value = typename std::iterator_traits<SinkIter>::value_type;
-        for (;d_first != current; ++d_first){
-          d_first->~Value();
-        }
-        throw;
-    }
-    return current;
 }
 
 /** @} */ // group: algorithm

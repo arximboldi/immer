@@ -6,6 +6,8 @@ add_custom_target(tests
   COMMENT "Build all the unit tests.")
 add_dependencies(check tests)
 
+include(CTest)
+
 file(GLOB_RECURSE immer_unit_tests "*.cpp")
 foreach(_file IN LISTS immer_unit_tests)
   immer_target_name_for(_target _output "${_file}")
