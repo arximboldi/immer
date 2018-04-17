@@ -1,3 +1,5 @@
+.. highlight:: c++
+
 Containers
 ==========
 
@@ -164,6 +166,39 @@ used to obtain similar performance benefits.
      most standard types this is *undefined behaviour*.  However, for our
      immutable containers types, expressions of the form ``v =
      std::move(v)`` are well-defined.
+
+Recursive types
+~~~~~~~~~~~~~~~
+
+Most containers will fail to be instantiated with a type of unknown
+size, this is, an *incomplete type*.  This prevents using them for
+building recursive types.  The following code fails to compile::
+
+  struct my_type
+  {
+      int data;
+      immer::vector<my_type> children;
+  }
+
+However, we can easily workaround this by using an ``immer::box`` to wrap
+the elements in the vector, as in::
+
+  struct my_type
+  {
+      int data;
+      immer::vector<immer::box<my_type>> children;
+  }
+
+.. admonition:: Standard containers and incomplete types
+
+  While the first example might seem to compile when using some
+  implementations of ``std::vector`` instead of ``immer::vector``, such
+  use is actually forbidden by the standard:
+
+    **17.6.4.8** *Other functions (...)* 2. the effects are undefined in
+    the following cases: (...) In particular---if an incomplete type (3.9)
+    is used as a template argument when instantiating a template
+    component, unless specifically allowed for that component.
 
 box
 ---
