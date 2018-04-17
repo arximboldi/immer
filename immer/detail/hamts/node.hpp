@@ -697,11 +697,13 @@ struct node
 
     static void deallocate_values(values_t* p, count_t n)
     {
+        destroy_n((T*) &p->d.buffer, n);
         heap::deallocate(node_t::sizeof_values_n(n), p);
     }
 
     static void deallocate_collision(node_t* p, count_t n)
     {
+        destroy_n(p->collisions(), n);
         heap::deallocate(node_t::sizeof_collision_n(n), p);
     }
 
