@@ -36,12 +36,12 @@ struct thread_local_free_list_storage
         ~head_t() { Heap::clear(); }
     };
 
-    thread_local static head_t head;
+    static head_t& head()
+    {
+        thread_local static head_t head_{nullptr, 0};
+        return head_;
+    }
 };
-
-template <typename Heap>
-thread_local typename thread_local_free_list_storage<Heap>::head_t
-thread_local_free_list_storage<Heap>::head {nullptr, 0};
 
 } // namespace detail
 

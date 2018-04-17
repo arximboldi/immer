@@ -49,13 +49,13 @@ struct free_list_heap : Base
 
         free_list_node* n;
         do {
-            n = head_.data;
+            n = head().data;
             if (!n) {
                 auto p = base_t::allocate(Size + sizeof(free_list_node));
                 return static_cast<free_list_node*>(p);
             }
-        } while (!head_.data.compare_exchange_weak(n, n->next));
-        head_.count.fetch_sub(1u, std::memory_order_relaxed);
+        } while (!head().data.compare_exchange_weak(n, n->next));
+        head().count.fetch_sub(1u, std::memory_order_relaxed);
         return n;
     }
 
@@ -67,14 +67,14 @@ struct free_list_heap : Base
 
         // we use relaxed, because we are fine with temporarily having
         // a few more/less buffers in free list
-        if (head_.count.load(std::memory_order_relaxed) >= Limit) {
+        if (head().count.load(std::memory_order_relaxed) >= Limit) {
             base_t::deallocate(Size + sizeof(free_list_node), data);
         } else {
             auto n = static_cast<free_list_node*>(data);
             do {
-                n->next = head_.data;
-            } while (!head_.data.compare_exchange_weak(n->next, n));
-            head_.count.fetch_add(1u, std::memory_order_relaxed);
+                n->next = head().data;
+            } while (!head().data.compare_exchange_weak(n->next, n));
+            head().count.fetch_add(1u, std::memory_order_relaxed);
         }
     }
 
@@ -85,10 +85,11 @@ private:
         std::atomic<std::size_t> count;
     };
 
-    static head_t head_;
+    static head_t& head()
+    {
+        static head_t head_{{nullptr}, {0}};
+        return head_;
+    }
 };
-
-template <std::size_t S, std::size_t L, typename B>
-typename free_list_heap<S,L,B>::head_t  free_list_heap<S,L,B>::head_ {{nullptr}, {0}};
 
 } // namespace immer
