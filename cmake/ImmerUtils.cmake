@@ -1,6 +1,6 @@
 
 function(immer_target_name_for out_target out_file file)
-  get_filename_component(_extension ${_file} EXT)
+  get_filename_component(_extension ${file} EXT)
 
   file(RELATIVE_PATH _relative ${PROJECT_SOURCE_DIR} ${file})
   string(REPLACE "${_extension}" "" _name ${_relative})
@@ -21,4 +21,13 @@ function(immer_canonicalize_cmake_booleans)
       set(${var} 0 PARENT_SCOPE)
     endif()
   endforeach()
+endfunction()
+
+function(immer_filter_items items regex)
+  foreach(item ${${items}})
+    if ("${item}" MATCHES ${regex})
+      list(REMOVE_ITEM ${items} ${item})
+    endif("${item}" MATCHES ${regex})
+  endforeach(item)
+  set(${items} ${${items}} PARENT_SCOPE)
 endfunction()
