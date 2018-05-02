@@ -95,17 +95,27 @@ struct is_subtractable
 template <typename T, typename U = T>
 constexpr bool is_subtractable_v = is_subtractable<T, U>::value;
 
+namespace swappable {
+
 using std::swap;
 
 template <typename T, typename U, typename = void>
-struct is_swappable_with : std::false_type {};
+struct with : std::false_type {};
 
 // Does not account for non-referenceable types
 template <typename T, typename U>
-struct is_swappable_with
+struct with
 <T, U, void_t<decltype(swap(std::declval<T&>(), std::declval<U&>())),
               decltype(swap(std::declval<U&>(), std::declval<T&>()))>> :
     std::true_type {};
+
+}
+
+template<typename T, typename U>
+using is_swappable_with = swappable::with<T, U>;
+
+template<typename T>
+using is_swappable = is_swappable_with<T, T>;
 
 template <typename T>
 constexpr bool is_swappable_v = is_swappable_with<T&, T&>::value;
