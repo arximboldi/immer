@@ -1,3 +1,11 @@
+/*
+ * immer: immutable data structures for C++
+ * Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
+ *
+ * This software is distributed under the Boost Software License, Version 1.0.
+ * See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
+ */
+
 (function(definition){if(typeof exports==="object"){module.exports=definition();}else if(typeof define==="function"&&define.amd){define(definition);}else{mori=definition();}})(function(){return function(){
 if(typeof Math.imul == "undefined" || (Math.imul(0xffffffff,5) == 0)) {
     Math.imul = function (a, b) {
