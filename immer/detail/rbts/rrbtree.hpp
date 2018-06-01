@@ -42,13 +42,22 @@ struct rrbtree
     node_t* root;
     node_t* tail;
 
-    static const rrbtree empty;
+    static const rrbtree& empty()
+    {
+        static const rrbtree empty_ {
+            0,
+            BL,
+            node_t::make_inner_n(0u),
+            node_t::make_leaf_n(0u)
+        };
+        return empty_;
+    }
 
     template <typename U>
     static auto from_initializer_list(std::initializer_list<U> values)
     {
         auto e = owner_t{};
-        auto result = rrbtree{empty};
+        auto result = rrbtree{empty()};
         for (auto&& v : values)
             result.push_back_mut(e, v);
         return result;
@@ -58,7 +67,7 @@ struct rrbtree
     static auto from_range(Iter first, Iter last)
     {
         auto e = owner_t{};
-        auto result = rrbtree{empty};
+        auto result = rrbtree{empty()};
         for (; first != last; ++first)
             result.push_back_mut(e, *first);
         return result;
@@ -67,7 +76,7 @@ struct rrbtree
     static auto from_fill(size_t n, T v)
     {
         auto e = owner_t{};
-        auto result = rrbtree{empty};
+        auto result = rrbtree{empty()};
         while (n --> 0)
             result.push_back_mut(e, v);
         return result;
@@ -86,7 +95,7 @@ struct rrbtree
     }
 
     rrbtree(rrbtree&& other)
-        : rrbtree{empty}
+        : rrbtree{empty()}
     {
         swap(*this, other);
     }
@@ -519,7 +528,7 @@ struct rrbtree
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
-            *this = empty;
+            *this = empty();
         } else if (new_size >= size) {
             return;
         } else if (new_size > tail_off) {
@@ -546,7 +555,7 @@ struct rrbtree
                 root  = new_root;
                 shift = new_shift;
             } else {
-                root  = empty.root->inc();
+                root  = empty().root->inc();
                 shift = BL;
             }
             dec_leaf(tail, size - tail_off);
@@ -560,7 +569,7 @@ struct rrbtree
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
-            return empty;
+            return empty();
         } else if (new_size >= size) {
             return *this;
         } else if (new_size > tail_off) {
@@ -579,7 +588,7 @@ struct rrbtree
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
-                return { new_size, BL, empty.root->inc(), new_tail };
+                return { new_size, BL, empty().root->inc(), new_tail };
             }
         }
     }
@@ -591,21 +600,21 @@ struct rrbtree
         if (elems == 0) {
             return;
         } else if (elems >= size) {
-            *this = empty;
+            *this = empty();
         } else if (elems == tail_off) {
             dec_inner(root, shift, tail_off);
             shift = BL;
-            root  = empty.root->inc();
+            root  = empty().root->inc();
             size -= elems;
             return;
         } else if (elems > tail_off) {
             auto v = slice_left_mut_visitor<node_t>();
             tail = get<1>(make_leaf_sub_pos(tail, size - tail_off).visit(
                               v, elems - tail_off, e));
-            if (root != empty.root) {
+            if (root != empty().root) {
                 dec_inner(root, shift, tail_off);
                 shift = BL;
-                root  = empty.root->inc();
+                root  = empty().root->inc();
             }
             size -= elems;
             return;
@@ -624,14 +633,14 @@ struct rrbtree
         if (elems == 0) {
             return *this;
         } else if (elems >= size) {
-            return empty;
+            return empty();
         } else if (elems == tail_offset()) {
-            return { size - elems, BL, empty.root->inc(), tail->inc() };
+            return { size - elems, BL, empty().root->inc(), tail->inc() };
         } else if (elems > tail_offset()) {
             auto tail_off = tail_offset();
             auto new_tail = node_t::copy_leaf(tail, elems - tail_off,
                                               size - tail_off);
-            return { size - elems, BL, empty.root->inc(), new_tail };
+            return { size - elems, BL, empty().root->inc(), new_tail };
         } else {
             using std::get;
             auto v = slice_left_visitor<node_t>();
@@ -1150,10 +1159,11 @@ struct rrbtree
     void hard_reset()
     {
         assert(supports_transient_concat);
-        size = empty.size;
-        shift = empty.shift;
-        root = empty.root;
-        tail = empty.tail;
+        auto&& empty_ = empty();
+        size = empty_.size;
+        shift = empty_.shift;
+        root = empty_.root;
+        tail = empty_.tail;
     }
 
     bool check_tree() const
@@ -1257,14 +1267,6 @@ struct rrbtree
         }
     }
 #endif // IMMER_DEBUG_PRINT
-};
-
-template <typename T, typename MP, bits_t B, bits_t BL>
-const rrbtree<T, MP, B, BL> rrbtree<T, MP, B, BL>::empty = {
-    0,
-    BL,
-    node_t::make_inner_n(0u),
-    node_t::make_leaf_n(0u)
 };
 
 } // namespace rbts
