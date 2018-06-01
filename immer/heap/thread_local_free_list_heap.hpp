@@ -9,6 +9,7 @@
 #pragma once
 
 #include <immer/heap/unsafe_free_list_heap.hpp>
+#include <atomic>
 
 namespace immer {
 namespace detail {
@@ -16,17 +17,35 @@ namespace detail {
 template <typename Heap>
 struct thread_local_free_list_storage
 {
+    static std::atomic<int>& thread_count()
+    {
+        static std::atomic<int> thread_count_{0};
+        return thread_count_;
+    }
+
     struct head_t
     {
-        free_list_node* data;
-        std::size_t count;
+        free_list_node* data = nullptr;
+        std::size_t count = 0;
 
-        ~head_t() { Heap::clear(); }
+        head_t()
+        {
+            thread_count().fetch_add(1);
+        }
+
+        ~head_t()
+        {
+            // It is ok to leak the data in the last thread. This
+            // prevents destructor order-fiascos when dealing with
+            // global objects that allocate using this heap.
+            if (thread_count().fetch_sub(1) > 1)
+                Heap::clear();
+        }
     };
 
     static head_t& head()
     {
-        thread_local static head_t head_{nullptr, 0};
+        thread_local static head_t head_{};
         return head_;
     }
 };
