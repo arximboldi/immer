@@ -235,7 +235,7 @@ struct rbtree
     {
         if (size != other.size) return false;
         if (size == 0) return true;
-        return (size <= branches<B>
+        return (size <= branches<BL>
                 || make_regular_sub_pos(root, shift, tail_offset()).visit(
                     equals_visitor{}, other.root))
             && make_leaf_sub_pos(tail, tail_size()).visit(
