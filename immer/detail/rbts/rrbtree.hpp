@@ -947,9 +947,9 @@ struct rrbtree
             } else if (tail_size + r.size <= branches<BL>) {
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    uninitialized_move(r.tail->leaf(),
-                                       r.tail->leaf() + r.size,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_move(r.tail->leaf(),
+                                              r.tail->leaf() + r.size,
+                                              l.tail->leaf() + tail_size);
                 else
                     std::uninitialized_copy(r.tail->leaf(),
                                             r.tail->leaf() + r.size,
@@ -960,9 +960,9 @@ struct rrbtree
                 auto remaining = branches<BL> - tail_size;
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    uninitialized_move(r.tail->leaf(),
-                                       r.tail->leaf() + remaining,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_move(r.tail->leaf(),
+                                              r.tail->leaf() + remaining,
+                                              l.tail->leaf() + tail_size);
                 else
                     std::uninitialized_copy(r.tail->leaf(),
                                             r.tail->leaf() + remaining,
