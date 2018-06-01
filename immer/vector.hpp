@@ -306,8 +306,8 @@ public:
     const impl_t& impl() const { return impl_; }
 
 #if IMMER_DEBUG_PRINT
-    void debug_print() const
-    { flex_t{*this}.debug_print(); }
+    void debug_print(std::ostream& out=std::cerr) const
+    { flex_t{*this}.debug_print(out); }
 #endif
 
 private:

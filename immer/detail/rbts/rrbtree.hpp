@@ -1192,27 +1192,28 @@ struct rrbtree
     }
 
 #if IMMER_DEBUG_PRINT
-    void debug_print() const
+    void debug_print(std::ostream& out) const
     {
-        std::cerr
+        out
             << "--" << std::endl
             << "{" << std::endl
             << "  size  = " << size << std::endl
             << "  shift = " << shift << std::endl
             << "  root  = " << std::endl;
-        debug_print_node(root, shift, tail_offset());
-        std::cerr << "  tail  = " << std::endl;
-        debug_print_node(tail, endshift<B, BL>, tail_size());
-        std::cerr << "}" << std::endl;
+        debug_print_node(out, root, shift, tail_offset());
+        out << "  tail  = " << std::endl;
+        debug_print_node(out, tail, endshift<B, BL>, tail_size());
+        out << "}" << std::endl;
     }
 
-    void debug_print_indent(unsigned indent) const
+    void debug_print_indent(std::ostream& out, unsigned indent) const
     {
         while (indent --> 0)
-            std::cerr << ' ';
+            out << ' ';
     }
 
-    void debug_print_node(node_t* node,
+    void debug_print_node(std::ostream& out,
+                          node_t* node,
                           shift_t shift,
                           size_t size,
                           unsigned indent = 8) const
@@ -1220,36 +1221,39 @@ struct rrbtree
         const auto indent_step = 4;
 
         if (shift == endshift<B, BL>) {
-            debug_print_indent(indent);
-            std::cerr << "- {" << size << "} "
-                      << pretty_print_array(node->leaf(), size)
-                      << std::endl;
+            debug_print_indent(out, indent);
+            out << "- {" << size << "} "
+                << pretty_print_array(node->leaf(), size)
+                << std::endl;
         } else if (auto r = node->relaxed()) {
             auto count = r->d.count;
-            debug_print_indent(indent);
-            std::cerr << "# {" << size << "} "
-                      << pretty_print_array(r->d.sizes, r->d.count)
-                      << std::endl;
+            debug_print_indent(out, indent);
+            out << "# {" << size << "} "
+                << pretty_print_array(r->d.sizes, r->d.count)
+                << std::endl;
             auto last_size = size_t{};
-            for (auto i = 0; i < count; ++i) {
-                debug_print_node(node->inner()[i],
+            for (auto i = count_t{}; i < count; ++i) {
+                debug_print_node(out,
+                                 node->inner()[i],
                                  shift - B,
                                  r->d.sizes[i] - last_size,
                                  indent + indent_step);
                 last_size = r->d.sizes[i];
             }
         } else {
-            debug_print_indent(indent);
-            std::cerr << "+ {" << size << "}" << std::endl;
+            debug_print_indent(out, indent);
+            out << "+ {" << size << "}" << std::endl;
             auto count = (size >> shift)
                 + (size - ((size >> shift) << shift) > 0);
             if (count) {
-                for (auto i = 0; i < count - 1; ++i)
-                    debug_print_node(node->inner()[i],
+                for (auto i = count_t{}; i < count - 1; ++i)
+                    debug_print_node(out,
+                                     node->inner()[i],
                                      shift - B,
                                      1 << shift,
                                      indent + indent_step);
-                debug_print_node(node->inner()[count - 1],
+                debug_print_node(out,
+                                 node->inner()[count - 1],
                                  shift - B,
                                  size - ((count - 1) << shift),
                                  indent + indent_step);
