@@ -494,7 +494,7 @@ private:
     static flex_vector concat_move(std::false_type, const flex_vector& l, const flex_vector& r)
     { return l.impl_.concat(r.impl_); }
 
-    impl_t impl_ = impl_t::empty;
+    impl_t impl_ = impl_t::empty();
 };
 
 } // namespace immer

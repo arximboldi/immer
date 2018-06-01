@@ -346,7 +346,7 @@ private:
     vector take_move(std::false_type, size_type elems)
     { return impl_.take(elems); }
 
-    impl_t impl_ = impl_t::empty;
+    impl_t impl_ = impl_t::empty();
 };
 
 } // namespace immer
