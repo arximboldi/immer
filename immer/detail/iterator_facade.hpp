@@ -93,11 +93,11 @@ protected:
     }
 
 public:
-    ReferenceT operator*() const
+    const T& operator*() const
     {
         return access_t::dereference(derived());
     }
-    PointerT operator->() const
+    const T* operator->() const
     {
         return &access_t::dereference(derived());
     }
