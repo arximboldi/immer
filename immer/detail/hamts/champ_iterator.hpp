@@ -62,7 +62,7 @@ private:
     T* cur_;
     T* end_;
     count_t depth_;
-    node_t* const* path_[max_depth<B> + 1];
+    node_t* const* path_[max_depth<B, count_t> + 1];
 
     void increment()
     {
@@ -72,13 +72,13 @@ private:
 
     bool step_down()
     {
-        if (depth_ < max_depth<B>) {
+        if (depth_ < max_depth<B, count_t>) {
             auto parent = *path_[depth_];
             if (parent->nodemap()) {
                 ++depth_;
                 path_[depth_] = parent->children();
                 auto child = *path_[depth_];
-                if (depth_ < max_depth<B>) {
+                if (depth_ < max_depth<B, count_t>) {
                     cur_ = child->values();
                     end_ = cur_ + popcount(child->datamap());
                 } else {
@@ -100,7 +100,7 @@ private:
             if (next < last) {
                 path_[depth_] = next;
                 auto child = *path_[depth_];
-                if (depth_ < max_depth<B>) {
+                if (depth_ < max_depth<B, count_t>) {
                     cur_ = child->values();
                     end_ = cur_ + popcount(child->datamap());
                 } else {

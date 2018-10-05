@@ -50,7 +50,7 @@ template <typename DerivedT,
           typename T,
           typename ReferenceT = T&,
           typename DifferenceTypeT = std::ptrdiff_t,
-          typename PointerT = T*>
+          typename PointerT = const T*>
 class iterator_facade
     : public std::iterator<IteratorCategoryT,
                            T,

@@ -8,6 +8,11 @@
 
 #pragma once
 
+#ifdef _MSC_VER
+#pragma warning ( push )
+#pragma warning ( disable: 4267 )
+#endif
+
 #include <immer/detail/combine_standard_layout.hpp>
 #include <immer/detail/util.hpp>
 #include <immer/detail/hamts/bits.hpp>
@@ -178,7 +183,7 @@ struct node
 
     static node_t* make_inner_n(count_t n)
     {
-        assert(n <= branches<B>);
+        assert(n <= (branches<B, count_t>));
         auto m = heap::allocate(sizeof_inner_n(n));
         auto p = new (m) node_t;
 #if IMMER_HAMTS_TAGGED_NODE
@@ -202,7 +207,7 @@ struct node
 
     static node_t* make_inner_n(count_t n, count_t nv)
     {
-        assert(nv <= branches<B>);
+        assert(nv <= ((branches<B, count_t>)));
         auto p = make_inner_n(n);
         if (nv) {
             try {
@@ -271,7 +276,7 @@ struct node
 
     static node_t* make_collision_n(count_t n)
     {
-        assert(n <= branches<B>);
+        assert(n <= (branches<B, count_t>));
         auto m = heap::allocate(sizeof_collision_n(n));
         auto p = new (m) node_t;
 #if IMMER_HAMTS_TAGGED_NODE
@@ -585,9 +590,9 @@ struct node
                                T v1, hash_t hash1,
                                T v2, hash_t hash2)
     {
-        if (shift < max_shift<B>) {
-            auto idx1 = hash1 & (mask<B> << shift);
-            auto idx2 = hash2 & (mask<B> << shift);
+        if (shift < max_shift<B, count_t>) {
+            auto idx1 = hash1 & (mask<B, size_t> << shift);
+            auto idx2 = hash2 & (mask<B, size_t> << shift);
             if (idx1 == idx2) {
                 auto merged = make_merged(shift + B,
                                           std::move(v1), hash1,
@@ -632,7 +637,7 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
-        destroy_n(&p->d.buffer, n);
+        destroy_n<T>(reinterpret_cast<T*>(&p->d.buffer), n);
         deallocate_values(p, n);
     }
 
@@ -657,7 +662,7 @@ struct node
 
     static void delete_deep(node_t* p, shift_t s)
     {
-        if (s == max_depth<B>)
+        if (s == max_depth<B, count_t>)
             delete_collision(p);
         else {
             auto fst = p->children();
@@ -671,7 +676,7 @@ struct node
 
     static void delete_deep_shift(node_t* p, shift_t s)
     {
-        if (s == max_shift<B>)
+        if (s == max_shift<B, count_t>)
             delete_collision(p);
         else {
             auto fst = p->children();
@@ -710,3 +715,7 @@ struct node
 } // namespace hamts
 } // namespace detail
 } // namespace immer
+
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif

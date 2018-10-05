@@ -10,6 +10,10 @@
 
 #include <cstdint>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 namespace immer {
 namespace detail {
 namespace hamts {
@@ -38,7 +42,11 @@ constexpr T max_shift = max_depth<B, count_t> * B;
 inline count_t popcount(bitmap_t x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
+#ifdef _MSC_VER
+    return __popcnt(x);
+#else
     return __builtin_popcount(x);
+#endif
 #else
     // More alternatives:
     // https://en.wikipedia.org/wiki/Hamming_weight

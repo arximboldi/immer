@@ -88,13 +88,14 @@ struct with_capacity
     void inc()
     {
         using immer::detail::get;
-        ptr->refs().inc();
+		if (ptr)
+			ptr->refs().inc();
     }
 
     void dec()
     {
         using immer::detail::get;
-        if (ptr->refs().dec())
+        if (ptr && ptr->refs().dec())
             node_t::delete_n(ptr, size, capacity);
     }
 
