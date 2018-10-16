@@ -36,7 +36,7 @@
     IMMER_TRACE("    " << #expr << " = " << (expr))
 
 #if defined(_MSC_VER)
-#define IMMER_UNREACHABLE    throw *(char*)nullptr
+#define IMMER_UNREACHABLE    __assume(false)
 #define IMMER_LIKELY(cond)   cond
 #define IMMER_UNLIKELY(cond) cond
 #define IMMER_FORCEINLINE    __forceinline
