@@ -174,7 +174,7 @@ template <typename Iterator, typename Sentinel,
            && detail::is_forward_iterator_v<Iterator>
            && detail::compatible_sentinel_v<Iterator,Sentinel>
            && detail::is_subtractable_v<Sentinel, Iterator>, bool> = true>
-typename std::iterator_traits<Iterator>::difference_type 
+typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
     return last - first;
