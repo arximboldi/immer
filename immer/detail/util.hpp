@@ -17,6 +17,10 @@
 
 #include <immer/detail/type_traits.hpp>
 
+#if defined(_MSC_VER)
+#include <intrin.h> // for __lzcnt*
+#endif
+
 namespace immer {
 namespace detail {
 
@@ -76,9 +80,15 @@ struct exact_t
 
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
+#if defined(_MSC_VER)
+inline auto clz_(unsigned short x) { return __lzcnt16(x); }
+inline auto clz_(unsigned int x) { return __lzcnt(x); }
+// inline auto clz_(unsigned __int64 x) { return __lzcnt64(x); }
+#else
 inline constexpr auto clz_(unsigned int x) { return __builtin_clz(x); }
 inline constexpr auto clz_(unsigned long x) { return __builtin_clzl(x); }
 inline constexpr auto clz_(unsigned long long x) { return __builtin_clzll(x); }
+#endif
 
 template <typename T>
 inline constexpr T log2_aux(T x, T r = 0)
