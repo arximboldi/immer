@@ -81,8 +81,8 @@ struct exact_t
 template <typename T>
 inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
 #if defined(_MSC_VER)
-inline auto clz_(unsigned short x) { return __lzcnt16(x); }
-inline auto clz_(unsigned int x) { return __lzcnt(x); }
+// inline auto clz_(unsigned short x) { return __lzcnt16(x); }
+// inline auto clz_(unsigned int x) { return __lzcnt(x); }
 // inline auto clz_(unsigned __int64 x) { return __lzcnt64(x); }
 #else
 inline constexpr auto clz_(unsigned int x) { return __builtin_clz(x); }
@@ -93,7 +93,7 @@ inline constexpr auto clz_(unsigned long long x) { return __builtin_clzll(x); }
 template <typename T>
 inline constexpr T log2_aux(T x, T r = 0)
 {
-    return x <= 1 ? r : log2(x >> 1, r + 1);
+    return x <= 1 ? r : log2_aux(x >> 1, r + 1);
 }
 
 template <typename T>
