@@ -971,10 +971,14 @@ struct regular_descent_pos
     node_t* node()  const { return node_; }
     shift_t shift() const { return Shift; }
     count_t index(size_t idx) const {
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#endif
         return (idx >> Shift) & mask<B>;
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
+#endif
     }
 
     template <typename Visitor>
@@ -1726,10 +1730,14 @@ struct relaxed_descent_pos
     count_t index(size_t idx) const
     {
         // make gcc happy
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#endif
         auto offset = idx >> Shift;
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
+#endif
         while (relaxed_->d.sizes[offset] <= idx) ++offset;
         return offset;
     }
