@@ -88,14 +88,14 @@ inline constexpr T log2_aux(T x, T r = 0)
 
 template <typename T>
 inline constexpr auto log2(T x)
-    -> std::enable_if_t<!std::is_same<decltype(clz_(x)), not_supported_t>{}, T>
+    -> std::enable_if_t<!std::is_same<decltype(clz_(x)), not_supported_t>::value, T>
 {
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - clz_(x);
 }
 
 template <typename T>
 inline constexpr auto log2(T x)
-    -> std::enable_if_t<std::is_same<decltype(clz_(x)), not_supported_t>{}, T>
+    -> std::enable_if_t<std::is_same<decltype(clz_(x)), not_supported_t>::value, T>
 {
     return log2_aux(x);
 }
