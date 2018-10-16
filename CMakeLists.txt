@@ -62,6 +62,10 @@ else()
   message(STATUS "Could not find ccache")
 endif()
 
+if (NOT BOEHM_GC_FOUND)
+  set(BOEHM_GC_LIBRARIES "")
+endif()
+
 #  Targets
 #  =======
 
