@@ -50,7 +50,7 @@ struct empty_regular_pos
     template <typename Visitor, typename... Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -74,7 +74,7 @@ struct empty_leaf_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_leaf(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_leaf(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -105,7 +105,7 @@ struct leaf_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_leaf(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_leaf(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -137,7 +137,7 @@ struct leaf_sub_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_leaf(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_leaf(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -168,7 +168,7 @@ struct leaf_descent_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_leaf(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_leaf(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -198,7 +198,7 @@ struct full_leaf_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_leaf(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_leaf(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -294,7 +294,7 @@ struct regular_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -703,7 +703,7 @@ struct singleton_regular_sub_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -942,7 +942,7 @@ struct regular_sub_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -992,7 +992,7 @@ struct regular_descent_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -1017,7 +1017,7 @@ struct regular_descent_pos<NodeT, BL, B, BL>
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -1285,7 +1285,7 @@ struct full_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_regular(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_regular(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -1672,7 +1672,7 @@ struct relaxed_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_relaxed(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_relaxed(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -1758,7 +1758,7 @@ struct relaxed_descent_pos
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_relaxed(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_relaxed(*this, std::forward<Args>(args)...);
     }
 };
 
@@ -1795,7 +1795,7 @@ struct relaxed_descent_pos<NodeT, BL, B, BL>
     template <typename Visitor, typename ...Args>
     decltype(auto) visit(Visitor v, Args&& ...args)
     {
-        return visit_relaxed(v, *this, std::forward<Args>(args)...);
+        return Visitor::visit_relaxed(*this, std::forward<Args>(args)...);
     }
 };
 
