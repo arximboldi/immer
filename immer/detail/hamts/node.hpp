@@ -632,7 +632,6 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
-        destroy_n(&p->d.buffer, n);
         deallocate_values(p, n);
     }
 
@@ -651,7 +650,6 @@ struct node
         assert(p);
         assert(p->kind() == kind_t::collision);
         auto n = p->collision_count();
-        destroy_n(p->collisions(), n);
         deallocate_collision(p, n);
     }
 
