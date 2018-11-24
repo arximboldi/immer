@@ -55,8 +55,7 @@ constexpr T max_shift = max_depth<B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 
-template <bits_t B>
-inline auto popcount_fallback(bitmap_t<B> x)
+inline auto popcount_fallback(std::uint32_t x)
 {
     // More alternatives:
     // https://en.wikipedia.org/wiki/Hamming_weight
@@ -64,11 +63,17 @@ inline auto popcount_fallback(bitmap_t<B> x)
     // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
     x = x - ((x >> 1) & 0x55555555);
     x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-    return ((x + (x >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+    return (((x + (x >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
 }
 
-template <bits_t B>
-inline count_t popcount(bitmap_t<B> x)
+inline auto popcount_fallback(std::uint64_t x)
+{
+    x = x - ((x >> 1) & 0x5555555555555555);
+    x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+    return (((x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F) * 0x0101010101010101) >> 56;
+}
+
+inline count_t popcount(std::uint32_t x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
 #  if defined(_MSC_VER)
@@ -81,7 +86,7 @@ inline count_t popcount(bitmap_t<B> x)
 #endif
 }
 
-inline count_t popcount(bitmap_t<6> x)
+inline count_t popcount(std::uint64_t x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
 #  if defined(_MSC_VER)
