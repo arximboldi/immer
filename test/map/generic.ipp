@@ -119,8 +119,8 @@ TEST_CASE("at")
     CHECK(v.at(0) == 0);
     CHECK(v.at(42) == 42);
     CHECK(v.at(665) == 665);
-    CHECK_THROWS_AS(v.at(666), std::out_of_range);
-    CHECK_THROWS_AS(v.at(1234), std::out_of_range);
+    CHECK_THROWS_AS(v.at(666), std::out_of_range&);
+    CHECK_THROWS_AS(v.at(1234), std::out_of_range&);
 }
 
 TEST_CASE("find")
