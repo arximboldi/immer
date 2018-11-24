@@ -27,13 +27,13 @@ using shift_t  = std::uint32_t;
 template <bits_t B>
 struct get_bitmap_type
 {
-    static_assert(B < 6, "B > 6 is not supported.");
+    static_assert(B < 6u, "B > 6 is not supported.");
 
     using type = std::uint32_t;
 };
 
 template <>
-struct get_bitmap_type<6>
+struct get_bitmap_type<6u>
 {
     using type = std::uint64_t;
 };
@@ -42,13 +42,13 @@ template <bits_t B>
 using bitmap_t = typename get_bitmap_type<B>::type;
 
 template <bits_t B, typename T=count_t>
-constexpr T branches = T{1} << B;
+constexpr T branches = T{1u} << B;
 
 template <bits_t B, typename T=size_t>
-constexpr T mask = branches<B, T> - 1;
+constexpr T mask = branches<B, T> - 1u;
 
 template <bits_t B, typename T=count_t>
-constexpr T max_depth = (sizeof(hash_t) * 8 + B - 1) / B;
+constexpr T max_depth = (sizeof(hash_t) * 8u + B - 1u) / B;
 
 template <bits_t B, typename T=count_t>
 constexpr T max_shift = max_depth<B, count_t> * B;
@@ -61,16 +61,16 @@ inline auto popcount_fallback(std::uint32_t x)
     // https://en.wikipedia.org/wiki/Hamming_weight
     // http://wm.ite.pl/articles/sse-popcount.html
     // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-    x = x - ((x >> 1) & 0x55555555);
-    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-    return (((x + (x >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+    x = x - ((x >> 1) & 0x55555555u);
+    x = (x & 0x33333333u) + ((x >> 2) & 0x33333333u);
+    return (((x + (x >> 4u)) & 0xF0F0F0Fu) * 0x1010101u) >> 24u;
 }
 
 inline auto popcount_fallback(std::uint64_t x)
 {
-    x = x - ((x >> 1) & 0x5555555555555555);
-    x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-    return (((x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F) * 0x0101010101010101) >> 56;
+    x = x - ((x >> 1) & 0x5555555555555555u);
+    x = (x & 0x3333333333333333u) + ((x >> 2u) & 0x3333333333333333u);
+    return (((x + (x >> 4)) & 0x0F0F0F0F0F0F0F0Fu) * 0x0101010101010101u) >> 56u;
 }
 
 inline count_t popcount(std::uint32_t x)
