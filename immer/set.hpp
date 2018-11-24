@@ -20,7 +20,7 @@ template <typename T,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
-          detail::hamts::bits_t B>
+          detail::hamts::size_t B>
 class set_transient;
 
 /*!
@@ -54,10 +54,10 @@ class set_transient;
  *
  */
 template <typename T,
-          typename Hash          = std::hash<T>,
-          typename Equal         = std::equal_to<T>,
-          typename MemoryPolicy  = default_memory_policy,
-          detail::hamts::bits_t B = default_bits>
+          typename Hash           = std::hash<T>,
+          typename Equal          = std::equal_to<T>,
+          typename MemoryPolicy   = default_memory_policy,
+          detail::hamts::size_t B = default_bits>
 class set
 {
     using impl_t = detail::hamts::champ<T, Hash, Equal, MemoryPolicy, B>;
