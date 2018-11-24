@@ -21,7 +21,7 @@ template <typename K,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
-          detail::hamts::size_t B>
+          detail::hamts::bits_t B>
 class map_transient;
 
 /*!
@@ -57,10 +57,10 @@ class map_transient;
  */
 template <typename K,
           typename T,
-          typename Hash          = std::hash<K>,
-          typename Equal         = std::equal_to<K>,
-          typename MemoryPolicy  = default_memory_policy,
-          detail::hamts::size_t B = default_bits>
+          typename Hash           = std::hash<K>,
+          typename Equal          = std::equal_to<K>,
+          typename MemoryPolicy   = default_memory_policy,
+          detail::hamts::bits_t B = default_bits>
 class map
 {
     using value_t = std::pair<K, T>;

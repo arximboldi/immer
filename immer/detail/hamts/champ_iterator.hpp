@@ -15,7 +15,7 @@ namespace immer {
 namespace detail {
 namespace hamts {
 
-template <typename T, typename Hash, typename Eq, typename MP, size_t B>
+template <typename T, typename Hash, typename Eq, typename MP, bits_t B>
 struct champ_iterator
     : iterator_facade<champ_iterator<T, Hash, Eq, MP, B>,
                       std::forward_iterator_tag,
@@ -61,7 +61,7 @@ private:
 
     T* cur_;
     T* end_;
-    count_t<B> depth_;
+    count_t depth_;
     node_t* const* path_[max_depth<B> + 1];
 
     void increment()

@@ -20,54 +20,42 @@ namespace hamts {
 
 using size_t   = std::size_t;
 using hash_t   = std::size_t;
+using bits_t   = std::uint32_t;
+using count_t  = std::uint32_t;
+using shift_t  = std::uint32_t;
 
-template <size_t B>
-struct types
+template <bits_t B>
+struct get_bitmap_type
 {
     static_assert(B < 6, "B > 6 is not supported.");
 
-    using bits_t   = std::uint32_t;
-    using bitmap_t = std::uint32_t;
-    using count_t  = std::uint32_t;
-    using shift_t  = std::uint32_t;
+    using type = std::uint32_t;
 };
 
 template <>
-struct types<6>
+struct get_bitmap_type<6>
 {
-    using bits_t   = std::uint64_t;
-    using bitmap_t = std::uint64_t;
-    using count_t  = std::uint64_t;
-    using shift_t  = std::uint64_t;
+    using type = std::uint64_t;
 };
 
-template <size_t B>
-using bits_t   = typename types<B>::bits_t;
+template <bits_t B>
+using bitmap_t = typename get_bitmap_type<B>::type;
 
-template <size_t B>
-using bitmap_t = typename types<B>::bitmap_t;
-
-template <size_t B>
-using count_t  = typename types<B>::count_t;
-
-template <size_t B>
-using shift_t  = typename types<B>::shift_t;
-
-template <size_t B, typename T=count_t<B>>
+template <bits_t B, typename T=count_t>
 constexpr T branches = T{1} << B;
 
-template <size_t B, typename T=size_t>
+template <bits_t B, typename T=size_t>
 constexpr T mask = branches<B, T> - 1;
 
-template <size_t B, typename T=count_t<B>>
+template <bits_t B, typename T=count_t>
 constexpr T max_depth = (sizeof(hash_t) * 8 + B - 1) / B;
 
-template <size_t B, typename T=count_t<B>>
-constexpr T max_shift = max_depth<B, count_t<B>> * B;
+template <bits_t B, typename T=count_t>
+constexpr T max_shift = max_depth<B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 
-template <size_t B>
+template <bits_t B>
 inline auto popcount_fallback(bitmap_t<B> x)
 {
     // More alternatives:
@@ -79,8 +67,8 @@ inline auto popcount_fallback(bitmap_t<B> x)
     return ((x + (x >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 }
 
-template <size_t B>
-inline count_t<B> popcount(bitmap_t<B> x)
+template <bits_t B>
+inline count_t popcount(bitmap_t<B> x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
 #  if defined(_MSC_VER)
@@ -93,7 +81,7 @@ inline count_t<B> popcount(bitmap_t<B> x)
 #endif
 }
 
-inline count_t<6> popcount(bitmap_t<6> x)
+inline count_t popcount(bitmap_t<6> x)
 {
 #if IMMER_HAS_BUILTIN_POPCOUNT
 #  if defined(_MSC_VER)

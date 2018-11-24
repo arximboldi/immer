@@ -28,7 +28,7 @@ template <typename T,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
-          size_t B>
+          bits_t B>
 struct node
 {
     using node_t      = node;
@@ -50,7 +50,7 @@ struct node
 
     struct collision_t
     {
-        count_t<B> count;
+        count_t count;
         aligned_storage_for<T> buffer;
     };
 
@@ -89,19 +89,19 @@ struct node
 
     impl_t impl;
 
-    constexpr static std::size_t sizeof_values_n(count_t<B> count)
+    constexpr static std::size_t sizeof_values_n(count_t count)
     {
         return immer_offsetof(values_t, d.buffer)
             + sizeof(values_data_t::buffer) * count;
     }
 
-    constexpr static std::size_t sizeof_collision_n(count_t<B> count)
+    constexpr static std::size_t sizeof_collision_n(count_t count)
     {
         return immer_offsetof(impl_t, d.data.collision.buffer)
             + sizeof(collision_t::buffer) * count;
     }
 
-    constexpr static std::size_t sizeof_inner_n(count_t<B> count)
+    constexpr static std::size_t sizeof_inner_n(count_t count)
     {
         return immer_offsetof(impl_t, d.data.inner.buffer)
             + sizeof(inner_t::buffer) * count;
@@ -176,7 +176,7 @@ struct node
     static const ownee_t& ownee(const node_t* x) { return get<ownee_t>(x->impl); }
     static ownee_t& ownee(node_t* x) { return get<ownee_t>(x->impl); }
 
-    static node_t* make_inner_n(count_t<B> n)
+    static node_t* make_inner_n(count_t n)
     {
         assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_inner_n(n));
@@ -190,7 +190,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(count_t<B> n, values_t* values)
+    static node_t* make_inner_n(count_t n, values_t* values)
     {
         auto p = make_inner_n(n);
         if (values) {
@@ -200,7 +200,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(count_t<B> n, count_t<B> nv)
+    static node_t* make_inner_n(count_t n, count_t nv)
     {
         assert(nv <= branches<B>);
         auto p = make_inner_n(n);
@@ -216,7 +216,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(count_t<B> n, count_t<B> idx, node_t* child)
+    static node_t* make_inner_n(count_t n, count_t idx, node_t* child)
     {
         assert(n >= 1);
         auto p = make_inner_n(n);
@@ -225,7 +225,7 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(count_t<B> n,
+    static node_t* make_inner_n(count_t n,
                                 bitmap_t<B> bitmap,
                                 T x)
     {
@@ -240,9 +240,9 @@ struct node
         return p;
     }
 
-    static node_t* make_inner_n(count_t<B> n,
-                                count_t<B> idx1, T x1,
-                                count_t<B> idx2, T x2)
+    static node_t* make_inner_n(count_t n,
+                                count_t idx1, T x1,
+                                count_t idx2, T x2)
     {
         assert(idx1 != idx2);
         auto p = make_inner_n(n, 2);
@@ -269,7 +269,7 @@ struct node
         return p;
     }
 
-    static node_t* make_collision_n(count_t<B> n)
+    static node_t* make_collision_n(count_t n)
     {
         assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_collision_n(n));
@@ -380,7 +380,7 @@ struct node
     }
 
     static node_t* copy_inner_replace(node_t* src,
-                                      count_t<B> offset, node_t* child)
+                                      count_t offset, node_t* child)
     {
         assert(src->kind() == kind_t::inner);
         auto n    = popcount(src->nodemap());
@@ -397,7 +397,7 @@ struct node
     }
 
     static node_t* copy_inner_replace_value(node_t* src,
-                                            count_t<B> offset, T v)
+                                            count_t offset, T v)
     {
         assert(src->kind() == kind_t::inner);
         assert(offset < popcount(src->datamap()));
@@ -426,7 +426,7 @@ struct node
     }
 
     static node_t* copy_inner_replace_merged(
-        node_t* src, bitmap_t<B> bit, count_t<B> voffset, node_t* node)
+        node_t* src, bitmap_t<B> bit, count_t voffset, node_t* node)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
@@ -466,7 +466,7 @@ struct node
     }
 
     static node_t* copy_inner_replace_inline(
-        node_t* src, bitmap_t<B> bit, count_t<B> noffset, T value)
+        node_t* src, bitmap_t<B> bit, count_t noffset, T value)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->datamap() & bit));
@@ -512,7 +512,7 @@ struct node
     }
 
     static node_t* copy_inner_remove_value(
-        node_t* src, bitmap_t<B> bit, count_t<B> voffset)
+        node_t* src, bitmap_t<B> bit, count_t voffset)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
@@ -581,7 +581,7 @@ struct node
         return dst;
     }
 
-    static node_t* make_merged(shift_t<B> shift,
+    static node_t* make_merged(shift_t shift,
                                T v1, hash_t hash1,
                                T v2, hash_t hash2)
     {
@@ -623,13 +623,13 @@ struct node
     bool dec() const { return refs(this).dec(); }
     void dec_unsafe() const { refs(this).dec_unsafe(); }
 
-    static void inc_nodes(node_t** p, count_t<B> n)
+    static void inc_nodes(node_t** p, count_t n)
     {
         for (auto i = p, e = i + n; i != e; ++i)
             refs(*i).inc();
     }
 
-    static void delete_values(values_t* p, count_t<B> n)
+    static void delete_values(values_t* p, count_t n)
     {
         assert(p);
         deallocate_values(p, n);
@@ -653,7 +653,7 @@ struct node
         deallocate_collision(p, n);
     }
 
-    static void delete_deep(node_t* p, shift_t<B> s)
+    static void delete_deep(node_t* p, shift_t s)
     {
         if (s == max_depth<B>)
             delete_collision(p);
@@ -667,7 +667,7 @@ struct node
         }
     }
 
-    static void delete_deep_shift(node_t* p, shift_t<B> s)
+    static void delete_deep_shift(node_t* p, shift_t s)
     {
         if (s == max_shift<B>)
             delete_collision(p);
@@ -681,24 +681,24 @@ struct node
         }
     }
 
-    static void deallocate_values(values_t* p, count_t<B> n)
+    static void deallocate_values(values_t* p, count_t n)
     {
         destroy_n((T*) &p->d.buffer, n);
         heap::deallocate(node_t::sizeof_values_n(n), p);
     }
 
-    static void deallocate_collision(node_t* p, count_t<B> n)
+    static void deallocate_collision(node_t* p, count_t n)
     {
         destroy_n(p->collisions(), n);
         heap::deallocate(node_t::sizeof_collision_n(n), p);
     }
 
-    static void deallocate_inner(node_t* p, count_t<B> n)
+    static void deallocate_inner(node_t* p, count_t n)
     {
         heap::deallocate(node_t::sizeof_inner_n(n), p);
     }
 
-    static void deallocate_inner(node_t* p, count_t<B> n, count_t<B> nv)
+    static void deallocate_inner(node_t* p, count_t n, count_t nv)
     {
         deallocate_values(p->impl.d.data.inner.values, nv);
         heap::deallocate(node_t::sizeof_inner_n(n), p);
