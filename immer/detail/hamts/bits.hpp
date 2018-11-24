@@ -42,16 +42,16 @@ struct types<6>
 };
 
 template <size_t B>
-using bits_t   = types<B>::bits_t;
+using bits_t   = typename types<B>::bits_t;
 
 template <size_t B>
-using bitmap_t = types<B>::bitmap_t;
+using bitmap_t = typename types<B>::bitmap_t;
 
 template <size_t B>
-using count_t  = types<B>::count_t;
+using count_t  = typename types<B>::count_t;
 
 template <size_t B>
-using shift_t  = types<B>::shift_t;
+using shift_t  = typename types<B>::shift_t;
 
 template <size_t B, typename T=count_t<B>>
 constexpr T branches = T{1} << B;

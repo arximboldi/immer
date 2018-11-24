@@ -21,10 +21,10 @@ template <typename T,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
-          bits_t B>
+          size_t B>
 struct champ
 {
-    static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
+    static_assert(branches<B> <= sizeof(bitmap_t<B>) * 8, "");
 
     static constexpr auto bits = B;
 
@@ -102,7 +102,7 @@ struct champ
     }
 
     template <typename Fn>
-    void for_each_chunk_traversal(node_t* node, count_t depth, Fn&& fn) const
+    void for_each_chunk_traversal(node_t* node, count_t<B> depth, Fn&& fn) const
     {
         if (depth < max_depth<B>) {
             auto datamap = node->datamap();
@@ -125,7 +125,7 @@ struct champ
     {
         auto node = root;
         auto hash = Hash{}(k);
-        for (auto i = count_t{}; i < max_depth<B>; ++i) {
+        for (auto i = count_t<B>{}; i < max_depth<B>; ++i) {
             auto bit = 1 << (hash & mask<B>);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
@@ -151,7 +151,7 @@ struct champ
     }
 
     std::pair<node_t*, bool>
-    do_add(node_t* node, T v, hash_t hash, shift_t shift) const
+    do_add(node_t* node, T v, hash_t hash, shift_t<B> shift) const
     {
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
@@ -227,7 +227,7 @@ struct champ
               typename K, typename Fn>
     std::pair<node_t*, bool>
     do_update(node_t* node, K&& k, Fn&& fn,
-              hash_t hash, shift_t shift) const
+              hash_t hash, shift_t<B> shift) const
     {
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
@@ -342,7 +342,7 @@ struct champ
     };
 
     template <typename K>
-    sub_result do_sub(node_t* node, const K& k, hash_t hash, shift_t shift) const
+    sub_result do_sub(node_t* node, const K& k, hash_t hash, shift_t<B> shift) const
     {
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
@@ -427,7 +427,7 @@ struct champ
     }
 
     template <typename Eq>
-    static bool equals_tree(const node_t* a, const node_t* b, count_t depth)
+    static bool equals_tree(const node_t* a, const node_t* b, count_t<B> depth)
     {
         if (a == b)
             return true;
@@ -440,7 +440,7 @@ struct champ
                 a->datamap() != b->datamap())
                 return false;
             auto n = popcount(a->nodemap());
-            for (auto i = count_t{}; i < n; ++i)
+            for (auto i = count_t<B>{}; i < n; ++i)
                 if (!equals_tree<Eq>(a->children()[i], b->children()[i], depth + 1))
                     return false;
             auto nv = popcount(a->datamap());
@@ -449,13 +449,13 @@ struct champ
     }
 
     template <typename Eq>
-    static bool equals_values(const T* a, const T* b, count_t n)
+    static bool equals_values(const T* a, const T* b, count_t<B> n)
     {
         return std::equal(a, a + n, b, Eq{});
     }
 
     template <typename Eq>
-    static bool equals_collisions(const T* a, const T* b, count_t n)
+    static bool equals_collisions(const T* a, const T* b, count_t<B> n)
     {
         auto ae = a + n;
         auto be = b + n;
