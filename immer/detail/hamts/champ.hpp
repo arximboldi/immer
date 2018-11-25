@@ -27,7 +27,7 @@ struct champ
     static constexpr auto bits = B;
 
     using node_t = node<T, Hash, Equal, MemoryPolicy, B>;
-    using bitmap_t = typename node_t::bitmap_t;
+    using bitmap_t = typename get_bitmap_type<B>::type;
 
     static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
 
