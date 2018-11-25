@@ -41,6 +41,7 @@ struct node
     using ownee_t     = typename transience::ownee;
     using edit_t      = typename transience::edit;
     using value_t     = T;
+    using bitmap_t    = typename get_bitmap_type<B>::type;
 
     enum class kind_t
     {
@@ -220,7 +221,7 @@ struct node
     {
         assert(n >= 1);
         auto p = make_inner_n(n);
-        p->impl.d.data.inner.nodemap = 1 << idx;
+        p->impl.d.data.inner.nodemap = bitmap_t{1u} << idx;
         p->children()[0] = child;
         return p;
     }
@@ -246,7 +247,7 @@ struct node
     {
         assert(idx1 != idx2);
         auto p = make_inner_n(n, 2);
-        p->impl.d.data.inner.datamap = (1 << idx1) | (1 << idx2);
+        p->impl.d.data.inner.datamap = (bitmap_t{1u} << idx1) | (bitmap_t{1u} << idx2);
         auto assign = [&] (auto&& x1, auto&& x2) {
             auto vp = p->values();
             try {
