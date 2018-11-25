@@ -126,7 +126,7 @@ struct champ
         auto node = root;
         auto hash = Hash{}(k);
         for (auto i = count_t{}; i < max_depth<B>; ++i) {
-            auto bit = 1ul << (hash & mask<B>);
+            auto bit = get_bit<B>(hash & mask<B>);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 node = node->children() [offset];
@@ -168,7 +168,7 @@ struct champ
             };
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = 1ul << idx;
+            auto bit = get_bit<B>(idx);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_add(node->children() [offset],
@@ -250,7 +250,7 @@ struct champ
             };
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = 1ul << idx;
+            auto bit = get_bit<B>(idx);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_update<Project, Default, Combine>(
@@ -355,7 +355,7 @@ struct champ
             return {};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = 1ul << idx;
+            auto bit = get_bit<B>(idx);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_sub(node->children() [offset],

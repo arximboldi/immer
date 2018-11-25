@@ -220,7 +220,7 @@ struct node
     {
         assert(n >= 1);
         auto p = make_inner_n(n);
-        p->impl.d.data.inner.nodemap = 1ul << idx;
+        p->impl.d.data.inner.nodemap = get_bit<B>(idx);
         p->children()[0] = child;
         return p;
     }
@@ -246,7 +246,7 @@ struct node
     {
         assert(idx1 != idx2);
         auto p = make_inner_n(n, 2);
-        p->impl.d.data.inner.datamap = (1ul << idx1) | (1ul << idx2);
+        p->impl.d.data.inner.datamap = get_bit<B>(idx1) | get_bit<B>(idx2);
         auto assign = [&] (auto&& x1, auto&& x2) {
             auto vp = p->values();
             try {
