@@ -41,6 +41,7 @@ struct node
     using ownee_t     = typename transience::ownee;
     using edit_t      = typename transience::edit;
     using value_t     = T;
+    using bitmap_t    = typename get_bitmap_type<B>::type;
 
     enum class kind_t
     {
@@ -64,8 +65,8 @@ struct node
 
     struct inner_t
     {
-        bitmap_t<B>  nodemap;
-        bitmap_t<B>  datamap;
+        bitmap_t  nodemap;
+        bitmap_t  datamap;
         values_t* values;
         aligned_storage_for<node_t*> buffer;
     };
@@ -220,13 +221,13 @@ struct node
     {
         assert(n >= 1);
         auto p = make_inner_n(n);
-        p->impl.d.data.inner.nodemap = get_bit<B>(idx);
+        p->impl.d.data.inner.nodemap = bitmap_t{1u} << idx;
         p->children()[0] = child;
         return p;
     }
 
     static node_t* make_inner_n(count_t n,
-                                bitmap_t<B> bitmap,
+                                bitmap_t bitmap,
                                 T x)
     {
         auto p = make_inner_n(n, 1);
@@ -246,7 +247,7 @@ struct node
     {
         assert(idx1 != idx2);
         auto p = make_inner_n(n, 2);
-        p->impl.d.data.inner.datamap = get_bit<B>(idx1) | get_bit<B>(idx2);
+        p->impl.d.data.inner.datamap = (bitmap_t{1u} << idx1) | (bitmap_t{1u} << idx2);
         auto assign = [&] (auto&& x1, auto&& x2) {
             auto vp = p->values();
             try {
@@ -426,7 +427,7 @@ struct node
     }
 
     static node_t* copy_inner_replace_merged(
-        node_t* src, bitmap_t<B> bit, count_t voffset, node_t* node)
+        node_t* src, bitmap_t bit, count_t voffset, node_t* node)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
@@ -466,7 +467,7 @@ struct node
     }
 
     static node_t* copy_inner_replace_inline(
-        node_t* src, bitmap_t<B> bit, count_t noffset, T value)
+        node_t* src, bitmap_t bit, count_t noffset, T value)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->datamap() & bit));
@@ -512,7 +513,7 @@ struct node
     }
 
     static node_t* copy_inner_remove_value(
-        node_t* src, bitmap_t<B> bit, count_t voffset)
+        node_t* src, bitmap_t bit, count_t voffset)
     {
         assert(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
@@ -545,7 +546,7 @@ struct node
         return dst;
     }
 
-    static node_t* copy_inner_insert_value(node_t* src, bitmap_t<B> bit, T v)
+    static node_t* copy_inner_insert_value(node_t* src, bitmap_t bit, T v)
     {
         assert(src->kind() == kind_t::inner);
         auto n      = popcount(src->nodemap());

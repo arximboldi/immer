@@ -38,9 +38,6 @@ struct get_bitmap_type<6u>
     using type = std::uint64_t;
 };
 
-template <bits_t B>
-using bitmap_t = typename get_bitmap_type<B>::type;
-
 template <bits_t B, typename T=count_t>
 constexpr T branches = T{1u} << B;
 
@@ -52,18 +49,6 @@ constexpr T max_depth = (sizeof(hash_t) * 8u + B - 1u) / B;
 
 template <bits_t B, typename T=count_t>
 constexpr T max_shift = max_depth<B, count_t> * B;
-
-template <bits_t B>
-inline auto get_bit(count_t idx)
-{
-    return 1u << idx;
-}
-
-template <>
-inline auto get_bit<6u>(count_t idx)
-{
-    return 1ul << idx;
-}
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 

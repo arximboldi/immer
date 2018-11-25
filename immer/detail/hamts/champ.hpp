@@ -24,11 +24,12 @@ template <typename T,
           bits_t B>
 struct champ
 {
-    static_assert(branches<B> <= sizeof(bitmap_t<B>) * 8, "");
-
     static constexpr auto bits = B;
 
     using node_t = node<T, Hash, Equal, MemoryPolicy, B>;
+    using bitmap_t = typename node_t::bitmap_t;
+
+    static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
 
     node_t* root;
     size_t  size;
@@ -126,7 +127,7 @@ struct champ
         auto node = root;
         auto hash = Hash{}(k);
         for (auto i = count_t{}; i < max_depth<B>; ++i) {
-            auto bit = get_bit<B>(hash & mask<B>);
+            auto bit = bitmap_t{1u} << (hash & mask<B>);
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 node = node->children() [offset];
@@ -168,7 +169,7 @@ struct champ
             };
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = get_bit<B>(idx);
+            auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_add(node->children() [offset],
@@ -250,7 +251,7 @@ struct champ
             };
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = get_bit<B>(idx);
+            auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_update<Project, Default, Combine>(
@@ -355,7 +356,7 @@ struct champ
             return {};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
-            auto bit = get_bit<B>(idx);
+            auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
                 auto result = do_sub(node->children() [offset],
