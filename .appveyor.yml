@@ -1,0 +1,51 @@
+environment:
+  matrix:
+  - COMPILER: MSVC_15
+    ARCHITECTURE: x64
+    BUILD_TESTS: true
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  - COMPILER: MINGW_730
+    ARCHITECTURE: x64
+    BUILD_TESTS: true
+
+build:
+  verbosity: detailed
+  parallel: true
+
+install:
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - git submodule update --init --recursive
+  - mkdir C:\projects\deps
+  - cd C:\projects\deps
+
+  #######################################################################################
+  # Install Ninja
+  #######################################################################################
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip"
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=C:\projects\deps\ninja;%PATH%
+  - ninja --version
+  
+  #######################################################################################
+  # Install doxygen
+  #######################################################################################
+  - ps: >-
+      If ($env:BUILD_DOCU -Match "true") {
+        $env:DOXYGEN_URL="http://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.10.windows.bin.zip"
+        appveyor DownloadFile $env:DOXYGEN_URL -FileName doxygen.zip
+        7z x doxygen.zip -oC:/projects/deps/doxygen-1.8.10 > $null
+        $env:PATH="C:/projects/deps/doxygen-1.8.10;$env:PATH"
+        doxygen --version
+      }
+before_build:
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: set PATH=C:\Python37-x64;%PATH%
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MSVC_15" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MINGW_730" set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\bin;%PATH%
+
+build_script:
+  - mkdir build
+  - cd build
+  - cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+  - ninja check
