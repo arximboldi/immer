@@ -38,10 +38,13 @@ install:
         $env:PATH="C:/projects/deps/doxygen-1.8.10;$env:PATH"
         doxygen --version
       }
+      
 before_build:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
   - cmd: set PATH=C:\Python37-x64;%PATH%
   - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MSVC_15" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MSVC_15" set BOOST_ROOT=C:\Libraries\boost_1_67_0
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MSVC_15" set BOOST_LIBRARYDIR=%BOOST_ROOT%/lib64-msvc-14.0
   - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MINGW_730" set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\bin;%PATH%
 
 build_script:
