@@ -432,11 +432,11 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
         assert(src->datamap() & bit);
-        assert(voffset == popcount(src->datamap() & (bit - 1)));
+        assert(voffset == popcount(static_cast<bitmap_t>(src->datamap() & (bit - 1))));
         auto n                         = popcount(src->nodemap());
         auto nv                        = popcount(src->datamap());
         auto dst                       = make_inner_n(n + 1, nv - 1);
-        auto noffset                   = popcount(src->nodemap() & (bit - 1));
+        auto noffset                   = popcount(static_cast<bitmap_t>(src->nodemap() & (bit - 1)));
         dst->impl.d.data.inner.datamap = src->datamap() & ~bit;
         dst->impl.d.data.inner.nodemap = src->nodemap() | bit;
         if (nv > 1) {
@@ -474,11 +474,11 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->datamap() & bit));
         assert(src->nodemap() & bit);
-        assert(noffset == popcount(src->nodemap() & (bit - 1)));
+        assert(noffset == popcount(static_cast<bitmap_t>(src->nodemap() & (bit - 1))));
         auto n                         = popcount(src->nodemap());
         auto nv                        = popcount(src->datamap());
         auto dst                       = make_inner_n(n - 1, nv + 1);
-        auto voffset                   = popcount(src->datamap() & (bit - 1));
+        auto voffset                   = popcount(static_cast<bitmap_t>(src->datamap() & (bit - 1)));
         dst->impl.d.data.inner.nodemap = src->nodemap() & ~bit;
         dst->impl.d.data.inner.datamap = src->datamap() | bit;
         try {
@@ -520,7 +520,7 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
         assert(src->datamap() & bit);
-        assert(voffset == popcount(src->datamap() & (bit - 1)));
+        assert(voffset == popcount(static_cast<bitmap_t>(src->datamap() & (bit - 1))));
         auto n                         = popcount(src->nodemap());
         auto nv                        = popcount(src->datamap());
         auto dst                       = make_inner_n(n, nv - 1);
@@ -554,7 +554,7 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto n                         = popcount(src->nodemap());
         auto nv                        = popcount(src->datamap());
-        auto offset                    = popcount(src->datamap() & (bit - 1));
+        auto offset                    = popcount(static_cast<bitmap_t>(src->datamap() & (bit - 1)));
         auto dst                       = make_inner_n(n, nv + 1);
         dst->impl.d.data.inner.datamap = src->datamap() | bit;
         dst->impl.d.data.inner.nodemap = src->nodemap();

@@ -124,11 +124,11 @@ struct champ
         for (auto i = count_t{}; i < max_depth<B>; ++i) {
             auto bit = bitmap_t{1u} << (hash & mask<B>);
             if (node->nodemap() & bit) {
-                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->nodemap() & (bit - 1)));
                 node        = node->children()[offset];
                 hash        = hash >> B;
             } else if (node->datamap() & bit) {
-                auto offset = popcount(node->datamap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->datamap() & (bit - 1)));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
                     return Project{}(*val);
@@ -163,7 +163,7 @@ struct champ
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
-                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->nodemap() & (bit - 1)));
                 assert(node->children()[offset]);
                 auto result = do_add(
                     node->children()[offset], std::move(v), hash, shift + B);
@@ -176,7 +176,7 @@ struct champ
                     throw;
                 }
             } else if (node->datamap() & bit) {
-                auto offset = popcount(node->datamap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->datamap() & (bit - 1)));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, v))
                     return {node_t::copy_inner_replace_value(
@@ -239,7 +239,7 @@ struct champ
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
-                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->nodemap() & (bit - 1)));
                 auto result = do_update<Project, Default, Combine>(
                     node->children()[offset],
                     k,
@@ -255,7 +255,7 @@ struct champ
                     throw;
                 }
             } else if (node->datamap() & bit) {
-                auto offset = popcount(node->datamap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->datamap() & (bit - 1)));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
                     return {
@@ -359,7 +359,7 @@ struct champ
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
-                auto offset = popcount(node->nodemap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->nodemap() & (bit - 1)));
                 auto result =
                     do_sub(node->children()[offset], k, hash, shift + B);
                 switch (result.kind) {
@@ -381,7 +381,7 @@ struct champ
                     }
                 }
             } else if (node->datamap() & bit) {
-                auto offset = popcount(node->datamap() & (bit - 1));
+                auto offset = popcount(static_cast<bitmap_t>(node->datamap() & (bit - 1)));
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k)) {
                     auto nv = popcount(node->datamap());
