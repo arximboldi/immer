@@ -74,10 +74,10 @@ add_library(immer INTERFACE)
 target_include_directories(immer INTERFACE
   $<BUILD_INTERFACE:${immer_BINARY_DIR}/>
   $<BUILD_INTERFACE:${immer_SOURCE_DIR}/>
-  $<INSTALL_INTERFACE:include>)
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 install(TARGETS immer EXPORT ImmerConfig)
-install(EXPORT ImmerConfig DESTINATION lib/cmake/Immer)
-install(DIRECTORY immer DESTINATION include)
+install(EXPORT ImmerConfig DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer")
+install(DIRECTORY immer DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 # development target to be used in tests, examples, benchmarks...
 immer_canonicalize_cmake_booleans(
