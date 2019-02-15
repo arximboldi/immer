@@ -35,10 +35,6 @@ class array_transient;
  *    of doubt, measure.  For basic types, using an `array` when
  *    :math:`n < 100` is a good heuristic.
  *
- * .. warning:: The current implementation depends on
- *    ``boost::intrusive_ptr`` and does not support :doc:`memory
- *    policies<memory>`.  This will be fixed soon.
- *
  * @endrst
  */
 template <typename T, typename MemoryPolicy = default_memory_policy>
