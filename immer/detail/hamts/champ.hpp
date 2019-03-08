@@ -445,7 +445,7 @@ struct champ
                 if (!equals_tree<Eq>(a->children()[i], b->children()[i], depth + 1))
                     return false;
             auto nv = popcount(a->datamap());
-            return equals_values<Eq>(a->values(), b->values(), nv);
+            return !nv || equals_values<Eq>(a->values(), b->values(), nv);
         }
     }
 
