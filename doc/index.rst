@@ -13,6 +13,7 @@ Contents
    containers
    transients
    algorithms
+   utilities
    memory
 
 .. toctree::
