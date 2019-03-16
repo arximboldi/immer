@@ -215,9 +215,9 @@ public:
      *
      * @rst
      *
-     * ..warning:: ``fn`` must be a pure function and have no side effects! The
-     *   function might be evaluated multiple times when multiple threads
-     *   content to update the value.
+     * .. warning:: ``fn`` must be a pure function and have no side effects! The
+     *    function might be evaluated multiple times when multiple threads
+     *    content to update the value.
      *
      * @endrst
      */
