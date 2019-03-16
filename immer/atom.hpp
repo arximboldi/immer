@@ -135,16 +135,16 @@ private:
  * .. warning:: If memory policy used includes thread unsafe reference counting,
  *    no no thread safety is assumed, and the atom becomes thread unsafe too!
  *
- * .. note:: `box<T>` provides a value based box of type `T`, this is, we can
- *    think about it as a value-based version of `std::shared_ptr`.  In a
- *    similar fashion, `atom<T>` is in spirit the value-based equivalent of
- *    C++20 `std::atomic_shared_ptr`.  However, the API does not follow
- *    `std::atomic` interface closely, since it attempts to be a higher level
- *    construction, most similar to Clojure's `(atom)`.  It is remarkable in
- *    particular that, since `box<T>` underlying object is immutable, using
- *    `atom<T>` is fully thread-safe in ways that `std::atmic_shared_ptr` is
+ * .. note:: ``box<T>`` provides a value based box of type ``T``, this is, we can
+ *    think about it as a value-based version of ``std::shared_ptr``.  In a
+ *    similar fashion, ``atom<T>`` is in spirit the value-based equivalent of
+ *    C++20 ``std::atomic_shared_ptr``.  However, the API does not follow
+ *    ``std::atomic`` interface closely, since it attempts to be a higher level
+ *    construction, most similar to Clojure's ``(atom)``.  It is remarkable in
+ *    particular that, since ``box<T>`` underlying object is immutable, using
+ *    ``atom<T>`` is fully thread-safe in ways that ``std::atmic_shared_ptr`` is
  *    not. This is so because dereferencing the underlying pointer in a
- *    `std::atomic_share_ptr` may require further synchronization, in particular
+ *    ``std::atomic_share_ptr`` may require further synchronization, in particular
  *    when invoking non-const methods.
  *
  * @endrst
@@ -215,7 +215,7 @@ public:
      *
      * @rst
      *
-     * ..warning:: `fn` must be a pure function and have no side effects! The
+     * ..warning:: ``fn`` must be a pure function and have no side effects! The
      *   function might be evaluated multiple times when multiple threads
      *   content to update the value.
      *
