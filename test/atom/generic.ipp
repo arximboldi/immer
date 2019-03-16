@@ -47,3 +47,10 @@ TEST_CASE("value conversion")
     auto v = int{x};
     CHECK(v == 42);
 }
+
+TEST_CASE("update")
+{
+    ATOM_T<int> x{42};
+    x.update([] (auto x) { return x + 2; });
+    CHECK(x.load() == 44);
+}

@@ -18,6 +18,9 @@ namespace detail {
 template <typename U, typename MP>
 struct gc_atom_impl;
 
+template <typename U, typename MP>
+struct refcount_atom_impl;
+
 } // namespace detail
 
 /*!
@@ -32,6 +35,7 @@ template <typename T,
 class box
 {
     friend struct detail::gc_atom_impl<T, MemoryPolicy>;
+    friend struct detail::refcount_atom_impl<T, MemoryPolicy>;
 
     struct holder : MemoryPolicy::refcount
     {

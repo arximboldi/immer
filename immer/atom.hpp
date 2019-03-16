@@ -57,6 +57,22 @@ struct refcount_atom_impl
         return std::move(b);
     }
 
+    template <typename Fn>
+    box_type update(Fn&& fn)
+    {
+        while (true) {
+            auto oldv = load();
+            auto newv = oldv.update(fn);
+            {
+                scoped_lock_t lock{lock_};
+                if (oldv.impl_ == impl_.impl_) {
+                    impl_ = newv;
+                    return { newv };
+                }
+            }
+        }
+    }
+
 private:
     mutable spinlock_t lock_;
     box_type impl_;
@@ -91,6 +107,17 @@ struct gc_atom_impl
 
     box_type exchange(box_type b)
     { return {impl_.exchange(b.impl_)}; }
+
+    template <typename Fn>
+    box_type update(Fn&& fn)
+    {
+        while (true) {
+            auto oldv = box_type{impl_.load()};
+            auto newv = oldv.update(fn);
+            if (impl_.compare_exchange_weak(oldv.impl_, newv.impl_))
+                return { newv };
+        }
+    }
 
 private:
     std::atomic<typename box_type::holder*> impl_;
@@ -177,6 +204,18 @@ public:
      */
     box_type exchange(box_type b)
     { return impl_.exchange(std::move(b)); }
+
+    /*!
+     * Stores the result of applying `fn` to the current value atomically and
+     * returns the new resulting value.
+     *
+     * @note `fn` must be a pure function and have no side effects! The function
+     *       might be evaluated multiple times when multiple threads content to
+     *       update the value.
+     */
+    template <typename Fn>
+    box_type update(Fn&& fn)
+    { return impl_.update(std::forward<Fn>(fn)); }
 
 private:
     struct get_refcount_atom_impl
