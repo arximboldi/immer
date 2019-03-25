@@ -26,17 +26,17 @@ struct debug_size_heap
     template <typename... Tags>
     static void* allocate(std::size_t size, Tags... tags)
     {
-        auto p = (std::size_t*) Base::allocate(size + sizeof(std::size_t), tags...);
+        auto p = (std::size_t*) Base::allocate(size + 2 * sizeof(std::size_t), tags...);
         *p = size;
-        return p + 1;
+        return p + 2;
     }
 
     template <typename... Tags>
     static void deallocate(std::size_t size, void* data, Tags... tags)
     {
-        auto p = ((std::size_t*) data) - 1;
+        auto p = ((std::size_t*) data) - 2;
         assert(*p == size);
-        Base::deallocate(size + sizeof(std::size_t), p, tags...);
+        Base::deallocate(size + 2 * sizeof(std::size_t), p, tags...);
     }
 };
 
