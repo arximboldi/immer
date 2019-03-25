@@ -8,9 +8,10 @@
 
 #pragma once
 
+#include <cassert>
+#include <cstddef>
 #include <immer/config.hpp>
 #include <immer/heap/identity_heap.hpp>
-#include <cassert>
 
 namespace immer {
 
