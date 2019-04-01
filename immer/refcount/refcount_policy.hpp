@@ -42,8 +42,10 @@ struct spinlock
         for (auto k = 0u; !try_lock(); ++k) {
             if (k < 4)
                 continue;
+#ifdef IMMER_SMT_PAUSE
             else if (k < 16)
                 IMMER_SMT_PAUSE;
+#endif
             else
                 std::this_thread::yield();
         }
