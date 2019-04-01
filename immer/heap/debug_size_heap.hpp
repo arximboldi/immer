@@ -24,13 +24,15 @@ namespace immer {
 template <typename Base>
 struct debug_size_heap
 {
-    constexpr static auto extra_size = alignof(std::max_align_t);
+    constexpr static auto extra_size = sizeof(
+        std::aligned_storage_t<sizeof(std::size_t),
+                               alignof(std::max_align_t)>);
 
     template <typename... Tags>
     static void* allocate(std::size_t size, Tags... tags)
     {
         auto p = (std::size_t*) Base::allocate(size + extra_size, tags...);
-        *p = size;
+        new (p) std::size_t{ size };
         return ((char*)p) + extra_size;
     }
 
