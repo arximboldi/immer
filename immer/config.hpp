@@ -8,6 +8,14 @@
 
 #pragma once
 
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard)
+#define IMMER_NODISCARD [[nodiscard]]
+#elif defined(__has_cpp_attribute) && __has_cpp_attribute(gnu::warn_unused_result)
+#define IMMER_NODISCARD [[gnu::warn_unused_result]]
+#else
+#define IMMER_NODISCARD
+#endif
+
 #ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
 #endif
