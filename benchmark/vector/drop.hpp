@@ -26,7 +26,7 @@ auto benchmark_drop()
 
         measure(meter, [&] {
             for (auto i = 0u; i < n; ++i)
-                v.drop(i);
+                (void) v.drop(i);
         });
     };
 }
@@ -88,7 +88,7 @@ auto benchmark_drop_mut()
         measure(meter, [&] {
             auto v = vv.transient();
             for (auto i = 0u; i < n; ++i)
-                v.drop(1);
+                (void) v.drop(1);
         });
     };
 }

@@ -26,7 +26,7 @@ auto benchmark_take()
 
         measure(meter, [&] {
             for (auto i = 0u; i < n; ++i)
-                v.take(i);
+                (void) v.take(i);
         });
     };
 }
@@ -88,7 +88,7 @@ auto benchmark_take_mut()
         measure(meter, [&] {
             auto v = vv.transient();
             for (auto i = n; i > 0; --i)
-                v.take(i);
+                (void) v.take(i);
         });
     };
 }
