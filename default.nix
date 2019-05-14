@@ -9,6 +9,6 @@ stdenv.mkDerivation rec {
   meta = with stdenv.lib; {
     homepage    = "https://github.com/arximboldi/immer";
     description = "Postmodern immutable data structures for C++";
-    license     = licenses.lgpl3Plus;
+    license     = licenses.boost;
   };
 }
