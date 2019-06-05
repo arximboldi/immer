@@ -132,7 +132,7 @@ public:
      * Returns `true` if there are no elements in the container.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD bool empty() const { return impl_.d->empty(); }
+    IMMER_NODISCARD bool empty() const { return impl_.size == 0; }
 
     /*!
      * Access the raw data.

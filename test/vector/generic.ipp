@@ -55,12 +55,14 @@ TEST_CASE("instantiation")
     {
         auto v = VECTOR_T<int>{};
         CHECK(v.size() == 0u);
+        CHECK(v.empty());
     }
 
     SECTION("initializer list")
     {
         auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+        CHECK(!v.empty());
     }
 
     SECTION("big object")
