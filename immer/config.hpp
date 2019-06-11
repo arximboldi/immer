@@ -8,14 +8,17 @@
 
 #pragma once
 
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard)
-#define IMMER_NODISCARD [[nodiscard]]
-#elif defined(__has_cpp_attribute) && __has_cpp_attribute(gnu::warn_unused_result)
-// This seems to be causing problems in GCC 6, where when used, methods
-// overloads based on the value category (&, &&) are detected as ambiguous
-//   #define IMMER_NODISCARD [[gnu::warn_unused_result]]
-#define IMMER_NODISCARD
-#else
+#if defined(__has_cpp_attribute)
+ #if __has_cpp_attribute(nodiscard)
+  #define IMMER_NODISCARD [[nodiscard]]
+ #endif
+#endif
+
+#if _MSVC_LANG >= 201703L
+ #define IMMER_NODISCARD [[nodiscard]]
+#endif
+
+#ifndef IMMER_NODISCARD
 #define IMMER_NODISCARD
 #endif
 
