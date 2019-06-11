@@ -12,14 +12,10 @@
  #if __has_cpp_attribute(nodiscard)
   #define IMMER_NODISCARD [[nodiscard]]
  #endif
-#endif
-
-#if _MSVC_LANG >= 201703L
- #define IMMER_NODISCARD [[nodiscard]]
-#endif
-
-#ifndef IMMER_NODISCARD
-#define IMMER_NODISCARD
+#else
+ #if _MSVC_LANG >= 201703L
+  #define IMMER_NODISCARD [[nodiscard]]
+ #endif
 #endif
 
 #ifndef IMMER_DEBUG_TRACES
