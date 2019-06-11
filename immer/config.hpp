@@ -18,6 +18,10 @@
  #endif
 #endif
 
+#ifndef IMMER_NODISCARD
+#define IMMER_NODISCARD
+#endif
+
 #ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
 #endif
