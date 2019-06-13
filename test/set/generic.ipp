@@ -100,6 +100,69 @@ TEST_CASE("basic insertion")
     CHECK(v3.count(42) == 1);
 }
 
+template<size_t BufLen>
+struct UnalignedStr
+{
+   std::array<char, BufLen> m_data{};
+   
+   UnalignedStr() = default;
+   UnalignedStr(const std::string& in)
+   {
+       for(size_t i=0; i < std::min(m_data.size() - 1, in.size()); i++)
+         m_data[i] = in[i];
+   }
+   
+   UnalignedStr(const char* in) : UnalignedStr{std::string{in}}
+   {
+   }
+   
+   std::string str() const
+   {
+       return m_data.data();
+   }
+   
+   bool operator==(UnalignedStr other) const
+   {
+       return m_data == other.m_data;
+   }
+   
+   bool operator!=(UnalignedStr other) const
+   {
+       return m_data != other.m_data;
+   }
+};
+
+namespace std
+{
+   template<size_t BufLen>
+   struct hash<UnalignedStr<BufLen>>
+   {
+      size_t operator()(const UnalignedStr<BufLen>& str) const
+      {
+         return std::hash<std::string>{}(str.str());
+      }
+   };
+}
+
+template<size_t BufLen>
+void checkWithLen()
+{
+    auto v = SET_T<UnalignedStr<BufLen>>{};
+    
+    for (int i=0; i < 1; i++)
+       v = v.insert(std::to_string(i));
+    
+    CHECK(v.count("0") == 1);
+}
+
+TEST_CASE("insert type with no alignment requirement")
+{
+   checkWithLen<1>();
+   checkWithLen<9>();
+   checkWithLen<15>();
+   checkWithLen<17>();
+}
+
 TEST_CASE("insert a lot")
 {
     constexpr auto N = 666u;
