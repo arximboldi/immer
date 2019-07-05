@@ -92,8 +92,9 @@ struct node
 
     constexpr static std::size_t sizeof_values_n(count_t count)
     {
-        return immer_offsetof(values_t, d.buffer)
-            + sizeof(values_data_t::buffer) * count;
+        return std::max(sizeof(values_t),
+                        immer_offsetof(values_t, d.buffer)
+                        + sizeof(values_data_t::buffer) * count);
     }
 
     constexpr static std::size_t sizeof_collision_n(count_t count)
