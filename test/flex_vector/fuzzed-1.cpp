@@ -164,6 +164,7 @@ TEST_CASE("bug: memory leak because of move update")
         var0 = std::move(var0).push_back(21);
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -171,6 +172,7 @@ TEST_CASE("bug: memory leak because of move update")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 }
 
 TEST_CASE("non-bug: crash")
@@ -260,6 +262,7 @@ TEST_CASE("non-bug: crash")
         var4 = var4 + var4;
         var4 = var4.update(4, [] (auto x) { return x + 1; });
     }
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -267,4 +270,5 @@ TEST_CASE("non-bug: crash")
         };
         CHECK(run_input<8>(input, sizeof(input)) == 0);
     }
+#endif
 }

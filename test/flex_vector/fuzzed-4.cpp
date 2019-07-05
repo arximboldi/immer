@@ -240,6 +240,7 @@ TEST_CASE("bug: concatenating transients")
         t1.append(t0);
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -247,6 +248,7 @@ TEST_CASE("bug: concatenating transients")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 }
 
 TEST_CASE("bug: concatenating moved transients")
@@ -272,6 +274,7 @@ TEST_CASE("bug: concatenating moved transients")
         t2.append(std::move(t0));
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -279,6 +282,7 @@ TEST_CASE("bug: concatenating moved transients")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 
     SECTION("simplified")
     {
@@ -300,6 +304,7 @@ TEST_CASE("bug: concatenating moved transients")
         t2.prepend(std::move(t0)); t0 = {};
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         return;
@@ -308,6 +313,7 @@ TEST_CASE("bug: concatenating moved transients")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 }
 
 TEST_CASE("bug: aegsdas")
@@ -331,6 +337,7 @@ TEST_CASE("bug: aegsdas")
         t0.prepend(std::move(t1)); t1 = {};
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -338,4 +345,5 @@ TEST_CASE("bug: aegsdas")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 }
