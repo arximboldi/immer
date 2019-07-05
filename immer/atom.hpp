@@ -54,7 +54,7 @@ struct refcount_atom_impl
             scoped_lock_t lock{lock_};
             swap(b, impl_);
         }
-        return std::move(b);
+        return b;
     }
 
     template <typename Fn>

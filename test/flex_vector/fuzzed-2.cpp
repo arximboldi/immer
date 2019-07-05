@@ -179,6 +179,7 @@ TEST_CASE("bug: use after free on move-take")
         var0 = std::move(var0).take(68);
     }
 
+#if __GNUC__ != 9
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -186,4 +187,5 @@ TEST_CASE("bug: use after free on move-take")
         };
         CHECK(run_input(input, sizeof(input)) == 0);
     }
+#endif
 }
