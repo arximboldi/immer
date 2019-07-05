@@ -1,6 +1,3 @@
-[submodule "extra/python/lib/--force"]
-	path = extra/python/lib/--force
-	url = https://github.com/pybind/pybind11.git
 [submodule "extra/python/lib/pybind11"]
 	path = extra/python/lib/pybind11
 	url = https://github.com/pybind/pybind11.git
