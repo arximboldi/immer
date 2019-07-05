@@ -57,4 +57,5 @@ theStdenv.mkDerivation rec {
     export CC=${compilerPkg}/bin/cc
     export CXX=${compilerPkg}/bin/c++
   '';
+  hardeningDisable = [ "fortify" ];
 }
