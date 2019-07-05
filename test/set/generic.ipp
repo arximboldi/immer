@@ -76,6 +76,68 @@ auto make_test_set(const std::vector<conflictor>& vals)
     return s;
 }
 
+template <std::size_t BufLen>
+struct unaligned_str
+{
+   std::array<char, BufLen> m_data{};
+
+   unaligned_str() = default;
+   unaligned_str(const std::string& in)
+   {
+       for (std::size_t i = 0; i < std::min(m_data.size() - 1, in.size()); i++)
+           m_data[i] = in[i];
+   }
+   unaligned_str(const char* in)
+       : unaligned_str{std::string{in}}
+   {}
+
+   std::string str() const
+   {
+       return m_data.data();
+   }
+
+   bool operator==(unaligned_str other) const
+   {
+       return m_data == other.m_data;
+   }
+
+   bool operator!=(unaligned_str other) const
+   {
+       return m_data != other.m_data;
+   }
+};
+
+namespace std
+{
+   template<size_t BufLen>
+   struct hash<unaligned_str<BufLen>>
+   {
+      size_t operator()(const unaligned_str<BufLen>& str) const
+      {
+         return std::hash<std::string>{}(str.str());
+      }
+   };
+}
+
+template<size_t BufLen>
+void check_with_len()
+{
+    auto v = SET_T<unaligned_str<BufLen>>{};
+
+    for (int i=0; i < 1; i++)
+       v = v.insert(std::to_string(i));
+
+    CHECK(v.count("0") == 1);
+}
+
+TEST_CASE("insert type with no alignment requirement")
+{
+    check_with_len<1>();
+    check_with_len<9>();
+    check_with_len<15>();
+    check_with_len<17>();
+}
+
 TEST_CASE("instantiation")
 {
     SECTION("default")
@@ -98,69 +160,6 @@ TEST_CASE("basic insertion")
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
-}
-
-template<size_t BufLen>
-struct UnalignedStr
-{
-   std::array<char, BufLen> m_data{};
-   
-   UnalignedStr() = default;
-   UnalignedStr(const std::string& in)
-   {
-       for(size_t i=0; i < std::min(m_data.size() - 1, in.size()); i++)
-         m_data[i] = in[i];
-   }
-   
-   UnalignedStr(const char* in) : UnalignedStr{std::string{in}}
-   {
-   }
-   
-   std::string str() const
-   {
-       return m_data.data();
-   }
-   
-   bool operator==(UnalignedStr other) const
-   {
-       return m_data == other.m_data;
-   }
-   
-   bool operator!=(UnalignedStr other) const
-   {
-       return m_data != other.m_data;
-   }
-};
-
-namespace std
-{
-   template<size_t BufLen>
-   struct hash<UnalignedStr<BufLen>>
-   {
-      size_t operator()(const UnalignedStr<BufLen>& str) const
-      {
-         return std::hash<std::string>{}(str.str());
-      }
-   };
-}
-
-template<size_t BufLen>
-void checkWithLen()
-{
-    auto v = SET_T<UnalignedStr<BufLen>>{};
-    
-    for (int i=0; i < 1; i++)
-       v = v.insert(std::to_string(i));
-    
-    CHECK(v.count("0") == 1);
-}
-
-TEST_CASE("insert type with no alignment requirement")
-{
-   checkWithLen<1>();
-   checkWithLen<9>();
-   checkWithLen<15>();
-   checkWithLen<17>();
 }
 
 TEST_CASE("insert a lot")
