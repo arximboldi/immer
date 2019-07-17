@@ -177,6 +177,12 @@ public:
     IMMER_NODISCARD size_type size() const { return impl_.size; }
 
     /*!
+     * Returns `true` if there are no elements in the container.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
+    IMMER_NODISCARD bool empty() const { return impl_.size == 0; }
+
+    /*!
      * Returns `1` when the key `k` is contained in the map or `0`
      * otherwise. It won't allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
