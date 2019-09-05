@@ -520,7 +520,7 @@ struct rbtree
         if (tail_offset() > 0)
             assert(root->check(shift, tail_offset()));
         else {
-            assert(root->kind() == node_t::kind_t::inner);
+            assertKind(root->kind() == node_t::kind_t::inner);
             assert(shift == BL);
         }
 #endif
