@@ -14,10 +14,12 @@
 
 #include <cassert>
 
+#ifndef IMMER_HAMTS_TAGGED_NODE
 #ifdef NDEBUG
 #define IMMER_HAMTS_TAGGED_NODE 0
 #else
 #define IMMER_HAMTS_TAGGED_NODE 1
+#endif
 #endif
 
 namespace immer {

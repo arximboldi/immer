@@ -18,10 +18,12 @@
 #include <memory>
 #include <type_traits>
 
+#ifndef IMMER_RBTS_TAGGED_NODE
 #ifdef NDEBUG
 #define IMMER_RBTS_TAGGED_NODE 0
 #else
 #define IMMER_RBTS_TAGGED_NODE 1
+#endif
 #endif
 
 namespace immer {
