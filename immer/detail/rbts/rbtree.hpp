@@ -443,7 +443,7 @@ struct rbtree
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
             if (new_root) {
-                assert(new_root->compute_shift() == get<0>(r));
+                assertKind(new_root->compute_shift() == get<0>(r));
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
