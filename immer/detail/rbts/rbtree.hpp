@@ -443,7 +443,7 @@ struct rbtree
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
             if (new_root) {
-                assertKind(new_root->compute_shift() == get<0>(r));
+                IMMER_ASSERT_TAGGED(new_root->compute_shift() == get<0>(r));
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
@@ -520,7 +520,7 @@ struct rbtree
         if (tail_offset() > 0)
             assert(root->check(shift, tail_offset()));
         else {
-            assertKind(root->kind() == node_t::kind_t::inner);
+            IMMER_ASSERT_TAGGED(root->kind() == node_t::kind_t::inner);
             assert(shift == BL);
         }
 #endif

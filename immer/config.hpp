@@ -31,9 +31,9 @@
 #endif
 
 #if IMMER_TAGGED_NODE
- #define assertKind(assertion) assert(assertion)
+ #define IMMER_ASSERT_TAGGED(assertion) assert(assertion)
 #else
- #define assertKind(assertion)
+ #define IMMER_ASSERT_TAGGED(assertion)
 #endif
 
 #ifndef IMMER_DEBUG_TRACES

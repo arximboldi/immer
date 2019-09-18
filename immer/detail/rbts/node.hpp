@@ -162,25 +162,25 @@ struct node
 
     relaxed_t* relaxed()
     {
-        assertKind(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return impl.d.data.inner.relaxed;
     }
 
     const relaxed_t* relaxed() const
     {
-        assertKind(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return impl.d.data.inner.relaxed;
     }
 
     node_t** inner()
     {
-        assertKind(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return reinterpret_cast<node_t**>(&impl.d.data.inner.buffer);
     }
 
     T* leaf()
     {
-        assertKind(kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::leaf);
         return reinterpret_cast<T*>(&impl.d.data.leaf.buffer);
     }
 
@@ -456,7 +456,7 @@ struct node
 
     static node_t* make_path(shift_t shift, node_t* node)
     {
-        assertKind(node->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(node->kind() == kind_t::leaf);
         if (shift == endshift<B, BL>)
             return node;
         else {
@@ -473,7 +473,7 @@ struct node
 
     static node_t* make_path_e(edit_t e, shift_t shift, node_t* node)
     {
-        assertKind(node->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(node->kind() == kind_t::leaf);
         if (shift == endshift<B, BL>)
             return node;
         else {
@@ -490,7 +490,7 @@ struct node
 
     static node_t* copy_inner(node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_n(n);
         inc_nodes(src->inner(), n);
         std::uninitialized_copy(src->inner(), src->inner() + n, dst->inner());
@@ -500,22 +500,22 @@ struct node
     static node_t* copy_inner_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_n(allocn);
         return do_copy_inner(dst, src, n);
     }
 
     static node_t* copy_inner_e(edit_t e, node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_e(e);
         return do_copy_inner(dst, src, n);
     }
 
     static node_t* do_copy_inner(node_t* dst, node_t* src, count_t n)
     {
-        assertKind(dst->kind() == kind_t::inner);
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(dst->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto p = src->inner();
         inc_nodes(p, n);
         std::uninitialized_copy(p, p + n, dst->inner());
@@ -524,7 +524,7 @@ struct node
 
     static node_t* copy_inner_r(node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_r_n(n);
         return do_copy_inner_r(dst, src, n);
     }
@@ -532,29 +532,29 @@ struct node
     static node_t* copy_inner_r_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_r_n(allocn);
         return do_copy_inner_r(dst, src, n);
     }
 
     static node_t* copy_inner_r_e(edit_t e, node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_r_e(e);
         return do_copy_inner_r(dst, src, n);
     }
 
     static node_t* copy_inner_sr_e(edit_t e, node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto dst = make_inner_sr_e(e, src->relaxed());
         return do_copy_inner_sr(dst, src, n);
     }
 
     static node_t* do_copy_inner_r(node_t* dst, node_t* src, count_t n)
     {
-        assertKind(dst->kind() == kind_t::inner);
-        assertKind(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(dst->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto src_r = src->relaxed();
         auto dst_r = dst->relaxed();
         inc_nodes(src->inner(), n);
@@ -577,7 +577,7 @@ struct node
 
     static node_t* copy_leaf(node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(n);
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
@@ -590,7 +590,7 @@ struct node
 
     static node_t* copy_leaf_e(edit_t e, node_t* src, count_t n)
     {
-        assertKind(src->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
@@ -604,7 +604,7 @@ struct node
     static node_t* copy_leaf_n(count_t allocn, node_t* src, count_t n)
     {
         assert(allocn >= n);
-        assertKind(src->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(allocn);
         try {
             std::uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
@@ -618,8 +618,8 @@ struct node
     static node_t* copy_leaf(node_t* src1, count_t n1,
                              node_t* src2, count_t n2)
     {
-        assertKind(src1->kind() == kind_t::leaf);
-        assertKind(src2->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src1->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src2->kind() == kind_t::leaf);
         auto dst = make_leaf_n(n1 + n2);
         try {
             std::uninitialized_copy(
@@ -643,8 +643,8 @@ struct node
                                node_t* src1, count_t n1,
                                node_t* src2, count_t n2)
     {
-        assertKind(src1->kind() == kind_t::leaf);
-        assertKind(src2->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src1->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src2->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         try {
             std::uninitialized_copy(
@@ -666,7 +666,7 @@ struct node
 
     static node_t* copy_leaf_e(edit_t e, node_t* src, count_t idx, count_t last)
     {
-        assertKind(src->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         try {
             std::uninitialized_copy(
@@ -680,7 +680,7 @@ struct node
 
     static node_t* copy_leaf(node_t* src, count_t idx, count_t last)
     {
-        assertKind(src->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(last - idx);
         try {
             std::uninitialized_copy(
@@ -708,7 +708,7 @@ struct node
 
     static void delete_inner(node_t* p, count_t n)
     {
-        assertKind(p->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::inner);
         assert(!p->relaxed());
         heap::deallocate(ownee(p).owned()
                          ? node_t::max_sizeof_inner
@@ -717,7 +717,7 @@ struct node
 
     static void delete_inner_e(node_t* p)
     {
-        assertKind(p->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::inner);
         assert(!p->relaxed());
         heap::deallocate(node_t::max_sizeof_inner, p);
     }
@@ -732,7 +732,7 @@ struct node
 
     static void delete_inner_r(node_t* p, count_t n)
     {
-        assertKind(p->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::inner);
         auto r = p->relaxed();
         assert(r);
         static_if<!embed_relaxed>([&] (auto) {
@@ -748,7 +748,7 @@ struct node
 
     static void delete_inner_r_e(node_t* p)
     {
-        assertKind(p->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::inner);
         auto r = p->relaxed();
         assert(r);
         static_if<!embed_relaxed>([&] (auto) {
@@ -760,7 +760,7 @@ struct node
 
     static void delete_leaf(node_t* p, count_t n)
     {
-        assertKind(p->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::leaf);
         destroy_n(p->leaf(), n);
         heap::deallocate(ownee(p).owned()
                          ? node_t::max_sizeof_leaf
@@ -876,7 +876,7 @@ struct node
 #if IMMER_DEBUG_DEEP_CHECK
         assert(size > 0);
         if (shift == endshift<B, BL>) {
-            assertKind(kind() == kind_t::leaf);
+            IMMER_ASSERT_TAGGED(kind() == kind_t::leaf);
             assert(size <= branches<BL>);
         } else if (auto r = relaxed()) {
             auto count = r->d.count;
