@@ -22,6 +22,20 @@
 #define IMMER_NODISCARD
 #endif
 
+#ifndef IMMER_TAGGED_NODE
+ #ifdef NDEBUG
+  #define IMMER_TAGGED_NODE 0
+ #else
+  #define IMMER_TAGGED_NODE 1
+ #endif
+#endif
+
+#if IMMER_TAGGED_NODE
+ #define IMMER_ASSERT_TAGGED(assertion) assert(assertion)
+#else
+ #define IMMER_ASSERT_TAGGED(assertion)
+#endif
+
 #ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
 #endif

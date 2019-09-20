@@ -711,7 +711,7 @@ template <typename NodeT>
 auto make_singleton_regular_sub_pos(NodeT* leaf, count_t count)
 {
     assert(leaf);
-    assert(leaf->kind() == NodeT::kind_t::leaf);
+    IMMER_ASSERT_TAGGED(leaf->kind() == NodeT::kind_t::leaf);
     assert(count > 0);
     return singleton_regular_sub_pos<NodeT>{leaf, count};
 }

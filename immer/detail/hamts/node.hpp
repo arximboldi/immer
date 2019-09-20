@@ -14,12 +14,6 @@
 
 #include <cassert>
 
-#ifdef NDEBUG
-#define IMMER_HAMTS_TAGGED_NODE 0
-#else
-#define IMMER_HAMTS_TAGGED_NODE 1
-#endif
-
 namespace immer {
 namespace detail {
 namespace hamts {
@@ -79,7 +73,7 @@ struct node
 
     struct impl_data_t
     {
-#if IMMER_HAMTS_TAGGED_NODE
+#if IMMER_TAGGED_NODE
         kind_t kind;
 #endif
         data_t data;
@@ -109,7 +103,7 @@ struct node
             + sizeof(inner_t::buffer) * count;
     }
 
-#if IMMER_HAMTS_TAGGED_NODE
+#if IMMER_TAGGED_NODE
     kind_t kind() const
     {
         return impl.d.kind;
@@ -118,57 +112,57 @@ struct node
 
     auto values()
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         assert(impl.d.data.inner.values);
         return (T*) &impl.d.data.inner.values->d.buffer;
     }
 
     auto values() const
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         assert(impl.d.data.inner.values);
         return (const T*) &impl.d.data.inner.values->d.buffer;
     }
 
     auto children()
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return (node_t**) &impl.d.data.inner.buffer;
     }
 
     auto children() const
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return (const node_t* const*) &impl.d.data.inner.buffer;
     }
 
     auto datamap() const
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return impl.d.data.inner.datamap;
     }
 
     auto nodemap() const
     {
-        assert(kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         return impl.d.data.inner.nodemap;
     }
 
     auto collision_count() const
     {
-        assert(kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::collision);
         return impl.d.data.collision.count;
     }
 
     T* collisions()
     {
-        assert(kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::collision);
         return (T*)&impl.d.data.collision.buffer;
     }
 
     const T* collisions() const
     {
-        assert(kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(kind() == kind_t::collision);
         return (const T*)&impl.d.data.collision.buffer;
     }
 
@@ -185,7 +179,7 @@ struct node
         assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_inner_n(n));
         auto p = new (m) node_t;
-#if IMMER_HAMTS_TAGGED_NODE
+#if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::inner;
 #endif
         p->impl.d.data.inner.nodemap = 0;
@@ -278,7 +272,7 @@ struct node
         assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_collision_n(n));
         auto p = new (m) node_t;
-#if IMMER_HAMTS_TAGGED_NODE
+#if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::collision;
 #endif
         p->impl.d.data.collision.count = n;
@@ -289,7 +283,7 @@ struct node
     {
         auto m = heap::allocate(sizeof_collision_n(2));
         auto p = new (m) node_t;
-#if IMMER_HAMTS_TAGGED_NODE
+#if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::collision;
 #endif
         p->impl.d.data.collision.count = 2;
@@ -311,7 +305,7 @@ struct node
 
     static node_t* copy_collision_insert(node_t* src, T v)
     {
-        assert(src->kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::collision);
         auto n    = src->collision_count();
         auto dst  = make_collision_n(n + 1);
         auto srcp = src->collisions();
@@ -333,7 +327,7 @@ struct node
 
     static node_t* copy_collision_remove(node_t* src, T* v)
     {
-        assert(src->kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::collision);
         assert(src->collision_count() > 1);
         auto n    = src->collision_count();
         auto dst  = make_collision_n(n - 1);
@@ -356,7 +350,7 @@ struct node
 
     static node_t* copy_collision_replace(node_t* src, T* pos, T v)
     {
-        assert(src->kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::collision);
         auto n    = src->collision_count();
         auto dst  = make_collision_n(n);
         auto srcp = src->collisions();
@@ -386,7 +380,7 @@ struct node
     static node_t* copy_inner_replace(node_t* src,
                                       count_t offset, node_t* child)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto n    = popcount(src->nodemap());
         auto dst  = make_inner_n(n, src->impl.d.data.inner.values);
         auto srcp = src->children();
@@ -403,7 +397,7 @@ struct node
     static node_t* copy_inner_replace_value(node_t* src,
                                             count_t offset, T v)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(offset < popcount(src->datamap()));
         auto n    = popcount(src->nodemap());
         auto nv   = popcount(src->datamap());
@@ -432,7 +426,7 @@ struct node
     static node_t* copy_inner_replace_merged(
         node_t* src, bitmap_t bit, count_t voffset, node_t* node)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
         assert(src->datamap() & bit);
         assert(voffset == popcount(src->datamap() & (bit - 1)));
@@ -474,7 +468,7 @@ struct node
     static node_t* copy_inner_replace_inline(
         node_t* src, bitmap_t bit, count_t noffset, T value)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->datamap() & bit));
         assert(src->nodemap() & bit);
         assert(noffset == popcount(src->nodemap() & (bit - 1)));
@@ -522,7 +516,7 @@ struct node
     static node_t* copy_inner_remove_value(
         node_t* src, bitmap_t bit, count_t voffset)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         assert(!(src->nodemap() & bit));
         assert(src->datamap() & bit);
         assert(voffset == popcount(src->datamap() & (bit - 1)));
@@ -557,7 +551,7 @@ struct node
 
     static node_t* copy_inner_insert_value(node_t* src, bitmap_t bit, T v)
     {
-        assert(src->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
         auto n      = popcount(src->nodemap());
         auto nv     = popcount(src->datamap());
         auto offset = popcount(src->datamap() & (bit - 1));
@@ -650,7 +644,7 @@ struct node
     static void delete_inner(node_t* p)
     {
         assert(p);
-        assert(p->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::inner);
         auto vp = p->impl.d.data.inner.values;
         if (vp && refs(vp).dec())
             delete_values(vp, popcount(p->datamap()));
@@ -660,7 +654,7 @@ struct node
     static void delete_collision(node_t* p)
     {
         assert(p);
-        assert(p->kind() == kind_t::collision);
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::collision);
         auto n = p->collision_count();
         deallocate_collision(p, n);
     }

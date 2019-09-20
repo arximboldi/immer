@@ -588,7 +588,7 @@ struct rrbtree
             auto new_root  = get<1>(r);
             auto new_tail  = get<3>(r);
             if (new_root) {
-                assert(new_root->compute_shift() == get<0>(r));
+                IMMER_ASSERT_TAGGED(new_root->compute_shift() == get<0>(r));
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return { new_size, new_shift, new_root, new_tail };
             } else {
@@ -706,7 +706,7 @@ struct rrbtree
                                            r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
-            assert(new_shift == new_root->compute_shift());
+            IMMER_ASSERT_TAGGED(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, size + r.tail_offset()));
             return { size + r.size, new_shift, new_root, r.tail->inc() };
         } else {
@@ -717,7 +717,7 @@ struct rrbtree
                                            r.root, r.shift, r.tail_offset());
             auto new_shift  = concated.shift();
             auto new_root   = concated.node();
-            assert(new_shift == new_root->compute_shift());
+            IMMER_ASSERT_TAGGED(new_shift == new_root->compute_shift());
             assert(new_root->check(new_shift, size + r.tail_offset()));
             return { size + r.size, new_shift, new_root, r.tail->inc() };
         }
@@ -782,7 +782,7 @@ struct rrbtree
                     el, l.tail, tail_size,
                     MemoryPolicy::transience_t::noone,
                     r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 l.size += r.size;
                 l.shift = concated.shift();
@@ -806,7 +806,7 @@ struct rrbtree
                     el, l.root, l.shift, tail_offst, l.tail, tail_size,
                     MemoryPolicy::transience_t::noone,
                     r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 l.size += r.size;
                 l.shift = concated.shift();
@@ -897,7 +897,7 @@ struct rrbtree
                     er,
                     MemoryPolicy::transience_t::noone, l.tail, tail_size,
                     er,r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 r.size += l.size;
                 r.shift = concated.shift();
@@ -920,7 +920,7 @@ struct rrbtree
                     MemoryPolicy::transience_t::noone,
                     l.root, l.shift, tail_offst, l.tail, tail_size,
                     er, r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 r.size += l.size;
                 r.shift = concated.shift();
@@ -1004,7 +1004,7 @@ struct rrbtree
                     el,
                     el, l.tail, tail_size,
                     er, r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 l.size += r.size;
                 l.shift = concated.shift();
@@ -1028,7 +1028,7 @@ struct rrbtree
                     el,
                     el, l.root, l.shift, tail_offst, l.tail, tail_size,
                     er, r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 l.size += r.size;
                 l.shift = concated.shift();
@@ -1119,7 +1119,7 @@ struct rrbtree
                     er,
                     el, l.tail, tail_size,
                     er,r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 r.size += l.size;
                 r.shift = concated.shift();
@@ -1142,7 +1142,7 @@ struct rrbtree
                     er,
                     el, l.root, l.shift, tail_offst, l.tail, tail_size,
                     er, r.root, r.shift, r.tail_offset());
-                assert(concated.shift() == concated.node()->compute_shift());
+                IMMER_ASSERT_TAGGED(concated.shift() == concated.node()->compute_shift());
                 assert(concated.node()->check(concated.shift(), l.size + r.tail_offset()));
                 r.size += l.size;
                 r.shift = concated.shift();
@@ -1198,7 +1198,7 @@ struct rrbtree
         if (tail_offset() > 0)
             assert(root->check(shift, tail_offset()));
         else {
-            assert(root->kind() == node_t::kind_t::inner);
+            IMMER_ASSERT_TAGGED(root->kind() == node_t::kind_t::inner);
             assert(shift == BL);
         }
 #endif
