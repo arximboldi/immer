@@ -7,6 +7,7 @@
 //
 
 #include "fuzzer_input.hpp"
+#include <immer/box.hpp>
 #include <immer/flex_vector.hpp>
 #include <iostream>
 #include <array>
