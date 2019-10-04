@@ -13,3 +13,24 @@
 #define VECTOR_TRANSIENT_T ::immer::array_transient
 
 #include "../vector_transient/generic.ipp"
+
+TEST_CASE("array provides mutable data")
+{
+    auto arr = immer::array<int>(10, 0);
+    CHECK(arr.size() == 10);
+    auto tr = arr.transient();
+    CHECK(tr.data() == arr.data());
+
+    auto d = tr.data_mut();
+    CHECK(tr.data_mut() != arr.data());
+    CHECK(tr.data() == tr.data_mut());
+    CHECK(arr.data() != tr.data_mut());
+
+    arr = tr.persistent();
+    CHECK(arr.data() == d);
+    CHECK(arr.data() == tr.data());
+
+    CHECK(tr.data_mut() != arr.data());
+    CHECK(tr.data() == tr.data_mut());
+    CHECK(arr.data() != tr.data_mut());
+}
