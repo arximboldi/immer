@@ -101,6 +101,16 @@ struct with_capacity
     const T* data() const { return ptr->data(); }
     T* data()             { return ptr->data(); }
 
+    T* data_mut(edit_t e)
+    {
+        if (!ptr->can_mutate(e)) {
+            auto p = node_t::copy_e(e, capacity, ptr, size);
+            dec();
+            ptr = p;
+        }
+        return data();
+    }
+
     operator no_capacity_t() const
     {
         if (size == capacity) {
