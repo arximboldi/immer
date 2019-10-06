@@ -102,7 +102,7 @@ public:
     /*!
      * Provide mutable access to the raw underlaying data.
      */
-    IMMER_NODISCARD const T* data_mut() { return impl_.data_mut(*this); }
+    IMMER_NODISCARD T* data_mut() { return impl_.data_mut(*this); }
 
     /*!
      * Access the last element.
