@@ -444,14 +444,14 @@ struct rrbtree
         using std::get;
         auto tail_off = tail_offset();
         if (idx >= tail_off) {
-            return { tail->leaf(), tail_off, size };
+            return std::make_tuple( tail->leaf(), tail_off, size );
         } else {
             auto subs = visit_maybe_relaxed_sub(
                 root, shift, tail_off,
                 region_for_visitor<T>(), idx);
             auto first = idx - get<1>(subs);
             auto end   = first + get<2>(subs);
-            return { get<0>(subs), first, end };
+            return std::make_tuple( get<0>(subs), first, end );
         }
     }
 
