@@ -49,7 +49,7 @@ struct region_for_visitor : visitor_base<region_for_visitor<T>>
 
     template <typename PosT>
     static result_t visit_leaf(PosT&& pos, size_t idx)
-    { return { pos.node()->leaf(), pos.index(idx), pos.count() }; }
+    { return std::make_tuple( pos.node()->leaf(), pos.index(idx), pos.count() ); }
 };
 
 template <typename T>
@@ -896,7 +896,7 @@ struct slice_right_mut_visitor
                         node->inner()[idx] = next;
                         nodr->d.sizes[idx] = last + 1 - ts;
                         nodr->d.count = idx + 1;
-                        return { pos.shift(), node, ts, tail };
+                        return std::make_tuple( pos.shift(), node, ts, tail );
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
                         auto newr = newn->relaxed();
@@ -904,25 +904,25 @@ struct slice_right_mut_visitor
                         newr->d.sizes[idx] = last + 1 - ts;
                         newr->d.count = idx + 1;
                         if (Mutating) pos.visit(dec_visitor{});
-                        return { pos.shift(), newn, ts, tail };
+                        return std::make_tuple( pos.shift(), newn, ts, tail );
                     }
                 } else if (idx == 0) {
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
-                    return { pos.shift(), nullptr, ts, tail };
+                    return std::make_tuple( pos.shift(), nullptr, ts, tail );
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
                     if (!mutate) newn->inc();
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
-                    return { pos.shift() - B, newn, ts, tail };
+                    return std::make_tuple( pos.shift() - B, newn, ts, tail );
                 } else {
                     if (mutate) {
                         pos.each_right(dec_visitor{}, idx + 1);
                         node->ensure_mutable_relaxed_n(e, idx)->d.count = idx;
-                        return { pos.shift(), node, ts, tail };
+                        return std::make_tuple( pos.shift(), node, ts, tail );
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
                         if (Mutating) pos.visit(dec_visitor{});
-                        return { pos.shift(), newn, ts, tail };
+                        return std::make_tuple( pos.shift(), newn, ts, tail );
                     }
                 }
             } catch (...) {
@@ -962,29 +962,29 @@ struct slice_right_mut_visitor
                     if (mutate) {
                         node->inner()[idx] = next;
                         pos.each_right(dec_visitor{}, idx + 1);
-                        return { pos.shift(), node, ts, tail };
+                        return std::make_tuple( pos.shift(), node, ts, tail );
                     } else {
                         auto newn  = node_t::copy_inner_e(e, node, idx);
                         newn->inner()[idx] = next;
                         if (Mutating) pos.visit(dec_visitor{});
-                        return { pos.shift(), newn, ts, tail };
+                        return std::make_tuple( pos.shift(), newn, ts, tail );
                     }
                 } else if (idx == 0) {
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{1});
-                    return { pos.shift(), nullptr, ts, tail };
+                    return std::make_tuple( pos.shift(), nullptr, ts, tail );
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
                     if (!mutate) newn->inc();
                     if (Mutating) pos.visit(dec_right_visitor{}, count_t{2});
-                    return { pos.shift() - B, newn, ts, tail };
+                    return std::make_tuple( pos.shift() - B, newn, ts, tail );
                 } else {
                     if (mutate) {
                         pos.each_right(dec_visitor{}, idx + 1);
-                        return { pos.shift(), node, ts, tail };
+                        return std::make_tuple( pos.shift(), node, ts, tail );
                     } else {
                         auto newn = node_t::copy_inner_e(e, node, idx);
                         if (Mutating) pos.visit(dec_visitor{});
-                        return { pos.shift(), newn, ts, tail };
+                        return std::make_tuple( pos.shift(), newn, ts, tail );
                     }
                 }
             } catch (...) {
@@ -1007,15 +1007,15 @@ struct slice_right_mut_visitor
         auto mutate        = Mutating && node->can_mutate(e);
         if (new_tail_size == old_tail_size) {
             if (!Mutating) node->inc();
-            return { 0, nullptr, new_tail_size, node };
+            return std::make_tuple( 0, nullptr, new_tail_size, node );
         } else if (mutate) {
             destroy_n(node->leaf() + new_tail_size,
                       old_tail_size - new_tail_size);
-            return { 0, nullptr, new_tail_size, node };
+            return std::make_tuple( 0, nullptr, new_tail_size, node );
         } else {
             auto new_tail = node_t::copy_leaf_e(e, node, new_tail_size);
             if (Mutating) pos.visit(dec_visitor{});
-            return { 0, nullptr, new_tail_size, new_tail };
+            return std::make_tuple( 0, nullptr, new_tail_size, new_tail );
         }
     }
 };
@@ -1053,15 +1053,15 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
                     newn->inner()[idx] = next;
                     newr->d.sizes[idx] = last + 1 - ts;
                     newr->d.count = count;
-                    return { pos.shift(), newn, ts, tail };
+                    return std::make_tuple( pos.shift(), newn, ts, tail );
                 } else if (idx == 0) {
-                    return { pos.shift(), nullptr, ts, tail };
+                    return std::make_tuple( pos.shift(), nullptr, ts, tail );
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
-                    return { pos.shift() - B, newn->inc(), ts, tail };
+                    return std::make_tuple( pos.shift() - B, newn->inc(), ts, tail );
                 } else {
                     auto newn = node_t::copy_inner_r(pos.node(), idx);
-                    return { pos.shift(), newn, ts, tail };
+                    return std::make_tuple( pos.shift(), newn, ts, tail );
                 }
             } catch (...) {
                 assert(!next || pos.shift() > BL);
@@ -1089,15 +1089,15 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
                 if (next) {
                     auto newn  = node_t::copy_inner_n(idx + 1, pos.node(), idx);
                     newn->inner()[idx] = next;
-                    return { pos.shift(), newn, ts, tail };
+                    return std::make_tuple( pos.shift(), newn, ts, tail );
                 } else if (idx == 0) {
-                    return { pos.shift(), nullptr, ts, tail };
+                    return std::make_tuple( pos.shift(), nullptr, ts, tail );
                 } else if (Collapse && idx == 1 && pos.shift() > BL) {
                     auto newn = pos.node()->inner()[0];
-                    return { pos.shift() - B, newn->inc(), ts, tail };
+                    return std::make_tuple( pos.shift() - B, newn->inc(), ts, tail );
                 } else {
                     auto newn = node_t::copy_inner_n(idx, pos.node(), idx);
-                    return { pos.shift(), newn, ts, tail };
+                    return std::make_tuple( pos.shift(), newn, ts, tail );
                 }
             } catch (...) {
                 assert(!next || pos.shift() > BL);
@@ -1117,7 +1117,7 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
         auto new_tail      = new_tail_size == old_tail_size
             ? pos.node()->inc()
             : node_t::copy_leaf(pos.node(), new_tail_size);
-        return { 0, nullptr, new_tail_size, new_tail };
+        return std::make_tuple( 0, nullptr, new_tail_size, new_tail );
     }
 };
 
@@ -1214,7 +1214,7 @@ struct slice_left_mut_visitor
                     node_t::inc_nodes(newn->inner() + 1, newcount - 1);
                     if (Mutating) pos.visit(dec_visitor{});
                 }
-                return { pos.shift(), newn };
+                return std::make_tuple( pos.shift(), newn );
             } catch (...) {
                 if (!mutate) node_t::delete_inner_r_e(newn);
                 throw;
@@ -1276,7 +1276,7 @@ struct slice_left_mut_visitor
                     node_t::inc_nodes(newn->inner() + 1, newcount - 1);
                     if (Mutating) pos.visit(dec_visitor{});
                 }
-                return { pos.shift(), newn };
+                return std::make_tuple( pos.shift(), newn );
             } catch (...) {
                 if (!mutate) node_t::delete_inner_r_e(newn);
                 else {
@@ -1305,11 +1305,11 @@ struct slice_left_mut_visitor
             auto newcount = count - idx;
             std::move(data + idx, data + count, data);
             destroy_n(data + newcount, idx);
-            return { 0, node };
+            return std::make_tuple( 0, node );
         } else {
             auto newn = node_t::copy_leaf_e(e, node, idx, count);
             if (Mutating) pos.visit(dec_visitor{});
-            return { 0, newn };
+            return std::make_tuple( 0, newn );
         }
     }
 };
@@ -1356,7 +1356,7 @@ struct slice_left_visitor : visitor_base<slice_left_visitor<NodeT, Collapse>>
                                         n->inner() + count,
                                         newn->inner() + 1);
                 node_t::inc_nodes(newn->inner() + 1, newr->d.count - 1);
-                return { pos.shift(), newn };
+                return std::make_tuple( pos.shift(), newn );
             } catch (...) {
                 node_t::delete_inner_r(newn, newc);
                 throw;
@@ -1368,7 +1368,7 @@ struct slice_left_visitor : visitor_base<slice_left_visitor<NodeT, Collapse>>
     static result_t visit_leaf(PosT&& pos, size_t first)
     {
         auto n = node_t::copy_leaf(pos.node(), pos.index(first), pos.count());
-        return { 0, n };
+        return std::make_tuple( 0, n );
     }
 };
 

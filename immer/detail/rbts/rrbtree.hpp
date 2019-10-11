@@ -302,7 +302,7 @@ struct rrbtree
             auto new_root = make_relaxed_pos(root, shift, r)
                 .visit(push_tail_visitor<node_t>{}, tail, tail_size);
             if (new_root)
-                return { shift, new_root };
+                return std::make_tuple( shift, new_root );
             else {
                 auto new_root = node_t::make_inner_r_n(2);
                 try {
@@ -316,7 +316,7 @@ struct rrbtree
                     node_t::delete_inner_r(new_root, 2);
                     throw;
                 }
-                return { shift + B, new_root };
+                return std::make_tuple( shift + B, new_root );
             }
         } else if (size == size_t{branches<B>} << shift) {
             auto new_root = node_t::make_inner_n(2);
@@ -328,13 +328,13 @@ struct rrbtree
                 node_t::delete_inner(new_root, 2);
                 throw;
             }
-            return { shift + B, new_root };
+            return std::make_tuple( shift + B, new_root );
         } else if (size) {
             auto new_root = make_regular_sub_pos(root, shift, size)
                 .visit(push_tail_visitor<node_t>{}, tail);
-            return { shift, new_root };
+            return std::make_tuple( shift, new_root );
         } else {
-            return { shift, node_t::make_path(shift, tail) };
+            return std::make_tuple( shift, node_t::make_path(shift, tail) );
         }
     }
 
@@ -444,14 +444,14 @@ struct rrbtree
         using std::get;
         auto tail_off = tail_offset();
         if (idx >= tail_off) {
-            return { tail->leaf(), tail_off, size };
+            return std::make_tuple( tail->leaf(), tail_off, size );
         } else {
             auto subs = visit_maybe_relaxed_sub(
                 root, shift, tail_off,
                 region_for_visitor<T>(), idx);
             auto first = idx - get<1>(subs);
             auto end   = first + get<2>(subs);
-            return { get<0>(subs), first, end };
+            return std::make_tuple( get<0>(subs), first, end );
         }
     }
 
