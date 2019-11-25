@@ -740,7 +740,7 @@ struct regular_sub_pos
     {
         return offset == subindex(size_ - 1)
             ? size_ - size_before(offset)
-            : 1 << shift_;
+            : size_t{1} << shift_;
     }
 
     auto size_sbh(count_t offset, size_t size_before_hint)
@@ -748,7 +748,7 @@ struct regular_sub_pos
         assert(size_before_hint == size_before(offset));
         return offset == subindex(size_ - 1)
             ? size_ - size_before_hint
-            : 1 << shift_;
+            : size_t{1} << shift_;
     }
 
     void copy_sizes(count_t offset,
@@ -760,7 +760,7 @@ struct regular_sub_pos
             auto last = offset + n - 1;
             auto e = sizes + n - 1;
             for (; sizes != e; ++sizes)
-                init = *sizes = init + (1 << shift_);
+                init = *sizes = init + (size_t{1} << shift_);
             *sizes = init + size(last);
         }
     }
@@ -1062,8 +1062,8 @@ struct full_pos
     shift_t shift() const { return shift_; }
     count_t index(size_t idx) const { return (idx >> shift_) & mask<B>; }
     count_t subindex(size_t idx) const { return idx >> shift_; }
-    size_t  size(count_t offset) const { return 1 << shift_; }
-    size_t  size_sbh(count_t offset, size_t) const { return 1 << shift_; }
+    size_t  size(count_t offset) const { return size_t{1} << shift_; }
+    size_t  size_sbh(count_t offset, size_t) const { return size_t{1} << shift_; }
     size_t  size_before(count_t offset) const { return offset << shift_; }
 
     void copy_sizes(count_t offset,
@@ -1073,7 +1073,7 @@ struct full_pos
     {
         auto e = sizes + n;
         for (; sizes != e; ++sizes)
-            init = *sizes = init + (1 << shift_);
+            init = *sizes = init + (size_t{1} << shift_);
     }
 
     template <typename Visitor, typename... Args>
