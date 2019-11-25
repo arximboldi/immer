@@ -14,6 +14,11 @@
 
 #include "../vector_transient/generic.ipp"
 
+TEST_CASE("array_transient default constructor compiles")
+{
+    immer::array_transient<int> transient;
+}
+
 TEST_CASE("array provides mutable data")
 {
     auto arr = immer::array<int>(10, 0);
