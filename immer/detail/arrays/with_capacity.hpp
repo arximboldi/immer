@@ -128,11 +128,14 @@ struct with_capacity
     static with_capacity from_range(Iter first, Sent last)
     {
         auto count = static_cast<size_t>(distance(first, last));
-        return {
-            node_t::copy_n(count, first, last),
-            count,
-            count
-        };
+        if (count == 0)
+            return empty();
+        else
+            return {
+                node_t::copy_n(count, first, last),
+                count,
+                count
+            };
     }
 
     template <typename U>

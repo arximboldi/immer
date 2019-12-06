@@ -42,7 +42,8 @@ struct node
 
     constexpr static std::size_t sizeof_n(size_t count)
     {
-        return immer_offsetof(impl_t, d.buffer) + sizeof(T) * count;
+        return immer_offsetof(impl_t, d.buffer)
+            + sizeof(T) * (count == 0 ? 1 : count);
     }
 
     refs_t& refs() const
@@ -67,7 +68,6 @@ struct node
         destroy_n(p->data(), sz);
         heap::deallocate(sizeof_n(cap), p);
     }
-
 
     static node_t* make_n(size_t n)
     {

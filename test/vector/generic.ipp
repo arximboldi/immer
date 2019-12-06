@@ -78,6 +78,13 @@ TEST_CASE("instantiation")
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
     }
 
+    SECTION("empty range")
+    {
+        auto r = std::vector<int>{};
+        auto v = VECTOR_T<unsigned>{r.begin(), r.end()};
+        CHECK(v.size() == 0);
+    }
+
     SECTION("iterator/sentinel")
     {
         auto r = u"012345678";
