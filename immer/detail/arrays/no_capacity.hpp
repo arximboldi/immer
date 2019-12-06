@@ -105,10 +105,13 @@ struct no_capacity
     static no_capacity from_range(Iter first, Sent last)
     {
         auto count = static_cast<size_t>(distance(first, last));
-        return {
-            node_t::copy_n(count, first, last),
-            count,
-        };
+        if (count == 0)
+            return empty();
+        else
+            return {
+                node_t::copy_n(count, first, last),
+                count,
+            };
     }
 
     static no_capacity from_fill(size_t n, T v)
