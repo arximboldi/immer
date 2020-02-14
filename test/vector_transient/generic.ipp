@@ -10,6 +10,8 @@
 #include "test/dada.hpp"
 #include "test/transient_tester.hpp"
 
+#include <eigen3/Eigen/Core>
+
 #include <catch.hpp>
 
 #ifndef VECTOR_T
@@ -27,6 +29,14 @@ auto make_test_vector(unsigned min, unsigned max)
     for (auto i = min; i < max; ++i)
         v = v.push_back({i});
     return v;
+}
+
+TEST_CASE("eigen vector4f")
+{
+    auto test_vector = VECTOR_T<Eigen::Vector4f>{}.transient();
+    auto test = Eigen::Vector4f{};
+    test_vector.push_back(test);
+    CHECK(test_vector.size() == 1);
 }
 
 TEST_CASE("from vector and to vector")

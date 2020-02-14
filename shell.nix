@@ -40,6 +40,7 @@ theStdenv.mkDerivation rec {
     lldb
     ccache
     boost
+    eigen
     boehmgc
     benchmarks.c_rrb
     benchmarks.steady
