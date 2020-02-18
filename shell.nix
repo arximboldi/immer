@@ -2,8 +2,8 @@
   nixpkgs ? (import <nixpkgs> {}).fetchFromGitHub {
     owner  = "NixOS";
     repo   = "nixpkgs";
-    rev    = "73392e79aa62e406683d6a732eb4f4101f4732be";
-    sha256 = "049fq37sxdn5iis7ni407j2jsfrxbb41pgv5zawi02qj47f74az9";
+    rev    = "630e25ba5cd30adb9efb8b6a64a295af780e62b4";
+    sha256 = "1998kj0zn1qcxrqms95p1sw29084lyb15jbczamv5jm01dccqs07";
   }}:
 
 with import nixpkgs {};
@@ -24,7 +24,7 @@ let
                   then pkgs.${compiler}
                   else stdenv.cc;
   theStdenv     = if compilerPkg.isClang
-                  then clangStdenv
+                  then llvmPackages_8.stdenv
                   else stdenv;
 in
 
@@ -54,9 +54,5 @@ theStdenv.mkDerivation rec {
       docs.recommonmark
     ]))
   ];
-  shellHook = ''
-    export CC=${compilerPkg}/bin/cc
-    export CXX=${compilerPkg}/bin/c++
-  '';
   hardeningDisable = [ "fortify" ];
 }

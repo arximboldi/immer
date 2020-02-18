@@ -49,6 +49,15 @@ bool operator!=(const char16_t* i, string_sentinel ){
   return *i != '\0';
 }
 
+struct track
+{
+    __uint128_t id;
+    std::string name;
+    float gain;
+    float panning;
+    std::string gain_mode;
+};
+
 TEST_CASE("instantiation")
 {
     SECTION("default")
@@ -100,6 +109,12 @@ TEST_CASE("instantiation")
         auto v2 = VECTOR_T<int>(4, 42);
         CHECK(v2.size() == 4);
         CHECK(v2[2] == 42);
+    }
+
+    SECTION("big alignment")
+    {
+        auto v1 = VECTOR_T<track>(42);
+        CHECK(v1.size() == 42);
     }
 }
 

@@ -86,6 +86,26 @@ TEST_CASE("instantiation")
     }
 }
 
+namespace std {
+template <>
+struct hash<__uint128_t>
+{
+    std::size_t operator()(__uint128_t x) {
+        return (std::size_t) x;
+    };
+};
+}
+
+TEST_CASE("alignment")
+{
+    auto v = MAP_T<__uint128_t, __uint128_t>{}
+        .set(42, 42)
+        .set(1, 0)
+        .set(0, 1)
+        .set(__uint128_t{1} << 90, __uint128_t{1} << 127);
+    CHECK(v.size() == 4);
+}
+
 TEST_CASE("basic insertion")
 {
     auto v1 = MAP_T<int, int>{};
