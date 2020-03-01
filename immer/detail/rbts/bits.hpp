@@ -16,7 +16,7 @@ namespace rbts {
 
 using bits_t  = std::uint32_t;
 using shift_t = std::uint32_t;
-using count_t = std::uint32_t;
+using count_t = std::size_t;
 using size_t  = std::size_t;
 
 template <bits_t B, typename T=count_t>
