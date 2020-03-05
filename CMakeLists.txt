@@ -31,6 +31,11 @@ option(ENABLE_PYTHON "enable building python module" off)
 option(ENABLE_GUILE "enable building guile module" off)
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
 
+option(immer_BUILD_TESTS "Build tests" ON)
+option(immer_BUILD_EXAMPLES "Build examples" ON)
+option(immer_BUILD_DOCS "Build docs" ON)
+option(immer_BUILD_EXTRAS "Build extras" ON)
+
 set(CXX_STANDARD 14 CACHE STRING "c++ standard number")
 
 set(CMAKE_CXX_STANDARD ${CXX_STANDARD})
@@ -89,7 +94,7 @@ add_library(immer-dev INTERFACE)
 target_include_directories(immer-dev SYSTEM INTERFACE
   ${Boost_INCLUDE_DIR}
   ${BOEHM_GC_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/tools/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/include)
 target_link_libraries(immer-dev INTERFACE
   immer
   ${BOEHM_GC_LIBRARIES}
@@ -108,17 +113,28 @@ endif()
 #  Testing
 #  =======
 
-enable_testing()
+if (immer_BUILD_TESTS)
+  enable_testing()
 
-add_custom_target(check
-  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  COMMENT "Build and run all the tests and examples.")
+  add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Build and run all the tests and examples.")
 
-add_subdirectory(test)
-add_subdirectory(benchmark)
-add_subdirectory(example)
-add_subdirectory(doc)
-add_subdirectory(extra/fuzzer)
-add_subdirectory(extra/python)
-add_subdirectory(extra/guile)
+  add_subdirectory(test)
+  add_subdirectory(benchmark)
+endif()
+
+if (immer_BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()
+
+if (immer_BUILD_DOCS)
+  add_subdirectory(doc)
+endif()
+
+if (immer_BUILD_EXTRAS)
+  add_subdirectory(extra/fuzzer)
+  add_subdirectory(extra/python)
+  add_subdirectory(extra/guile)
+endif()
