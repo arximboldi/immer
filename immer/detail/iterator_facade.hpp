@@ -52,12 +52,12 @@ template <typename DerivedT,
           typename DifferenceTypeT = std::ptrdiff_t,
           typename PointerT = T*>
 class iterator_facade
-    : public std::iterator<IteratorCategoryT,
-                           T,
-                           DifferenceTypeT,
-                           PointerT,
-                           ReferenceT>
 {
+  using iterator_category = IteratorCategoryT;
+  using value_type        = T;
+  using difference_type   = DifferenceTypeT;
+  using pointer           = PointerT;
+  using reference         = ReferenceT;
 protected:
     using access_t = iterator_core_access;
 
