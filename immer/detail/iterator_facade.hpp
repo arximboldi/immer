@@ -53,11 +53,13 @@ template <typename DerivedT,
           typename PointerT = T*>
 class iterator_facade
 {
-  using iterator_category = IteratorCategoryT;
-  using value_type        = T;
-  using difference_type   = DifferenceTypeT;
-  using pointer           = PointerT;
-  using reference         = ReferenceT;
+public:
+    using iterator_category = IteratorCategoryT;
+    using value_type        = T;
+    using difference_type   = DifferenceTypeT;
+    using pointer           = PointerT;
+    using reference         = ReferenceT;
+
 protected:
     using access_t = iterator_core_access;
 
