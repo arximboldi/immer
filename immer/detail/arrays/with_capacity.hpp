@@ -19,26 +19,24 @@ struct with_capacity
 {
     using no_capacity_t = no_capacity<T, MemoryPolicy>;
 
-    using node_t      = node<T, MemoryPolicy>;
-    using edit_t      = typename MemoryPolicy::transience_t::edit;
-    using size_t      = std::size_t;
+    using node_t = node<T, MemoryPolicy>;
+    using edit_t = typename MemoryPolicy::transience_t::edit;
+    using size_t = std::size_t;
 
     node_t* ptr;
-    size_t  size;
-    size_t  capacity;
+    size_t size;
+    size_t capacity;
 
     static const with_capacity& empty()
     {
-        static const with_capacity empty_ {
-            node_t::make_n(1),
-            0,
-            1
-        };
+        static const with_capacity empty_{node_t::make_n(1), 0, 1};
         return empty_;
     }
 
     with_capacity(node_t* p, size_t s, size_t c)
-        : ptr{p}, size{s}, capacity{c}
+        : ptr{p}
+        , size{s}
+        , capacity{c}
     {}
 
     with_capacity(const with_capacity& other)
@@ -80,10 +78,7 @@ struct with_capacity
         swap(x.capacity, y.capacity);
     }
 
-    ~with_capacity()
-    {
-        dec();
-    }
+    ~with_capacity() { dec(); }
 
     void inc()
     {
@@ -99,7 +94,7 @@ struct with_capacity
     }
 
     const T* data() const { return ptr->data(); }
-    T* data()             { return ptr->data(); }
+    T* data() { return ptr->data(); }
 
     T* data_mut(edit_t e)
     {
@@ -115,27 +110,24 @@ struct with_capacity
     {
         if (size == capacity) {
             ptr->refs().inc();
-            return { ptr, size };
+            return {ptr, size};
         } else {
-            return { node_t::copy_n(size, ptr, size), size };
+            return {node_t::copy_n(size, ptr, size), size};
         }
     }
 
-    template <typename Iter, typename Sent,
-              std::enable_if_t
-              <is_forward_iterator_v<Iter>
-               && compatible_sentinel_v<Iter, Sent>, bool> = true>
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<is_forward_iterator_v<Iter> &&
+                                   compatible_sentinel_v<Iter, Sent>,
+                               bool> = true>
     static with_capacity from_range(Iter first, Sent last)
     {
         auto count = static_cast<size_t>(distance(first, last));
         if (count == 0)
             return empty();
         else
-            return {
-                node_t::copy_n(count, first, last),
-                count,
-                count
-            };
+            return {node_t::copy_n(count, first, last), count, count};
     }
 
     template <typename U>
@@ -147,7 +139,7 @@ struct with_capacity
 
     static with_capacity from_fill(size_t n, T v)
     {
-        return { node_t::fill_n(n, v), n, n };
+        return {node_t::fill_n(n, v), n, n};
     }
 
     template <typename Fn>
@@ -162,10 +154,7 @@ struct with_capacity
         return std::forward<Fn>(fn)(data(), data() + size);
     }
 
-    const T& get(std::size_t index) const
-    {
-        return data()[index];
-    }
+    const T& get(std::size_t index) const { return data()[index]; }
 
     const T& get_check(std::size_t index) const
     {
@@ -177,33 +166,33 @@ struct with_capacity
     bool equals(const with_capacity& other) const
     {
         return ptr == other.ptr ||
-            (size == other.size &&
-             std::equal(data(), data() + size, other.data()));
+               (size == other.size &&
+                std::equal(data(), data() + size, other.data()));
     }
 
     static size_t recommend_up(size_t sz, size_t cap)
     {
         auto max = std::numeric_limits<size_t>::max();
-        return
-            sz <= cap       ? cap :
-            cap >= max / 2  ? max
-            /* otherwise */ : std::max(2 * cap, sz);
+        return sz <= cap ? cap
+                         : cap >= max / 2 ? max
+                                          /* otherwise */
+                                          : std::max(2 * cap, sz);
     }
 
     static size_t recommend_down(size_t sz, size_t cap)
     {
-        return sz == 0      ? 1 :
-            sz < cap / 2    ? sz * 2 :
-            /* otherwise */   cap;
+        return sz == 0 ? 1
+                       : sz < cap / 2 ? sz * 2 :
+                                      /* otherwise */ cap;
     }
 
     with_capacity push_back(T value) const
     {
         auto cap = recommend_up(size + 1, capacity);
-        auto p = node_t::copy_n(cap, ptr, size);
+        auto p   = node_t::copy_n(cap, ptr, size);
         try {
             new (p->data() + size) T{std::move(value)};
-            return { p, size + 1, cap };
+            return {p, size + 1, cap};
         } catch (...) {
             node_t::delete_n(p, size, cap);
             throw;
@@ -217,10 +206,10 @@ struct with_capacity
             ++size;
         } else {
             auto cap = recommend_up(size + 1, capacity);
-            auto p = node_t::copy_e(e, cap, ptr, size);
+            auto p   = node_t::copy_e(e, cap, ptr, size);
             try {
                 new (p->data() + size) T{std::move(value)};
-                *this = { p, size + 1, cap };
+                *this = {p, size + 1, cap};
             } catch (...) {
                 node_t::delete_n(p, size, cap);
                 throw;
@@ -233,7 +222,7 @@ struct with_capacity
         auto p = node_t::copy_n(capacity, ptr, size);
         try {
             p->data()[idx] = std::move(value);
-            return { p, size, capacity };
+            return {p, size, capacity};
         } catch (...) {
             node_t::delete_n(p, size, capacity);
             throw;
@@ -248,7 +237,7 @@ struct with_capacity
             auto p = node_t::copy_n(capacity, ptr, size);
             try {
                 p->data()[idx] = std::move(value);
-                *this = { p, size, capacity };
+                *this          = {p, size, capacity};
             } catch (...) {
                 node_t::delete_n(p, size, capacity);
                 throw;
@@ -262,8 +251,8 @@ struct with_capacity
         auto p = node_t::copy_n(capacity, ptr, size);
         try {
             auto& elem = p->data()[idx];
-            elem = std::forward<Fn>(op)(std::move(elem));
-            return { p, size, capacity };
+            elem       = std::forward<Fn>(op)(std::move(elem));
+            return {p, size, capacity};
         } catch (...) {
             node_t::delete_n(p, size, capacity);
             throw;
@@ -275,13 +264,13 @@ struct with_capacity
     {
         if (ptr->can_mutate(e)) {
             auto& elem = data()[idx];
-            elem = std::forward<Fn>(op)(std::move(elem));
+            elem       = std::forward<Fn>(op)(std::move(elem));
         } else {
             auto p = node_t::copy_e(e, capacity, ptr, size);
             try {
                 auto& elem = p->data()[idx];
-                elem = std::forward<Fn>(op)(std::move(elem));
-                *this = { p, size, capacity };
+                elem       = std::forward<Fn>(op)(std::move(elem));
+                *this      = {p, size, capacity};
             } catch (...) {
                 node_t::delete_n(p, size, capacity);
                 throw;
@@ -292,8 +281,8 @@ struct with_capacity
     with_capacity take(std::size_t sz) const
     {
         auto cap = recommend_down(sz, capacity);
-        auto p = node_t::copy_n(cap, ptr, sz);
-        return { p, sz, cap };
+        auto p   = node_t::copy_n(cap, ptr, sz);
+        return {p, sz, cap};
     }
 
     void take_mut(edit_t e, std::size_t sz)
@@ -303,8 +292,8 @@ struct with_capacity
             size = sz;
         } else {
             auto cap = recommend_down(sz, capacity);
-            auto p = node_t::copy_e(e, cap, ptr, sz);
-            *this = { p, sz, cap };
+            auto p   = node_t::copy_e(e, cap, ptr, sz);
+            *this    = {p, sz, cap};
         }
     }
 };

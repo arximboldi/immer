@@ -21,7 +21,5 @@ immer::vector<int> myiota(immer::vector<int> v, int first, int last)
 int main()
 {
     auto v = myiota({}, 0, 100);
-    std::copy(v.begin(), v.end(),
-              std::ostream_iterator<int>{
-                  std::cout, "\n"});
+    std::copy(v.begin(), v.end(), std::ostream_iterator<int>{std::cout, "\n"});
 }

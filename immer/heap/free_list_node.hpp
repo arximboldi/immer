@@ -18,8 +18,7 @@ struct free_list_node
 };
 
 template <typename Base>
-struct with_free_list_node
-    : with_data<free_list_node, Base>
+struct with_free_list_node : with_data<free_list_node, Base>
 {};
 
 } // namespace immer

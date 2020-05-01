@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/hamts/champ.hpp>
 #include <immer/detail/hamts/champ_iterator.hpp>
+#include <immer/memory_policy.hpp>
 
 #include <functional>
 
@@ -63,20 +63,20 @@ class set
     using impl_t = detail::hamts::champ<T, Hash, Equal, MemoryPolicy, B>;
 
 public:
-    using key_type = T;
-    using value_type = T;
-    using size_type = detail::hamts::size_t;
-    using diference_type = std::ptrdiff_t;
-    using hasher = Hash;
-    using key_equal = Equal;
-    using reference = const T&;
+    using key_type        = T;
+    using value_type      = T;
+    using size_type       = detail::hamts::size_t;
+    using diference_type  = std::ptrdiff_t;
+    using hasher          = Hash;
+    using key_equal       = Equal;
+    using reference       = const T&;
     using const_reference = const T&;
 
-    using iterator         = detail::hamts::champ_iterator<T, Hash, Equal,
-                                                         MemoryPolicy, B>;
-    using const_iterator   = iterator;
+    using iterator =
+        detail::hamts::champ_iterator<T, Hash, Equal, MemoryPolicy, B>;
+    using const_iterator = iterator;
 
-    using transient_type   = set_transient<T, Hash, Equal, MemoryPolicy, B>;
+    using transient_type = set_transient<T, Hash, Equal, MemoryPolicy, B>;
 
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
@@ -95,7 +95,10 @@ public:
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD iterator end() const { return {impl_, typename iterator::end_t{}}; }
+    IMMER_NODISCARD iterator end() const
+    {
+        return {impl_, typename iterator::end_t{}};
+    }
 
     /*!
      * Returns the number of elements in the container.  It does
@@ -115,16 +118,22 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     IMMER_NODISCARD size_type count(const T& value) const
-    { return impl_.template get<detail::constantly<size_type, 1>,
-                                detail::constantly<size_type, 0>>(value); }
+    {
+        return impl_.template get<detail::constantly<size_type, 1>,
+                                  detail::constantly<size_type, 0>>(value);
+    }
 
     /*!
      * Returns whether the sets are equal.
      */
     IMMER_NODISCARD bool operator==(const set& other) const
-    { return impl_.equals(other.impl_); }
+    {
+        return impl_.equals(other.impl_);
+    }
     IMMER_NODISCARD bool operator!=(const set& other) const
-    { return !(*this == other); }
+    {
+        return !(*this == other);
+    }
 
     /*!
      * Returns a set containing `value`.  If the `value` is already in
@@ -132,24 +141,29 @@ public:
      * its complexity is *effectively* @f$ O(1) @f$.
      */
     IMMER_NODISCARD set insert(T value) const
-    { return impl_.add(std::move(value)); }
+    {
+        return impl_.add(std::move(value));
+    }
 
     /*!
      * Returns a set without `value`.  If the `value` is not in the
      * set it returns the same set.  It may allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD set erase(const T& value) const
-    { return impl_.sub(value); }
+    IMMER_NODISCARD set erase(const T& value) const { return impl_.sub(value); }
 
     /*!
      * Returns an @a transient form of this container, a
      * `immer::set_transient`.
      */
     IMMER_NODISCARD transient_type transient() const&
-    { return transient_type{ impl_ }; }
+    {
+        return transient_type{impl_};
+    }
     IMMER_NODISCARD transient_type transient() &&
-    { return transient_type{ std::move(impl_) }; }
+    {
+        return transient_type{std::move(impl_)};
+    }
 
     // Semi-private
     const impl_t& impl() const { return impl_; }

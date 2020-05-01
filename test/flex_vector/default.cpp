@@ -10,5 +10,5 @@
 #include <immer/vector.hpp>
 
 #define FLEX_VECTOR_T ::immer::flex_vector
-#define VECTOR_T      ::immer::vector
+#define VECTOR_T ::immer::vector
 #include "generic.ipp"

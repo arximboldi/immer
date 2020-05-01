@@ -21,14 +21,14 @@ namespace detail {
 template <typename T, typename MemoryPolicy>
 struct refcount_atom_impl
 {
-    using box_type = box<T, MemoryPolicy>;
-    using value_type = T;
+    using box_type      = box<T, MemoryPolicy>;
+    using value_type    = T;
     using memory_policy = MemoryPolicy;
-    using spinlock_t = typename MemoryPolicy::refcount::spinlock_type;
+    using spinlock_t    = typename MemoryPolicy::refcount::spinlock_type;
     using scoped_lock_t = typename spinlock_t::scoped_lock;
 
     refcount_atom_impl(const refcount_atom_impl&) = delete;
-    refcount_atom_impl(refcount_atom_impl&&) = delete;
+    refcount_atom_impl(refcount_atom_impl&&)      = delete;
     refcount_atom_impl& operator=(const refcount_atom_impl&) = delete;
     refcount_atom_impl& operator=(refcount_atom_impl&&) = delete;
 
@@ -67,7 +67,7 @@ struct refcount_atom_impl
                 scoped_lock_t lock{lock_};
                 if (oldv.impl_ == impl_.impl_) {
                     impl_ = newv;
-                    return { newv };
+                    return {newv};
                 }
             }
         }
@@ -81,17 +81,16 @@ private:
 template <typename T, typename MemoryPolicy>
 struct gc_atom_impl
 {
-    using box_type = box<T, MemoryPolicy>;
-    using value_type = T;
+    using box_type      = box<T, MemoryPolicy>;
+    using value_type    = T;
     using memory_policy = MemoryPolicy;
 
-    static_assert(
-        std::is_same<typename MemoryPolicy::refcount,
-                     no_refcount_policy>::value,
-        "gc_atom_impl can only be used when there is no refcount!");
+    static_assert(std::is_same<typename MemoryPolicy::refcount,
+                               no_refcount_policy>::value,
+                  "gc_atom_impl can only be used when there is no refcount!");
 
     gc_atom_impl(const gc_atom_impl&) = delete;
-    gc_atom_impl(gc_atom_impl&&) = delete;
+    gc_atom_impl(gc_atom_impl&&)      = delete;
     gc_atom_impl& operator=(const gc_atom_impl&) = delete;
     gc_atom_impl& operator=(gc_atom_impl&&) = delete;
 
@@ -99,14 +98,11 @@ struct gc_atom_impl
         : impl_{b.impl_}
     {}
 
-    box_type load() const
-    { return {impl_.load()}; }
+    box_type load() const { return {impl_.load()}; }
 
-    void store(box_type b)
-    { impl_.store(b.impl_); }
+    void store(box_type b) { impl_.store(b.impl_); }
 
-    box_type exchange(box_type b)
-    { return {impl_.exchange(b.impl_)}; }
+    box_type exchange(box_type b) { return {impl_.exchange(b.impl_)}; }
 
     template <typename Fn>
     box_type update(Fn&& fn)
@@ -115,7 +111,7 @@ struct gc_atom_impl
             auto oldv = box_type{impl_.load()};
             auto newv = oldv.update(fn);
             if (impl_.compare_exchange_weak(oldv.impl_, newv.impl_))
-                return { newv };
+                return {newv};
         }
     }
 
@@ -135,8 +131,8 @@ private:
  * .. warning:: If memory policy used includes thread unsafe reference counting,
  *    no no thread safety is assumed, and the atom becomes thread unsafe too!
  *
- * .. note:: ``box<T>`` provides a value based box of type ``T``, this is, we can
- *    think about it as a value-based version of ``std::shared_ptr``.  In a
+ * .. note:: ``box<T>`` provides a value based box of type ``T``, this is, we
+ * can think about it as a value-based version of ``std::shared_ptr``.  In a
  *    similar fashion, ``atom<T>`` is in spirit the value-based equivalent of
  *    C++20 ``std::atomic_shared_ptr``.  However, the API does not follow
  *    ``std::atomic`` interface closely, since it attempts to be a higher level
@@ -144,29 +140,28 @@ private:
  *    particular that, since ``box<T>`` underlying object is immutable, using
  *    ``atom<T>`` is fully thread-safe in ways that ``std::atmic_shared_ptr`` is
  *    not. This is so because dereferencing the underlying pointer in a
- *    ``std::atomic_share_ptr`` may require further synchronization, in particular
- *    when invoking non-const methods.
+ *    ``std::atomic_share_ptr`` may require further synchronization, in
+ * particular when invoking non-const methods.
  *
  * @endrst
  */
-template <typename T,
-          typename MemoryPolicy = default_memory_policy>
+template <typename T, typename MemoryPolicy = default_memory_policy>
 class atom
 {
 public:
-    using box_type = box<T, MemoryPolicy>;
-    using value_type = T;
+    using box_type      = box<T, MemoryPolicy>;
+    using value_type    = T;
     using memory_policy = MemoryPolicy;
 
     atom(const atom&) = delete;
-    atom(atom&&) = delete;
+    atom(atom&&)      = delete;
     void operator=(const atom&) = delete;
     void operator=(atom&&) = delete;
 
     /*!
      * Constructs an atom holding a value `b`;
      */
-    atom(box_type v={})
+    atom(box_type v = {})
         : impl_{std::move(v)}
     {}
 
@@ -182,32 +177,30 @@ public:
     /*!
      * Reads the currently stored value in a thread-safe manner.
      */
-    operator box_type() const
-    { return impl_.load(); }
+    operator box_type() const { return impl_.load(); }
 
     /*!
      * Reads the currently stored value in a thread-safe manner.
      */
-    operator value_type() const
-    { return *impl_.load(); }
+    operator value_type() const { return *impl_.load(); }
 
     /*!
      * Reads the currently stored value in a thread-safe manner.
      */
-    IMMER_NODISCARD box_type load() const
-    { return impl_.load(); }
+    IMMER_NODISCARD box_type load() const { return impl_.load(); }
 
     /*!
      * Stores a new value in a thread-safe manner.
      */
-    void store(box_type b)
-    { impl_.store(std::move(b)); }
+    void store(box_type b) { impl_.store(std::move(b)); }
 
     /*!
      * Stores a new value and returns the old value, in a thread-safe manner.
      */
     IMMER_NODISCARD box_type exchange(box_type b)
-    { return impl_.exchange(std::move(b)); }
+    {
+        return impl_.exchange(std::move(b));
+    }
 
     /*!
      * Stores the result of applying `fn` to the current value atomically and
@@ -223,7 +216,9 @@ public:
      */
     template <typename Fn>
     box_type update(Fn&& fn)
-    { return impl_.update(std::forward<Fn>(fn)); }
+    {
+        return impl_.update(std::forward<Fn>(fn));
+    }
 
 private:
     struct get_refcount_atom_impl
@@ -248,12 +243,12 @@ private:
     // `no_refcount_policy`), we just store the pointer in an atomic.  If we use
     // reference counting, we rely on the reference counting spinlock.
     using impl_t = typename std::conditional_t<
-        std::is_same<typename MemoryPolicy::refcount, no_refcount_policy>::value,
+        std::is_same<typename MemoryPolicy::refcount,
+                     no_refcount_policy>::value,
         get_gc_atom_impl,
-        get_refcount_atom_impl
-    >::template apply<T, MemoryPolicy>::type;
+        get_refcount_atom_impl>::template apply<T, MemoryPolicy>::type;
 
     impl_t impl_;
 };
 
-}
+} // namespace immer

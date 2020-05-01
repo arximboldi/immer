@@ -2,7 +2,4 @@
 
 immer::flex_vector<int> v{1};
 
-int main()
-{
-    return 0;
-}
+int main() { return 0; }

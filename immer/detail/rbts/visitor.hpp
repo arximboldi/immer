@@ -21,31 +21,31 @@ template <typename Deriv>
 struct visitor_base
 {
     template <typename... Args>
-    static decltype(auto) visit_node(Args&& ...args)
+    static decltype(auto) visit_node(Args&&... args)
     {
         IMMER_UNREACHABLE;
     }
 
     template <typename... Args>
-    static decltype(auto) visit_relaxed(Args&& ...args)
+    static decltype(auto) visit_relaxed(Args&&... args)
     {
         return Deriv::visit_inner(std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    static decltype(auto) visit_regular(Args&& ...args)
+    static decltype(auto) visit_regular(Args&&... args)
     {
         return Deriv::visit_inner(std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    static decltype(auto) visit_inner(Args&& ...args)
+    static decltype(auto) visit_inner(Args&&... args)
     {
         return Deriv::visit_node(std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    static decltype(auto) visit_leaf(Args&& ...args)
+    static decltype(auto) visit_leaf(Args&&... args)
     {
         return Deriv::visit_node(std::forward<Args>(args)...);
     }

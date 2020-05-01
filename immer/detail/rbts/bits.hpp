@@ -19,10 +19,10 @@ using shift_t = std::uint32_t;
 using count_t = std::uint32_t;
 using size_t  = std::size_t;
 
-template <bits_t B, typename T=count_t>
+template <bits_t B, typename T = count_t>
 constexpr T branches = T{1} << B;
 
-template <bits_t B, typename T=size_t>
+template <bits_t B, typename T = size_t>
 constexpr T mask = branches<B, T> - 1;
 
 template <bits_t B, bits_t BL>

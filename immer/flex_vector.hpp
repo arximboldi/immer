@@ -55,9 +55,10 @@ class flex_vector_transient;
  * @endrst
  */
 template <typename T,
-          typename MemoryPolicy   = default_memory_policy,
-          detail::rbts::bits_t B  = default_bits,
-          detail::rbts::bits_t BL = detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
+          typename MemoryPolicy  = default_memory_policy,
+          detail::rbts::bits_t B = default_bits,
+          detail::rbts::bits_t BL =
+              detail::rbts::derive_bits_leaf<T, MemoryPolicy, B>>
 class flex_vector
 {
     using impl_t = detail::rbts::rrbtree<T, MemoryPolicy, B, BL>;
@@ -66,21 +67,21 @@ class flex_vector
         std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
 
 public:
-    static constexpr auto bits = B;
+    static constexpr auto bits      = B;
     static constexpr auto bits_leaf = BL;
-    using memory_policy = MemoryPolicy;
+    using memory_policy             = MemoryPolicy;
 
-    using value_type = T;
-    using reference = const T&;
-    using size_type = detail::rbts::size_t;
+    using value_type      = T;
+    using reference       = const T&;
+    using size_type       = detail::rbts::size_t;
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
-    using iterator         = detail::rbts::rrbtree_iterator<T, MemoryPolicy, B, BL>;
+    using iterator = detail::rbts::rrbtree_iterator<T, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    using transient_type   = flex_vector_transient<T, MemoryPolicy, B, BL>;
+    using transient_type = flex_vector_transient<T, MemoryPolicy, B, BL>;
 
     /*!
      * Default constructor.  It creates a flex_vector of `size() == 0`.
@@ -99,9 +100,10 @@ public:
      * Constructs a flex_vector containing the elements in the range
      * defined by the input iterator `first` and range sentinel `last`.
      */
-    template <typename Iter, typename Sent,
-              std::enable_if_t
-              <detail::compatible_sentinel_v<Iter, Sent>, bool> = true>
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
+                               bool> = true>
     flex_vector(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
     {}
@@ -120,8 +122,10 @@ public:
      * @f$ O(1) @f$.
      */
     flex_vector(vector<T, MemoryPolicy, B, BL> v)
-        : impl_ { v.impl_.size, v.impl_.shift,
-                  v.impl_.root->inc(), v.impl_.tail->inc() }
+        : impl_{v.impl_.size,
+                v.impl_.shift,
+                v.impl_.root->inc(),
+                v.impl_.tail->inc()}
     {}
 
     /*!
@@ -135,21 +139,30 @@ public:
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD iterator end()   const { return {impl_, typename iterator::end_t{}}; }
+    IMMER_NODISCARD iterator end() const
+    {
+        return {impl_, typename iterator::end_t{}};
+    }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing at the first element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+    IMMER_NODISCARD reverse_iterator rbegin() const
+    {
+        return reverse_iterator{end()};
+    }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing after the last element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rend()   const { return reverse_iterator{begin()}; }
+    IMMER_NODISCARD reverse_iterator rend() const
+    {
+        return reverse_iterator{begin()};
+    }
 
     /*!
      * Returns the number of elements in the container.  It does
@@ -179,8 +192,10 @@ public:
      * allocate memory and its complexity is *effectively* @f$ O(1)
      * @f$.
      */
-    IMMER_NODISCARD reference operator[] (size_type index) const
-    { return impl_.get(index); }
+    IMMER_NODISCARD reference operator[](size_type index) const
+    {
+        return impl_.get(index);
+    }
 
     /*!
      * Returns a `const` reference to the element at position
@@ -188,16 +203,19 @@ public:
      * index \geq size() @f$.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    reference at(size_type index) const
-    { return impl_.get_check(index); }
+    reference at(size_type index) const { return impl_.get_check(index); }
 
     /*!
      * Returns whether the vectors are equal.
      */
     IMMER_NODISCARD bool operator==(const flex_vector& other) const
-    { return impl_.equals(other.impl_); }
+    {
+        return impl_.equals(other.impl_);
+    }
     IMMER_NODISCARD bool operator!=(const flex_vector& other) const
-    { return !(*this == other); }
+    {
+        return !(*this == other);
+    }
 
     /*!
      * Returns a flex_vector with `value` inserted at the end.  It may
@@ -215,10 +233,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector push_back(value_type value) const&
-    { return impl_.push_back(std::move(value)); }
+    {
+        return impl_.push_back(std::move(value));
+    }
 
     IMMER_NODISCARD decltype(auto) push_back(value_type value) &&
-    { return push_back_move(move_t{}, std::move(value)); }
+    {
+        return push_back_move(move_t{}, std::move(value));
+    }
 
     /*!
      * Returns a flex_vector with `value` inserted at the frony.  It may
@@ -236,7 +258,9 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector push_front(value_type value) const
-    { return flex_vector{}.push_back(value) + *this; }
+    {
+        return flex_vector{}.push_back(value) + *this;
+    }
 
     /*!
      * Returns a flex_vector containing value `value` at position `index`.
@@ -256,10 +280,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector set(size_type index, value_type value) const&
-    { return impl_.assoc(index, std::move(value)); }
+    {
+        return impl_.assoc(index, std::move(value));
+    }
 
     IMMER_NODISCARD decltype(auto) set(size_type index, value_type value) &&
-    { return set_move(move_t{}, index, std::move(value)); }
+    {
+        return set_move(move_t{}, index, std::move(value));
+    }
 
     /*!
      * Returns a vector containing the result of the expression
@@ -282,11 +310,15 @@ public:
      */
     template <typename FnT>
     IMMER_NODISCARD flex_vector update(size_type index, FnT&& fn) const&
-    { return impl_.update(index, std::forward<FnT>(fn)); }
+    {
+        return impl_.update(index, std::forward<FnT>(fn));
+    }
 
     template <typename FnT>
     IMMER_NODISCARD decltype(auto) update(size_type index, FnT&& fn) &&
-    { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
+    {
+        return update_move(move_t{}, index, std::forward<FnT>(fn));
+    }
 
     /*!
      * Returns a vector containing only the first `min(elems, size())`
@@ -305,10 +337,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector take(size_type elems) const&
-    { return impl_.take(elems); }
+    {
+        return impl_.take(elems);
+    }
 
     IMMER_NODISCARD decltype(auto) take(size_type elems) &&
-    { return take_move(move_t{}, elems); }
+    {
+        return take_move(move_t{}, elems);
+    }
 
     /*!
      * Returns a vector without the first `min(elems, size())`
@@ -327,10 +363,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector drop(size_type elems) const&
-    { return impl_.drop(elems); }
+    {
+        return impl_.drop(elems);
+    }
 
     IMMER_NODISCARD decltype(auto) drop(size_type elems) &&
-    { return drop_move(move_t{}, elems); }
+    {
+        return drop_move(move_t{}, elems);
+    }
 
     /*!
      * Concatenation operator. Returns a flex_vector with the contents
@@ -348,17 +388,29 @@ public:
      *
      * @endrst
      */
-    IMMER_NODISCARD friend flex_vector operator+ (const flex_vector& l, const flex_vector& r)
-    { return l.impl_.concat(r.impl_); }
+    IMMER_NODISCARD friend flex_vector operator+(const flex_vector& l,
+                                                 const flex_vector& r)
+    {
+        return l.impl_.concat(r.impl_);
+    }
 
-    IMMER_NODISCARD friend decltype(auto) operator+ (flex_vector&& l, const flex_vector& r)
-    { return concat_move(move_t{}, std::move(l), r); }
+    IMMER_NODISCARD friend decltype(auto) operator+(flex_vector&& l,
+                                                    const flex_vector& r)
+    {
+        return concat_move(move_t{}, std::move(l), r);
+    }
 
-    IMMER_NODISCARD friend decltype(auto) operator+ (const flex_vector& l, flex_vector&& r)
-    { return concat_move(move_t{}, l, std::move(r)); }
+    IMMER_NODISCARD friend decltype(auto) operator+(const flex_vector& l,
+                                                    flex_vector&& r)
+    {
+        return concat_move(move_t{}, l, std::move(r));
+    }
 
-    IMMER_NODISCARD friend decltype(auto) operator+ (flex_vector&& l, flex_vector&& r)
-    { return concat_move(move_t{}, std::move(l), std::move(r)); }
+    IMMER_NODISCARD friend decltype(auto) operator+(flex_vector&& l,
+                                                    flex_vector&& r)
+    {
+        return concat_move(move_t{}, std::move(l), std::move(r));
+    }
 
     /*!
      * Returns a flex_vector with the `value` inserted at index
@@ -377,17 +429,21 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector insert(size_type pos, T value) const&
-    { return take(pos).push_back(std::move(value)) + drop(pos); }
+    {
+        return take(pos).push_back(std::move(value)) + drop(pos);
+    }
     IMMER_NODISCARD decltype(auto) insert(size_type pos, T value) &&
     {
         using std::move;
         auto rs = drop(pos);
-        return std::move(*this).take(pos).push_back(
-            std::move(value)) + std::move(rs);
+        return std::move(*this).take(pos).push_back(std::move(value)) +
+               std::move(rs);
     }
 
     IMMER_NODISCARD flex_vector insert(size_type pos, flex_vector value) const&
-    { return take(pos) + std::move(value) + drop(pos); }
+    {
+        return take(pos) + std::move(value) + drop(pos);
+    }
     IMMER_NODISCARD decltype(auto) insert(size_type pos, flex_vector value) &&
     {
         using std::move;
@@ -411,7 +467,9 @@ public:
      * @endrst
      */
     IMMER_NODISCARD flex_vector erase(size_type pos) const&
-    { return take(pos) + drop(pos + 1); }
+    {
+        return take(pos) + drop(pos + 1);
+    }
     IMMER_NODISCARD decltype(auto) erase(size_type pos) &&
     {
         auto rs = drop(pos + 1);
@@ -419,7 +477,9 @@ public:
     }
 
     IMMER_NODISCARD flex_vector erase(size_type pos, size_type lpos) const&
-    { return lpos > pos ? take(pos) + drop(lpos) : *this; }
+    {
+        return lpos > pos ? take(pos) + drop(lpos) : *this;
+    }
     IMMER_NODISCARD decltype(auto) erase(size_type pos, size_type lpos) &&
     {
         if (lpos > pos) {
@@ -435,16 +495,22 @@ public:
      * `immer::flex_vector_transient`.
      */
     IMMER_NODISCARD transient_type transient() const&
-    { return transient_type{ impl_ }; }
+    {
+        return transient_type{impl_};
+    }
     IMMER_NODISCARD transient_type transient() &&
-    { return transient_type{ std::move(impl_) }; }
+    {
+        return transient_type{std::move(impl_)};
+    }
 
     // Semi-private
     const impl_t& impl() const { return impl_; }
 
 #if IMMER_DEBUG_PRINT
-    void debug_print(std::ostream& out=std::cerr) const
-    { impl_.debug_print(out); }
+    void debug_print(std::ostream& out = std::cerr) const
+    {
+        impl_.debug_print(out);
+    }
 #endif
 
 private:
@@ -456,45 +522,85 @@ private:
 #if IMMER_DEBUG_PRINT
         // force the compiler to generate debug_print, so we can call
         // it from a debugger
-        [](volatile auto){}(&flex_vector::debug_print);
+        [](volatile auto) {}(&flex_vector::debug_print);
 #endif
     }
 
     flex_vector&& push_back_move(std::true_type, value_type value)
-    { impl_.push_back_mut({}, std::move(value)); return std::move(*this); }
+    {
+        impl_.push_back_mut({}, std::move(value));
+        return std::move(*this);
+    }
     flex_vector push_back_move(std::false_type, value_type value)
-    { return impl_.push_back(std::move(value)); }
+    {
+        return impl_.push_back(std::move(value));
+    }
 
     flex_vector&& set_move(std::true_type, size_type index, value_type value)
-    { impl_.assoc_mut({}, index, std::move(value)); return std::move(*this); }
+    {
+        impl_.assoc_mut({}, index, std::move(value));
+        return std::move(*this);
+    }
     flex_vector set_move(std::false_type, size_type index, value_type value)
-    { return impl_.assoc(index, std::move(value)); }
+    {
+        return impl_.assoc(index, std::move(value));
+    }
 
     template <typename Fn>
     flex_vector&& update_move(std::true_type, size_type index, Fn&& fn)
-    { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
+    {
+        impl_.update_mut({}, index, std::forward<Fn>(fn));
+        return std::move(*this);
+    }
     template <typename Fn>
     flex_vector update_move(std::false_type, size_type index, Fn&& fn)
-    { return impl_.update(index, std::forward<Fn>(fn)); }
+    {
+        return impl_.update(index, std::forward<Fn>(fn));
+    }
 
     flex_vector&& take_move(std::true_type, size_type elems)
-    { impl_.take_mut({}, elems); return std::move(*this); }
+    {
+        impl_.take_mut({}, elems);
+        return std::move(*this);
+    }
     flex_vector take_move(std::false_type, size_type elems)
-    { return impl_.take(elems); }
+    {
+        return impl_.take(elems);
+    }
 
     flex_vector&& drop_move(std::true_type, size_type elems)
-    { impl_.drop_mut({}, elems); return std::move(*this); }
+    {
+        impl_.drop_mut({}, elems);
+        return std::move(*this);
+    }
     flex_vector drop_move(std::false_type, size_type elems)
-    { return impl_.drop(elems); }
+    {
+        return impl_.drop(elems);
+    }
 
-    static flex_vector&& concat_move(std::true_type, flex_vector&& l, const flex_vector& r)
-    { concat_mut_l(l.impl_, {}, r.impl_); return std::move(l); }
-    static flex_vector&& concat_move(std::true_type, const flex_vector& l, flex_vector&& r)
-    { concat_mut_r(l.impl_, r.impl_, {}); return std::move(r); }
-    static flex_vector&& concat_move(std::true_type, flex_vector&& l, flex_vector&& r)
-    { concat_mut_lr_l(l.impl_, {}, r.impl_, {}); return std::move(l); }
-    static flex_vector concat_move(std::false_type, const flex_vector& l, const flex_vector& r)
-    { return l.impl_.concat(r.impl_); }
+    static flex_vector&&
+    concat_move(std::true_type, flex_vector&& l, const flex_vector& r)
+    {
+        concat_mut_l(l.impl_, {}, r.impl_);
+        return std::move(l);
+    }
+    static flex_vector&&
+    concat_move(std::true_type, const flex_vector& l, flex_vector&& r)
+    {
+        concat_mut_r(l.impl_, r.impl_, {});
+        return std::move(r);
+    }
+    static flex_vector&&
+    concat_move(std::true_type, flex_vector&& l, flex_vector&& r)
+    {
+        concat_mut_lr_l(l.impl_, {}, r.impl_, {});
+        return std::move(l);
+    }
+    static flex_vector
+    concat_move(std::false_type, const flex_vector& l, const flex_vector& r)
+    {
+        return l.impl_.concat(r.impl_);
+    }
 
     impl_t impl_ = impl_t::empty();
 };

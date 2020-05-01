@@ -1,13 +1,13 @@
-#include "immer/vector.hpp"
 #include "immer/box.hpp"
 #include "immer/set.hpp"
+#include "immer/vector.hpp"
 
 #include <functional>
 
 struct my_type
 {
     using container_t = immer::vector<immer::box<my_type>>;
-    using func_t = std::function<int(int)>;
+    using func_t      = std::function<int(int)>;
 
     int ival;
     double dval;

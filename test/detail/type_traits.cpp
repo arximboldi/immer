@@ -6,13 +6,14 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <immer/detail/type_traits.hpp>
+#include <catch.hpp>
 #include <forward_list>
+#include <immer/detail/type_traits.hpp>
 #include <list>
 #include <vector>
-#include <catch.hpp>
 
-struct string_sentinel {};
+struct string_sentinel
+{};
 bool operator==(const char* i, string_sentinel);
 bool operator!=(const char* i, string_sentinel);
 
@@ -41,7 +42,8 @@ TEST_CASE("compatible_sentinel_v")
     {
         using Iter1 = std::vector<int>::iterator;
         using Iter2 = std::list<double>::iterator;
-        static_assert(not immer::detail::compatible_sentinel_v<Iter1, Iter2>, "");
+        static_assert(not immer::detail::compatible_sentinel_v<Iter1, Iter2>,
+                      "");
     }
 }
 
@@ -68,7 +70,9 @@ TEST_CASE("equality comparable")
 
     SECTION("not equality comparable")
     {
-        static_assert(not immer::detail::is_equality_comparable_v<std::string, double>, "");
+        static_assert(
+            not immer::detail::is_equality_comparable_v<std::string, double>,
+            "");
     }
 }
 
@@ -77,25 +81,30 @@ TEST_CASE("inequality comparable")
     SECTION("iterator pairs")
     {
         using Iter = std::vector<int>::iterator;
-        static_assert(immer::detail::is_inequality_comparable_v<Iter, Iter>, "");
+        static_assert(immer::detail::is_inequality_comparable_v<Iter, Iter>,
+                      "");
     }
 
     SECTION("pointer pairs")
     {
         using Iter = char*;
-        static_assert(immer::detail::is_inequality_comparable_v<Iter, Iter>, "");
+        static_assert(immer::detail::is_inequality_comparable_v<Iter, Iter>,
+                      "");
     }
 
     SECTION("iterator/sentinel pair")
     {
         using Iter = char*;
         using Sent = string_sentinel;
-        static_assert(immer::detail::is_inequality_comparable_v<Iter, Sent>, "");
+        static_assert(immer::detail::is_inequality_comparable_v<Iter, Sent>,
+                      "");
     }
 
     SECTION("not inequality comparable")
     {
-        static_assert(not immer::detail::is_inequality_comparable_v<std::string, double>, "");
+        static_assert(
+            not immer::detail::is_inequality_comparable_v<std::string, double>,
+            "");
     }
 }
 
@@ -194,7 +203,8 @@ TEST_CASE("provides preincrement")
 
     SECTION("does not provide preincrement")
     {
-        struct type{};
+        struct type
+        {};
         static_assert(not immer::detail::is_preincrementable_v<type>, "");
     }
 }

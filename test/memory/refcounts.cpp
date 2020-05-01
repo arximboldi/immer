@@ -6,9 +6,9 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
+#include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
-#include <immer/refcount/no_refcount_policy.hpp>
 
 #include <catch.hpp>
 
@@ -54,10 +54,7 @@ void test_refcount()
     }
 }
 
-TEST_CASE("basic refcount")
-{
-    test_refcount<immer::refcount_policy>();
-}
+TEST_CASE("basic refcount") { test_refcount<immer::refcount_policy>(); }
 
 TEST_CASE("thread unsafe refcount")
 {

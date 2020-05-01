@@ -23,9 +23,8 @@ struct split_heap
     template <typename... Tags>
     static void* allocate(std::size_t size, Tags... tags)
     {
-        return size <= Size
-            ? SmallHeap::allocate(size, tags...)
-            : BigHeap::allocate(size, tags...);
+        return size <= Size ? SmallHeap::allocate(size, tags...)
+                            : BigHeap::allocate(size, tags...);
     }
 
     template <typename... Tags>

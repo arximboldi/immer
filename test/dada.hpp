@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <utility>
-#include <array>
 
-#include <immer/detail/rbts/bits.hpp>
 #include <immer/detail/hamts/bits.hpp>
+#include <immer/detail/rbts/bits.hpp>
 
 namespace {
 
@@ -27,11 +27,16 @@ struct rotator
     Iterator curr;
 
     void init(Iterator f, Iterator l)
-    { first = f; last = l; curr = f; }
+    {
+        first = f;
+        last  = l;
+        curr  = f;
+    }
 
     value_type next()
     {
-        if (curr == last) curr = first;
+        if (curr == last)
+            curr = first;
         return *curr++;
     }
 };
@@ -45,25 +50,25 @@ struct range_rotator : rotator<typename Range::iterator>
 
     range_rotator(Range r)
         : range{std::move(r)}
-    { base_t::init(range.begin(), range.end()); }
+    {
+        base_t::init(range.begin(), range.end());
+    }
 };
 
 template <typename Range>
 auto make_rotator(Range r) -> range_rotator<Range>
 {
-    return { r };
+    return {r};
 }
 
 inline auto magic_rotator()
 {
-    return make_rotator(std::array<unsigned, 15>{{
-            7, 11, 2,  3,  5,
-            7, 11, 13, 17, 19,
-            23, 5, 29, 31, 37
-        }});
+    return make_rotator(std::array<unsigned, 15>{
+        {7, 11, 2, 3, 5, 7, 11, 13, 17, 19, 23, 5, 29, 31, 37}});
 }
 
-struct dada_error {};
+struct dada_error
+{};
 
 struct dadaism;
 static dadaism* g_dadaism = nullptr;
@@ -72,31 +77,39 @@ struct dadaism
 {
     using rotator_t = decltype(magic_rotator());
 
-    rotator_t magic     = magic_rotator();
+    rotator_t magic = magic_rotator();
 
     unsigned step       = magic.next();
     unsigned count      = 0;
     unsigned happenings = 0;
     unsigned last       = 0;
-    bool     toggle     = false;
+    bool toggle         = false;
 
     struct scope
     {
-        bool moved = false;
+        bool moved     = false;
         dadaism* save_ = g_dadaism;
-        scope(scope&& s) { save_ = s.save_; s.moved = true; }
-        scope(dadaism* self)  { g_dadaism = self; }
-        ~scope() { if (!moved) g_dadaism = save_; }
+        scope(scope&& s)
+        {
+            save_   = s.save_;
+            s.moved = true;
+        }
+        scope(dadaism* self) { g_dadaism = self; }
+        ~scope()
+        {
+            if (!moved)
+                g_dadaism = save_;
+        }
     };
 
-    static scope disable() { return { nullptr }; }
+    static scope disable() { return {nullptr}; }
 
     scope next()
     {
         toggle = last == happenings;
         last   = happenings;
         step   = toggle ? step : magic.next();
-        return { this };
+        return {this};
     }
 
     void dada()
@@ -156,8 +169,16 @@ struct tristan_tzara
     tristan_tzara() { dada(); }
     tristan_tzara(const tristan_tzara&) { dada(); }
     tristan_tzara(tristan_tzara&&) { dada(); }
-    tristan_tzara& operator= (const tristan_tzara&) { dada(); return *this; }
-    tristan_tzara& operator= (tristan_tzara&&) { dada(); return *this; }
+    tristan_tzara& operator=(const tristan_tzara&)
+    {
+        dada();
+        return *this;
+    }
+    tristan_tzara& operator=(tristan_tzara&&)
+    {
+        dada();
+        return *this;
+    }
 };
 
 template <typename T>
@@ -165,8 +186,12 @@ struct dadaist : tristan_tzara
 {
     T value;
 
-    dadaist() : value{} {}
-    dadaist(T v) : value{std::move(v)} {}
+    dadaist()
+        : value{}
+    {}
+    dadaist(T v)
+        : value{std::move(v)}
+    {}
     operator T() const { return value; }
 };
 
@@ -177,28 +202,39 @@ using rbits_t = immer::detail::rbts::bits_t;
 using hbits_t = immer::detail::rbts::bits_t;
 
 template <template <class, class, rbits_t, rbits_t> class V,
-          typename T, typename MP, rbits_t B, rbits_t BL>
+          typename T,
+          typename MP,
+          rbits_t B,
+          rbits_t BL>
 struct dadaist_wrapper<V<T, MP, B, BL>>
 {
     using type = V<dadaist<T>, dadaist_memory_policy<MP>, B, BL>;
 };
 
-template <template <class, class> class V,
-          typename T, typename MP>
+template <template <class, class> class V, typename T, typename MP>
 struct dadaist_wrapper<V<T, MP>>
 {
     using type = V<dadaist<T>, dadaist_memory_policy<MP>>;
 };
 
 template <template <class, class, class, class, hbits_t> class V,
-          typename T, typename E, typename H, typename MP, hbits_t B>
+          typename T,
+          typename E,
+          typename H,
+          typename MP,
+          hbits_t B>
 struct dadaist_wrapper<V<T, H, E, MP, B>>
 {
     using type = V<dadaist<T>, H, E, dadaist_memory_policy<MP>, B>;
 };
 
 template <template <class, class, class, class, class, hbits_t> class V,
-          typename K, typename T, typename E, typename H, typename MP, hbits_t B>
+          typename K,
+          typename T,
+          typename E,
+          typename H,
+          typename MP,
+          hbits_t B>
 struct dadaist_wrapper<V<K, T, H, E, MP, B>>
 {
     using type = V<K, dadaist<T>, H, E, dadaist_memory_policy<MP>, B>;

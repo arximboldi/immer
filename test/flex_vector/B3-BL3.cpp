@@ -14,9 +14,8 @@ using test_flex_vector_t =
     immer::flex_vector<T, immer::default_memory_policy, 3u, 3u>;
 
 template <typename T>
-using test_vector_t =
-    immer::vector<T, immer::default_memory_policy, 3u, 3u>;
+using test_vector_t = immer::vector<T, immer::default_memory_policy, 3u, 3u>;
 
 #define FLEX_VECTOR_T test_flex_vector_t
-#define VECTOR_T      test_vector_t
+#define VECTOR_T test_vector_t
 #include "generic.ipp"

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/arrays/with_capacity.hpp>
+#include <immer/memory_policy.hpp>
 
 namespace immer {
 
@@ -27,17 +27,16 @@ class array;
  * @endrst
  */
 template <typename T, typename MemoryPolicy = default_memory_policy>
-class array_transient
-    : MemoryPolicy::transience_t::owner
+class array_transient : MemoryPolicy::transience_t::owner
 {
-    using impl_t = detail::arrays::with_capacity<T, MemoryPolicy>;
+    using impl_t             = detail::arrays::with_capacity<T, MemoryPolicy>;
     using impl_no_capacity_t = detail::arrays::no_capacity<T, MemoryPolicy>;
-    using owner_t = typename MemoryPolicy::transience_t::owner;
+    using owner_t            = typename MemoryPolicy::transience_t::owner;
 
 public:
-    using value_type = T;
-    using reference = const T&;
-    using size_type = std::size_t;
+    using value_type      = T;
+    using reference       = const T&;
+    using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
@@ -66,21 +65,27 @@ public:
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD iterator end()   const { return impl_.data() + impl_.size; }
+    IMMER_NODISCARD iterator end() const { return impl_.data() + impl_.size; }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing at the first element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+    IMMER_NODISCARD reverse_iterator rbegin() const
+    {
+        return reverse_iterator{end()};
+    }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing after the last element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rend()   const { return reverse_iterator{begin()}; }
+    IMMER_NODISCARD reverse_iterator rend() const
+    {
+        return reverse_iterator{begin()};
+    }
 
     /*!
      * Returns the number of elements in the container.  It does
@@ -120,8 +125,7 @@ public:
      * allocate memory and its complexity is *effectively* @f$ O(1)
      * @f$.
      */
-    reference operator[] (size_type index) const
-    { return impl_.get(index); }
+    reference operator[](size_type index) const { return impl_.get(index); }
 
     /*!
      * Returns a `const` reference to the element at position
@@ -129,15 +133,16 @@ public:
      * index \geq size() @f$.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    reference at(size_type index) const
-    { return impl_.get_check(index); }
+    reference at(size_type index) const { return impl_.get_check(index); }
 
     /*!
      * Inserts `value` at the end.  It may allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
     void push_back(value_type value)
-    { impl_.push_back_mut(*this, std::move(value)); }
+    {
+        impl_.push_back_mut(*this, std::move(value));
+    }
 
     /*!
      * Sets to the value `value` at position `idx`.
@@ -146,7 +151,9 @@ public:
      * *effectively* @f$ O(1) @f$.
      */
     void set(size_type index, value_type value)
-    { impl_.assoc_mut(*this, index, std::move(value)); }
+    {
+        impl_.assoc_mut(*this, index, std::move(value));
+    }
 
     /*!
      * Updates the array to contain the result of the expression
@@ -157,15 +164,16 @@ public:
      */
     template <typename FnT>
     void update(size_type index, FnT&& fn)
-    { impl_.update_mut(*this, index, std::forward<FnT>(fn)); }
+    {
+        impl_.update_mut(*this, index, std::forward<FnT>(fn));
+    }
 
     /*!
      * Resizes the array to only contain the first `min(elems, size())`
      * elements. It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void take(size_type elems)
-    { impl_.take_mut(*this, elems); }
+    void take(size_type elems) { impl_.take_mut(*this, elems); }
 
     /*!
      * Returns an @a immutable form of this container, an
@@ -174,10 +182,12 @@ public:
     IMMER_NODISCARD persistent_type persistent() &
     {
         this->owner_t::operator=(owner_t{});
-        return persistent_type{ impl_ };
+        return persistent_type{impl_};
     }
     IMMER_NODISCARD persistent_type persistent() &&
-    { return persistent_type{ std::move(impl_) }; }
+    {
+        return persistent_type{std::move(impl_)};
+    }
 
 private:
     friend persistent_type;
@@ -186,7 +196,7 @@ private:
         : impl_(std::move(impl))
     {}
 
-    impl_t  impl_  = impl_t::empty();
+    impl_t impl_ = impl_t::empty();
 };
 
 } // namespace immer

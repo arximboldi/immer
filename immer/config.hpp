@@ -9,13 +9,13 @@
 #pragma once
 
 #if defined(__has_cpp_attribute)
- #if __has_cpp_attribute(nodiscard)
-  #define IMMER_NODISCARD [[nodiscard]]
- #endif
+#if __has_cpp_attribute(nodiscard)
+#define IMMER_NODISCARD [[nodiscard]]
+#endif
 #else
- #if _MSVC_LANG >= 201703L
-  #define IMMER_NODISCARD [[nodiscard]]
- #endif
+#if _MSVC_LANG >= 201703L
+#define IMMER_NODISCARD [[nodiscard]]
+#endif
 #endif
 
 #ifndef IMMER_NODISCARD
@@ -23,17 +23,17 @@
 #endif
 
 #ifndef IMMER_TAGGED_NODE
- #ifdef NDEBUG
-  #define IMMER_TAGGED_NODE 0
- #else
-  #define IMMER_TAGGED_NODE 1
- #endif
+#ifdef NDEBUG
+#define IMMER_TAGGED_NODE 0
+#else
+#define IMMER_TAGGED_NODE 1
+#endif
 #endif
 
 #if IMMER_TAGGED_NODE
- #define IMMER_ASSERT_TAGGED(assertion) assert(assertion)
+#define IMMER_ASSERT_TAGGED(assertion) assert(assertion)
 #else
- #define IMMER_ASSERT_TAGGED(assertion)
+#define IMMER_ASSERT_TAGGED(assertion)
 #endif
 
 #ifndef IMMER_DEBUG_TRACES
@@ -58,22 +58,21 @@
 #else
 #define IMMER_TRACE(...)
 #endif
-#define IMMER_TRACE_F(...)                                              \
+#define IMMER_TRACE_F(...)                                                     \
     IMMER_TRACE(__FILE__ << ":" << __LINE__ << ": " << __VA_ARGS__)
-#define IMMER_TRACE_E(expr)                             \
-    IMMER_TRACE("    " << #expr << " = " << (expr))
+#define IMMER_TRACE_E(expr) IMMER_TRACE("    " << #expr << " = " << (expr))
 
 #if defined(_MSC_VER)
-#define IMMER_UNREACHABLE    __assume(false)
-#define IMMER_LIKELY(cond)   cond
+#define IMMER_UNREACHABLE __assume(false)
+#define IMMER_LIKELY(cond) cond
 #define IMMER_UNLIKELY(cond) cond
-#define IMMER_FORCEINLINE    __forceinline
+#define IMMER_FORCEINLINE __forceinline
 #define IMMER_PREFETCH(p)
 #else
-#define IMMER_UNREACHABLE    __builtin_unreachable()
-#define IMMER_LIKELY(cond)   __builtin_expect(!!(cond), 1)
+#define IMMER_UNREACHABLE __builtin_unreachable()
+#define IMMER_LIKELY(cond) __builtin_expect(!!(cond), 1)
 #define IMMER_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
-#define IMMER_FORCEINLINE    inline __attribute__ ((always_inline))
+#define IMMER_FORCEINLINE inline __attribute__((always_inline))
 #define IMMER_PREFETCH(p)
 // #define IMMER_PREFETCH(p)    __builtin_prefetch(p)
 #endif
@@ -88,7 +87,7 @@
 
 namespace immer {
 
-const auto default_bits = 5;
+const auto default_bits           = 5;
 const auto default_free_list_size = 1 << 10;
 
 } // namespace immer

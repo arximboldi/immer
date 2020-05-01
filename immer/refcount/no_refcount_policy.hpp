@@ -10,7 +10,8 @@
 
 namespace immer {
 
-struct disowned {};
+struct disowned
+{};
 
 struct no_spinlock
 {
@@ -32,7 +33,7 @@ struct no_refcount_policy
 {
     using spinlock_type = no_spinlock;
 
-    no_refcount_policy() {};
+    no_refcount_policy(){};
     no_refcount_policy(disowned) {}
 
     void inc() {}

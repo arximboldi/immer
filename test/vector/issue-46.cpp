@@ -32,9 +32,7 @@ TEST_CASE("operator==() may return bad result")
     tv.push_back(bool_vec(10, false));
     v0 = tv.persistent();
 
-    auto v1 = v0.update(1, [](bool_vec vec) {
-        return vec.set(8, true);
-    });
+    auto v1 = v0.update(1, [](bool_vec vec) { return vec.set(8, true); });
 
     CHECK(v0[1] != v1[1]);
     CHECK(v0 != v1);

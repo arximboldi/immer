@@ -28,31 +28,32 @@ constexpr auto fast_log2(std::size_t x)
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - __builtin_clzl(x);
 }
 
-template <int B, typename T=std::size_t>
+template <int B, typename T = std::size_t>
 constexpr T branches = T{1} << B;
 
-template <int B, typename T=std::size_t>
+template <int B, typename T = std::size_t>
 constexpr T mask = branches<B, T> - 1;
 
-template <int B, typename T=std::size_t>
-constexpr auto max_depth =
-    fast_log2(std::numeric_limits<std::size_t>::max()) / B;
+template <int B, typename T = std::size_t>
+constexpr auto
+    max_depth = fast_log2(std::numeric_limits<std::size_t>::max()) / B;
 
 template <typename T, int B, typename MP>
 struct node;
 
 template <typename T, int B, typename MP>
-using node_ptr = boost::intrusive_ptr<node<T, B, MP> >;
+using node_ptr = boost::intrusive_ptr<node<T, B, MP>>;
 
 template <typename T, int B>
-using leaf_node  = std::array<T, 1 << B>;
+using leaf_node = std::array<T, 1 << B>;
 
 template <typename T, int B, typename MP>
 using inner_node = std::array<node_ptr<T, B, MP>, 1 << B>;
 
 template <typename T, int B, typename MP>
-struct node : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
-            , enable_optimized_heap_policy<node<T, B, MP>, typename MP::heap>
+struct node
+    : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
+    , enable_optimized_heap_policy<node<T, B, MP>, typename MP::heap>
 {
     using leaf_node_t  = leaf_node<T, B>;
     using inner_node_t = inner_node<T, B, MP>;
@@ -65,10 +66,14 @@ struct node : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
 
     union data_t
     {
-        leaf_node_t  leaf;
+        leaf_node_t leaf;
         inner_node_t inner;
-        data_t(leaf_node_t n)  : leaf(std::move(n)) {}
-        data_t(inner_node_t n) : inner(std::move(n)) {}
+        data_t(leaf_node_t n)
+            : leaf(std::move(n))
+        {}
+        data_t(inner_node_t n)
+            : inner(std::move(n))
+        {}
         ~data_t() {}
     } data;
 
@@ -94,37 +99,41 @@ struct node : enable_intrusive_ptr<node<T, B, MP>, typename MP::refcount>
         , data{std::move(n)}
     {}
 
-    inner_node_t& inner() & {
+    inner_node_t& inner() &
+    {
         assert(kind == inner_kind);
         return data.inner;
     }
-    const inner_node_t& inner() const& {
+    const inner_node_t& inner() const&
+    {
         assert(kind == inner_kind);
         return data.inner;
     }
-    inner_node_t&& inner() && {
+    inner_node_t&& inner() &&
+    {
         assert(kind == inner_kind);
         return std::move(data.inner);
     }
 
-    leaf_node_t& leaf() & {
+    leaf_node_t& leaf() &
+    {
         assert(kind == leaf_kind);
         return data.leaf;
     }
-    const leaf_node_t& leaf() const& {
+    const leaf_node_t& leaf() const&
+    {
         assert(kind == leaf_kind);
         return data.leaf;
     }
-    leaf_node_t&& leaf() && {
+    leaf_node_t&& leaf() &&
+    {
         assert(kind == leaf_kind);
         return std::move(data.leaf);
     }
 };
 
-template <typename T, int B, typename MP,
-          typename ...Ts>
-auto make_node(Ts&& ...xs)
-    -> boost::intrusive_ptr<node<T, B, MP>>
+template <typename T, int B, typename MP, typename... Ts>
+auto make_node(Ts&&... xs) -> boost::intrusive_ptr<node<T, B, MP>>
 {
     return new node<T, B, MP>(std::forward<Ts>(xs)...);
 }
@@ -140,8 +149,8 @@ struct ref
     unsigned depth;
     std::array<node_ptr_t, max_depth<B>> display;
 
-    template <typename ...Ts>
-    static auto make_node(Ts&& ...xs)
+    template <typename... Ts>
+    static auto make_node(Ts&&... xs)
     {
         return dvektor::make_node<T, B, MP>(std::forward<Ts>(xs)...);
     }
@@ -152,16 +161,16 @@ struct ref
         auto node        = display[display_idx].get();
         auto shift       = display_idx * B;
         while (display_idx--) {
-            node = node->inner() [(index >> shift) & mask<B>].get();
+            node = node->inner()[(index >> shift) & mask<B>].get();
             shift -= B;
         }
-        return node->leaf() [index & mask<B>];
+        return node->leaf()[index & mask<B>];
     }
 
     node_ptr_t null_slot_and_copy_inner(node_ptr_t& node, std::size_t idx)
     {
         auto& n = node->inner();
-        auto x = node_ptr_t{};
+        auto x  = node_ptr_t{};
         x.swap(n[idx]);
         return copy_of_inner(x);
     }
@@ -169,7 +178,7 @@ struct ref
     node_ptr_t null_slot_and_copy_leaf(node_ptr_t& node, std::size_t idx)
     {
         auto& n = node->inner();
-        auto x = node_ptr_t{};
+        auto x  = node_ptr_t{};
         x.swap(n[idx]);
         return copy_of_leaf(x);
     }
@@ -187,11 +196,9 @@ struct ref
     void stabilize(std::size_t index)
     {
         auto shift = B;
-        for (auto i = 1u; i < depth; ++i)
-        {
+        for (auto i = 1u; i < depth; ++i) {
             display[i] = copy_of_inner(display[i]);
-            display[i]->inner() [(index >> shift) & mask<B>]
-                = display[i - 1];
+            display[i]->inner()[(index >> shift) & mask<B>] = display[i - 1];
             shift += B;
         }
     }
@@ -210,13 +217,11 @@ struct ref
             auto shift = B * d;
             while (--d) {
                 display[d] = null_slot_and_copy_inner(
-                    display[d + 1],
-                    (index >> shift) & mask<B>);
+                    display[d + 1], (index >> shift) & mask<B>);
                 shift -= B;
             }
-            display[0] = null_slot_and_copy_leaf(
-                display[1],
-                (index >> B) & mask<B>);
+            display[0] =
+                null_slot_and_copy_leaf(display[1], (index >> B) & mask<B>);
         }
     }
 
@@ -232,19 +237,17 @@ struct ref
             auto shift       = B;
             for (auto i = 1u; i <= display_idx; ++i) {
                 display[i] = copy_of_inner(display[i]);
-                display[i]->inner() [(old_index >> shift) & mask<B>]
-                    = display[i - 1];
+                display[i]->inner()[(old_index >> shift) & mask<B>] =
+                    display[i - 1];
                 shift += B;
             }
             for (auto i = display_idx - 1; i > 0; --i) {
                 shift -= B;
                 display[i] = null_slot_and_copy_inner(
-                    display[i + 1],
-                    (new_index >> shift) & mask<B>);
+                    display[i + 1], (new_index >> shift) & mask<B>);
             }
-            display[0] = null_slot_and_copy_leaf(
-                display[1],
-                (new_index >> B) & mask<B>);
+            display[0] =
+                null_slot_and_copy_leaf(display[1], (new_index >> B) & mask<B>);
         }
     }
 
@@ -254,21 +257,18 @@ struct ref
     {
         auto display_idx = fast_log2(xr) / B;
         if (display_idx > 0) {
-            auto shift       = display_idx * B;
+            auto shift = display_idx * B;
             if (display_idx == depth) {
                 display[display_idx] = make_node(inner_t{});
-                display[display_idx]->inner()
-                    [(old_index >> shift) & mask<B>] =
+                display[display_idx]->inner()[(old_index >> shift) & mask<B>] =
                     display[display_idx - 1];
                 ++depth;
             }
             while (--display_idx) {
-                auto node = display[display_idx + 1]->inner()
-                    [(new_index >> shift) & mask<B>];
-                display[display_idx] = node
-                    ? std::move(node)
-                    : make_node(inner_t{});
-
+                auto node = display[display_idx + 1]
+                                ->inner()[(new_index >> shift) & mask<B>];
+                display[display_idx] =
+                    node ? std::move(node) : make_node(inner_t{});
             }
             display[0] = make_node(leaf_t{});
         }
@@ -285,10 +285,10 @@ struct ref
     void goto_next_block_start(std::size_t index, std::size_t xr)
     {
         auto display_idx = fast_log2(xr) / B;
-        auto shift = display_idx * B;
+        auto shift       = display_idx * B;
         if (display_idx > 0) {
-            display[display_idx - 1] = display[display_idx]->inner()
-                [(index >> shift) & mask<B>];
+            display[display_idx - 1] =
+                display[display_idx]->inner()[(index >> shift) & mask<B>];
             while (--display_idx)
                 display[display_idx - 1] = display[display_idx]->inner()[0];
         }
@@ -297,11 +297,11 @@ struct ref
     void goto_pos(std::size_t index, std::size_t xr)
     {
         auto display_idx = fast_log2(xr) / B;
-        auto shift = display_idx * B;
+        auto shift       = display_idx * B;
         if (display_idx) {
             do {
-                display[display_idx - 1] = display[display_idx]->inner()
-                    [(index >> shift) & mask<B>];
+                display[display_idx - 1] =
+                    display[display_idx]->inner()[(index >> shift) & mask<B>];
                 shift -= B;
             } while (--display_idx);
         }
@@ -319,11 +319,11 @@ struct impl
 
     std::size_t size;
     std::size_t focus;
-    bool        dirty;
-    ref_t       p;
+    bool dirty;
+    ref_t p;
 
-    template <typename ...Ts>
-    static auto make_node(Ts&& ...xs)
+    template <typename... Ts>
+    static auto make_node(Ts&&... xs)
     {
         return dvektor::make_node<T, B, MP>(std::forward<Ts>(xs)...);
     }
@@ -356,23 +356,22 @@ struct impl
     {
         if (size) {
             auto block_index = size & ~mask<B>;
-            auto lo = size & mask<B>;
+            auto lo          = size & mask<B>;
             if (size != block_index) {
-                auto s = impl{ size + 1, block_index, dirty, p };
+                auto s = impl{size + 1, block_index, dirty, p};
                 s.goto_pos_writable(focus, block_index, focus ^ block_index);
-                s.p.display[0]->leaf() [lo] = std::move(value);
+                s.p.display[0]->leaf()[lo] = std::move(value);
                 return s;
             } else {
-                auto s = impl{ size + 1, block_index, dirty, p };
-                s.goto_fresh_pos_writable(focus, block_index, focus ^ block_index);
-                s.p.display[0]->leaf() [lo] = std::move(value);
+                auto s = impl{size + 1, block_index, dirty, p};
+                s.goto_fresh_pos_writable(
+                    focus, block_index, focus ^ block_index);
+                s.p.display[0]->leaf()[lo] = std::move(value);
                 return s;
             }
         } else {
             return impl{
-                1, 0, false,
-                { 1, {{ make_node(leaf_t{{std::move(value)}}) }} }
-            };
+                1, 0, false, {1, {{make_node(leaf_t{{std::move(value)}})}}}};
         }
     }
 
@@ -384,44 +383,38 @@ struct impl
     template <typename FnT>
     impl update(std::size_t idx, FnT&& fn) const
     {
-        auto s = impl{ size, idx, dirty, p };
+        auto s = impl{size, idx, dirty, p};
         s.goto_pos_writable(focus, idx, focus ^ idx);
-        auto& v = s.p.display[0]->leaf() [idx & mask<B>];
-        v = fn(std::move(v));
+        auto& v = s.p.display[0]->leaf()[idx & mask<B>];
+        v       = fn(std::move(v));
         return s;
     }
 
     impl assoc(std::size_t idx, T value) const
     {
-        return update(idx, [&] (auto&&) {
-            return std::move(value);
-        });
+        return update(idx, [&](auto&&) { return std::move(value); });
     }
 };
 
 template <typename T, int B, typename MP>
-const impl<T, B, MP> empty = {
-    0,
-    0,
-    false,
-    ref<T, B, MP> {1, {}}
-};
+const impl<T, B, MP> empty = {0, 0, false, ref<T, B, MP>{1, {}}};
 
 template <typename T, int B, typename MP>
-struct iterator : boost::iterator_facade<
-    iterator<T, B, MP>,
-    T,
-    boost::random_access_traversal_tag,
-    const T&>
+struct iterator
+    : boost::iterator_facade<iterator<T, B, MP>,
+                             T,
+                             boost::random_access_traversal_tag,
+                             const T&>
 {
-    struct end_t {};
+    struct end_t
+    {};
 
     iterator() = default;
 
     iterator(const impl<T, B, MP>& v)
-        : p_{ v.p }
-        , i_{ 0 }
-        , base_{ 0 }
+        : p_{v.p}
+        , i_{0}
+        , base_{0}
     {
         if (v.dirty)
             p_.stabilize(v.focus);
@@ -430,9 +423,9 @@ struct iterator : boost::iterator_facade<
     }
 
     iterator(const impl<T, B, MP>& v, end_t)
-        : p_{ v.p }
-        , i_{ v.size }
-        , base_{ (v.size-1) & ~mask<B> }
+        : p_{v.p}
+        , i_{v.size}
+        , base_{(v.size - 1) & ~mask<B>}
     {
         if (v.dirty)
             p_.stabilize(v.focus);
@@ -445,8 +438,8 @@ private:
     using leaf_iterator = typename leaf_node<T, B>::const_iterator;
 
     ref<T, B, MP> p_;
-    std::size_t   i_;
-    std::size_t   base_;
+    std::size_t i_;
+    std::size_t base_;
     leaf_iterator curr_;
 
     void increment()
@@ -489,22 +482,15 @@ private:
         }
     }
 
-    bool equal(const iterator& other) const
-    {
-        return i_ == other.i_;
-    }
+    bool equal(const iterator& other) const { return i_ == other.i_; }
 
     std::ptrdiff_t distance_to(const iterator& other) const
     {
-        return other.i_ > i_
-            ?   static_cast<std::ptrdiff_t>(other.i_ - i_)
-            : - static_cast<std::ptrdiff_t>(i_ - other.i_);
+        return other.i_ > i_ ? static_cast<std::ptrdiff_t>(other.i_ - i_)
+                             : -static_cast<std::ptrdiff_t>(i_ - other.i_);
     }
 
-    const T& dereference() const
-    {
-        return *curr_;
-    }
+    const T& dereference() const { return *curr_; }
 };
 
 } /* namespace dvektor */

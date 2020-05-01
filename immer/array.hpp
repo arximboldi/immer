@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/arrays/with_capacity.hpp>
+#include <immer/memory_policy.hpp>
 
 namespace immer {
 
@@ -40,18 +40,18 @@ class array_transient;
 template <typename T, typename MemoryPolicy = default_memory_policy>
 class array
 {
-    using impl_t = std::conditional_t<
-        MemoryPolicy::use_transient_rvalues,
-        detail::arrays::with_capacity<T, MemoryPolicy>,
-        detail::arrays::no_capacity<T, MemoryPolicy>>;
+    using impl_t =
+        std::conditional_t<MemoryPolicy::use_transient_rvalues,
+                           detail::arrays::with_capacity<T, MemoryPolicy>,
+                           detail::arrays::no_capacity<T, MemoryPolicy>>;
 
     using move_t =
         std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
 
 public:
-    using value_type = T;
-    using reference = const T&;
-    using size_type = std::size_t;
+    using value_type      = T;
+    using reference       = const T&;
+    using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
     using const_reference = const T&;
 
@@ -79,10 +79,11 @@ public:
      * Constructs a array containing the elements in the range
      * defined by the forward iterator `first` and range sentinel `last`.
      */
-    template <typename Iter, typename Sent,
-              std::enable_if_t
-              <detail::compatible_sentinel_v<Iter, Sent>
-               && detail::is_forward_iterator_v<Iter>, bool> = true>
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent> &&
+                                   detail::is_forward_iterator_v<Iter>,
+                               bool> = true>
     array(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
     {}
@@ -106,21 +107,27 @@ public:
      * Returns an iterator pointing just after the last element of the
      * collection. It does not allocate and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD iterator end()   const { return impl_.data() + impl_.size; }
+    IMMER_NODISCARD iterator end() const { return impl_.data() + impl_.size; }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing at the first element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rbegin() const { return reverse_iterator{end()}; }
+    IMMER_NODISCARD reverse_iterator rbegin() const
+    {
+        return reverse_iterator{end()};
+    }
 
     /*!
      * Returns an iterator that traverses the collection backwards,
      * pointing after the last element of the reversed collection. It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
-    IMMER_NODISCARD reverse_iterator rend()   const { return reverse_iterator{begin()}; }
+    IMMER_NODISCARD reverse_iterator rend() const
+    {
+        return reverse_iterator{begin()};
+    }
 
     /*!
      * Returns the number of elements in the container.  It does
@@ -155,8 +162,10 @@ public:
      * allocate memory and its complexity is *effectively* @f$ O(1)
      * @f$.
      */
-    IMMER_NODISCARD reference operator[] (size_type index) const
-    { return impl_.get(index); }
+    IMMER_NODISCARD reference operator[](size_type index) const
+    {
+        return impl_.get(index);
+    }
 
     /*!
      * Returns a `const` reference to the element at position
@@ -164,16 +173,19 @@ public:
      * index \geq size() @f$.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    reference at(size_type index) const
-    { return impl_.get_check(index); }
+    reference at(size_type index) const { return impl_.get_check(index); }
 
     /*!
      * Returns whether the vectors are equal.
      */
     IMMER_NODISCARD bool operator==(const array& other) const
-    { return impl_.equals(other.impl_); }
+    {
+        return impl_.equals(other.impl_);
+    }
     IMMER_NODISCARD bool operator!=(const array& other) const
-    { return !(*this == other); }
+    {
+        return !(*this == other);
+    }
 
     /*!
      * Returns an array with `value` inserted at the end.  It may
@@ -191,10 +203,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD array push_back(value_type value) const&
-    { return impl_.push_back(std::move(value)); }
+    {
+        return impl_.push_back(std::move(value));
+    }
 
     IMMER_NODISCARD decltype(auto) push_back(value_type value) &&
-    { return push_back_move(move_t{}, std::move(value)); }
+    {
+        return push_back_move(move_t{}, std::move(value));
+    }
 
     /*!
      * Returns an array containing value `value` at position `idx`.
@@ -213,10 +229,14 @@ public:
      * @endrst
      */
     IMMER_NODISCARD array set(std::size_t index, value_type value) const&
-    { return impl_.assoc(index, std::move(value)); }
+    {
+        return impl_.assoc(index, std::move(value));
+    }
 
     IMMER_NODISCARD decltype(auto) set(size_type index, value_type value) &&
-    { return set_move(move_t{}, index, std::move(value)); }
+    {
+        return set_move(move_t{}, index, std::move(value));
+    }
 
     /*!
      * Returns an array containing the result of the expression
@@ -237,11 +257,15 @@ public:
      */
     template <typename FnT>
     IMMER_NODISCARD array update(std::size_t index, FnT&& fn) const&
-    { return impl_.update(index, std::forward<FnT>(fn)); }
+    {
+        return impl_.update(index, std::forward<FnT>(fn));
+    }
 
     template <typename FnT>
     IMMER_NODISCARD decltype(auto) update(size_type index, FnT&& fn) &&
-    { return update_move(move_t{}, index, std::forward<FnT>(fn)); }
+    {
+        return update_move(move_t{}, index, std::forward<FnT>(fn));
+    }
 
     /*!
      * Returns a array containing only the first `min(elems, size())`
@@ -260,19 +284,27 @@ public:
      * @endrst
      */
     IMMER_NODISCARD array take(size_type elems) const&
-    { return impl_.take(elems); }
+    {
+        return impl_.take(elems);
+    }
 
     IMMER_NODISCARD decltype(auto) take(size_type elems) &&
-    { return take_move(move_t{}, elems); }
+    {
+        return take_move(move_t{}, elems);
+    }
 
     /*!
      * Returns an @a transient form of this container, an
      * `immer::array_transient`.
      */
     IMMER_NODISCARD transient_type transient() const&
-    { return transient_type{ impl_ }; }
+    {
+        return transient_type{impl_};
+    }
     IMMER_NODISCARD transient_type transient() &&
-    { return transient_type{ std::move(impl_) }; }
+    {
+        return transient_type{std::move(impl_)};
+    }
 
     // Semi-private
     const impl_t& impl() const { return impl_; }
@@ -280,29 +312,51 @@ public:
 private:
     friend transient_type;
 
-    array(impl_t impl) : impl_(std::move(impl)) {}
+    array(impl_t impl)
+        : impl_(std::move(impl))
+    {}
 
     array&& push_back_move(std::true_type, value_type value)
-    { impl_.push_back_mut({}, std::move(value)); return std::move(*this); }
+    {
+        impl_.push_back_mut({}, std::move(value));
+        return std::move(*this);
+    }
     array push_back_move(std::false_type, value_type value)
-    { return impl_.push_back(std::move(value)); }
+    {
+        return impl_.push_back(std::move(value));
+    }
 
     array&& set_move(std::true_type, size_type index, value_type value)
-    { impl_.assoc_mut({}, index, std::move(value)); return std::move(*this); }
+    {
+        impl_.assoc_mut({}, index, std::move(value));
+        return std::move(*this);
+    }
     array set_move(std::false_type, size_type index, value_type value)
-    { return impl_.assoc(index, std::move(value)); }
+    {
+        return impl_.assoc(index, std::move(value));
+    }
 
     template <typename Fn>
     array&& update_move(std::true_type, size_type index, Fn&& fn)
-    { impl_.update_mut({}, index, std::forward<Fn>(fn)); return std::move(*this); }
+    {
+        impl_.update_mut({}, index, std::forward<Fn>(fn));
+        return std::move(*this);
+    }
     template <typename Fn>
     array update_move(std::false_type, size_type index, Fn&& fn)
-    { return impl_.update(index, std::forward<Fn>(fn)); }
+    {
+        return impl_.update(index, std::forward<Fn>(fn));
+    }
 
     array&& take_move(std::true_type, size_type elems)
-    { impl_.take_mut({}, elems); return std::move(*this); }
+    {
+        impl_.take_mut({}, elems);
+        return std::move(*this);
+    }
     array take_move(std::false_type, size_type elems)
-    { return impl_.take(elems); }
+    {
+        return impl_.take(elems);
+    }
 
     impl_t impl_ = impl_t::empty();
 };

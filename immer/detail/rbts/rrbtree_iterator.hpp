@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <immer/detail/rbts/rrbtree.hpp>
 #include <immer/detail/iterator_facade.hpp>
+#include <immer/detail/rbts/rrbtree.hpp>
 
 namespace immer {
 namespace detail {
@@ -27,7 +27,8 @@ struct rrbtree_iterator
     using tree_t   = rrbtree<T, MP, B, BL>;
     using region_t = std::tuple<const T*, size_t, size_t>;
 
-    struct end_t {};
+    struct end_t
+    {};
 
     const tree_t& impl() const { return *v_; }
     size_t index() const { return i_; }
@@ -35,23 +36,22 @@ struct rrbtree_iterator
     rrbtree_iterator() = default;
 
     rrbtree_iterator(const tree_t& v)
-        : v_    { &v }
-        , i_    { 0 }
-        , curr_ { nullptr, ~size_t{}, ~size_t{} }
-    {
-    }
+        : v_{&v}
+        , i_{0}
+        , curr_{nullptr, ~size_t{}, ~size_t{}}
+    {}
 
     rrbtree_iterator(const tree_t& v, end_t)
-        : v_    { &v }
-        , i_    { v.size }
-        , curr_ { nullptr, ~size_t{}, ~size_t{} }
+        : v_{&v}
+        , i_{v.size}
+        , curr_{nullptr, ~size_t{}, ~size_t{}}
     {}
 
 private:
     friend iterator_core_access;
 
     const tree_t* v_;
-    size_t   i_;
+    size_t i_;
     mutable region_t curr_;
 
     void increment()
@@ -76,16 +76,12 @@ private:
         i_ += n;
     }
 
-    bool equal(const rrbtree_iterator& other) const
-    {
-        return i_ == other.i_;
-    }
+    bool equal(const rrbtree_iterator& other) const { return i_ == other.i_; }
 
     std::ptrdiff_t distance_to(const rrbtree_iterator& other) const
     {
-        return other.i_ > i_
-            ?   static_cast<std::ptrdiff_t>(other.i_ - i_)
-            : - static_cast<std::ptrdiff_t>(i_ - other.i_);
+        return other.i_ > i_ ? static_cast<std::ptrdiff_t>(other.i_ - i_)
+                             : -static_cast<std::ptrdiff_t>(i_ - other.i_);
     }
 
     const T& dereference() const

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <immer/heap/with_data.hpp>
 #include <immer/heap/free_list_node.hpp>
+#include <immer/heap/with_data.hpp>
 
 #include <atomic>
 #include <cassert>

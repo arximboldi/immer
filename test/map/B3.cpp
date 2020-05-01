@@ -8,7 +8,8 @@
 
 #include <immer/map.hpp>
 
-template <typename K, typename T,
+template <typename K,
+          typename T,
           typename Hash = std::hash<K>,
           typename Eq   = std::equal_to<K>>
 using test_map_t = immer::map<K, T, Hash, Eq, immer::default_memory_policy, 3u>;
