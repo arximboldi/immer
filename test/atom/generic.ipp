@@ -15,10 +15,7 @@
 template <typename T>
 using BOX_T = typename ATOM_T<T>::box_type;
 
-TEST_CASE("construction")
-{
-    ATOM_T<int> x;
-}
+TEST_CASE("construction") { ATOM_T<int> x; }
 
 TEST_CASE("store, load, exchange")
 {
@@ -35,7 +32,7 @@ TEST_CASE("box conversion")
 {
     ATOM_T<int> x;
     auto v1 = BOX_T<int>{42};
-    x = v1;
+    x       = v1;
     auto v2 = BOX_T<int>{x};
     CHECK(v1 == v2);
 }
@@ -43,7 +40,7 @@ TEST_CASE("box conversion")
 TEST_CASE("value conversion")
 {
     ATOM_T<int> x;
-    x = 42;
+    x      = 42;
     auto v = int{x};
     CHECK(v == 42);
 }
@@ -51,6 +48,6 @@ TEST_CASE("value conversion")
 TEST_CASE("update")
 {
     ATOM_T<int> x{42};
-    x.update([] (auto x) { return x + 2; });
+    x.update([](auto x) { return x + 2; });
     CHECK(x.load() == 44);
 }

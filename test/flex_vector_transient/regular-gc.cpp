@@ -8,24 +8,24 @@
 
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
-#include <immer/vector.hpp>
-#include <immer/vector_transient.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/vector.hpp>
+#include <immer/vector_transient.hpp>
 
-using gc_memory = immer::memory_policy<
-    immer::heap_policy<immer::gc_heap>,
-    immer::no_refcount_policy,
-    immer::gc_transience_policy,
-    false>;
+using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
+                                       immer::no_refcount_policy,
+                                       immer::gc_transience_policy,
+                                       false>;
 
 template <typename T>
 using test_flex_vector_t = immer::flex_vector<T, gc_memory, 3u>;
 
 template <typename T>
-using test_flex_vector_transient_t = immer::flex_vector_transient<T, gc_memory, 3u>;
+using test_flex_vector_transient_t =
+    immer::flex_vector_transient<T, gc_memory, 3u>;
 
-#define VECTOR_T           test_flex_vector_t
+#define VECTOR_T test_flex_vector_t
 #define VECTOR_TRANSIENT_T test_flex_vector_transient_t
 
 #include "../vector_transient/generic.ipp"

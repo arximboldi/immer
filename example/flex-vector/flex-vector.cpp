@@ -7,98 +7,97 @@
 //
 
 #include <immer/flex_vector.hpp>
+
 #include <cassert>
 
 int main()
 {
     {
-// include:push-back/start
+        // include:push-back/start
         auto v1 = immer::flex_vector<int>{1};
         auto v2 = v1.push_back(8);
 
         assert((v1 == immer::flex_vector<int>{1}));
-        assert((v2 == immer::flex_vector<int>{1,8}));
-// include:push-back/end
+        assert((v2 == immer::flex_vector<int>{1, 8}));
+        // include:push-back/end
     }
     {
-// include:push-front/start
+        // include:push-front/start
         auto v1 = immer::flex_vector<int>{1};
         auto v2 = v1.push_front(8);
 
         assert((v1 == immer::flex_vector<int>{1}));
-        assert((v2 == immer::flex_vector<int>{8,1}));
-// include:push-front/end
+        assert((v2 == immer::flex_vector<int>{8, 1}));
+        // include:push-front/end
     }
 
     {
-// include:set/start
-        auto v1 = immer::flex_vector<int>{1,2,3};
-        auto v2 = v1.set(0,5);
+        // include:set/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3};
+        auto v2 = v1.set(0, 5);
 
-        assert((v1 == immer::flex_vector<int>{1,2,3}));
-        assert((v2 == immer::flex_vector<int>{5,2,3}));
-// include:set/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3}));
+        assert((v2 == immer::flex_vector<int>{5, 2, 3}));
+        // include:set/end
     }
 
     {
-// include:update/start
-        auto v1 = immer::flex_vector<int>{1,2,3,4};
-        auto v2 = v1.update(2, [&] (auto l) {
-            return ++l;
-        });
+        // include:update/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3, 4};
+        auto v2 = v1.update(2, [&](auto l) { return ++l; });
 
-        assert((v1 == immer::flex_vector<int>{1,2,3,4}));
-        assert((v2 == immer::flex_vector<int>{1,2,4,4}));
-// include:update/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3, 4}));
+        assert((v2 == immer::flex_vector<int>{1, 2, 4, 4}));
+        // include:update/end
     }
 
     {
-// include:take/start
-        auto v1 = immer::flex_vector<int>{1,2,3,4,5,6};
+        // include:take/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3, 4, 5, 6};
         auto v2 = v1.take(3);
 
-        assert((v1 == immer::flex_vector<int>{1,2,3,4,5,6}));
-        assert((v2 == immer::flex_vector<int>{1,2,3}));
-// include:take/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3, 4, 5, 6}));
+        assert((v2 == immer::flex_vector<int>{1, 2, 3}));
+        // include:take/end
     }
 
     {
-// include:drop/start
-        auto v1 = immer::flex_vector<int>{1,2,3,4,5,6};
+        // include:drop/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3, 4, 5, 6};
         auto v2 = v1.drop(3);
 
-        assert((v1 == immer::flex_vector<int>{1,2,3,4,5,6}));
-        assert((v2 == immer::flex_vector<int>{4,5,6}));
-// include:drop/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3, 4, 5, 6}));
+        assert((v2 == immer::flex_vector<int>{4, 5, 6}));
+        // include:drop/end
     }
 
     {
-// include:insert/start
-        auto v1 = immer::flex_vector<int>{1,2,3};
-        auto v2 = v1.insert(0,0);
+        // include:insert/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3};
+        auto v2 = v1.insert(0, 0);
 
-        assert((v1 == immer::flex_vector<int>{1,2,3}));
-        assert((v2 == immer::flex_vector<int>{0,1,2,3}));
-// include:insert/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3}));
+        assert((v2 == immer::flex_vector<int>{0, 1, 2, 3}));
+        // include:insert/end
     }
 
     {
-// include:erase/start
-        auto v1 = immer::flex_vector<int>{1,2,3,4,5};
+        // include:erase/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3, 4, 5};
         auto v2 = v1.erase(2);
 
-        assert((v1 == immer::flex_vector<int>{1,2,3,4,5}));
-        assert((v2 == immer::flex_vector<int>{1,2,4,5}));
-// include:erase/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3, 4, 5}));
+        assert((v2 == immer::flex_vector<int>{1, 2, 4, 5}));
+        // include:erase/end
     }
 
     {
-// include:concat/start
-        auto v1 = immer::flex_vector<int>{1,2,3};
+        // include:concat/start
+        auto v1 = immer::flex_vector<int>{1, 2, 3};
         auto v2 = v1 + v1;
 
-        assert((v1 == immer::flex_vector<int>{1,2,3}));
-        assert((v2 == immer::flex_vector<int>{1,2,3,1,2,3}));
-// include:concat/end
+        assert((v1 == immer::flex_vector<int>{1, 2, 3}));
+        assert((v2 == immer::flex_vector<int>{1, 2, 3, 1, 2, 3}));
+        // include:concat/end
     }
 }

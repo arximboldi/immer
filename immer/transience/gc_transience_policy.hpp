@@ -10,9 +10,9 @@
 
 #include <immer/heap/tags.hpp>
 
+#include <atomic>
 #include <memory>
 #include <utility>
-#include <atomic>
 
 namespace immer {
 
@@ -54,7 +54,7 @@ struct gc_transience_policy
 
                 mutable std::atomic<void*> token_;
 
-                operator edit () { return { token_ }; }
+                operator edit() { return {token_}; }
 
                 owner()
                     : token_{make_token_()}
@@ -82,7 +82,7 @@ struct gc_transience_policy
 
             struct ownee
             {
-                edit token_ {nullptr};
+                edit token_{nullptr};
 
                 ownee& operator=(edit e)
                 {
@@ -105,6 +105,6 @@ struct gc_transience_policy
 
 template <typename HP>
 typename gc_transience_policy::apply<HP>::type::owner
-gc_transience_policy::apply<HP>::type::noone = {};
+    gc_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer

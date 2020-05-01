@@ -21,11 +21,12 @@ struct no_transience_policy
     {
         struct type
         {
-            struct edit {};
+            struct edit
+            {};
 
             struct owner
             {
-                operator edit () const { return {}; }
+                operator edit() const { return {}; }
             };
 
             struct ownee
@@ -42,6 +43,6 @@ struct no_transience_policy
 
 template <typename HP>
 typename no_transience_policy::apply<HP>::type::owner
-no_transience_policy::apply<HP>::type::noone = {};
+    no_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer

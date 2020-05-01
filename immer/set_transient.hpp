@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/hamts/champ.hpp>
+#include <immer/memory_policy.hpp>
 
 #include <functional>
 
@@ -19,9 +19,9 @@ namespace immer {
  * **WORK IN PROGRESS**
  */
 template <typename T,
-          typename Hash          = std::hash<T>,
-          typename Equal         = std::equal_to<T>,
-          typename MemoryPolicy  = default_memory_policy,
+          typename Hash           = std::hash<T>,
+          typename Equal          = std::equal_to<T>,
+          typename MemoryPolicy   = default_memory_policy,
           detail::hamts::bits_t B = default_bits>
 class set_transient;
 

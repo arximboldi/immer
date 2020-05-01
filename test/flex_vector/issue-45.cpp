@@ -19,7 +19,8 @@
 
 #include <variant>
 
-TEST_CASE("error when erasing an element from a immer::flex_vector<std::variant/optional/any>")
+TEST_CASE("error when erasing an element from a "
+          "immer::flex_vector<std::variant/optional/any>")
 {
     using Vector = immer::flex_vector<std::variant<int, double>>;
     // using Vector = immer::flex_vector<std::optional<int>>;

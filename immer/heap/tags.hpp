@@ -10,6 +10,7 @@
 
 namespace immer {
 
-struct norefs_tag {};
+struct norefs_tag
+{};
 
 } // namespace immer

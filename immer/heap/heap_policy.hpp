@@ -8,14 +8,14 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/heap/debug_size_heap.hpp>
 #include <immer/heap/free_list_heap.hpp>
 #include <immer/heap/split_heap.hpp>
 #include <immer/heap/thread_local_free_list_heap.hpp>
-#include <immer/config.hpp>
 
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
 
 namespace immer {
 
@@ -37,18 +37,18 @@ struct heap_policy
 template <typename Deriv, typename HeapPolicy>
 struct enable_optimized_heap_policy
 {
-    static void* operator new (std::size_t size)
+    static void* operator new(std::size_t size)
     {
-        using heap_type = typename HeapPolicy
-            ::template optimized<sizeof(Deriv)>::type;
+        using heap_type =
+            typename HeapPolicy ::template optimized<sizeof(Deriv)>::type;
 
         return heap_type::allocate(size);
     }
 
-    static void operator delete (void* data, std::size_t size)
+    static void operator delete(void* data, std::size_t size)
     {
-        using heap_type = typename HeapPolicy
-            ::template optimized<sizeof(Deriv)>::type;
+        using heap_type =
+            typename HeapPolicy ::template optimized<sizeof(Deriv)>::type;
 
         heap_type::deallocate(size, data);
     }
@@ -99,8 +99,7 @@ struct enable_optimized_heap_policy
  *
  * @endrst
  */
-template <typename Heap,
-          std::size_t Limit = default_free_list_size>
+template <typename Heap, std::size_t Limit = default_free_list_size>
 struct free_list_heap_policy
 {
     using type = debug_size_heap<Heap>;
@@ -108,16 +107,13 @@ struct free_list_heap_policy
     template <std::size_t Size>
     struct optimized
     {
-        using type = split_heap<
-            Size,
-            with_free_list_node<
-                thread_local_free_list_heap<
-                    Size,
-                    Limit,
-                    free_list_heap<
-                        Size, Limit,
-                        debug_size_heap<Heap>>>>,
-            debug_size_heap<Heap>>;
+        using type =
+            split_heap<Size,
+                       with_free_list_node<thread_local_free_list_heap<
+                           Size,
+                           Limit,
+                           free_list_heap<Size, Limit, debug_size_heap<Heap>>>>,
+                       debug_size_heap<Heap>>;
     };
 };
 
@@ -126,8 +122,7 @@ struct free_list_heap_policy
  * multi-threading, so a single global free list with no concurrency
  * checks is used.
  */
-template <typename Heap,
-          std::size_t Limit = default_free_list_size>
+template <typename Heap, std::size_t Limit = default_free_list_size>
 struct unsafe_free_list_heap_policy
 {
     using type = Heap;
@@ -138,9 +133,7 @@ struct unsafe_free_list_heap_policy
         using type = split_heap<
             Size,
             with_free_list_node<
-                unsafe_free_list_heap<
-                    Size, Limit,
-                    debug_size_heap<Heap>>>,
+                unsafe_free_list_heap<Size, Limit, debug_size_heap<Heap>>>,
             debug_size_heap<Heap>>;
     };
 };

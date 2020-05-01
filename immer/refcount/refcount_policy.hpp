@@ -11,16 +11,17 @@
 #include <immer/refcount/no_refcount_policy.hpp>
 
 #include <atomic>
-#include <utility>
 #include <cassert>
 #include <thread>
+#include <utility>
 
 // This has been shamelessly copied from boost...
-#if defined(_MSC_VER) && _MSC_VER >= 1310 && (defined(_M_IX86) || defined(_M_X64)) && !defined(__c2__)
+#if defined(_MSC_VER) && _MSC_VER >= 1310 &&                                   \
+    (defined(_M_IX86) || defined(_M_X64)) && !defined(__c2__)
 extern "C" void _mm_pause();
-#  define IMMER_SMT_PAUSE _mm_pause()
+#define IMMER_SMT_PAUSE _mm_pause()
 #elif defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-#  define IMMER_SMT_PAUSE __asm__ __volatile__( "rep; nop" : : : "memory" )
+#define IMMER_SMT_PAUSE __asm__ __volatile__("rep; nop" : : : "memory")
 #endif
 
 namespace immer {
@@ -32,10 +33,7 @@ struct spinlock
 {
     std::atomic_flag v_{};
 
-    bool try_lock()
-    {
-        return !v_.test_and_set(std::memory_order_acquire);
-    }
+    bool try_lock() { return !v_.test_and_set(std::memory_order_acquire); }
 
     void lock()
     {
@@ -51,22 +49,20 @@ struct spinlock
         }
     }
 
-    void unlock()
-    {
-        v_.clear(std::memory_order_release);
-    }
+    void unlock() { v_.clear(std::memory_order_release); }
 
     struct scoped_lock
     {
         scoped_lock(const scoped_lock&) = delete;
-        scoped_lock& operator=(const scoped_lock& ) = delete;
+        scoped_lock& operator=(const scoped_lock&) = delete;
 
         explicit scoped_lock(spinlock& sp)
             : sp_{sp}
-        { sp.lock(); }
+        {
+            sp.lock();
+        }
 
-        ~scoped_lock()
-        { sp_.unlock();}
+        ~scoped_lock() { sp_.unlock(); }
 
     private:
         spinlock& sp_;
@@ -83,18 +79,15 @@ struct refcount_policy
 
     mutable std::atomic<int> refcount;
 
-    refcount_policy() : refcount{1} {};
-    refcount_policy(disowned) : refcount{0} {}
+    refcount_policy()
+        : refcount{1} {};
+    refcount_policy(disowned)
+        : refcount{0}
+    {}
 
-    void inc()
-    {
-        refcount.fetch_add(1, std::memory_order_relaxed);
-    }
+    void inc() { refcount.fetch_add(1, std::memory_order_relaxed); }
 
-    bool dec()
-    {
-        return 1 == refcount.fetch_sub(1, std::memory_order_acq_rel);
-    }
+    bool dec() { return 1 == refcount.fetch_sub(1, std::memory_order_acq_rel); }
 
     void dec_unsafe()
     {
@@ -102,10 +95,7 @@ struct refcount_policy
         refcount.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    bool unique()
-    {
-        return refcount == 1;
-    }
+    bool unique() { return refcount == 1; }
 };
 
 } // namespace immer

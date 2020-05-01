@@ -44,11 +44,10 @@ TEST_CASE("update")
 
 TEST_CASE("update move")
 {
-    auto x = BOX_T<int>{};
+    auto x    = BOX_T<int>{};
     auto addr = &x.get();
-    auto y = std::move(x).update([](auto&& v) {
-                                     return std::forward<decltype(v)>(v) + 1;
-                                 });
+    auto y    = std::move(x).update(
+        [](auto&& v) { return std::forward<decltype(v)>(v) + 1; });
 
     CHECK(y == 1);
     if (std::is_empty<typename BOX_T<int>::memory_policy::refcount>::value) {

@@ -16,7 +16,7 @@ namespace detail {
 template <typename Deriv>
 struct ref_count_base
 {
-    mutable std::atomic<int> ref_count { 0 };
+    mutable std::atomic<int> ref_count{0};
 
     friend void intrusive_ptr_add_ref(const Deriv* x)
     {

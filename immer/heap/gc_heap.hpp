@@ -32,7 +32,7 @@ namespace immer {
 
 namespace detail {
 
-template <int Dummy=0>
+template <int Dummy = 0>
 struct gc_initializer
 {
     gc_initializer() { GC_init(); }
@@ -40,7 +40,7 @@ struct gc_initializer
 };
 
 template <int D>
-gc_initializer<D> gc_initializer<D>::init {};
+gc_initializer<D> gc_initializer<D>::init{};
 
 inline void gc_initializer_guard()
 {
@@ -116,10 +116,7 @@ public:
         return p;
     }
 
-    static void deallocate(std::size_t, void* data)
-    {
-        GC_free(data);
-    }
+    static void deallocate(std::size_t, void* data) { GC_free(data); }
 
     static void deallocate(std::size_t, void* data, norefs_tag)
     {

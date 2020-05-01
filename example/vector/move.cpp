@@ -6,8 +6,8 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <immer/vector.hpp>
 #include <cassert>
+#include <immer/vector.hpp>
 
 // include:move-bad/start
 immer::vector<int> do_stuff(const immer::vector<int> v)
@@ -25,7 +25,7 @@ immer::vector<int> do_stuff_better(immer::vector<int> v)
 
 int main()
 {
-    auto v = immer::vector<int>{};
+    auto v  = immer::vector<int>{};
     auto v1 = do_stuff(v);
     auto v2 = do_stuff_better(v);
     assert(v1.size() == 1);

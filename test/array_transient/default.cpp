@@ -9,7 +9,7 @@
 #include <immer/array.hpp>
 #include <immer/array_transient.hpp>
 
-#define VECTOR_T           ::immer::array
+#define VECTOR_T ::immer::array
 #define VECTOR_TRANSIENT_T ::immer::array_transient
 
 #include "../vector_transient/generic.ipp"

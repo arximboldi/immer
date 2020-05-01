@@ -9,7 +9,7 @@
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
 
-#define VECTOR_T           ::immer::flex_vector
+#define VECTOR_T ::immer::flex_vector
 #define VECTOR_TRANSIENT_T ::immer::flex_vector_transient
 
 #include "../vector_transient/generic.ipp"

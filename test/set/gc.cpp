@@ -6,15 +6,14 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <immer/set.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/set.hpp>
 
-using gc_memory = immer::memory_policy<
-    immer::heap_policy<immer::gc_heap>,
-    immer::no_refcount_policy,
-    immer::gc_transience_policy,
-    false>;
+using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
+                                       immer::no_refcount_policy,
+                                       immer::gc_transience_policy,
+                                       false>;
 
 template <typename T,
           typename Hash = std::hash<T>,
