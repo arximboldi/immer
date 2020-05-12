@@ -74,7 +74,9 @@ Example
 
   For a **complete example** check `Ewig, a simple didactic
   text-editor <https://github.com/arximboldi/ewig>`_ built with this
-  library.
+  library.  You may also wanna check `Lager, a Redux-like library
+  <https://github.com/arximboldi/lager>`_ for writting interactive
+  software in C++ using a value-oriented design.
 
 
 Why?
