@@ -62,6 +62,11 @@ class set
 {
     using impl_t = detail::hamts::champ<T, Hash, Equal, MemoryPolicy, B>;
 
+    struct project_value_ptr
+    {
+        const T* operator()(const T& v) const noexcept { return &v; }
+    };
+
 public:
     using key_type        = T;
     using value_type      = T;
@@ -121,6 +126,18 @@ public:
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(value);
+    }
+
+    /*!
+     * Returns a pointer to the value if `value` is contained in the
+     * set, or nullptr otherwise.
+     * It does not allocate memory and its complexity is *effectively*
+     * @f$ O(1) @f$.
+     */
+    IMMER_NODISCARD const T* find(const T& value) const
+    {
+        return impl_.template get<project_value_ptr,
+                                  detail::constantly<const T*, nullptr>>(value);
     }
 
     /*!

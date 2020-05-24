@@ -256,6 +256,17 @@ TEST_CASE("accumulate")
     }
 }
 
+TEST_CASE("find")
+{
+    const auto n = 666u;
+    auto v       = make_test_set(n);
+    CHECK(*v.find(0) == 0);
+    CHECK(*v.find(42) == 42);
+    CHECK(*v.find(665) == 665);
+    CHECK(v.find(666) == nullptr);
+    CHECK(v.find(1234) == nullptr);
+}
+
 TEST_CASE("iterator")
 {
     const auto N = 666u;
