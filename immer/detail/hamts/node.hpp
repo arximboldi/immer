@@ -271,7 +271,6 @@ struct node
 
     static node_t* make_collision_n(count_t n)
     {
-        assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_collision_n(n));
         auto p = new (m) node_t;
 #if IMMER_TAGGED_NODE

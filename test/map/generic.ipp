@@ -272,3 +272,41 @@ TEST_CASE("exception safety")
         IMMER_TRACE_E(d.happenings);
     }
 }
+
+namespace {
+
+class KElem
+{
+public:
+    KElem(int* elem) { this->elem = elem; }
+
+    bool operator==(const KElem& other) const
+    {
+        return this->elem == other.elem;
+    }
+
+    bool operator!=(const KElem& other) const { return !(*this == other); }
+
+    int* elem;
+};
+
+struct HashBlock
+{
+    size_t operator()(const KElem& block) const noexcept
+    {
+        return (uintptr_t) block.elem & 0xffffffff00000000;
+    }
+};
+
+using map = immer::map<KElem, KElem, HashBlock, std::equal_to<KElem>>;
+
+TEST_CASE("issue 134")
+{
+    int a[100];
+    map m;
+    for (int i = 0; i < 100; i++) {
+        m = m.set(KElem(a + i), KElem(a + i));
+    }
+}
+
+} // namespace
