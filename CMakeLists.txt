@@ -26,6 +26,7 @@ option(ENABLE_COVERAGE "compile with test coverage support")
 option(DISABLE_WERROR "enable --werror")
 option(DISABLE_FREE_LIST "disables the free list heap")
 option(DISABLE_THREAD_SAFETY "disables thread safety by default")
+option(CHECK_FUZZERS "Add fuzzers as part of make check")
 
 option(ENABLE_PYTHON "enable building python module" off)
 option(ENABLE_GUILE "enable building guile module" off)
