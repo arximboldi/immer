@@ -6,17 +6,17 @@ git:
 
 matrix:
   include:
-    - env: DO=check TYPE=Debug COMPILER=clang_39 SANITIZE=true
-    - env: DO=check TYPE=Release COMPILER=clang_39 BENCHMARKS=true
-    - env: DO=check TYPE=Debug COMPILER=gcc6 COVERAGE=true
-    - env: DO=check TYPE=Release COMPILER=gcc6 BENCHMARKS=true
-    - env: DO=check TYPE=Debug COMPILER=gcc7 STD=17
+    - env: DO=check TYPE=Debug TOOLCHAIN=llvm-39 SANITIZE=true
+    - env: DO=check TYPE=Release TOOLCHAIN=llvm-39 BENCHMARKS=true
+    - env: DO=check TYPE=Debug TOOLCHAIN=gnu-6 COVERAGE=true
+    - env: DO=check TYPE=Release TOOLCHAIN=gnu-6 BENCHMARKS=true
+    - env: DO=check TYPE=Debug TOOLCHAIN=gnu-7 STD=17
     - env: DO=build
     - env: DO=docs
 
 before_install:
   - |
-    : ${COMPILER:=gcc6}
+    : ${TOOLCHAIN:=gnu-6}
     : ${TYPE:=Debug}
     : ${STD:=14}
     function build-p { [[ "${DO}" == build ]]; }
@@ -41,7 +41,7 @@ before_install:
         chmod 600 tools/travis/ssh-key
     }
     function with-nix {
-        nix-shell --argstr compiler $COMPILER --run "set -e; $1"
+        nix-shell --argstr toolchain $TOOLCHAIN --run "set -e; $1"
     }
 
 install:

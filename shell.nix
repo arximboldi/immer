@@ -1,9 +1,9 @@
-{ compiler ? "",
+{ toolchain ? "",
   nixpkgs ? (import <nixpkgs> {}).fetchFromGitHub {
     owner  = "NixOS";
     repo   = "nixpkgs";
-    rev    = "73392e79aa62e406683d6a732eb4f4101f4732be";
-    sha256 = "049fq37sxdn5iis7ni407j2jsfrxbb41pgv5zawi02qj47f74az9";
+    rev    = "053ad4e0db7241ae6a02394d62750fdc5d64aa9f";
+    sha256 = "11l9sr8zg8j1n5p43zjkqwpj59gn8c84z1kf16icnsbnv2smzqdc";
   }}:
 
 with import nixpkgs {};
@@ -20,18 +20,26 @@ let
   oldNixpkgs    = import oldNixpkgsSrc {};
   docs          = import ./nix/docs.nix { nixpkgs = oldNixpkgsSrc; };
   benchmarks    = import ./nix/benchmarks.nix { inherit nixpkgs; };
-  compilerPkg   = if compiler != ""
-                  then pkgs.${compiler}
-                  else stdenv.cc;
-  theStdenv     = if compilerPkg.isClang
-                  then clangStdenv
-                  else stdenv;
-in
+  tc            =
+    if toolchain == ""        then { stdenv = stdenv; cc = stdenv.cc; } else
+    if toolchain == "gnu-6"   then { stdenv = gcc6Stdenv; cc = gcc6; } else
+    if toolchain == "gnu-7"   then { stdenv = gcc7Stdenv; cc = gcc7; } else
+    if toolchain == "gnu-8"   then { stdenv = gcc8Stdenv; cc = gcc8; } else
+    if toolchain == "gnu-9"   then { stdenv = gcc9Stdenv; cc = gcc9; } else
+    if toolchain == "llvm-39" then { stdenv = llvmPackages_39.libcxxStdenv; cc = llvmPackages_39.libcxxClang; } else
+    if toolchain == "llvm-4"  then { stdenv = llvmPackages_4.libcxxStdenv; cc = llvmPackages_4.libcxxClang; } else
+    if toolchain == "llvm-5"  then { stdenv = llvmPackages_5.libcxxStdenv; cc = llvmPackages_5.libcxxClang; } else
+    if toolchain == "llvm-6"  then { stdenv = llvmPackages_6.libcxxStdenv; cc = llvmPackages_6.libcxxClang; } else
+    if toolchain == "llvm-7"  then { stdenv = llvmPackages_7.libcxxStdenv; cc = llvmPackages_7.libcxxClang; } else
+    if toolchain == "llvm-8"  then { stdenv = llvmPackages_8.libcxxStdenv; cc = llvmPackages_8.libcxxClang; } else
+    if toolchain == "llvm-9"  then { stdenv = llvmPackages_9.stdenv; cc = llvmPackages_9.clang; } else
+    abort "unknown toolchain";
 
-theStdenv.mkDerivation rec {
+in
+tc.stdenv.mkDerivation rec {
   name = "immer-env";
   buildInputs = [
-    compilerPkg
+    tc.cc
     git
     cmake
     pkgconfig
@@ -53,9 +61,5 @@ theStdenv.mkDerivation rec {
       docs.recommonmark
     ]))
   ];
-  shellHook = ''
-    export CC=${compilerPkg}/bin/cc
-    export CXX=${compilerPkg}/bin/c++
-  '';
   hardeningDisable = [ "fortify" ];
 }
