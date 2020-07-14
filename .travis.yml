@@ -6,8 +6,8 @@ git:
 
 matrix:
   include:
-    - env: DO=check TYPE=Debug TOOLCHAIN=llvm-39 SANITIZE=true
-    - env: DO=check TYPE=Release TOOLCHAIN=llvm-39 BENCHMARKS=true
+    - env: DO=check TYPE=Debug TOOLCHAIN=llvm-5 SANITIZE=true
+    - env: DO=check TYPE=Release TOOLCHAIN=llvm-5 BENCHMARKS=true
     - env: DO=check TYPE=Debug TOOLCHAIN=gnu-6 COVERAGE=true
     - env: DO=check TYPE=Release TOOLCHAIN=gnu-6 BENCHMARKS=true
     - env: DO=check TYPE=Debug TOOLCHAIN=gnu-7 STD=17
