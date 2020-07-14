@@ -19,18 +19,12 @@ foreach(_file IN LISTS immer_fuzzers)
   immer_target_name_for(_target _output "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
-  if (_target MATCHES "-gc$")
-    set(_libs "${BOEHM_GC_LIBRARIES}")
-  endif()
+  target_compile_options(${_target} PUBLIC ${immer_fuzzing_engine})
+  target_link_libraries(${_target} PUBLIC ${immer_fuzzing_engine}
+    immer-dev
+    ${LIBGC_LIBS})
   target_include_directories(${_target} SYSTEM PUBLIC
-    "${BOEHM_GC_INCLUDE_DIR}")
-  target_compile_options(${_target} PUBLIC
-    ${immer_fuzzing_engine}
-    -DIMMER_HAS_LIBGC=1)
-  target_link_libraries(${_target} PUBLIC
-    ${immer_fuzzing_engine}
-    ${_libs}
-    immer)
+    ${LIBGC_INCLUDE_DIR})
   add_dependencies(fuzzers ${_target})
   if (CHECK_FUZZERS)
     add_test("fuzzer/${_output}" ${_output} -max_total_time=1)
