@@ -46,7 +46,6 @@ before_install:
     }
 
 install:
-  - nix upgrade-nix
   - with-nix "echo == nix environment ok"
 
 before_script:
