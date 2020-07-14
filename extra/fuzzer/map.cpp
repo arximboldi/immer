@@ -7,12 +7,13 @@
 //
 
 #include "fuzzer_input.hpp"
+
 #include <immer/map.hpp>
-#include <iostream>
+
 #include <array>
 
-extern "C"
-int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
+                                      std::size_t size)
 {
     constexpr auto var_count = 4;
 
@@ -20,13 +21,11 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
 
     auto vars = std::array<map_t, var_count>{};
 
-    auto is_valid_var = [&] (auto idx) {
-        return idx >= 0 && idx < var_count;
-    };
+    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
 
-    return fuzzer_input{data, size}.run([&] (auto& in)
-    {
-        enum ops {
+    return fuzzer_input{data, size}.run([&](auto& in) {
+        enum ops
+        {
             op_set,
             op_erase,
             op_set_move,
@@ -37,46 +36,45 @@ int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size)
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
-        switch (read<char>(in))
-        {
+        switch (read<char>(in)) {
         case op_set: {
             auto value = read<size_t>(in);
-            vars[dst] = vars[src].set(value, 42);
+            vars[dst]  = vars[src].set(value, 42);
             break;
         }
         case op_erase: {
             auto value = read<size_t>(in);
-            vars[dst] = vars[src].erase(value);
+            vars[dst]  = vars[src].erase(value);
             break;
         }
         case op_set_move: {
             auto value = read<size_t>(in);
-            vars[dst] = std::move(vars[src]).set(value, 42);
+            vars[dst]  = std::move(vars[src]).set(value, 42);
             break;
         }
         case op_erase_move: {
             auto value = read<size_t>(in);
-            vars[dst] = std::move(vars[src]).erase(value);
+            vars[dst]  = std::move(vars[src]).erase(value);
             break;
         }
         case op_iterate: {
             auto srcv = vars[src];
-            for(const auto& v : srcv) {
+            for (const auto& v : srcv) {
                 vars[dst] = vars[dst].set(v.first, v.second);
             }
             break;
         }
         case op_find: {
             auto value = read<size_t>(in);
-            auto res = vars[src].find(value);
-            if(res != nullptr) {
+            auto res   = vars[src].find(value);
+            if (res != nullptr) {
                 vars[dst] = vars[dst].set(*res, 42);
             }
             break;
         }
         case op_update: {
-            auto key = read<size_t>(in);
-            vars[dst] = vars[src].update(key, [](int x) { return x+1; });
+            auto key  = read<size_t>(in);
+            vars[dst] = vars[src].update(key, [](int x) { return x + 1; });
             break;
         }
         default:

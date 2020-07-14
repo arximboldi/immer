@@ -8,8 +8,8 @@
 
 #include "fuzzer_input.hpp"
 
-#include <immer/flex_vector.hpp>
-#include <immer/flex_vector_transient.hpp>
+#include <immer/array.hpp>
+#include <immer/array_transient.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 
@@ -24,31 +24,20 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 4;
-    constexpr auto bits      = 2;
 
-    using vector_t    = immer::flex_vector<int, gc_memory, bits, bits>;
-    using transient_t = typename vector_t::transient_type;
+    using array_t     = immer::array<int, gc_memory>;
+    using transient_t = typename array_t::transient_type;
     using size_t      = std::uint8_t;
 
-    auto vs = std::array<vector_t, var_count>{};
+    auto vs = std::array<array_t, var_count>{};
     auto ts = std::array<transient_t, var_count>{};
 
-    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
-    auto is_valid_var_neq = [](auto other) {
-        return [=](auto idx) {
-            return idx >= 0 && idx < var_count && idx != other;
-        };
-    };
+    auto is_valid_var   = [&](auto idx) { return idx >= 0 && idx < var_count; };
     auto is_valid_index = [](auto& v) {
         return [&](auto idx) { return idx >= 0 && idx < v.size(); };
     };
     auto is_valid_size = [](auto& v) {
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
-    };
-    auto can_concat = [](auto&& v1, auto&& v2) {
-        using size_type = decltype(v1.size());
-        auto max        = std::numeric_limits<size_type>::max() >> (bits * 4);
-        return v1.size() < max && v2.size() < max;
     };
 
     return fuzzer_input{data, size}.run([&](auto& in) {
@@ -59,16 +48,9 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             op_push_back,
             op_update,
             op_take,
-            op_drop,
-            op_concat,
             op_push_back_mut,
             op_update_mut,
             op_take_mut,
-            op_drop_mut,
-            op_prepend_mut,
-            op_prepend_mut_move,
-            op_append_mut,
-            op_append_mut_move,
         };
         auto dst = read<char>(in, is_valid_var);
         switch (read<char>(in)) {
@@ -99,19 +81,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             vs[dst]  = vs[src].take(idx);
             break;
         }
-        case op_drop: {
-            auto src = read<char>(in, is_valid_var);
-            auto idx = read<size_t>(in, is_valid_size(vs[src]));
-            vs[dst]  = vs[src].drop(idx);
-            break;
-        }
-        case op_concat: {
-            auto src  = read<char>(in, is_valid_var);
-            auto src2 = read<char>(in, is_valid_var);
-            if (can_concat(vs[src], vs[src2]))
-                vs[dst] = vs[src] + vs[src2];
-            break;
-        }
         case op_push_back_mut: {
             ts[dst].push_back(13);
             break;
@@ -124,34 +93,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         case op_take_mut: {
             auto idx = read<size_t>(in, is_valid_size(ts[dst]));
             ts[dst].take(idx);
-            break;
-        }
-        case op_prepend_mut: {
-            auto src = read<char>(in, is_valid_var_neq(dst));
-            if (can_concat(ts[dst], ts[src]))
-                ts[dst].prepend(ts[src]);
-            break;
-        }
-        case op_prepend_mut_move: {
-            auto src = read<char>(in, is_valid_var_neq(dst));
-            if (can_concat(ts[dst], ts[src])) {
-                ts[dst].prepend(std::move(ts[src]));
-                ts[src] = {};
-            }
-            break;
-        }
-        case op_append_mut: {
-            auto src = read<char>(in, is_valid_var_neq(dst));
-            if (can_concat(ts[dst], ts[src]))
-                ts[dst].append(ts[src]);
-            break;
-        }
-        case op_append_mut_move: {
-            auto src = read<char>(in, is_valid_var_neq(dst));
-            if (can_concat(ts[dst], ts[src])) {
-                ts[dst].append(std::move(ts[src]));
-                ts[src] = {};
-            }
             break;
         }
         default:
