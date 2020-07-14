@@ -8,10 +8,11 @@
 
 #pragma once
 
-#include <stdexcept>
 #include <cstdint>
+#include <stdexcept>
 
-struct no_more_input : std::exception {};
+struct no_more_input : std::exception
+{};
 
 struct fuzzer_input
 {
@@ -20,7 +21,8 @@ struct fuzzer_input
 
     const std::uint8_t* next(std::size_t size)
     {
-        if (size_ < size) throw no_more_input{};
+        if (size_ < size)
+            throw no_more_input{};
         auto r = data_;
         data_ += size;
         size_ -= size;
@@ -30,7 +32,8 @@ struct fuzzer_input
     const std::uint8_t* next(std::size_t size, std::size_t align)
     {
         auto rem = size % align;
-        if (rem) next(align - rem);
+        if (rem)
+            next(align - rem);
         return next(size);
     }
 
@@ -38,7 +41,8 @@ struct fuzzer_input
     int run(Fn step)
     {
         try {
-            while (step(*this));
+            while (step(*this))
+                continue;
         } catch (const no_more_input&) {};
         return 0;
     }
@@ -54,7 +58,5 @@ template <typename T, typename Cond>
 T read(fuzzer_input& fz, Cond cond)
 {
     auto x = read<T>(fz);
-    return cond(x)
-        ? x
-        : read<T>(fz, cond);
+    return cond(x) ? x : read<T>(fz, cond);
 }
