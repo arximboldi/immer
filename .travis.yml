@@ -11,7 +11,7 @@ matrix:
     - env: DO=check TYPE=Debug TOOLCHAIN=gnu-6 COVERAGE=true
     - env: DO=check TYPE=Release TOOLCHAIN=gnu-6 BENCHMARKS=true
     - env: DO=check TYPE=Debug TOOLCHAIN=gnu-7 STD=17
-    - env: DO=check TYPE=Debug TOOLCHAIN=llvm-8 STD=17 FUZZERS=true
+    - env: DO=check TYPE=Debug TOOLCHAIN=llvm-9 STD=17 FUZZERS=true
     - env: DO=build
     - env: DO=docs
 
