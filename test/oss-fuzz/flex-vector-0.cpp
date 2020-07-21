@@ -56,9 +56,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
     };
     auto can_concat = [](auto&& v1, auto&& v2) {
-        using size_type = decltype(v1.size());
-        auto max        = std::numeric_limits<size_type>::max() >> (Bits * 4);
-        return v1.size() < max && v2.size() < max;
+        return v1.size() + v2.size() < vector_t::max_size();
     };
     auto can_compare = [](auto&& v) {
         // avoid comparing vectors that are too big, and hence, slow to compare
