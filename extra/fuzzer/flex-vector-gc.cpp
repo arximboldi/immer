@@ -46,9 +46,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
     };
     auto can_concat = [](auto&& v1, auto&& v2) {
-        using size_type = decltype(v1.size());
-        auto max        = std::numeric_limits<size_type>::max() >> (bits * 4);
-        return v1.size() < max && v2.size() < max;
+        return v1.size() + v2.size() < vector_t::max_size();
     };
 
     return fuzzer_input{data, size}.run([&](auto& in) {

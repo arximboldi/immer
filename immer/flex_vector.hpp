@@ -84,6 +84,12 @@ public:
     using transient_type = flex_vector_transient<T, MemoryPolicy, B, BL>;
 
     /*!
+     * Returns the maximum theoretical size supported by the internal structure
+     * given the current B, BL.
+     */
+    constexpr static size_type max_size() { return impl_t::max_size(); }
+
+    /*!
      * Default constructor.  It creates a flex_vector of `size() == 0`.
      * It does not allocate memory and its complexity is @f$ O(1) @f$.
      */

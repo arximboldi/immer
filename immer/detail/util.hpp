@@ -123,6 +123,12 @@ inline constexpr auto log2(T x)
     return log2_aux(x);
 }
 
+template <typename T>
+constexpr T ipow(T num, unsigned int pow)
+{
+    return pow == 0 ? 1 : num * ipow(num, pow - 1);
+}
+
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<b>
 {
