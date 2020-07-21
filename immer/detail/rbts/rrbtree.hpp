@@ -38,6 +38,13 @@ struct rrbtree
     node_t* root;
     node_t* tail;
 
+    constexpr static size_t max_size()
+    {
+        auto S = sizeof(size_t) * 8;
+        return std::max(((size_t{1} << BL) - 1), size_t{1}) *
+               ipow((size_t{1} << B) - 1, (S - BL - B) / B);
+    }
+
     static const rrbtree& empty()
     {
         static const rrbtree empty_{
@@ -661,7 +668,7 @@ struct rrbtree
 
     rrbtree concat(const rrbtree& r) const
     {
-        assert(r.size < (std::numeric_limits<size_t>::max() - size));
+        assert(r.size + size <= max_size());
         using std::get;
         if (size == 0)
             return r;
@@ -807,6 +814,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                assert(l.check_tree());
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -816,6 +824,7 @@ struct rrbtree
                      concated.shift(),
                      concated.node(),
                      r.tail->inc()};
+                assert(l.check_tree());
                 return;
             }
         } else {
@@ -842,6 +851,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                assert(l.check_tree());
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -949,6 +959,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
+                assert(r.check_tree());
             } else {
                 auto tail_offst = l.tail_offset();
                 auto tail_size  = l.size - tail_offst;
@@ -983,6 +994,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
+                assert(r.check_tree());
                 return;
             } else {
                 auto tail_offst = l.tail_offset();
@@ -1082,6 +1094,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                assert(l.check_tree());
                 r.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
@@ -1117,6 +1130,7 @@ struct rrbtree
                 l.shift = concated.shift();
                 l.root  = concated.node();
                 l.tail  = r.tail;
+                assert(l.check_tree());
                 r.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
@@ -1223,6 +1237,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
+                assert(r.check_tree());
                 l.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();
@@ -1257,6 +1272,7 @@ struct rrbtree
                 r.size += l.size;
                 r.shift = concated.shift();
                 r.root  = concated.node();
+                assert(r.check_tree());
                 l.hard_reset();
             } else {
                 auto tail_offst = l.tail_offset();

@@ -63,9 +63,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
     };
     auto can_concat = [](auto&& v1, auto&& v2) {
-        using size_type = decltype(v1.size());
-        auto max        = std::numeric_limits<size_type>::max() >> (Bits * 4);
-        return v1.size() < max && v2.size() < max;
+        return v1.size() + v2.size() < vector_t::max_size();
     };
 
     return fuzzer_input{data, size}.run([&](auto& in) {
@@ -270,3 +268,92 @@ TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24162")
     }
 }
 
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24155")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5194423089233920");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24136")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5635385259196416");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24142")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-4787718039797760");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24172")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-6595824679911424");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24173")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-4872518268354560");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24213")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-6265466893631488");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24264")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-4855756386729984");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24286")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-6017886557306880");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24287")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5660697665732608");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}

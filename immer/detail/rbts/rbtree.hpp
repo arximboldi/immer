@@ -34,6 +34,12 @@ struct rbtree
     node_t* root;
     node_t* tail;
 
+    constexpr static size_t max_size()
+    {
+        auto S = sizeof(size_t) * 8;
+        return (size_t{1} << BL) * ipow(size_t{1} << B, (S - BL) / B);
+    }
+
     static const rbtree& empty()
     {
         static const rbtree empty_{
