@@ -127,6 +127,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             auto src2 = read<char>(in, is_valid_var_neq(src));
             if (can_concat(vars[src], vars[src2]))
                 vars[dst] = std::move(vars[src]) + std::move(vars[src2]);
+            break;
         }
         case op_compare: {
             using std::swap;
