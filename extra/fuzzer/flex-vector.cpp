@@ -42,6 +42,10 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         auto max        = std::numeric_limits<size_type>::max() >> (bits * 4);
         return v1.size() < max && v2.size() < max;
     };
+    auto can_compare = [](auto&& v) {
+        // avoid comparing vectors that are too big, and hence, slow to compare
+        return v.size() < (1 << 20);
+    };
     return fuzzer_input{data, size}.run([&](auto& in) {
         enum ops
         {
@@ -128,7 +132,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         }
         case op_compare: {
             using std::swap;
-            if (vars[src] == vars[dst])
+            if (can_compare(vars[src]) && vars[src] == vars[dst])
                 swap(vars[src], vars[dst]);
             break;
         }

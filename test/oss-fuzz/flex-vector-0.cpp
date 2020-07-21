@@ -60,6 +60,10 @@ int run_input(const std::uint8_t* data, std::size_t size)
         auto max        = std::numeric_limits<size_type>::max() >> (Bits * 4);
         return v1.size() < max && v2.size() < max;
     };
+    auto can_compare = [](auto&& v) {
+        // avoid comparing vectors that are too big, and hence, slow to compare
+        return v.size() < (1 << 20);
+    };
     return fuzzer_input{data, size}.run([&](auto& in) {
         enum ops
         {
@@ -146,7 +150,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
         }
         case op_compare: {
             using std::swap;
-            if (vars[src] == vars[dst])
+            if (can_compare(vars[src]) && vars[src] == vars[dst])
                 swap(vars[src], vars[dst]);
             break;
         }
@@ -185,6 +189,16 @@ TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24144")
     {
         auto input = load_input(
             "clusterfuzz-testcase-minimized-flex-vector-5682145239236608");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24147")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-6237969917411328");
         CHECK(run_input(input.data(), input.size()) == 0);
     }
 }
