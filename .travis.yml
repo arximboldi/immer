@@ -58,7 +58,9 @@ before_script:
             -DCXX_STANDARD=${STD} \
             -DCHECK_BENCHMARKS=${BENCHMARKS} \
             -DENABLE_COVERAGE=${COVERAGE} \
-            -DENABLE_SANITIZE=${SANITIZE} \
+            -DENABLE_ASAN=${SANITIZE} \
+            -DENABLE_LSAN=${SANITIZE} \
+            -DENABLE_UBSAN=${SANITIZE} \
             -DCHECK_FUZZERS=${FUZZERS} \
             -DDISABLE_FREE_LIST=${SANITIZE}
     "
