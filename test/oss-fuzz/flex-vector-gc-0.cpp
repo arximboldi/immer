@@ -219,3 +219,13 @@ TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24148")
         CHECK(run_input(input.data(), input.size()) == 0);
     }
 }
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24143")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5123086366801920");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
