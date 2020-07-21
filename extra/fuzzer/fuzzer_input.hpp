@@ -58,5 +58,7 @@ template <typename T, typename Cond>
 T read(fuzzer_input& fz, Cond cond)
 {
     auto x = read<T>(fz);
-    return cond(x) ? x : read<T>(fz, cond);
+    while (!cond(x))
+        x = read<T>(fz);
+    return x;
 }
