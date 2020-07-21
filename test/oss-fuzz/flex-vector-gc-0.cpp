@@ -210,6 +210,16 @@ int run_input(const std::uint8_t* data, std::size_t size)
 
 } // namespace
 
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24168")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5428967461617664");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
 TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24148")
 {
     SECTION("fuzzer")
