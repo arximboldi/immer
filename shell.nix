@@ -21,18 +21,19 @@ let
   docs          = import ./nix/docs.nix { nixpkgs = oldNixpkgsSrc; };
   benchmarks    = import ./nix/benchmarks.nix { inherit nixpkgs; };
   tc            =
-    if toolchain == ""        then { stdenv = stdenv; cc = stdenv.cc; } else
-    if toolchain == "gnu-6"   then { stdenv = gcc6Stdenv; cc = gcc6; } else
-    if toolchain == "gnu-7"   then { stdenv = gcc7Stdenv; cc = gcc7; } else
-    if toolchain == "gnu-8"   then { stdenv = gcc8Stdenv; cc = gcc8; } else
-    if toolchain == "gnu-9"   then { stdenv = gcc9Stdenv; cc = gcc9; } else
-    if toolchain == "llvm-39" then { stdenv = llvmPackages_39.libcxxStdenv; cc = llvmPackages_39.libcxxClang; } else
-    if toolchain == "llvm-4"  then { stdenv = llvmPackages_4.libcxxStdenv; cc = llvmPackages_4.libcxxClang; } else
-    if toolchain == "llvm-5"  then { stdenv = llvmPackages_5.libcxxStdenv; cc = llvmPackages_5.libcxxClang; } else
-    if toolchain == "llvm-6"  then { stdenv = llvmPackages_6.libcxxStdenv; cc = llvmPackages_6.libcxxClang; } else
-    if toolchain == "llvm-7"  then { stdenv = llvmPackages_7.libcxxStdenv; cc = llvmPackages_7.libcxxClang; } else
-    if toolchain == "llvm-8"  then { stdenv = llvmPackages_8.libcxxStdenv; cc = llvmPackages_8.libcxxClang; } else
-    if toolchain == "llvm-9"  then { stdenv = llvmPackages_9.stdenv; cc = llvmPackages_9.clang; } else
+    if toolchain == ""         then { stdenv = stdenv; cc = stdenv.cc; } else
+    if toolchain == "gnu-6"    then { stdenv = gcc6Stdenv; cc = gcc6; } else
+    if toolchain == "gnu-7"    then { stdenv = gcc7Stdenv; cc = gcc7; } else
+    if toolchain == "gnu-8"    then { stdenv = gcc8Stdenv; cc = gcc8; } else
+    if toolchain == "gnu-9"    then { stdenv = gcc9Stdenv; cc = gcc9; } else
+    if toolchain == "llvm-39"  then { stdenv = llvmPackages_39.libcxxStdenv; cc = llvmPackages_39.libcxxClang; } else
+    if toolchain == "llvm-4"   then { stdenv = llvmPackages_4.libcxxStdenv; cc = llvmPackages_4.libcxxClang; } else
+    if toolchain == "llvm-5"   then { stdenv = llvmPackages_5.libcxxStdenv; cc = llvmPackages_5.libcxxClang; } else
+    if toolchain == "llvm-6"   then { stdenv = llvmPackages_6.libcxxStdenv; cc = llvmPackages_6.libcxxClang; } else
+    if toolchain == "llvm-7"   then { stdenv = llvmPackages_7.libcxxStdenv; cc = llvmPackages_7.libcxxClang; } else
+    if toolchain == "llvm-8"   then { stdenv = llvmPackages_8.libcxxStdenv; cc = llvmPackages_8.libcxxClang; } else
+    if toolchain == "llvm-9"   then { stdenv = llvmPackages_9.stdenv;  cc = llvmPackages_9.clang; } else
+    if toolchain == "llvm-10"  then { stdenv = llvmPackages_10.stdenv; cc = llvmPackages_10.clang; } else
     abort "unknown toolchain";
 
 in
