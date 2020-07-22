@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 
 struct no_more_input : std::exception
@@ -31,9 +32,10 @@ struct fuzzer_input
 
     const std::uint8_t* next(std::size_t size, std::size_t align)
     {
-        auto rem = size % align;
-        if (rem)
-            next(align - rem);
+        auto& p = const_cast<void*&>(reinterpret_cast<const void*&>(data_));
+        auto r  = std::align(align, size, p, size_);
+        if (r == nullptr)
+            throw no_more_input{};
         return next(size);
     }
 
