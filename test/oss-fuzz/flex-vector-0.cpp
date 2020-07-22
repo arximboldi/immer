@@ -6,29 +6,47 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include "input.hpp"
 
 #include <immer/box.hpp>
 #include <immer/flex_vector.hpp>
+#include <immer/refcount/no_refcount_policy.hpp>
 
-#include <array>
+#include <catch.hpp>
 
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
-                                      std::size_t size)
+#define IMMER_FUZZED_TRACE_ENABLE 0
+
+#if IMMER_FUZZED_TRACE_ENABLE
+#define IMMER_FUZZED_TRACE(...) std::cout << __VA_ARGS__ << std::endl;
+#else
+#define IMMER_FUZZED_TRACE(...)
+#endif
+
+namespace {
+
+int run_input(const std::uint8_t* data, std::size_t size)
 {
-    constexpr auto var_count = 8;
-    constexpr auto bits      = 2;
+    constexpr auto VarCount = 8;
+    constexpr auto Bits     = 2;
 
     using vector_t =
-        immer::flex_vector<int, immer::default_memory_policy, bits, bits>;
+        immer::flex_vector<int, immer::default_memory_policy, Bits, Bits>;
     using size_t = std::uint8_t;
 
-    auto vars = std::array<vector_t, var_count>{};
+    auto vars = std::array<vector_t, VarCount>{};
 
-    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
+#if IMMER_FUZZED_TRACE_ENABLE
+    std::cout << "/// new test run" << std::endl;
+    for (auto i = 0u; i < VarCount; ++i)
+        std::cout << "auto v" << i << " = vector_t{};" << std::endl;
+    for (auto i = 0u; i < VarCount; ++i)
+        std::cout << "auto t" << i << " = transient_t{};" << std::endl;
+#endif
+
+    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < VarCount; };
     auto is_valid_var_neq = [](auto other) {
         return [=](auto idx) {
-            return idx >= 0 && idx < var_count && idx != other;
+            return idx >= 0 && idx < VarCount && idx != other;
         };
     };
     auto is_valid_index = [](auto& v) {
@@ -150,4 +168,36 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         return true;
     });
+}
+
+} // namespace
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24139")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-5068547731226624");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24144")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-5682145239236608");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24147")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-6237969917411328");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
 }
