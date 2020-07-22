@@ -46,6 +46,17 @@ struct fuzzer_input
         } catch (const no_more_input&) {};
         return 0;
     }
+
+    template <typename Fn, typename Cleanup>
+    int run(Fn step, Cleanup cleanup)
+    {
+        try {
+            while (step(*this))
+                continue;
+        } catch (const no_more_input&) {};
+        cleanup();
+        return 0;
+    }
 };
 
 template <typename T>
