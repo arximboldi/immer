@@ -6,14 +6,15 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include "input.hpp"
 
 #include <immer/array.hpp>
 
-#include <array>
+#include <catch.hpp>
 
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
-                                      std::size_t size)
+namespace {
+
+int run_input(const std::uint8_t* data, std::size_t size)
 {
     constexpr auto var_count = 4;
 
@@ -81,4 +82,16 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         return true;
     });
+}
+
+} // namespace
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24176")
+{
+    SECTION("fuzzer")
+    {
+        auto input =
+            load_input("clusterfuzz-testcase-minimized-array-5722369596063744");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
 }

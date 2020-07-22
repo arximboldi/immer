@@ -6,22 +6,23 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include "input.hpp"
 
 #include <immer/array.hpp>
 #include <immer/array_transient.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 
-#include <array>
+#include <catch.hpp>
 
 using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::no_refcount_policy,
                                        immer::gc_transience_policy,
                                        false>;
 
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
-                                      std::size_t size)
+namespace {
+
+int run_input(const std::uint8_t* data, std::size_t size)
 {
     constexpr auto var_count = 4;
 
@@ -109,4 +110,16 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             while (GC_collect_a_little())
                 continue;
         });
+}
+
+} // namespace
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24244")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-array-gc-5983642523009024");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
 }
