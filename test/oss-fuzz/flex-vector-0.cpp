@@ -14,14 +14,6 @@
 
 #include <catch.hpp>
 
-#define IMMER_FUZZED_TRACE_ENABLE 0
-
-#if IMMER_FUZZED_TRACE_ENABLE
-#define IMMER_FUZZED_TRACE(...) std::cout << __VA_ARGS__ << std::endl;
-#else
-#define IMMER_FUZZED_TRACE(...)
-#endif
-
 namespace {
 
 int run_input(const std::uint8_t* data, std::size_t size)
@@ -34,14 +26,6 @@ int run_input(const std::uint8_t* data, std::size_t size)
     using size_t = std::uint8_t;
 
     auto vars = std::array<vector_t, VarCount>{};
-
-#if IMMER_FUZZED_TRACE_ENABLE
-    std::cout << "/// new test run" << std::endl;
-    for (auto i = 0u; i < VarCount; ++i)
-        std::cout << "auto v" << i << " = vector_t{};" << std::endl;
-    for (auto i = 0u; i < VarCount; ++i)
-        std::cout << "auto t" << i << " = transient_t{};" << std::endl;
-#endif
 
     auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < VarCount; };
     auto is_valid_var_neq = [](auto other) {
