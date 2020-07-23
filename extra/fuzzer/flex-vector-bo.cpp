@@ -22,7 +22,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 8;
-    constexpr auto bits      = 2;
+    constexpr auto bits      = 3;
 
     using vector_t = immer::flex_vector<int, bo_memory, bits, bits>;
     using size_t   = std::uint8_t;
