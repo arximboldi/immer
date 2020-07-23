@@ -663,7 +663,6 @@ struct rrbtree
             auto new_shift = get<0>(r);
             return {size - elems, new_shift, new_root, tail->inc()};
         }
-        return *this;
     }
 
     rrbtree concat(const rrbtree& r) const
@@ -937,7 +936,6 @@ struct rrbtree
                     node_t::delete_leaf(add_tail, branches<BL>);
                     throw;
                 }
-                return;
             }
         } else if (l.tail_offset() == 0) {
             if (supports_transient_concat) {
@@ -1216,7 +1214,6 @@ struct rrbtree
                     node_t::delete_leaf(add_tail, branches<BL>);
                     throw;
                 }
-                return;
             }
         } else if (l.tail_offset() == 0) {
             if (supports_transient_concat) {
