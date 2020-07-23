@@ -105,8 +105,5 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             };
             return true;
         },
-        [] {
-            while (GC_collect_a_little())
-                continue;
-        });
+        [] { GC_collect_a_little(); });
 }
