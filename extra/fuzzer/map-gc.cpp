@@ -19,13 +19,18 @@ using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::gc_transience_policy,
                                        false>;
 
+struct colliding_hash_t
+{
+    std::size_t operator()(std::size_t x) const { return x & ~15; }
+};
+
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 4;
 
-    using map_t =
-        immer::map<char, int, std::hash<char>, std::equal_to<char>, gc_memory>;
+    using map_t = immer::
+        map<std::size_t, int, colliding_hash_t, std::equal_to<>, gc_memory>;
 
     auto vars = std::array<map_t, var_count>{};
 

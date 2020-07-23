@@ -12,12 +12,17 @@
 
 #include <array>
 
+struct colliding_hash_t
+{
+    std::size_t operator()(std::size_t x) const { return x & ~15; }
+};
+
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 4;
 
-    using set_t = immer::set<int>;
+    using set_t = immer::set<std::size_t, colliding_hash_t>;
 
     auto vars = std::array<set_t, var_count>{};
 
