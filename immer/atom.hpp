@@ -24,8 +24,8 @@ struct refcount_atom_impl
     using box_type      = box<T, MemoryPolicy>;
     using value_type    = T;
     using memory_policy = MemoryPolicy;
-    using spinlock_t    = typename MemoryPolicy::refcount::spinlock_type;
-    using scoped_lock_t = typename spinlock_t::scoped_lock;
+    using lock_t        = typename MemoryPolicy::lock;
+    using scoped_lock_t = typename lock_t::scoped_lock;
 
     refcount_atom_impl(const refcount_atom_impl&) = delete;
     refcount_atom_impl(refcount_atom_impl&&)      = delete;
@@ -74,7 +74,7 @@ struct refcount_atom_impl
     }
 
 private:
-    mutable spinlock_t lock_;
+    mutable lock_t lock_;
     box_type impl_;
 };
 

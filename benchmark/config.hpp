@@ -35,7 +35,7 @@ struct gc_disable
 #endif
     }
     gc_disable(const gc_disable&) = delete;
-    gc_disable(gc_disable&&) = delete;
+    gc_disable(gc_disable&&)      = delete;
 };
 
 template <typename Meter, typename Fn>
@@ -45,11 +45,25 @@ void measure(Meter& m, Fn&& fn)
     return m.measure(std::forward<Fn>(fn));
 }
 
-using def_memory    = immer::default_memory_policy;
-using gc_memory     = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy>;
-using gcf_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>, immer::no_refcount_policy, immer::gc_transience_policy, false>;
-using basic_memory  = immer::memory_policy<immer::heap_policy<immer::cpp_heap>, immer::refcount_policy>;
-using safe_memory   = immer::memory_policy<immer::free_list_heap_policy<immer::cpp_heap>, immer::refcount_policy>;
-using unsafe_memory = immer::memory_policy<immer::unsafe_free_list_heap_policy<immer::cpp_heap>, immer::unsafe_refcount_policy>;
+using def_memory   = immer::default_memory_policy;
+using gc_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
+                                       immer::no_refcount_policy,
+                                       immer::default_lock_policy>;
+using gcf_memory   = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
+                                        immer::no_refcount_policy,
+                                        immer::default_lock_policy,
+                                        immer::gc_transience_policy,
+                                        false>;
+using basic_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
+                                          immer::refcount_policy,
+                                          immer::default_lock_policy>;
+using safe_memory =
+    immer::memory_policy<immer::free_list_heap_policy<immer::cpp_heap>,
+                         immer::refcount_policy,
+                         immer::default_lock_policy>;
+using unsafe_memory =
+    immer::memory_policy<immer::unsafe_free_list_heap_policy<immer::cpp_heap>,
+                         immer::unsafe_refcount_policy,
+                         immer::default_lock_policy>;
 
 } // anonymous namespace

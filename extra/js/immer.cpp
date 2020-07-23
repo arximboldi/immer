@@ -6,15 +6,16 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <immer/vector.hpp>
-#include <immer/refcount/unsafe_refcount_policy.hpp>
 #include <emscripten/bind.h>
+#include <immer/refcount/unsafe_refcount_policy.hpp>
+#include <immer/vector.hpp>
 
 namespace {
 
 using memory_t = immer::memory_policy<
     immer::unsafe_free_list_heap_policy<immer::malloc_heap>,
-    immer::unsafe_refcount_policy>;
+    immer::unsafe_refcount_policy,
+    immer::no_lock_policy>;
 
 template <typename T>
 using js_vector_t = immer::vector<T, memory_t>;
@@ -41,11 +42,15 @@ VectorT range_slow(typename VectorT::value_type first,
 
 template <typename VectorT>
 VectorT push_back(VectorT& v, typename VectorT::value_type x)
-{ return v.push_back(x); }
+{
+    return v.push_back(x);
+}
 
 template <typename VectorT>
 VectorT set(VectorT& v, std::size_t i, typename VectorT::value_type x)
-{ return v.set(i, x); }
+{
+    return v.set(i, x);
+}
 
 template <typename T>
 void bind_vector(const char* name)
@@ -56,10 +61,10 @@ void bind_vector(const char* name)
 
     class_<vector_t>(name)
         .constructor()
-        .function("push",  &push_back<vector_t>)
-        .function("set",   &set<vector_t>)
-        .function("get",   &vector_t::operator[])
-        .property("size",  &vector_t::size);
+        .function("push", &push_back<vector_t>)
+        .function("set", &set<vector_t>)
+        .function("get", &vector_t::operator[])
+        .property("size", &vector_t::size);
 }
 
 } // anonymous namespace

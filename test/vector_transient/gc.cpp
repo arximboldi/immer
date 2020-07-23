@@ -14,6 +14,7 @@
 
 using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::no_refcount_policy,
+                                       immer::default_lock_policy,
                                        immer::gc_transience_policy,
                                        false>;
 

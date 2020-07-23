@@ -15,6 +15,7 @@
 
 using bo_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
                                        immer::unsafe_refcount_policy,
+                                       immer::no_lock_policy,
                                        immer::no_transience_policy,
                                        true>;
 
