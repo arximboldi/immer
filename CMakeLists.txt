@@ -114,7 +114,8 @@ target_compile_definitions(immer-dev INTERFACE
   -DIMMER_HAS_LIBGC=1
   -DIMMER_NO_FREE_LIST=${DISABLE_FREE_LIST}
   -DIMMER_NO_THREAD_SAFETY=${DISABLE_THREAD_SAFETY}
-  -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS})
+  -DIMMER_SLOW_TESTS=${CHECK_SLOW_TESTS}
+  -DFMT_HEADER_ONLY=1)
 if (ENABLE_COVERAGE)
   target_compile_options(immer-dev INTERFACE "--coverage")
   target_link_libraries(immer-dev INTERFACE "--coverage")

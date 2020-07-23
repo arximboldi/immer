@@ -128,7 +128,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
         case op_drop: {
             auto src = read<std::uint8_t>(in, is_valid_var);
             auto idx = read<size_t>(in, is_valid_size(vs[src]));
-            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << ".take(" << +idx
+            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << ".drop(" << +idx
                                    << ");");
             vs[dst] = vs[src].drop(idx);
             break;

@@ -41,8 +41,8 @@ struct rrbtree
     constexpr static size_t max_size()
     {
         auto S = sizeof(size_t) * 8;
-        return std::max(((size_t{1} << BL) - 1), size_t{1}) *
-               ipow((size_t{1} << B) - 1, (S - BL - B) / B);
+        return ((size_t{1} << BL) - std::min(size_t{BL}, size_t{2})) *
+               ipow((size_t{1} << B) - 2, (S - BL) / B);
     }
 
     static const rrbtree& empty()
