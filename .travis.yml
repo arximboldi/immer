@@ -7,11 +7,11 @@ git:
 matrix:
   include:
     - env: DO=check TYPE=Debug TOOLCHAIN=llvm-5 SANITIZE=true
-    - env: DO=check TYPE=Release TOOLCHAIN=llvm-5 BENCHMARKS=true
     - env: DO=check TYPE=Debug TOOLCHAIN=gnu-6 COVERAGE=true
-    - env: DO=check TYPE=Release TOOLCHAIN=gnu-6 BENCHMARKS=true
-    - env: DO=check TYPE=Debug TOOLCHAIN=gnu-7 STD=17
+    - env: DO=check TYPE=Release TOOLCHAIN=llvm-10 BENCHMARKS=true
+    - env: DO=check TYPE=Release TOOLCHAIN=gnu-9 BENCHMARKS=true
     - env: DO=check TYPE=Debug TOOLCHAIN=llvm-9 STD=17 FUZZERS=true
+    - env: DO=check TYPE=Debug TOOLCHAIN=gnu-7 STD=17
     - env: DO=build
     - env: DO=docs
 
