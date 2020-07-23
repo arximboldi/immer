@@ -50,6 +50,7 @@ tc.stdenv.mkDerivation rec {
     ccache
     boost
     boehmgc
+    fmt
     benchmarks.c_rrb
     benchmarks.steady
     benchmarks.chunkedseq
