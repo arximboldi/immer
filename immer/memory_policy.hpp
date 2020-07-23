@@ -10,6 +10,8 @@
 
 #include <immer/heap/cpp_heap.hpp>
 #include <immer/heap/heap_policy.hpp>
+#include <immer/lock/no_lock_policy.hpp>
+#include <immer/lock/spinlock_policy.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
@@ -83,6 +85,7 @@ constexpr auto get_use_transient_rvalues_v =
  */
 template <typename HeapPolicy,
           typename RefcountPolicy,
+          typename LockPolicy,
           typename TransiencePolicy = get_transience_policy_t<RefcountPolicy>,
           bool PreferFewerBiggerObjects =
               get_prefer_fewer_bigger_objects_v<HeapPolicy>,
@@ -93,6 +96,7 @@ struct memory_policy
     using heap       = HeapPolicy;
     using refcount   = RefcountPolicy;
     using transience = TransiencePolicy;
+    using lock       = LockPolicy;
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;
@@ -122,14 +126,17 @@ using default_heap_policy = free_list_heap_policy<cpp_heap>;
  */
 #if IMMER_NO_THREAD_SAFETY
 using default_refcount_policy = unsafe_refcount_policy;
+using default_lock_policy     = no_lock_policy;
 #else
 using default_refcount_policy = refcount_policy;
+using default_lock_policy     = spinlock_policy;
 #endif
 
 /*!
  * The default memory policy.
  */
-using default_memory_policy =
-    memory_policy<default_heap_policy, default_refcount_policy>;
+using default_memory_policy = memory_policy<default_heap_policy,
+                                            default_refcount_policy,
+                                            default_lock_policy>;
 
 } // namespace immer

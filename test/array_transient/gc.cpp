@@ -14,6 +14,7 @@
 
 using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::no_refcount_policy,
+                                       immer::default_lock_policy,
                                        immer::gc_transience_policy,
                                        false>;
 
@@ -28,6 +29,8 @@ using test_array_transient_t = immer::array_transient<T, gc_memory>;
 
 #include "../vector_transient/generic.ipp"
 
+// this comment is here because generic.ipp otherwise defines a test in the same
+// line, lol!
 TEST_CASE("array provides mutable data")
 {
     auto arr = immer::array<int, gc_memory>(10, 0);

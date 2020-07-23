@@ -18,6 +18,7 @@
 // declare a memory policy for using a tracing garbage collector
 using gc_policy = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::no_refcount_policy,
+                                       immer::default_lock_policy,
                                        immer::gc_transience_policy,
                                        false>;
 

@@ -21,8 +21,6 @@ namespace immer {
  */
 struct unsafe_refcount_policy
 {
-    using spinlock_type = no_spinlock;
-
     mutable int refcount;
 
     unsafe_refcount_policy()

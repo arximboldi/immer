@@ -17,6 +17,7 @@
 
 using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
                                        immer::no_refcount_policy,
+                                       immer::default_lock_policy,
                                        immer::gc_transience_policy,
                                        false>;
 
@@ -102,8 +103,5 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             };
             return true;
         },
-        [] {
-            while (GC_collect_a_little())
-                continue;
-        });
+        [] { GC_collect_a_little(); });
 }
