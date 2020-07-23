@@ -94,10 +94,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
             };
             return true;
         },
-        [] {
-            while (GC_collect_a_little())
-                continue;
-        });
+        [] { GC_gcollect(); });
 }
 
 } // namespace
