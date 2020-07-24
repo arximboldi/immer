@@ -63,7 +63,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
     };
     auto can_compare = [](auto&& v) {
         // avoid comparing vectors that are too big, and hence, slow to compare
-        return v.size() < (1 << 20);
+        return v.size() < (1 << 15);
     };
     return fuzzer_input{data, size}.run([&](auto& in) {
         enum ops
