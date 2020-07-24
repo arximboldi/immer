@@ -39,7 +39,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
 #if IMMER_FUZZED_TRACE_ENABLE
     IMMER_FUZZED_TRACE("/// new test run\n");
     IMMER_FUZZED_TRACE("using vector_t = immer::flex_vector<int, "
-                       "immer::default_memory_policy, {}, {}>;",
+                       "immer::default_memory_policy, {}, {}>;\n",
                        Bits,
                        Bits);
     for (auto i = 0u; i < VarCount; ++i)
