@@ -1237,8 +1237,10 @@ struct slice_left_mut_visitor
         if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
             auto r = mutate ? pos.towards_sub_oh(this_t{}, first, idx, e)
                             : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
-            if (Mutating)
+            if (mutate)
                 pos.visit(dec_left_visitor{}, idx);
+            else if (Mutating)
+                pos.visit(dec_visitor{});
             return r;
         } else {
             using std::get;
@@ -1294,15 +1296,16 @@ struct slice_left_mut_visitor
         if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
             auto r = mutate ? pos.towards_sub_oh(this_t{}, first, idx, e)
                             : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
-            if (Mutating)
+            if (mutate)
                 pos.visit(dec_left_visitor{}, idx);
+            else if (Mutating)
+                pos.visit(dec_visitor{});
             return r;
         } else {
             using std::get;
-            // if possible, we convert the node to a relaxed one
-            // simply by allocating a `relaxed_t` size table for
-            // it... maybe some of this magic should be moved as a
-            // `node<...>` static method...
+            // if possible, we convert the node to a relaxed one simply by
+            // allocating a `relaxed_t` size table for it... maybe some of this
+            // magic should be moved as a `node<...>` static method...
             auto newcount = count - idx;
             auto newn =
                 mutate ? (node->impl.d.data.inner.relaxed = new (
