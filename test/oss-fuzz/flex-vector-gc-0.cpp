@@ -365,3 +365,14 @@ TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24287")
         CHECK(run_input(input.data(), input.size()) == 0);
     }
 }
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24371")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-flex-vector-gc-5120685673021440");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
+}
+
