@@ -18,7 +18,8 @@
 #define IMMER_FUZZED_TRACE_ENABLE 0
 
 #if IMMER_FUZZED_TRACE_ENABLE
-#define IMMER_FUZZED_TRACE(...) std::cout << __VA_ARGS__ << std::endl;
+#include <fmt/printf.h>
+#define IMMER_FUZZED_TRACE(...) fmt::print(std::cerr, __VA_ARGS__)
 #else
 #define IMMER_FUZZED_TRACE(...)
 #endif
@@ -33,28 +34,32 @@ namespace {
 
 int run_input(const std::uint8_t* data, std::size_t size)
 {
-    constexpr std::size_t VarCount = 4;
-    constexpr unsigned Bits        = 2;
+    constexpr std::size_t var_count = 4;
+    constexpr unsigned bits         = 2;
 
-    using vector_t    = immer::flex_vector<int, gc_memory, Bits, Bits>;
+    using vector_t    = immer::flex_vector<int, gc_memory, bits, bits>;
     using transient_t = typename vector_t::transient_type;
     using size_t      = std::uint8_t;
 
-    auto vs = std::array<vector_t, VarCount>{};
-    auto ts = std::array<transient_t, VarCount>{};
+    auto vs = std::array<vector_t, var_count>{};
+    auto ts = std::array<transient_t, var_count>{};
 
 #if IMMER_FUZZED_TRACE_ENABLE
-    std::cout << "/// new test run" << std::endl;
-    for (auto i = 0u; i < VarCount; ++i)
-        std::cout << "auto v" << i << " = vector_t{};" << std::endl;
-    for (auto i = 0u; i < VarCount; ++i)
-        std::cout << "auto t" << i << " = transient_t{};" << std::endl;
+    IMMER_FUZZED_TRACE("/// new test run\n");
+    IMMER_FUZZED_TRACE(
+        "using vector_t = immer::flex_vector<int, gc_memory, {}, {}>;\n",
+        bits,
+        bits);
+    for (auto i = 0u; i < var_count; ++i)
+        IMMER_FUZZED_TRACE("auto v{} = vector_t{{}};\n", i);
+    for (auto i = 0u; i < var_count; ++i)
+        IMMER_FUZZED_TRACE("auto t{} = transient_t{{}};\n", i);
 #endif
 
-    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < VarCount; };
+    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
     auto is_valid_var_neq = [](auto other) {
         return [=](auto idx) {
-            return idx >= 0 && idx < VarCount && idx != other;
+            return idx >= 0 && idx < var_count && idx != other;
         };
     };
     auto is_valid_index = [](auto& v) {
@@ -90,47 +95,44 @@ int run_input(const std::uint8_t* data, std::size_t size)
         switch (read<char>(in)) {
         case op_transient: {
             auto src = read<std::uint8_t>(in, is_valid_var);
-            IMMER_FUZZED_TRACE("t" << +dst << " = v" << +src
-                                   << ".transient();");
+            IMMER_FUZZED_TRACE("t{} = v{}.transient();\n", +dst, +src);
             ts[dst] = vs[src].transient();
             break;
         }
         case op_persistent: {
             auto src = read<std::uint8_t>(in, is_valid_var);
-            IMMER_FUZZED_TRACE("v" << +dst << " = t" << +src
-                                   << ".persistent();");
+            IMMER_FUZZED_TRACE("v{} = t{}.persistent();\n", +dst, +src);
             vs[dst] = ts[src].persistent();
             break;
         }
         case op_push_back: {
             auto src = read<std::uint8_t>(in, is_valid_var);
-            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src
-                                   << ".push_back(42);");
+            IMMER_FUZZED_TRACE("v{} = v{}.push_back(42);\n", +dst, +src);
             vs[dst] = vs[src].push_back(42);
             break;
         }
         case op_update: {
             auto src = read<std::uint8_t>(in, is_valid_var);
             auto idx = read<size_t>(in, is_valid_index(vs[src]));
-            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << ".update("
-                                   << +idx
-                                   << ", [] (auto x) { return x + 1; });");
+            IMMER_FUZZED_TRACE(
+                "v{} = v{}.update({}, [] (auto x) {{ return x + 1; }});\n",
+                +dst,
+                +src,
+                idx);
             vs[dst] = vs[src].update(idx, [](auto x) { return x + 1; });
             break;
         }
         case op_take: {
             auto src = read<std::uint8_t>(in, is_valid_var);
             auto idx = read<size_t>(in, is_valid_size(vs[src]));
-            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << ".take(" << +idx
-                                   << ");");
+            IMMER_FUZZED_TRACE("v{} = v{}.take({});\n", +dst, +src, idx);
             vs[dst] = vs[src].take(idx);
             break;
         }
         case op_drop: {
             auto src = read<std::uint8_t>(in, is_valid_var);
             auto idx = read<size_t>(in, is_valid_size(vs[src]));
-            IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << ".drop(" << +idx
-                                   << ");");
+            IMMER_FUZZED_TRACE("v{} = v{}.drop({});\n", +dst, +src, idx);
             vs[dst] = vs[src].drop(idx);
             break;
         }
@@ -138,34 +140,35 @@ int run_input(const std::uint8_t* data, std::size_t size)
             auto src  = read<std::uint8_t>(in, is_valid_var);
             auto src2 = read<std::uint8_t>(in, is_valid_var);
             if (can_concat(vs[src], vs[src2])) {
-                IMMER_FUZZED_TRACE("v" << +dst << " = v" << +src << " + v"
-                                       << +src2 << ";");
+                IMMER_FUZZED_TRACE("v{} = v{} + v{};\n", +dst, +src, +src2);
                 vs[dst] = vs[src] + vs[src2];
             }
             break;
         }
         case op_push_back_mut: {
-            IMMER_FUZZED_TRACE("t" << +dst << ".push_back(13);");
+            IMMER_FUZZED_TRACE("t{}.push_back(13);\n", +dst);
             ts[dst].push_back(13);
             break;
         }
         case op_update_mut: {
             auto idx = read<size_t>(in, is_valid_index(ts[dst]));
-            IMMER_FUZZED_TRACE("t" << +dst << ".update(" << +idx
-                                   << ", [] (auto x) { return x + 1; });");
+            IMMER_FUZZED_TRACE(
+                "t{}.update({}, [] (auto x) {{ return x + 1; }});\n",
+                +dst,
+                idx);
             ts[dst].update(idx, [](auto x) { return x + 1; });
             break;
         }
         case op_take_mut: {
             auto idx = read<size_t>(in, is_valid_size(ts[dst]));
-            IMMER_FUZZED_TRACE("t" << +dst << ").take(" << +idx << ");");
+            IMMER_FUZZED_TRACE("t{}.take({});\n", +dst, idx);
             ts[dst].take(idx);
             break;
         }
         case op_prepend_mut: {
             auto src = read<std::uint8_t>(in, is_valid_var_neq(dst));
             if (can_concat(ts[dst], ts[src])) {
-                IMMER_FUZZED_TRACE("t" << +dst << ".prepend(t" << +src << ");");
+                IMMER_FUZZED_TRACE("t{}.prepend(t{});\n", +dst, +src);
                 ts[dst].prepend(ts[src]);
             }
             break;
@@ -173,9 +176,11 @@ int run_input(const std::uint8_t* data, std::size_t size)
         case op_prepend_mut_move: {
             auto src = read<std::uint8_t>(in, is_valid_var_neq(dst));
             if (can_concat(ts[dst], ts[src])) {
-                IMMER_FUZZED_TRACE("t" << +dst << ".prepend(std::move(t" << +src
-                                       << "));"
-                                       << " t" << +src << " = {};");
+                IMMER_FUZZED_TRACE("t{}.prepend(std::move(t{}));\n"
+                                   "t{} = {{}};\n",
+                                   +dst,
+                                   +src,
+                                   +src);
                 ts[dst].prepend(std::move(ts[src]));
                 ts[src] = {};
             }
@@ -184,7 +189,7 @@ int run_input(const std::uint8_t* data, std::size_t size)
         case op_append_mut: {
             auto src = read<std::uint8_t>(in, is_valid_var_neq(dst));
             if (can_concat(ts[dst], ts[src])) {
-                IMMER_FUZZED_TRACE("t" << +dst << ".append(t" << +src << ");");
+                IMMER_FUZZED_TRACE("t{}.append(t{});\n", +dst, +src);
                 ts[dst].append(ts[src]);
             }
             break;
@@ -192,9 +197,11 @@ int run_input(const std::uint8_t* data, std::size_t size)
         case op_append_mut_move: {
             auto src = read<std::uint8_t>(in, is_valid_var_neq(dst));
             if (can_concat(ts[dst], ts[src])) {
-                IMMER_FUZZED_TRACE("t" << +dst << ".append(std::move(t" << +src
-                                       << "));"
-                                       << " t" << +src << " = {};");
+                IMMER_FUZZED_TRACE("t{}.append(std::move(t{}));\n"
+                                   "t{} = {{}};\n",
+                                   +dst,
+                                   +src,
+                                   +src);
                 ts[dst].append(std::move(ts[src]));
                 ts[src] = {};
             }
