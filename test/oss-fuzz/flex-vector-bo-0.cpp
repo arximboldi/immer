@@ -10,11 +10,11 @@
 
 #include <immer/box.hpp>
 #include <immer/flex_vector.hpp>
-#include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/flex_vector_transient.hpp>
 
 #include <catch.hpp>
 
-#define IMMER_FUZZED_TRACE_ENABLE 0
+#define IMMER_FUZZED_TRACE_ENABLE 1
 
 #if IMMER_FUZZED_TRACE_ENABLE
 #include <fmt/printf.h>
@@ -23,33 +23,38 @@
 #define IMMER_FUZZED_TRACE(...)
 #endif
 
+using bo_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
+                                       immer::unsafe_refcount_policy,
+                                       immer::no_lock_policy,
+                                       immer::no_transience_policy,
+                                       true>;
+
 namespace {
 
 int run_input(const std::uint8_t* data, std::size_t size)
 {
-    constexpr auto VarCount = 8;
-    constexpr auto Bits     = 2;
+    constexpr auto var_count = 8;
+    constexpr auto bits      = 3;
 
-    using vector_t =
-        immer::flex_vector<int, immer::default_memory_policy, Bits, Bits>;
-    using size_t = std::uint8_t;
+    using vector_t = immer::flex_vector<int, bo_memory, bits, bits>;
+    using size_t   = std::uint8_t;
 
-    auto vars = std::array<vector_t, VarCount>{};
+    auto vars = std::array<vector_t, var_count>{};
 
 #if IMMER_FUZZED_TRACE_ENABLE
     IMMER_FUZZED_TRACE("/// new test run\n");
-    IMMER_FUZZED_TRACE("using vector_t = immer::flex_vector<int, "
-                       "immer::default_memory_policy, {}, {}>;\n",
-                       Bits,
-                       Bits);
-    for (auto i = 0u; i < VarCount; ++i)
+    IMMER_FUZZED_TRACE(
+        "using vector_t = immer::flex_vector<int, bo_memory, {}, {}>;\n",
+        bits,
+        bits);
+    for (auto i = 0u; i < var_count; ++i)
         IMMER_FUZZED_TRACE("auto v{} = vector_t{{}};\n", i);
 #endif
 
-    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < VarCount; };
+    auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
     auto is_valid_var_neq = [](auto other) {
         return [=](auto idx) {
-            return idx >= 0 && idx < VarCount && idx != other;
+            return idx >= 0 && idx < var_count && idx != other;
         };
     };
     auto is_valid_index = [](auto& v) {
@@ -219,42 +224,29 @@ int run_input(const std::uint8_t* data, std::size_t size)
 
 } // namespace
 
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24339")
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24366")
 {
-    SECTION("fuzzer")
+    SECTION("trace, simplified")
     {
-        auto input = load_input(
-            "clusterfuzz-testcase-minimized-flex-vector-4806287339290624.fuzz");
-        CHECK(run_input(input.data(), input.size()) == 0);
+        using vector_t = immer::flex_vector<int, bo_memory, 3, 3>;
+        auto v0        = vector_t{{42, 42, 42, 42}};
+        auto v1        = v0 + v0;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = v0 + v1;
+        v0             = std::move(v0).drop(71);
     }
-}
 
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24139")
-{
     SECTION("fuzzer")
     {
         auto input = load_input(
-            "clusterfuzz-testcase-minimized-flex-vector-5068547731226624");
-        CHECK(run_input(input.data(), input.size()) == 0);
-    }
-}
-
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24144")
-{
-    SECTION("fuzzer")
-    {
-        auto input = load_input(
-            "clusterfuzz-testcase-minimized-flex-vector-5682145239236608");
-        CHECK(run_input(input.data(), input.size()) == 0);
-    }
-}
-
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24147")
-{
-    SECTION("fuzzer")
-    {
-        auto input = load_input(
-            "clusterfuzz-testcase-minimized-flex-vector-6237969917411328");
+            "clusterfuzz-testcase-minimized-flex-vector-bo-6038320384311296");
         CHECK(run_input(input.data(), input.size()) == 0);
     }
 }

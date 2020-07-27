@@ -13,15 +13,20 @@
 
 #include <array>
 
+using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
+                                       immer::unsafe_refcount_policy,
+                                       immer::no_lock_policy,
+                                       immer::no_transience_policy,
+                                       false>;
+
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 8;
-    constexpr auto bits      = 2;
+    constexpr auto bits      = 3;
 
-    using vector_t =
-        immer::flex_vector<int, immer::default_memory_policy, bits, bits>;
-    using size_t = std::uint8_t;
+    using vector_t = immer::flex_vector<int, st_memory, bits, bits>;
+    using size_t   = std::uint8_t;
 
     auto vars = std::array<vector_t, var_count>{};
 

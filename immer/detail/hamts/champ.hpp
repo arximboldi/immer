@@ -11,6 +11,8 @@
 #include <immer/config.hpp>
 #include <immer/detail/hamts/node.hpp>
 
+#include <immer/heap/gc_heap.hpp>
+
 #include <algorithm>
 
 namespace immer {
@@ -80,7 +82,11 @@ struct champ
         swap(x.size, y.size);
     }
 
-    ~champ() { dec(); }
+    ~champ()
+    {
+        GC_reachable_here(root);
+        dec();
+    }
 
     void inc() const { root->inc(); }
 
@@ -149,6 +155,7 @@ struct champ
     std::pair<node_t*, bool>
     do_add(node_t* node, T v, hash_t hash, shift_t shift) const
     {
+        assert(node);
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
@@ -163,6 +170,7 @@ struct champ
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset = popcount(node->nodemap() & (bit - 1));
+                assert(node->children()[offset]);
                 auto result = do_add(
                     node->children()[offset], std::move(v), hash, shift + B);
                 try {

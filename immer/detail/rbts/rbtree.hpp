@@ -491,7 +491,7 @@ struct rbtree
     {
 #if IMMER_DEBUG_DEEP_CHECK
         if (tail_size() > 0)
-            assert(tail->check(0, tail_size()));
+            assert(tail->check(endshift<B, BL>, tail_size()));
 #endif
         return true;
     }

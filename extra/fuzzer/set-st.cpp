@@ -6,32 +6,32 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "input.hpp"
-
-#include "extra/fuzzer/fuzzer_gc_guard.hpp"
+#include "fuzzer_input.hpp"
 
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/set.hpp>
 
-#include <catch.hpp>
+#include <array>
 
-using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
-                                       immer::no_refcount_policy,
-                                       immer::default_lock_policy,
-                                       immer::gc_transience_policy,
+using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
+                                       immer::unsafe_refcount_policy,
+                                       immer::no_lock_policy,
+                                       immer::no_transience_policy,
                                        false>;
 
-namespace {
-
-int run_input(const std::uint8_t* data, std::size_t size)
+struct colliding_hash_t
 {
-    auto guard = fuzzer_gc_guard{};
+    std::size_t operator()(std::size_t x) const { return x & ~15; }
+};
 
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
+                                      std::size_t size)
+{
     constexpr auto var_count = 4;
 
     using set_t =
-        immer::set<int, std::hash<char>, std::equal_to<char>, gc_memory>;
+        immer::set<size_t, colliding_hash_t, std::equal_to<>, st_memory>;
 
     auto vars = std::array<set_t, var_count>{};
 
@@ -81,16 +81,4 @@ int run_input(const std::uint8_t* data, std::size_t size)
         };
         return true;
     });
-}
-
-} // namespace
-
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24170")
-{
-    SECTION("fuzzer")
-    {
-        auto input = load_input(
-            "clusterfuzz-testcase-minimized-set-gc-5709797958352896");
-        CHECK(run_input(input.data(), input.size()) == 0);
-    }
 }

@@ -47,7 +47,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
     };
     auto can_compare = [](auto&& v) {
         // avoid comparing vectors that are too big, and hence, slow to compare
-        return v.size() < (1 << 20);
+        return v.size() < (1 << 15);
     };
     return fuzzer_input{data, size}.run([&](auto& in) {
         enum ops

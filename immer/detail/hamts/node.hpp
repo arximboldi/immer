@@ -183,6 +183,7 @@ struct node
         assert(n <= branches<B>);
         auto m = heap::allocate(sizeof_inner_n(n));
         auto p = new (m) node_t;
+        assert(p == (node_t*) m);
 #if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::inner;
 #endif

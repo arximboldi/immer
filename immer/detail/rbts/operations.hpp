@@ -705,6 +705,7 @@ struct push_tail_mut_visitor
             node->inner()[new_idx] = new_child;
             relaxed->d.sizes[new_idx] = pos.size() + ts;
             relaxed->d.count          = count;
+            assert(relaxed->d.sizes[new_idx]);
             return node;
         } else {
             try {
@@ -714,6 +715,7 @@ struct push_tail_mut_visitor
                 new_node->inner()[new_idx] = new_child;
                 relaxed->d.sizes[new_idx]  = pos.size() + ts;
                 relaxed->d.count           = count;
+                assert(relaxed->d.sizes[new_idx]);
                 if (Mutating)
                     pos.visit(dec_visitor{});
                 return new_node;
@@ -807,6 +809,7 @@ struct push_tail_visitor : visitor_base<push_tail_visitor<NodeT>>
             new_parent->inner()[new_idx]  = new_child;
             new_relaxed->d.sizes[new_idx] = pos.size() + ts;
             new_relaxed->d.count          = count;
+            assert(new_relaxed->d.sizes[new_idx]);
             return new_parent;
         } catch (...) {
             auto shift = pos.shift();
@@ -925,6 +928,7 @@ struct slice_right_mut_visitor
                         node->inner()[idx] = next;
                         nodr->d.sizes[idx] = last + 1 - ts;
                         nodr->d.count      = idx + 1;
+                        assert(nodr->d.sizes[idx]);
                         return std::make_tuple(pos.shift(), node, ts, tail);
                     } else {
                         auto newn = node_t::copy_inner_r_e(e, node, idx);
@@ -932,6 +936,7 @@ struct slice_right_mut_visitor
                         newn->inner()[idx] = next;
                         newr->d.sizes[idx] = last + 1 - ts;
                         newr->d.count      = idx + 1;
+                        assert(newr->d.sizes[idx]);
                         if (Mutating)
                             pos.visit(dec_visitor{});
                         return std::make_tuple(pos.shift(), newn, ts, tail);
@@ -1096,6 +1101,7 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
                     newn->inner()[idx] = next;
                     newr->d.sizes[idx] = last + 1 - ts;
                     newr->d.count      = count;
+                    assert(newr->d.sizes[idx]);
                     return std::make_tuple(pos.shift(), newn, ts, tail);
                 } else if (idx == 0) {
                     return std::make_tuple(pos.shift(), nullptr, ts, tail);
@@ -1237,8 +1243,10 @@ struct slice_left_mut_visitor
         if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
             auto r = mutate ? pos.towards_sub_oh(this_t{}, first, idx, e)
                             : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
-            if (Mutating)
+            if (mutate)
                 pos.visit(dec_left_visitor{}, idx);
+            else if (Mutating)
+                pos.visit(dec_visitor{});
             return r;
         } else {
             using std::get;
@@ -1262,6 +1270,7 @@ struct slice_left_mut_visitor
                 newn->inner()[0] = get<1>(subs);
                 newr->d.sizes[0] = new_child_size;
                 newr->d.count    = newcount;
+                assert(new_child_size);
                 if (!mutate) {
                     node_t::inc_nodes(newn->inner() + 1, newcount - 1);
                     if (Mutating)
@@ -1294,15 +1303,16 @@ struct slice_left_mut_visitor
         if (Collapse && pos.shift() > BL && idx == pos.count() - 1) {
             auto r = mutate ? pos.towards_sub_oh(this_t{}, first, idx, e)
                             : pos.towards_sub_oh(no_mut_t{}, first, idx, e);
-            if (Mutating)
+            if (mutate)
                 pos.visit(dec_left_visitor{}, idx);
+            else if (Mutating)
+                pos.visit(dec_visitor{});
             return r;
         } else {
             using std::get;
-            // if possible, we convert the node to a relaxed one
-            // simply by allocating a `relaxed_t` size table for
-            // it... maybe some of this magic should be moved as a
-            // `node<...>` static method...
+            // if possible, we convert the node to a relaxed one simply by
+            // allocating a `relaxed_t` size table for it... maybe some of this
+            // magic should be moved as a `node<...>` static method...
             auto newcount = count - idx;
             auto newn =
                 mutate ? (node->impl.d.data.inner.relaxed = new (
@@ -1319,6 +1329,7 @@ struct slice_left_mut_visitor
                 if (mutate)
                     pos.each_left(dec_visitor{}, idx);
                 newr->d.sizes[0] = child_size - child_dropped_size;
+                assert(newr->d.sizes[0]);
                 pos.copy_sizes(
                     idx + 1, newcount - 1, newr->d.sizes[0], newr->d.sizes + 1);
                 newr->d.count    = newcount;
@@ -1405,6 +1416,7 @@ struct slice_left_visitor : visitor_base<slice_left_visitor<NodeT, Collapse>>
                 auto newr     = newn->relaxed();
                 newr->d.count = count - idx;
                 newr->d.sizes[0] = child_size - child_dropped_size;
+                assert(newr->d.sizes[0]);
                 pos.copy_sizes(idx + 1,
                                newr->d.count - 1,
                                newr->d.sizes[0],
@@ -1461,7 +1473,7 @@ struct concat_center_pos
         : shift_{s}
         , count_{2}
         , nodes_{n0, n1}
-        , sizes_{s0, s1}
+        , sizes_{s0, s0 + s1}
     {}
 
     concat_center_pos(shift_t s,
@@ -1474,15 +1486,18 @@ struct concat_center_pos
         : shift_{s}
         , count_{3}
         , nodes_{n0, n1, n2}
-        , sizes_{s0, s1, s2}
+        , sizes_{s0, s0 + s1, s0 + s1 + s2}
     {}
 
     template <typename Visitor, typename... Args>
     void each_sub(Visitor v, Args&&... args)
     {
         if (shift_ == BL) {
-            for (auto i = count_t{0}; i < count_; ++i)
-                make_leaf_sub_pos(nodes_[i], sizes_[i]).visit(v, args...);
+            auto s = size_t{};
+            for (auto i = count_t{0}; i < count_; ++i) {
+                make_leaf_sub_pos(nodes_[i], sizes_[i] - s).visit(v, args...);
+                s = sizes_[i];
+            }
         } else {
             for (auto i = count_t{0}; i < count_; ++i)
                 make_relaxed_pos(nodes_[i], shift_ - B, nodes_[i]->relaxed())
@@ -1552,6 +1567,7 @@ struct concat_merger
 
     void add_child(node_t* p, size_t size)
     {
+        assert(size);
         ++curr_;
         auto parent  = result_.nodes_[result_.count_ - 1];
         auto relaxed = parent->relaxed();
@@ -1562,12 +1578,15 @@ struct concat_merger
             relaxed = parent->relaxed();
             result_.nodes_[result_.count_] = parent;
             result_.sizes_[result_.count_] = result_.sizes_[result_.count_ - 1];
+            assert(result_.sizes_[result_.count_]);
             ++result_.count_;
         }
         auto idx = relaxed->d.count++;
         result_.sizes_[result_.count_ - 1] += size;
+        assert(result_.sizes_[result_.count_ - 1]);
         relaxed->d.sizes[idx] = size + (idx ? relaxed->d.sizes[idx - 1] : 0);
-        parent->inner()[idx]  = p;
+        assert(relaxed->d.sizes[idx]);
+        parent->inner()[idx] = p;
     };
 
     template <typename Pos>
@@ -1636,6 +1655,7 @@ struct concat_merger
                 to_offset_ += to_copy;
                 from_offset += to_copy;
                 to_size_ = sizes[to_offset_ - 1];
+                assert(to_size_);
                 if (*curr_ == to_offset_) {
                     to_->relaxed()->d.count = to_offset_;
                     add_child(to_, to_size_);
@@ -1742,6 +1762,7 @@ struct concat_rebalance_plan
                 auto next  = counts[i + 1];
                 auto count = std::min(remaining + next, branches);
                 counts[i]  = count;
+                assert(counts[i]);
                 remaining += next - count;
                 ++i;
             } while (remaining > 0);
@@ -2019,6 +2040,7 @@ struct concat_merger_mut
 
     void add_child(node_t* p, size_t size)
     {
+        assert(size);
         ++curr_;
         auto parent  = result_.nodes_[result_.count_ - 1];
         auto relaxed = parent->relaxed();
@@ -2036,12 +2058,16 @@ struct concat_merger_mut
             relaxed                        = parent->relaxed();
             result_.nodes_[result_.count_] = parent;
             result_.sizes_[result_.count_] = result_.sizes_[result_.count_ - 1];
+            assert(result_.sizes_[result_.count_]);
             ++result_.count_;
         }
         auto idx = count_++;
         result_.sizes_[result_.count_ - 1] += size;
+        assert(size);
+        assert(result_.sizes_[result_.count_ - 1]);
         relaxed->d.sizes[idx] = size + (idx ? relaxed->d.sizes[idx - 1] : 0);
-        parent->inner()[idx]  = p;
+        assert(relaxed->d.sizes[idx]);
+        parent->inner()[idx] = p;
     };
 
     template <typename Pos>
@@ -2050,6 +2076,7 @@ struct concat_merger_mut
         auto from       = p.node();
         auto from_size  = p.size();
         auto from_count = p.count();
+        assert(from);
         assert(from_size);
         if (!to_ && *curr_ == from_count) {
             add_child(from, from_size);

@@ -365,6 +365,7 @@ struct node
     static node_t* make_inner_r_n(count_t n, node_t* x, size_t xs)
     {
         assert(n >= 1);
+        assert(xs);
         auto p        = make_inner_r_n(n);
         auto r        = p->relaxed();
         p->inner()[0] = x;
@@ -387,6 +388,7 @@ struct node
     static node_t* make_inner_r_n(count_t n, node_t* x, size_t xs, node_t* y)
     {
         assert(n >= 2);
+        assert(xs);
         auto p        = make_inner_r_n(n);
         auto r        = p->relaxed();
         p->inner()[0] = x;
@@ -400,6 +402,8 @@ struct node
     make_inner_r_n(count_t n, node_t* x, size_t xs, node_t* y, size_t ys)
     {
         assert(n >= 2);
+        assert(xs);
+        assert(ys);
         auto p        = make_inner_r_n(n);
         auto r        = p->relaxed();
         p->inner()[0] = x;
@@ -419,6 +423,9 @@ struct node
                                   size_t zs)
     {
         assert(n >= 3);
+        assert(xs);
+        assert(ys);
+        assert(zs);
         auto p        = make_inner_r_n(n);
         auto r        = p->relaxed();
         p->inner()[0] = x;
@@ -787,10 +794,14 @@ struct node
                     node_t::ownee(src_r).can_mutate(e))
                     return src_r;
                 else {
-                    if (src_r)
-                        node_t::refs(src_r).dec_unsafe();
                     auto dst_r = impl.d.data.inner.relaxed =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
+                    if (src_r) {
+                        node_t::refs(src_r).dec_unsafe();
+                        auto n = dst_r->d.count = src_r->d.count;
+                        std::copy(
+                            src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                    }
                     node_t::ownee(dst_r) = e;
                     return dst_r;
                 }
@@ -808,10 +819,14 @@ struct node
                     node_t::ownee(src_r) = ec;
                     return src_r;
                 } else {
-                    if (src_r)
-                        node_t::refs(src_r).dec_unsafe();
                     auto dst_r = impl.d.data.inner.relaxed =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
+                    if (src_r) {
+                        node_t::refs(src_r).dec_unsafe();
+                        auto n = dst_r->d.count = src_r->d.count;
+                        std::copy(
+                            src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                    }
                     node_t::ownee(dst_r) = ec;
                     return dst_r;
                 }
@@ -828,12 +843,14 @@ struct node
                     node_t::ownee(src_r).can_mutate(e))
                     return src_r;
                 else {
-                    if (src_r)
-                        node_t::refs(src_r).dec_unsafe();
                     auto dst_r =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
-                    std::copy(
-                        src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                    if (src_r) {
+                        node_t::refs(src_r).dec_unsafe();
+                        std::copy(
+                            src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                    }
+                    dst_r->d.count                   = n;
                     node_t::ownee(dst_r)             = e;
                     return impl.d.data.inner.relaxed = dst_r;
                 }
@@ -888,10 +905,10 @@ struct node
                 IMMER_TRACE_E(size);
             }
             assert(r->d.sizes[count - 1] == size);
-            for (auto i = 1; i < count; ++i)
+            for (auto i = 1u; i < count; ++i)
                 assert(r->d.sizes[i - 1] < r->d.sizes[i]);
             auto last_size = size_t{};
-            for (auto i = 0; i < count; ++i) {
+            for (auto i = 0u; i < count; ++i) {
                 assert(inner()[i]->check(shift - B, r->d.sizes[i] - last_size));
                 last_size = r->d.sizes[i];
             }
@@ -901,7 +918,7 @@ struct node
                 (size >> shift) + (size - ((size >> shift) << shift) > 0);
             assert(count <= branches<B>);
             if (count) {
-                for (auto i = 1; i < count - 1; ++i)
+                for (auto i = 1u; i < count - 1; ++i)
                     assert(inner()[i]->check(shift - B, 1 << shift));
                 assert(inner()[count - 1]->check(
                     shift - B, size - ((count - 1) << shift)));

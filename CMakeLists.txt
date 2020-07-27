@@ -22,6 +22,7 @@ include(ImmerUtils)
 #  =======
 
 option(ENABLE_ASAN "compile with address sanitizer enabled")
+option(ENABLE_MSAN "compile with memory sanitizer enabled")
 option(ENABLE_LSAN "compile with leak sanitizer enabled")
 option(ENABLE_UBSAN "compile with undefined behavior sanitizer enabled")
 option(ENABLE_COVERAGE "compile with test coverage support")
@@ -52,6 +53,9 @@ if (ENABLE_LSAN)
 endif()
 if (ENABLE_UBSAN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif()
+if (ENABLE_MSAN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory")
 endif()
 
 if (NOT MSVC AND NOT DISABLE_WERROR)

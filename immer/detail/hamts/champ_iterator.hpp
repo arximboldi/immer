@@ -30,8 +30,6 @@ struct champ_iterator
     struct end_t
     {};
 
-    champ_iterator() = default;
-
     champ_iterator(const tree_t& v)
         : depth_{0}
     {
@@ -67,7 +65,9 @@ private:
     T* cur_;
     T* end_;
     count_t depth_;
-    node_t* const* path_[max_depth<B> + 1];
+    node_t* const* path_[max_depth<B> + 1] = {
+        0,
+    };
 
     void increment()
     {
@@ -79,10 +79,12 @@ private:
     {
         if (depth_ < max_depth<B>) {
             auto parent = *path_[depth_];
+            assert(parent);
             if (parent->nodemap()) {
                 ++depth_;
                 path_[depth_] = parent->children();
                 auto child    = *path_[depth_];
+                assert(child);
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
@@ -107,6 +109,7 @@ private:
             if (next < last) {
                 path_[depth_] = next;
                 auto child    = *path_[depth_];
+                assert(child);
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
