@@ -22,20 +22,22 @@
 
 namespace immer {
 
-#ifdef __APPLE__
-#define IMMER_GC_REQUIRE_INIT 1
+#ifdef IMMER_GC_REQUIRE_INIT
+#define IMMER_GC_REQUIRE_INIT_ IMMER_GC_REQUIRE_INIT
+#elifdef __APPLE__
+#define IMMER_GC_REQUIRE_INIT_ 1
 #else
-#define IMMER_GC_REQUIRE_INIT 0
+#define IMMER_GC_REQUIRE_INIT_ 0
 #endif
 
-#if IMMER_GC_REQUIRE_INIT
+#if IMMER_GC_REQUIRE_INIT_
 
 namespace detail {
 
 template <int Dummy = 0>
 struct gc_initializer
 {
-    gc_initializer() { GC_init(); }
+    gc_initializer() { GC_INIT(); }
     static gc_initializer init;
 };
 
@@ -56,7 +58,7 @@ inline void gc_initializer_guard()
 
 #define IMMER_GC_INIT_GUARD_
 
-#endif // IMMER_GC_REQUIRE_INIT
+#endif // IMMER_GC_REQUIRE_INIT_
 
 /*!
  * Heap that uses a tracing garbage collector.
