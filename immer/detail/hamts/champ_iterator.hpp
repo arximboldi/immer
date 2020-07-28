@@ -35,7 +35,7 @@ struct champ_iterator
     {
         if (v.root->datamap()) {
             cur_ = v.root->values();
-            end_ = v.root->values() + popcount(v.root->datamap());
+            end_ = v.root->values() + v.root->data_count();
         } else {
             cur_ = end_ = nullptr;
         }
@@ -88,7 +88,7 @@ private:
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
-                        end_ = cur_ + popcount(child->datamap());
+                        end_ = cur_ + child->data_count();
                     }
                 } else {
                     cur_ = child->collisions();
@@ -104,7 +104,7 @@ private:
     {
         while (depth_ > 0) {
             auto parent = *path_[depth_ - 1];
-            auto last   = parent->children() + popcount(parent->nodemap());
+            auto last   = parent->children() + parent->children_count();
             auto next   = path_[depth_] + 1;
             if (next < last) {
                 path_[depth_] = next;
@@ -113,7 +113,7 @@ private:
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
-                        end_ = cur_ + popcount(child->datamap());
+                        end_ = cur_ + child->data__count();
                     }
                 } else {
                     cur_ = child->collisions();
