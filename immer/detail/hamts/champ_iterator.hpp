@@ -113,7 +113,7 @@ private:
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
-                        end_ = cur_ + child->data__count();
+                        end_ = cur_ + child->data_count();
                     }
                 } else {
                     cur_ = child->collisions();
