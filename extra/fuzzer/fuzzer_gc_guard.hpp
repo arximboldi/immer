@@ -12,15 +12,11 @@
 
 struct fuzzer_gc_guard
 {
-    fuzzer_gc_guard()
-    {
-        GC_INIT();
-        GC_enable();
-    }
+    fuzzer_gc_guard() { GC_disable(); }
 
     ~fuzzer_gc_guard()
     {
+        GC_enable();
         GC_gcollect();
-        GC_disable();
     }
 };

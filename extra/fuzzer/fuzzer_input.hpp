@@ -15,6 +15,8 @@
 struct no_more_input : std::exception
 {};
 
+constexpr auto fuzzer_input_max_size = 1 << 16;
+
 struct fuzzer_input
 {
     const std::uint8_t* data_;
@@ -42,6 +44,8 @@ struct fuzzer_input
     template <typename Fn>
     int run(Fn step)
     {
+        if (size_ > fuzzer_input_max_size)
+            return 0;
         try {
             while (step(*this))
                 continue;

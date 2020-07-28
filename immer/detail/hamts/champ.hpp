@@ -11,8 +11,6 @@
 #include <immer/config.hpp>
 #include <immer/detail/hamts/node.hpp>
 
-#include <immer/heap/gc_heap.hpp>
-
 #include <algorithm>
 
 namespace immer {
@@ -82,11 +80,7 @@ struct champ
         swap(x.size, y.size);
     }
 
-    ~champ()
-    {
-        GC_reachable_here(root);
-        dec();
-    }
+    ~champ() { dec(); }
 
     void inc() const { root->inc(); }
 
