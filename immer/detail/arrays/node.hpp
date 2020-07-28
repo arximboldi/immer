@@ -40,8 +40,8 @@ struct node
 
     constexpr static std::size_t sizeof_n(size_t count)
     {
-        return immer_offsetof(impl_t, d.buffer) +
-               sizeof(T) * (count == 0 ? 1 : count);
+        return std::max(immer_offsetof(impl_t, d.buffer) + sizeof(T) * count,
+                        sizeof(node));
     }
 
     refs_t& refs() const { return auto_const_cast(get<refs_t>(impl)); }
