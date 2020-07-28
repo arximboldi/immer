@@ -1751,9 +1751,9 @@ struct concat_rebalance_plan
         const auto branches             = count_t{1} << bits;
         const auto optimal              = ((total - 1) >> bits) + 1;
         count_t i                       = 0;
-        while (n > optimal + rrb_extras) {
+        while (n >= optimal + rrb_extras) {
             // skip ok nodes
-            while (counts[i] >= branches - rrb_invariant)
+            while (counts[i] > branches - rrb_invariant)
                 i++;
             assert(i < n);
             // short node, redistribute
