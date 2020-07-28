@@ -28,14 +28,25 @@ template <bits_t B>
 struct get_bitmap_type
 {
     static_assert(B < 6u, "B > 6 is not supported.");
-
-    using type = std::uint32_t;
+    using type = std::uint8_t;
 };
 
 template <>
 struct get_bitmap_type<6u>
 {
     using type = std::uint64_t;
+};
+
+template <>
+struct get_bitmap_type<5u>
+{
+    using type = std::uint32_t;
+};
+
+template <>
+struct get_bitmap_type<4u>
+{
+    using type = std::uint16_t;
 };
 
 template <bits_t B, typename T = count_t>
@@ -89,7 +100,7 @@ inline count_t popcount(std::uint64_t x)
 #if IMMER_HAS_BUILTIN_POPCOUNT
 #if defined(_MSC_VER)
 #if defined(_WIN64)
-    return __popcnt64(x);
+    return static_cast<count_t>(__popcnt64(x));
 #else
     // TODO: benchmark against popcount_fallback(std::uint64_t x)
     return popcount(static_cast<std::uint32_t>(x >> 32)) +
@@ -101,6 +112,16 @@ inline count_t popcount(std::uint64_t x)
 #else
     return popcount_fallback(x);
 #endif
+}
+
+inline count_t popcount(std::uint16_t x)
+{
+    return popcount(static_cast<std::uint32_t>(x));
+}
+
+inline count_t popcount(std::uint8_t x)
+{
+    return popcount(static_cast<std::uint32_t>(x));
 }
 
 } // namespace hamts
