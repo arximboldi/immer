@@ -615,8 +615,8 @@ struct node
     make_merged(shift_t shift, T v1, hash_t hash1, T v2, hash_t hash2)
     {
         if (shift < max_shift<B>) {
-            const count_t idx1 = hash1 & (mask<B> << shift);
-            const count_t idx2 = hash2 & (mask<B> << shift);
+            auto idx1 = hash1 & (mask<B> << shift);
+            auto idx2 = hash2 & (mask<B> << shift);
             if (idx1 == idx2) {
                 auto merged = make_merged(
                     shift + B, std::move(v1), hash1, std::move(v2), hash2);
