@@ -167,13 +167,13 @@ struct champ
                 assert(node->children()[offset]);
                 auto result = do_add(
                     node->children()[offset], std::move(v), hash, shift + B);
-                try {
+                IMMER_TRY {
                     result.first =
                         node_t::copy_inner_replace(node, offset, result.first);
                     return result;
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_deep_shift(result.first, shift + B);
-                    throw;
+                    IMMER_RETHROW;
                 }
             } else if (node->datamap() & bit) {
                 auto offset = node->data_count(bit);
@@ -185,13 +185,13 @@ struct champ
                 else {
                     auto child = node_t::make_merged(
                         shift + B, std::move(v), hash, *val, Hash{}(*val));
-                    try {
+                    IMMER_TRY {
                         return {node_t::copy_inner_replace_merged(
                                     node, bit, offset, child),
                                 true};
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
-                        throw;
+                        IMMER_RETHROW;
                     }
                 }
             } else {
@@ -246,13 +246,13 @@ struct champ
                     std::forward<Fn>(fn),
                     hash,
                     shift + B);
-                try {
+                IMMER_TRY {
                     result.first =
                         node_t::copy_inner_replace(node, offset, result.first);
                     return result;
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_deep_shift(result.first, shift + B);
-                    throw;
+                    IMMER_RETHROW;
                 }
             } else if (node->datamap() & bit) {
                 auto offset = node->data_count(bit);
@@ -273,13 +273,13 @@ struct champ
                         hash,
                         *val,
                         Hash{}(*val));
-                    try {
+                    IMMER_TRY {
                         return {node_t::copy_inner_replace_merged(
                                     node, bit, offset, child),
                                 true};
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
-                        throw;
+                        IMMER_RETHROW;
                     }
                 }
             } else {
@@ -372,12 +372,12 @@ struct champ
                                : node_t::copy_inner_replace_inline(
                                      node, bit, offset, *result.data.singleton);
                 case sub_result::tree:
-                    try {
+                    IMMER_TRY {
                         return node_t::copy_inner_replace(
                             node, offset, result.data.tree);
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_deep_shift(result.data.tree, shift + B);
-                        throw;
+                        IMMER_RETHROW;
                     }
                 }
             } else if (node->datamap() & bit) {

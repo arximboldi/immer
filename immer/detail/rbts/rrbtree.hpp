@@ -16,6 +16,7 @@
 #include <immer/detail/type_traits.hpp>
 
 #include <cassert>
+#include <exception>
 #include <memory>
 #include <numeric>
 
@@ -319,7 +320,7 @@ struct rrbtree
                 return std::make_tuple(shift, new_root);
             else {
                 auto new_root = node_t::make_inner_r_n(2);
-                try {
+                IMMER_TRY {
                     auto new_path        = node_t::make_path(shift, tail);
                     new_root->inner()[0] = root->inc();
                     new_root->inner()[1] = new_path;
@@ -328,21 +329,21 @@ struct rrbtree
                     assert(size);
                     assert(tail_size);
                     new_root->relaxed()->d.count = 2u;
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_inner_r(new_root, 2);
-                    throw;
+                    IMMER_RETHROW;
                 }
                 return std::make_tuple(shift + B, new_root);
             }
         } else if (size == size_t{branches<B>} << shift) {
             auto new_root = node_t::make_inner_n(2);
-            try {
+            IMMER_TRY {
                 auto new_path        = node_t::make_path(shift, tail);
                 new_root->inner()[0] = root->inc();
                 new_root->inner()[1] = new_path;
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_inner(new_root, 2);
-                throw;
+                IMMER_RETHROW;
             }
             return std::make_tuple(shift + B, new_root);
         } else if (size) {
@@ -365,7 +366,7 @@ struct rrbtree
                 root = new_root;
             } else {
                 auto new_root = node_t::make_inner_r_e(e);
-                try {
+                IMMER_TRY {
                     auto new_path        = node_t::make_path_e(e, shift, tail);
                     new_root->inner()[0] = root;
                     new_root->inner()[1] = new_path;
@@ -376,22 +377,22 @@ struct rrbtree
                     new_root->relaxed()->d.count = 2u;
                     root                         = new_root;
                     shift += B;
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_inner_r_e(new_root);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (tail_off == size_t{branches<B>} << shift) {
             auto new_root = node_t::make_inner_e(e);
-            try {
+            IMMER_TRY {
                 auto new_path        = node_t::make_path_e(e, shift, tail);
                 new_root->inner()[0] = root;
                 new_root->inner()[1] = new_path;
                 root                 = new_root;
                 shift += B;
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_inner_e(new_root);
-                throw;
+                IMMER_RETHROW;
             }
         } else if (tail_off) {
             auto new_root =
@@ -424,12 +425,12 @@ struct rrbtree
             using std::get;
             auto new_tail = node_t::make_leaf_e(e, std::move(value));
             auto tail_off = tail_offset();
-            try {
+            IMMER_TRY {
                 push_tail_mut(e, tail_off, tail, ts);
                 tail = new_tail;
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1u);
-                throw;
+                IMMER_RETHROW;
             }
         }
         ++size;
@@ -446,14 +447,14 @@ struct rrbtree
             using std::get;
             auto new_tail = node_t::make_leaf_n(1u, std::move(value));
             auto tail_off = tail_offset();
-            try {
+            IMMER_TRY {
                 auto new_root =
                     push_tail(root, shift, tail_off, tail, size - tail_off);
                 tail->inc();
                 return {size + 1, get<0>(new_root), get<1>(new_root), new_tail};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1u);
-                throw;
+                IMMER_RETHROW;
             }
         }
     }
@@ -498,7 +499,7 @@ struct rrbtree
     const T& get_check(size_t index) const
     {
         if (index >= size)
-            throw std::out_of_range{"out of range"};
+            IMMER_THROW(std::out_of_range{"out of range"});
         return descend(get_visitor<T>(), index);
     }
 
@@ -697,23 +698,23 @@ struct rrbtree
                 auto remaining = branches<BL> - tail_size;
                 auto add_tail =
                     node_t::copy_leaf(tail, tail_size, r.tail, remaining);
-                try {
+                IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf(r.tail, remaining, r.size);
-                    try {
+                    IMMER_TRY {
                         auto new_root = push_tail(
                             root, shift, tail_offst, add_tail, branches<BL>);
                         return {size + r.size,
                                 get<0>(new_root),
                                 get<1>(new_root),
                                 new_tail};
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
-                        throw;
+                        IMMER_RETHROW;
                     }
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (tail_offset() == 0) {
@@ -779,21 +780,21 @@ struct rrbtree
                 std::uninitialized_copy(r.tail->leaf(),
                                         r.tail->leaf() + remaining,
                                         l.tail->leaf() + tail_size);
-                try {
+                IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
-                    try {
+                    IMMER_TRY {
                         l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
                         l.tail = new_tail;
                         l.size += r.size;
                         return;
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
-                        throw;
+                        IMMER_RETHROW;
                     }
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     destroy_n(r.tail->leaf() + tail_size, remaining);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (l.tail_offset() == 0) {
@@ -913,10 +914,10 @@ struct rrbtree
                 auto remaining = branches<BL> - tail_size;
                 auto add_tail  = node_t::copy_leaf_e(
                     er, l.tail, tail_size, r.tail, remaining);
-                try {
+                IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(er, r.tail, remaining, r.size);
-                    try {
+                    IMMER_TRY {
                         // this could be improved by making sure that the
                         // newly created nodes as part of the `push_tail()`
                         // are tagged with `er`
@@ -930,13 +931,13 @@ struct rrbtree
                              get<1>(new_root),
                              new_tail};
                         return;
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
-                        throw;
+                        IMMER_RETHROW;
                     }
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (l.tail_offset() == 0) {
@@ -1053,21 +1054,21 @@ struct rrbtree
                     std::uninitialized_copy(r.tail->leaf(),
                                             r.tail->leaf() + remaining,
                                             l.tail->leaf() + tail_size);
-                try {
+                IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
-                    try {
+                    IMMER_TRY {
                         l.push_tail_mut(el, tail_offst, l.tail, branches<BL>);
                         l.tail = new_tail;
                         l.size += r.size;
                         return;
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
-                        throw;
+                        IMMER_RETHROW;
                     }
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     destroy_n(r.tail->leaf() + tail_size, remaining);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (l.tail_offset() == 0) {
@@ -1186,10 +1187,10 @@ struct rrbtree
                 auto remaining = branches<BL> - tail_size;
                 auto add_tail  = node_t::copy_leaf_e(
                     er, l.tail, tail_size, r.tail, remaining);
-                try {
+                IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(er, r.tail, remaining, r.size);
-                    try {
+                    IMMER_TRY {
                         // this could be improved by making sure that the
                         // newly created nodes as part of the `push_tail()`
                         // are tagged with `er`
@@ -1203,13 +1204,13 @@ struct rrbtree
                              get<1>(new_root),
                              new_tail};
                         return;
-                    } catch (...) {
+                    } IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
-                        throw;
+                        IMMER_RETHROW;
                     }
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
-                    throw;
+                    IMMER_RETHROW;
                 }
             }
         } else if (l.tail_offset() == 0) {

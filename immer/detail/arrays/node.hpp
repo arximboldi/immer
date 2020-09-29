@@ -78,12 +78,12 @@ struct node
     static node_t* fill_n(size_t n, T v)
     {
         auto p = make_n(n);
-        try {
+        IMMER_TRY {
             std::uninitialized_fill_n(p->data(), n, v);
             return p;
-        } catch (...) {
+        } IMMER_CATCH (...) {
             heap::deallocate(sizeof_n(n), p);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
@@ -94,12 +94,12 @@ struct node
     static node_t* copy_n(size_t n, Iter first, Sent last)
     {
         auto p = make_n(n);
-        try {
+        IMMER_TRY {
             uninitialized_copy(first, last, p->data());
             return p;
-        } catch (...) {
+        } IMMER_CATCH (...) {
             heap::deallocate(sizeof_n(n), p);
-            throw;
+            IMMER_RETHROW;
         }
     }
 

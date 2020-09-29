@@ -10,6 +10,9 @@
 
 #include <immer/detail/arrays/no_capacity.hpp>
 
+#include <cassert>
+#include <exception>
+
 namespace immer {
 namespace detail {
 namespace arrays {
@@ -159,7 +162,7 @@ struct with_capacity
     const T& get_check(std::size_t index) const
     {
         if (index >= size)
-            throw std::out_of_range{"out of range"};
+            IMMER_THROW(std::out_of_range{"out of range"});
         return data()[index];
     }
 
@@ -190,12 +193,12 @@ struct with_capacity
     {
         auto cap = recommend_up(size + 1, capacity);
         auto p   = node_t::copy_n(cap, ptr, size);
-        try {
+        IMMER_TRY {
             new (p->data() + size) T{std::move(value)};
             return {p, size + 1, cap};
-        } catch (...) {
+        } IMMER_CATCH (...) {
             node_t::delete_n(p, size, cap);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
@@ -207,12 +210,12 @@ struct with_capacity
         } else {
             auto cap = recommend_up(size + 1, capacity);
             auto p   = node_t::copy_e(e, cap, ptr, size);
-            try {
+            IMMER_TRY {
                 new (p->data() + size) T{std::move(value)};
                 *this = {p, size + 1, cap};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_n(p, size, cap);
-                throw;
+                IMMER_RETHROW;
             }
         }
     }
@@ -220,12 +223,12 @@ struct with_capacity
     with_capacity assoc(std::size_t idx, T value) const
     {
         auto p = node_t::copy_n(capacity, ptr, size);
-        try {
+        IMMER_TRY {
             p->data()[idx] = std::move(value);
             return {p, size, capacity};
-        } catch (...) {
+        } IMMER_CATCH (...) {
             node_t::delete_n(p, size, capacity);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
@@ -235,12 +238,12 @@ struct with_capacity
             data()[idx] = std::move(value);
         } else {
             auto p = node_t::copy_n(capacity, ptr, size);
-            try {
+            IMMER_TRY {
                 p->data()[idx] = std::move(value);
                 *this          = {p, size, capacity};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_n(p, size, capacity);
-                throw;
+                IMMER_RETHROW;
             }
         }
     }
@@ -249,13 +252,13 @@ struct with_capacity
     with_capacity update(std::size_t idx, Fn&& op) const
     {
         auto p = node_t::copy_n(capacity, ptr, size);
-        try {
+        IMMER_TRY {
             auto& elem = p->data()[idx];
             elem       = std::forward<Fn>(op)(std::move(elem));
             return {p, size, capacity};
-        } catch (...) {
+        } IMMER_CATCH (...) {
             node_t::delete_n(p, size, capacity);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
@@ -267,13 +270,13 @@ struct with_capacity
             elem       = std::forward<Fn>(op)(std::move(elem));
         } else {
             auto p = node_t::copy_e(e, capacity, ptr, size);
-            try {
+            IMMER_TRY {
                 auto& elem = p->data()[idx];
                 elem       = std::forward<Fn>(op)(std::move(elem));
                 *this      = {p, size, capacity};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 node_t::delete_n(p, size, capacity);
-                throw;
+                IMMER_RETHROW;
             }
         }
     }

@@ -18,6 +18,28 @@
 #endif
 #endif
 
+#ifdef __has_feature
+#if !__has_feature(cxx_exceptions)
+#define IMMER_NO_EXCEPTIONS
+#endif
+#endif
+
+#ifdef IMMER_NO_EXCEPTIONS
+#define IMMER_TRY if (true)
+#define IMMER_CATCH(expr) else
+#define IMMER_THROW(expr) \
+    do {                  \
+        assert(! #expr);  \
+        std::terminate(); \
+    } while(false)
+#define IMMER_RETHROW
+#else
+#define IMMER_TRY try
+#define IMMER_CATCH(expr) catch (expr)
+#define IMMER_THROW(expr) throw expr
+#define IMMER_RETHROW throw
+#endif
+
 #ifndef IMMER_NODISCARD
 #define IMMER_NODISCARD
 #endif

@@ -12,6 +12,8 @@
 #include <immer/detail/hamts/champ_iterator.hpp>
 #include <immer/memory_policy.hpp>
 
+#include <cassert>
+#include <exception>
 #include <functional>
 
 namespace immer {
@@ -103,7 +105,7 @@ class map
     {
         const T& operator()() const
         {
-            throw std::out_of_range{"key not found"};
+            IMMER_THROW(std::out_of_range{"key not found"});
         }
     };
 

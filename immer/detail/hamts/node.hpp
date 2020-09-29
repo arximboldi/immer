@@ -232,12 +232,12 @@ struct node
         assert(nv <= branches<B>);
         auto p = make_inner_n(n);
         if (nv) {
-            try {
+            IMMER_TRY {
                 p->impl.d.data.inner.values =
                     new (heap::allocate(sizeof_values_n(nv))) values_t{};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 deallocate_inner(p, n);
-                throw;
+                IMMER_RETHROW;
             }
         }
         return p;
@@ -256,11 +256,11 @@ struct node
     {
         auto p                       = make_inner_n(n, 1);
         p->impl.d.data.inner.datamap = bitmap;
-        try {
+        IMMER_TRY {
             new (p->values()) T{std::move(x)};
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_inner(p, n, 1);
-            throw;
+            IMMER_RETHROW;
         }
         return p;
     }
@@ -274,17 +274,17 @@ struct node
             (bitmap_t{1u} << idx1) | (bitmap_t{1u} << idx2);
         auto assign = [&](auto&& x1, auto&& x2) {
             auto vp = p->values();
-            try {
+            IMMER_TRY {
                 new (vp) T{std::move(x1)};
-                try {
+                IMMER_TRY {
                     new (vp + 1) T{std::move(x2)};
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     vp->~T();
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 deallocate_inner(p, n, 2);
-                throw;
+                IMMER_RETHROW;
             }
         };
         if (idx1 < idx2)
@@ -314,17 +314,17 @@ struct node
 #endif
         p->impl.d.data.collision.count = 2;
         auto cols                      = p->collisions();
-        try {
+        IMMER_TRY {
             new (cols) T{std::move(v1)};
-            try {
+            IMMER_TRY {
                 new (cols + 1) T{std::move(v2)};
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 cols->~T();
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_collision(p, 2);
-            throw;
+            IMMER_RETHROW;
         }
         return p;
     }
@@ -336,17 +336,17 @@ struct node
         auto dst  = make_collision_n(n + 1);
         auto srcp = src->collisions();
         auto dstp = dst->collisions();
-        try {
+        IMMER_TRY {
             new (dstp) T{std::move(v)};
-            try {
+            IMMER_TRY {
                 std::uninitialized_copy(srcp, srcp + n, dstp + 1);
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 dstp->~T();
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_collision(dst, n + 1);
-            throw;
+            IMMER_RETHROW;
         }
         return dst;
     }
@@ -359,17 +359,17 @@ struct node
         auto dst  = make_collision_n(n - 1);
         auto srcp = src->collisions();
         auto dstp = dst->collisions();
-        try {
+        IMMER_TRY {
             dstp = std::uninitialized_copy(srcp, v, dstp);
-            try {
+            IMMER_TRY {
                 std::uninitialized_copy(v + 1, srcp + n, dstp);
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 destroy(dst->collisions(), dstp);
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_collision(dst, n - 1);
-            throw;
+            IMMER_RETHROW;
         }
         return dst;
     }
@@ -382,23 +382,23 @@ struct node
         auto srcp = src->collisions();
         auto dstp = dst->collisions();
         assert(pos >= srcp && pos < srcp + n);
-        try {
+        IMMER_TRY {
             new (dstp) T{std::move(v)};
-            try {
+            IMMER_TRY {
                 dstp = std::uninitialized_copy(srcp, pos, dstp + 1);
-                try {
+                IMMER_TRY {
                     std::uninitialized_copy(pos + 1, srcp + n, dstp);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     destroy(dst->collisions(), dstp);
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 dst->collisions()->~T();
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_collision(dst, n);
-            throw;
+            IMMER_RETHROW;
         }
         return dst;
     }
@@ -429,18 +429,18 @@ struct node
         auto dst                       = make_inner_n(n, nv);
         dst->impl.d.data.inner.datamap = src->datamap();
         dst->impl.d.data.inner.nodemap = src->nodemap();
-        try {
+        IMMER_TRY {
             std::uninitialized_copy(
                 src->values(), src->values() + nv, dst->values());
-            try {
+            IMMER_TRY {
                 dst->values()[offset] = std::move(v);
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 destroy_n(dst->values(), nv);
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_inner(dst, n, nv);
-            throw;
+            IMMER_RETHROW;
         }
         inc_nodes(src->children(), n);
         std::uninitialized_copy(
@@ -464,20 +464,20 @@ struct node
         dst->impl.d.data.inner.datamap = src->datamap() & ~bit;
         dst->impl.d.data.inner.nodemap = src->nodemap() | bit;
         if (nv > 1) {
-            try {
+            IMMER_TRY {
                 std::uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
-                try {
+                IMMER_TRY {
                     std::uninitialized_copy(src->values() + voffset + 1,
                                             src->values() + nv,
                                             dst->values() + voffset);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     destroy_n(dst->values(), voffset);
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 deallocate_inner(dst, n + 1, nv - 1);
-                throw;
+                IMMER_RETHROW;
             }
         }
         inc_nodes(src->children(), n);
@@ -505,28 +505,28 @@ struct node
         auto voffset                   = src->data_count(bit);
         dst->impl.d.data.inner.nodemap = src->nodemap() & ~bit;
         dst->impl.d.data.inner.datamap = src->datamap() | bit;
-        try {
+        IMMER_TRY {
             if (nv)
                 std::uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
-            try {
+            IMMER_TRY {
                 new (dst->values() + voffset) T{std::move(value)};
-                try {
+                IMMER_TRY {
                     if (nv)
                         std::uninitialized_copy(src->values() + voffset,
                                                 src->values() + nv,
                                                 dst->values() + voffset + 1);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     dst->values()[voffset].~T();
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 destroy_n(dst->values(), voffset);
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_inner(dst, n - 1, nv + 1);
-            throw;
+            IMMER_RETHROW;
         }
         inc_nodes(src->children(), n);
         src->children()[noffset]->dec_unsafe();
@@ -551,20 +551,20 @@ struct node
         dst->impl.d.data.inner.datamap = src->datamap() & ~bit;
         dst->impl.d.data.inner.nodemap = src->nodemap();
         if (nv > 1) {
-            try {
+            IMMER_TRY {
                 std::uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
-                try {
+                IMMER_TRY {
                     std::uninitialized_copy(src->values() + voffset + 1,
                                             src->values() + nv,
                                             dst->values() + voffset);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     destroy_n(dst->values(), voffset);
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 deallocate_inner(dst, n, nv - 1);
-                throw;
+                IMMER_RETHROW;
             }
         }
         inc_nodes(src->children(), n);
@@ -582,28 +582,28 @@ struct node
         auto dst                       = make_inner_n(n, nv + 1);
         dst->impl.d.data.inner.datamap = src->datamap() | bit;
         dst->impl.d.data.inner.nodemap = src->nodemap();
-        try {
+        IMMER_TRY {
             if (nv)
                 std::uninitialized_copy(
                     src->values(), src->values() + offset, dst->values());
-            try {
+            IMMER_TRY {
                 new (dst->values() + offset) T{std::move(v)};
-                try {
+                IMMER_TRY {
                     if (nv)
                         std::uninitialized_copy(src->values() + offset,
                                                 src->values() + nv,
                                                 dst->values() + offset + 1);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     dst->values()[offset].~T();
-                    throw;
+                    IMMER_RETHROW;
                 }
-            } catch (...) {
+            } IMMER_CATCH (...) {
                 destroy_n(dst->values(), offset);
-                throw;
+                IMMER_RETHROW;
             }
-        } catch (...) {
+        } IMMER_CATCH (...) {
             deallocate_inner(dst, n, nv + 1);
-            throw;
+            IMMER_RETHROW;
         }
         inc_nodes(src->children(), n);
         std::uninitialized_copy(
@@ -620,11 +620,11 @@ struct node
             if (idx1 == idx2) {
                 auto merged = make_merged(
                     shift + B, std::move(v1), hash1, std::move(v2), hash2);
-                try {
+                IMMER_TRY {
                     return make_inner_n(1, idx1 >> shift, merged);
-                } catch (...) {
+                } IMMER_CATCH (...) {
                     delete_deep_shift(merged, shift + B);
-                    throw;
+                    IMMER_RETHROW;
                 }
             } else {
                 return make_inner_n(0,

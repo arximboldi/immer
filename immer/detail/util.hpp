@@ -65,11 +65,11 @@ template <typename Heap, typename T, typename... Args>
 T* make(Args&&... args)
 {
     auto ptr = Heap::allocate(sizeof(T));
-    try {
+    IMMER_TRY {
         return new (ptr) T{std::forward<Args>(args)...};
-    } catch (...) {
+    } IMMER_CATCH (...) {
         Heap::deallocate(sizeof(T), ptr);
-        throw;
+        IMMER_RETHROW;
     }
 }
 
@@ -245,17 +245,17 @@ template <typename SourceIter,
 SinkIter uninitialized_copy(SourceIter first, Sent last, SinkIter d_first)
 {
     auto current = d_first;
-    try {
+    IMMER_TRY {
         while (first != last) {
             *current++ = *first;
             ++first;
         }
-    } catch (...) {
+    } IMMER_CATCH (...) {
         using Value = typename std::iterator_traits<SinkIter>::value_type;
         for (; d_first != current; ++d_first) {
             d_first->~Value();
         }
-        throw;
+        IMMER_RETHROW;
     }
     return current;
 }

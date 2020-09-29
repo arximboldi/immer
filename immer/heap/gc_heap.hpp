@@ -17,7 +17,9 @@
 #error "Using garbage collection requires libgc"
 #endif
 
+#include <cassert>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 
 namespace immer {
@@ -105,7 +107,7 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc(n);
         if (IMMER_UNLIKELY(!p))
-            throw std::bad_alloc{};
+            IMMER_THROW(std::bad_alloc{});
         return p;
     }
 
@@ -114,7 +116,7 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc_atomic(n);
         if (IMMER_UNLIKELY(!p))
-            throw std::bad_alloc{};
+            IMMER_THROW(std::bad_alloc{});
         return p;
     }
 

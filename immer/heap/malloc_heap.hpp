@@ -10,7 +10,9 @@
 
 #include <immer/config.hpp>
 
+#include <cassert>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 
 namespace immer {
@@ -29,7 +31,7 @@ struct malloc_heap
     {
         auto p = std::malloc(size);
         if (IMMER_UNLIKELY(!p))
-            throw std::bad_alloc{};
+            IMMER_THROW(std::bad_alloc{});
         return p;
     }
 
