@@ -47,7 +47,7 @@ struct rrbtree
 
     static const rrbtree& empty()
     {
-        static const rrbtree empty_{
+        static const auto& empty_ = *new rrbtree{
             0, BL, node_t::make_inner_n(0u), node_t::make_leaf_n(0u)};
         return empty_;
     }
