@@ -34,16 +34,13 @@ struct champ
     node_t* root;
     size_t size;
 
-    static const champ& empty()
+    static node_t* empty()
     {
-        static const champ empty_{
-            node_t::make_inner_n(0),
-            0,
-        };
-        return empty_;
+        static const auto node = node_t::make_inner_n(0);
+        return node->inc();
     }
 
-    champ(node_t* r, size_t sz)
+    champ(node_t* r, size_t sz = 0)
         : root{r}
         , size{sz}
     {}
@@ -396,7 +393,7 @@ struct champ
                                                node->values()[!offset]);
                     } else {
                         assert(shift == 0);
-                        return empty().root->inc();
+                        return empty();
                     }
                 }
             }

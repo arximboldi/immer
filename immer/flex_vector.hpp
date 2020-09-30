@@ -608,7 +608,7 @@ private:
         return l.impl_.concat(r.impl_);
     }
 
-    impl_t impl_ = impl_t::empty();
+    impl_t impl_ = {};
 };
 
 } // namespace immer
