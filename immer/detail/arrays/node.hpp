@@ -81,7 +81,8 @@ struct node
         IMMER_TRY {
             std::uninitialized_fill_n(p->data(), n, v);
             return p;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             heap::deallocate(sizeof_n(n), p);
             IMMER_RETHROW;
         }
@@ -97,7 +98,8 @@ struct node
         IMMER_TRY {
             uninitialized_copy(first, last, p->data());
             return p;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             heap::deallocate(sizeof_n(n), p);
             IMMER_RETHROW;
         }

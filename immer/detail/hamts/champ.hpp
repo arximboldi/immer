@@ -171,7 +171,8 @@ struct champ
                     result.first =
                         node_t::copy_inner_replace(node, offset, result.first);
                     return result;
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_deep_shift(result.first, shift + B);
                     IMMER_RETHROW;
                 }
@@ -189,7 +190,8 @@ struct champ
                         return {node_t::copy_inner_replace_merged(
                                     node, bit, offset, child),
                                 true};
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
                         IMMER_RETHROW;
                     }
@@ -250,7 +252,8 @@ struct champ
                     result.first =
                         node_t::copy_inner_replace(node, offset, result.first);
                     return result;
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_deep_shift(result.first, shift + B);
                     IMMER_RETHROW;
                 }
@@ -277,7 +280,8 @@ struct champ
                         return {node_t::copy_inner_replace_merged(
                                     node, bit, offset, child),
                                 true};
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
                         IMMER_RETHROW;
                     }
@@ -375,7 +379,8 @@ struct champ
                     IMMER_TRY {
                         return node_t::copy_inner_replace(
                             node, offset, result.data.tree);
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_deep_shift(result.data.tree, shift + B);
                         IMMER_RETHROW;
                     }

@@ -329,7 +329,8 @@ struct rrbtree
                     assert(size);
                     assert(tail_size);
                     new_root->relaxed()->d.count = 2u;
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_inner_r(new_root, 2);
                     IMMER_RETHROW;
                 }
@@ -341,7 +342,8 @@ struct rrbtree
                 auto new_path        = node_t::make_path(shift, tail);
                 new_root->inner()[0] = root->inc();
                 new_root->inner()[1] = new_path;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_inner(new_root, 2);
                 IMMER_RETHROW;
             }
@@ -377,7 +379,8 @@ struct rrbtree
                     new_root->relaxed()->d.count = 2u;
                     root                         = new_root;
                     shift += B;
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_inner_r_e(new_root);
                     IMMER_RETHROW;
                 }
@@ -390,7 +393,8 @@ struct rrbtree
                 new_root->inner()[1] = new_path;
                 root                 = new_root;
                 shift += B;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_inner_e(new_root);
                 IMMER_RETHROW;
             }
@@ -428,7 +432,8 @@ struct rrbtree
             IMMER_TRY {
                 push_tail_mut(e, tail_off, tail, ts);
                 tail = new_tail;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1u);
                 IMMER_RETHROW;
             }
@@ -452,7 +457,8 @@ struct rrbtree
                     push_tail(root, shift, tail_off, tail, size - tail_off);
                 tail->inc();
                 return {size + 1, get<0>(new_root), get<1>(new_root), new_tail};
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1u);
                 IMMER_RETHROW;
             }
@@ -708,11 +714,13 @@ struct rrbtree
                                 get<0>(new_root),
                                 get<1>(new_root),
                                 new_tail};
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
                         IMMER_RETHROW;
                     }
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
                     IMMER_RETHROW;
                 }
@@ -788,11 +796,13 @@ struct rrbtree
                         l.tail = new_tail;
                         l.size += r.size;
                         return;
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
                         IMMER_RETHROW;
                     }
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
@@ -931,11 +941,13 @@ struct rrbtree
                              get<1>(new_root),
                              new_tail};
                         return;
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
                         IMMER_RETHROW;
                     }
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
                     IMMER_RETHROW;
                 }
@@ -1062,11 +1074,13 @@ struct rrbtree
                         l.tail = new_tail;
                         l.size += r.size;
                         return;
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
                         IMMER_RETHROW;
                     }
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
@@ -1204,11 +1218,13 @@ struct rrbtree
                              get<1>(new_root),
                              new_tail};
                         return;
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_leaf(new_tail, r.size - remaining);
                         IMMER_RETHROW;
                     }
-                } IMMER_CATCH (...) {
+                }
+                IMMER_CATCH (...) {
                     node_t::delete_leaf(add_tail, branches<BL>);
                     IMMER_RETHROW;
                 }

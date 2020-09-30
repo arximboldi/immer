@@ -67,7 +67,8 @@ T* make(Args&&... args)
     auto ptr = Heap::allocate(sizeof(T));
     IMMER_TRY {
         return new (ptr) T{std::forward<Args>(args)...};
-    } IMMER_CATCH (...) {
+    }
+    IMMER_CATCH (...) {
         Heap::deallocate(sizeof(T), ptr);
         IMMER_RETHROW;
     }
@@ -250,7 +251,8 @@ SinkIter uninitialized_copy(SourceIter first, Sent last, SinkIter d_first)
             *current++ = *first;
             ++first;
         }
-    } IMMER_CATCH (...) {
+    }
+    IMMER_CATCH (...) {
         using Value = typename std::iterator_traits<SinkIter>::value_type;
         for (; d_first != current; ++d_first) {
             d_first->~Value();

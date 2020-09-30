@@ -162,7 +162,8 @@ struct no_capacity
         IMMER_TRY {
             new (p->data() + size) T{std::move(value)};
             return {p, size + 1};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size + 1);
             IMMER_RETHROW;
         }
@@ -174,7 +175,8 @@ struct no_capacity
         IMMER_TRY {
             p->data()[idx] = std::move(value);
             return {p, size};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size);
             IMMER_RETHROW;
         }
@@ -188,7 +190,8 @@ struct no_capacity
             auto& elem = p->data()[idx];
             elem       = std::forward<Fn>(op)(std::move(elem));
             return {p, size};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size);
             IMMER_RETHROW;
         }

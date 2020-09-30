@@ -273,7 +273,8 @@ struct rbtree
                         root                 = new_root;
                         tail                 = new_tail;
                         shift += B;
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_inner_e(new_root);
                         IMMER_RETHROW;
                     }
@@ -290,7 +291,8 @@ struct rbtree
                     root = new_root;
                     tail = new_tail;
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1);
                 IMMER_RETHROW;
             }
@@ -318,7 +320,8 @@ struct rbtree
                         root->inc();
                         tail->inc();
                         return {size + 1, shift + B, new_root, new_tail};
-                    } IMMER_CATCH (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_inner(new_root, 2);
                         IMMER_RETHROW;
                     }
@@ -333,7 +336,8 @@ struct rbtree
                     tail->inc();
                     return {size + 1, shift, new_root, new_tail};
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1);
                 IMMER_RETHROW;
             }

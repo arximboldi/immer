@@ -472,7 +472,8 @@ struct update_visitor : visitor_base<update_visitor<NodeT>>
             node->inner()[offset]->dec_unsafe();
             node->inner()[offset] = child;
             return node;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_inner_r(node, count);
             IMMER_RETHROW;
         }
@@ -490,7 +491,8 @@ struct update_visitor : visitor_base<update_visitor<NodeT>>
             node->inner()[offset]->dec_unsafe();
             node->inner()[offset] = child;
             return node;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_inner(node, count);
             IMMER_RETHROW;
         }
@@ -505,7 +507,8 @@ struct update_visitor : visitor_base<update_visitor<NodeT>>
             node->leaf()[offset] =
                 std::forward<Fn>(fn)(std::move(node->leaf()[offset]));
             return node;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_leaf(node, pos.count());
             IMMER_RETHROW;
         }
@@ -605,7 +608,8 @@ struct get_mut_visitor : visitor_base<get_mut_visitor<NodeT>>
                 pos.visit(dec_visitor{});
                 *location = new_node;
                 return res;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 dec_relaxed(new_node, pos.shift());
                 IMMER_RETHROW;
             }
@@ -635,7 +639,8 @@ struct get_mut_visitor : visitor_base<get_mut_visitor<NodeT>>
                 pos.visit(dec_visitor{});
                 *location = new_node;
                 return res;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 dec_regular(new_node, pos.shift(), pos.size());
                 IMMER_RETHROW;
             }
@@ -719,7 +724,8 @@ struct push_tail_mut_visitor
                 if (Mutating)
                     pos.visit(dec_visitor{});
                 return new_node;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 auto shift = pos.shift();
                 auto size  = new_idx == idx ? children + ts : ts;
                 if (shift > BL) {
@@ -757,7 +763,8 @@ struct push_tail_mut_visitor
                 if (Mutating)
                     pos.visit(dec_visitor{});
                 return new_parent;
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_inner_e(new_parent);
                 IMMER_RETHROW;
             }
@@ -811,7 +818,8 @@ struct push_tail_visitor : visitor_base<push_tail_visitor<NodeT>>
             new_relaxed->d.count          = count;
             assert(new_relaxed->d.sizes[new_idx]);
             return new_parent;
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             auto shift = pos.shift();
             auto size  = new_idx == idx ? children + ts : ts;
             if (shift > BL) {
@@ -835,7 +843,8 @@ struct push_tail_visitor : visitor_base<push_tail_visitor<NodeT>>
                 idx == new_idx ? pos.last_oh(this_t{}, idx, tail)
                                /* otherwise */
                                : node_t::make_path(pos.shift() - B, tail);
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_inner(new_parent, count);
             IMMER_RETHROW;
         }
@@ -964,7 +973,8 @@ struct slice_right_mut_visitor
                         return std::make_tuple(pos.shift(), newn, ts, tail);
                     }
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 assert(!mutate);
                 assert(!next || pos.shift() > BL);
                 if (next)
@@ -1032,7 +1042,8 @@ struct slice_right_mut_visitor
                         return std::make_tuple(pos.shift(), newn, ts, tail);
                     }
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 assert(!mutate);
                 assert(!next || pos.shift() > BL);
                 assert(tail);
@@ -1113,7 +1124,8 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
                     auto newn = node_t::copy_inner_r(pos.node(), idx);
                     return std::make_tuple(pos.shift(), newn, ts, tail);
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 assert(!next || pos.shift() > BL);
                 if (next)
                     dec_inner(next,
@@ -1153,7 +1165,8 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
                     auto newn = node_t::copy_inner_n(idx, pos.node(), idx);
                     return std::make_tuple(pos.shift(), newn, ts, tail);
                 }
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 assert(!next || pos.shift() > BL);
                 assert(tail);
                 if (next)
@@ -1277,7 +1290,8 @@ struct slice_left_mut_visitor
                         pos.visit(dec_visitor{});
                 }
                 return std::make_tuple(pos.shift(), newn);
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 if (!mutate)
                     node_t::delete_inner_r_e(newn);
                 IMMER_RETHROW;
@@ -1343,7 +1357,8 @@ struct slice_left_mut_visitor
                         pos.visit(dec_visitor{});
                 }
                 return std::make_tuple(pos.shift(), newn);
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 if (!mutate)
                     node_t::delete_inner_r_e(newn);
                 else {
@@ -1429,7 +1444,8 @@ struct slice_left_visitor : visitor_base<slice_left_visitor<NodeT, Collapse>>
                                         newn->inner() + 1);
                 node_t::inc_nodes(newn->inner() + 1, newr->d.count - 1);
                 return std::make_tuple(pos.shift(), newn);
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_inner_r(newn, newc);
                 IMMER_RETHROW;
             }
@@ -1515,7 +1531,8 @@ struct concat_center_pos
                 std::copy(nodes_, nodes_ + count_, result->inner());
                 std::copy(sizes_, sizes_ + count_, r->d.sizes);
                 return {result, shift_, r};
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 each_sub(dec_visitor{});
                 IMMER_RETHROW;
             }
@@ -1790,7 +1807,8 @@ struct concat_rebalance_plan
             rpos.each_right_sub(visitor_t{}, merger);
             cpos.each_sub(dec_visitor{});
             return merger.finish();
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             merger.abort();
             IMMER_RETHROW;
         }
@@ -1805,7 +1823,8 @@ concat_center_pos<Node> concat_rebalance(LPos&& lpos, CPos&& cpos, RPos&& rpos)
     plan.shuffle(cpos.shift());
     IMMER_TRY {
         return plan.merge(lpos, cpos, rpos);
-    } IMMER_CATCH (...) {
+    }
+    IMMER_CATCH (...) {
         cpos.each_sub(dec_visitor{});
         IMMER_RETHROW;
     }
@@ -2240,7 +2259,8 @@ struct concat_rebalance_plan_mut : concat_rebalance_plan<B, BL>
                 merger.set_candidate(er, rnode);
             rpos.each_right_sub(visitor_t{}, merger, er);
             return merger.finish();
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             merger.abort();
             IMMER_RETHROW;
         }

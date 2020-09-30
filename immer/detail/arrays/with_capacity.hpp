@@ -196,7 +196,8 @@ struct with_capacity
         IMMER_TRY {
             new (p->data() + size) T{std::move(value)};
             return {p, size + 1, cap};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, cap);
             IMMER_RETHROW;
         }
@@ -213,7 +214,8 @@ struct with_capacity
             IMMER_TRY {
                 new (p->data() + size) T{std::move(value)};
                 *this = {p, size + 1, cap};
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_n(p, size, cap);
                 IMMER_RETHROW;
             }
@@ -226,7 +228,8 @@ struct with_capacity
         IMMER_TRY {
             p->data()[idx] = std::move(value);
             return {p, size, capacity};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, capacity);
             IMMER_RETHROW;
         }
@@ -241,7 +244,8 @@ struct with_capacity
             IMMER_TRY {
                 p->data()[idx] = std::move(value);
                 *this          = {p, size, capacity};
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_n(p, size, capacity);
                 IMMER_RETHROW;
             }
@@ -256,7 +260,8 @@ struct with_capacity
             auto& elem = p->data()[idx];
             elem       = std::forward<Fn>(op)(std::move(elem));
             return {p, size, capacity};
-        } IMMER_CATCH (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, capacity);
             IMMER_RETHROW;
         }
@@ -274,7 +279,8 @@ struct with_capacity
                 auto& elem = p->data()[idx];
                 elem       = std::forward<Fn>(op)(std::move(elem));
                 *this      = {p, size, capacity};
-            } IMMER_CATCH (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_n(p, size, capacity);
                 IMMER_RETHROW;
             }

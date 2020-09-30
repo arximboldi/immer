@@ -27,11 +27,11 @@
 #ifdef IMMER_NO_EXCEPTIONS
 #define IMMER_TRY if (true)
 #define IMMER_CATCH(expr) else
-#define IMMER_THROW(expr) \
-    do {                  \
-        assert(! #expr);  \
-        std::terminate(); \
-    } while(false)
+#define IMMER_THROW(expr)                                                      \
+    do {                                                                       \
+        assert(!#expr);                                                        \
+        std::terminate();                                                      \
+    } while (false)
 #define IMMER_RETHROW
 #else
 #define IMMER_TRY try
