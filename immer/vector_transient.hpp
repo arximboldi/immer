@@ -197,7 +197,7 @@ private:
         : impl_(std::move(impl))
     {}
 
-    impl_t impl_ = impl_t::empty();
+    impl_t impl_ = {};
 };
 
 } // namespace immer

@@ -40,18 +40,23 @@ struct rbtree
         return (size_t{1} << BL) * ipow(size_t{1} << B, (S - BL) / B);
     }
 
-    static const rbtree& empty()
+    static node_t* empty_root()
     {
-        static const auto& empty_ = *new rbtree{
-            0, BL, node_t::make_inner_n(0u), node_t::make_leaf_n(0u)};
-        return empty_;
+        static const auto empty_ = node_t::make_inner_n(0u);
+        return empty_->inc();
+    }
+
+    static node_t* empty_tail()
+    {
+        static const auto empty_ = node_t::make_leaf_n(0u);
+        return empty_->inc();
     }
 
     template <typename U>
     static auto from_initializer_list(std::initializer_list<U> values)
     {
         auto e      = owner_t{};
-        auto result = rbtree{empty()};
+        auto result = rbtree{};
         for (auto&& v : values)
             result.push_back_mut(e, v);
         return result;
@@ -63,7 +68,7 @@ struct rbtree
     static auto from_range(Iter first, Sent last)
     {
         auto e      = owner_t{};
-        auto result = rbtree{empty()};
+        auto result = rbtree{};
         for (; first != last; ++first)
             result.push_back_mut(e, *first);
         return result;
@@ -72,10 +77,19 @@ struct rbtree
     static auto from_fill(size_t n, T v)
     {
         auto e      = owner_t{};
-        auto result = rbtree{empty()};
+        auto result = rbtree{};
         while (n-- > 0)
             result.push_back_mut(e, v);
         return result;
+    }
+
+    rbtree()
+        : size{0}
+        , shift{BL}
+        , root{empty_root()}
+        , tail{empty_tail()}
+    {
+        assert(check_tree());
     }
 
     rbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
@@ -94,7 +108,7 @@ struct rbtree
     }
 
     rbtree(rbtree&& other)
-        : rbtree{empty()}
+        : rbtree{}
     {
         swap(*this, other);
     }
@@ -410,7 +424,7 @@ struct rbtree
     {
         auto tail_off = tail_offset();
         if (new_size == 0) {
-            return empty();
+            return {};
         } else if (new_size >= size) {
             return *this;
         } else if (new_size > tail_off) {
@@ -429,7 +443,7 @@ struct rbtree
                 assert(new_root->check(new_shift, new_size - get<2>(r)));
                 return {new_size, new_shift, new_root, new_tail};
             } else {
-                return {new_size, BL, empty().root->inc(), new_tail};
+                return {new_size, BL, empty_root(), new_tail};
             }
         }
     }
@@ -439,7 +453,7 @@ struct rbtree
         auto tail_off = tail_offset();
         if (new_size == 0) {
             // todo: more efficient?
-            *this = empty();
+            *this = {};
         } else if (new_size >= size) {
             return;
         } else if (new_size > tail_off) {
@@ -466,7 +480,7 @@ struct rbtree
                 root  = new_root;
                 shift = new_shift;
             } else {
-                root  = empty().root->inc();
+                root  = empty_root();
                 shift = BL;
             }
             dec_leaf(tail, size - tail_off);
