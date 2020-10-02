@@ -11,6 +11,9 @@
 #include <immer/algorithm.hpp>
 #include <immer/detail/arrays/node.hpp>
 
+#include <cassert>
+#include <exception>
+
 namespace immer {
 namespace detail {
 namespace arrays {
@@ -142,7 +145,7 @@ struct no_capacity
     const T& get_check(std::size_t index) const
     {
         if (index >= size)
-            throw std::out_of_range{"out of range"};
+            IMMER_THROW(std::out_of_range{"out of range"});
         return data()[index];
     }
 
@@ -156,24 +159,26 @@ struct no_capacity
     no_capacity push_back(T value) const
     {
         auto p = node_t::copy_n(size + 1, ptr, size);
-        try {
+        IMMER_TRY {
             new (p->data() + size) T{std::move(value)};
             return {p, size + 1};
-        } catch (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size + 1);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
     no_capacity assoc(std::size_t idx, T value) const
     {
         auto p = node_t::copy_n(size, ptr, size);
-        try {
+        IMMER_TRY {
             p->data()[idx] = std::move(value);
             return {p, size};
-        } catch (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size);
-            throw;
+            IMMER_RETHROW;
         }
     }
 
@@ -181,13 +186,14 @@ struct no_capacity
     no_capacity update(std::size_t idx, Fn&& op) const
     {
         auto p = node_t::copy_n(size, ptr, size);
-        try {
+        IMMER_TRY {
             auto& elem = p->data()[idx];
             elem       = std::forward<Fn>(op)(std::move(elem));
             return {p, size};
-        } catch (...) {
+        }
+        IMMER_CATCH (...) {
             node_t::delete_n(p, size, size);
-            throw;
+            IMMER_RETHROW;
         }
     }
 

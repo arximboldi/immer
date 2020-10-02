@@ -112,8 +112,10 @@ TEST_CASE("at")
     auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     CHECK(v.at(0) == 0);
     CHECK(v.at(5) == 5);
+#ifndef IMMER_NO_EXCEPTIONS
     CHECK_THROWS_AS(v.at(10), const std::out_of_range&);
     CHECK_THROWS_AS(v.at(11), const std::out_of_range&);
+#endif
 }
 
 TEST_CASE("push back one element")

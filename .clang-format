@@ -18,6 +18,7 @@ ColumnLimit: '80'
 CompactNamespaces: 'false'
 ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
 FixNamespaceComments: 'true'
+ForEachMacros: ['IMMER_CATCH', 'IMMER_TRY']
 IndentCaseLabels: 'false'
 IndentWidth: '4'
 IndentWrappedFunctionNames: 'false'

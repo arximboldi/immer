@@ -15,6 +15,7 @@
 #include <immer/detail/type_traits.hpp>
 
 #include <cassert>
+#include <exception>
 #include <memory>
 #include <numeric>
 
@@ -276,19 +277,20 @@ struct rbtree
             new (&tail->leaf()[ts]) T{std::move(value)};
         } else {
             auto new_tail = node_t::make_leaf_e(e, std::move(value));
-            try {
+            IMMER_TRY {
                 if (tail_off == size_t{branches<B>} << shift) {
                     auto new_root = node_t::make_inner_e(e);
-                    try {
+                    IMMER_TRY {
                         auto path = node_t::make_path_e(e, shift, tail);
                         new_root->inner()[0] = root;
                         new_root->inner()[1] = path;
                         root                 = new_root;
                         tail                 = new_tail;
                         shift += B;
-                    } catch (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_inner_e(new_root);
-                        throw;
+                        IMMER_RETHROW;
                     }
                 } else if (tail_off) {
                     auto new_root =
@@ -303,9 +305,10 @@ struct rbtree
                     root = new_root;
                     tail = new_tail;
                 }
-            } catch (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1);
-                throw;
+                IMMER_RETHROW;
             }
         }
         ++size;
@@ -321,19 +324,20 @@ struct rbtree
             return {size + 1, shift, root->inc(), new_tail};
         } else {
             auto new_tail = node_t::make_leaf_n(1, std::move(value));
-            try {
+            IMMER_TRY {
                 if (tail_off == size_t{branches<B>} << shift) {
                     auto new_root = node_t::make_inner_n(2);
-                    try {
+                    IMMER_TRY {
                         auto path            = node_t::make_path(shift, tail);
                         new_root->inner()[0] = root;
                         new_root->inner()[1] = path;
                         root->inc();
                         tail->inc();
                         return {size + 1, shift + B, new_root, new_tail};
-                    } catch (...) {
+                    }
+                    IMMER_CATCH (...) {
                         node_t::delete_inner(new_root, 2);
-                        throw;
+                        IMMER_RETHROW;
                     }
                 } else if (tail_off) {
                     auto new_root =
@@ -346,9 +350,10 @@ struct rbtree
                     tail->inc();
                     return {size + 1, shift, new_root, new_tail};
                 }
-            } catch (...) {
+            }
+            IMMER_CATCH (...) {
                 node_t::delete_leaf(new_tail, 1);
-                throw;
+                IMMER_RETHROW;
             }
         }
     }
@@ -378,7 +383,7 @@ struct rbtree
     const T& get_check(size_t index) const
     {
         if (index >= size)
-            throw std::out_of_range{"index out of range"};
+            IMMER_THROW(std::out_of_range{"index out of range"});
         return descend(get_visitor<T>(), index);
     }
 
