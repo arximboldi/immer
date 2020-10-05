@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/arrays/no_capacity.hpp>
 
 #include <cassert>
+#include <cstddef>
 #include <exception>
 
 namespace immer {

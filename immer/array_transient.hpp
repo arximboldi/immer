@@ -11,6 +11,8 @@
 #include <immer/detail/arrays/with_capacity.hpp>
 #include <immer/memory_policy.hpp>
 
+#include <cstddef>
+
 namespace immer {
 
 template <typename T, typename MemoryPolicy>

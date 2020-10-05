@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <type_traits>
 
 #if defined(__GNUC__) && __GNUC__ == 7 && __GNUC_MINOR__ == 1
