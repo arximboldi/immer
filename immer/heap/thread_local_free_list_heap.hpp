@@ -10,6 +10,8 @@
 
 #include <immer/heap/unsafe_free_list_heap.hpp>
 
+#include <cstddef>
+
 namespace immer {
 namespace detail {
 

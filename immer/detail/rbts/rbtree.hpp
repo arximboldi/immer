@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/rbts/node.hpp>
 #include <immer/detail/rbts/operations.hpp>
 #include <immer/detail/rbts/position.hpp>
-
 #include <immer/detail/type_traits.hpp>
 
 #include <cassert>

@@ -8,10 +8,12 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/combine_standard_layout.hpp>
 #include <immer/detail/type_traits.hpp>
 #include <immer/detail/util.hpp>
 
+#include <cstddef>
 #include <limits>
 
 namespace immer {

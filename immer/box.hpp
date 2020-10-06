@@ -11,6 +11,8 @@
 #include <immer/detail/util.hpp>
 #include <immer/memory_policy.hpp>
 
+#include <cstddef>
+
 namespace immer {
 
 namespace detail {

@@ -12,6 +12,8 @@
 
 #include <immer/memory_policy.hpp>
 
+#include <cstddef>
+
 namespace immer {
 
 template <typename T, int B = 5, typename MemoryPolicy = default_memory_policy>

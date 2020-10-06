@@ -9,9 +9,11 @@
 #pragma once
 
 #include <immer/algorithm.hpp>
+#include <immer/config.hpp>
 #include <immer/detail/arrays/node.hpp>
 
 #include <cassert>
+#include <cstddef>
 #include <exception>
 
 namespace immer {

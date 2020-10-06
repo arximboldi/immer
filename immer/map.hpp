@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/hamts/champ.hpp>
 #include <immer/detail/hamts/champ_iterator.hpp>
 #include <immer/memory_policy.hpp>

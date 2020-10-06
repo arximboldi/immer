@@ -8,11 +8,13 @@
 
 #pragma once
 
+#include <immer/config.hpp>
 #include <immer/detail/combine_standard_layout.hpp>
 #include <immer/detail/hamts/bits.hpp>
 #include <immer/detail/util.hpp>
 
 #include <cassert>
+#include <cstddef>
 
 namespace immer {
 namespace detail {
