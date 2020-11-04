@@ -104,5 +104,10 @@ jobs:
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "cd build && make check -j`nproc`"
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "bash <(curl -s https://codecov.io/bash)"
         if: ${{ contains(matrix.opts, 'coverage') }}
+      - uses: shimataro/ssh-key-action@v2
+        if: ${{ contains(matrix.opts, 'benchmark') }}
+        with:
+          key: ${{ secrets.SINUSOIDES_SSH_KEY }}
+          known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
       - run: nix-shell --run "cd build && make upload-benchmark-reports"
         if: ${{ contains(matrix.opts, 'benchmark') }}
