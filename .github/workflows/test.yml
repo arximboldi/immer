@@ -21,16 +21,14 @@ jobs:
       matrix:
         type: [Debug, Release]
         toolchain: [gnu-6, gnu-7, llvm-5, llvm-6]
-        coverage: [false]
-        benchmark: [false]
-        sanitize: [false]
-        fuzzers: [false]
         std: [14]
+        opts: [[]]
         include:
           # coverage
           - type: Debug
             toolchain: gnu-9
-            coverage: true
+            std: 14
+            opts: ['coverage']
           # std 17
           - type: Debug
             toolchain: gnu-8
@@ -38,18 +36,21 @@ jobs:
           - type: Debug
             toolchain: llvm-9
             std: 17
-            fuzzers: true # fuzzers
+            opts: ['fuzzers']
           # sanitizers
           - type: Debug
             toolchain: llvm-8
-            sanitize: true
+            std: 14
+            opts: ['sanitizer']
           # benchmarks
           - type: Release
             toolchain: gnu-9
-            benchmark: true
+            std: 14
+            opts: ['benchmark']
           - type: Release
             toolchain: llvm-10
-            benchmark: true
+            std: 14
+            opts: ['benchmark']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -68,19 +69,19 @@ jobs:
               -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
               -DCHECK_SLOW_TESTS=false \
               -DCXX_STANDARD=${{ matrix.std }} \
-              -DCHECK_BENCHMARKS=${{ matrix.benchmark }} \
-              -DENABLE_COVERAGE=${{ matrix.coverage }} \
-              -DENABLE_ASAN=${{ matrix.sanitize }} \
-              -DENABLE_LSAN=${{ matrix.sanitize }} \
-              -DENABLE_UBSAN=${{ matrix.sanitize }} \
-              -DCHECK_FUZZERS=${{ matrix.fuzzers }} \
-              -DDISABLE_FREE_LIST=${{ matrix.sanitize }}
+              -DCHECK_BENCHMARKS=${{ contains(matrix.opts, 'benchmark') }} \
+              -DENABLE_COVERAGE=${{ contains(matrix.opts, 'coverage') }} \
+              -DENABLE_ASAN=${{ contains(matrix.opts, 'sanitize') }} \
+              -DENABLE_LSAN=${{ contains(matrix.opts, 'sanitize') }} \
+              -DENABLE_UBSAN=${{ contains(matrix.opts, 'sanitize') }} \
+              -DCHECK_FUZZERS=${{ contains(matrix.opts, 'fuzzers') }} \
+              -DDISABLE_FREE_LIST=${{ contains(matrix.opts, 'sanitize') }}
           "
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "cd build && make check -j`nproc`"
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "bash <(curl -s https://codecov.io/bash)"
-        if: ${{ matrix.coverage }}
+        if: ${{ contains(matrix.opts, 'coverage') }}
       - run: nix-shell --run "cd build && make upload-benchmark-reports"
-        if: ${{ matrix.benchmark }}
+        if: ${{ contains(matrix.opts, 'benchmark') }}
 
   docs:
     runs-on: ubuntu-latest
