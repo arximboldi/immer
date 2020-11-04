@@ -205,7 +205,7 @@ TEST_CASE("bug: concat with moving the right side")
         var0      = var0 + std::move(var1);
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     SECTION("vm")
     {
         constexpr std::uint8_t input[] = {

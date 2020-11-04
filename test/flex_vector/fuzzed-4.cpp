@@ -231,7 +231,7 @@ TEST_CASE("bug: concatenating transients")
         t1.append(t0);
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -271,7 +271,7 @@ TEST_CASE("bug: concatenating moved transients")
         t2.append(std::move(t0));
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
@@ -309,7 +309,7 @@ TEST_CASE("bug: concatenating moved transients")
         t0 = {};
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     SECTION("")
     {
         return;
@@ -348,7 +348,7 @@ TEST_CASE("bug: aegsdas")
         t1 = {};
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
