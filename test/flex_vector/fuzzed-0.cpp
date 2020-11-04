@@ -174,7 +174,7 @@ TEST_CASE("bug: concatenate too big vectors")
         var4      = var4.push_back(42);
     }
 
-#if __GNUC__ != 9
+#if __GNUC__ != 9 && __GNUC__ != 8
     // Assertion `!p->relaxed()' failed
     SECTION("")
     {
