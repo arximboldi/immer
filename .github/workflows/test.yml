@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # needed for fetchGit in default.nix
       - uses: cachix/install-nix-action@v11
         with:
           nix_path: nixpkgs=channel:nixos-unstable
