@@ -1,7 +1,6 @@
-
-.. image:: https://travis-ci.org/arximboldi/immer.svg?branch=master
-   :target: https://travis-ci.org/arximboldi/immer
-   :alt: Travis Badge
+.. image:: https://github.com/arximboldi/immer/workflows/test/badge.svg
+   :target: https://github.com/arximboldi/immer/actions?query=workflow%3Atest+branch%3Amaster
+   :alt: Github Actions Badge
 
 .. image:: https://codecov.io/gh/arximboldi/immer/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/arximboldi/immer
