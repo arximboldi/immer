@@ -1,0 +1,105 @@
+name: test
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v11
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v6
+        with:
+          name: arximboldi
+          signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+      - run: nix-build
+
+  check:
+    strategy:
+      matrix:
+        type: [Debug, Release]
+        toolchain: [gnu-6, gnu-7, llvm-5, llvm-6]
+        coverage: [false]
+        benchmark: [false]
+        sanitize: [false]
+        fuzzers: [false]
+        std: [14]
+        include:
+          # coverage
+          - type: Debug
+            toolchain: gnu-9
+            coverage: true
+          # std 17
+          - type: Debug
+            toolchain: gnu-8
+            std: 17
+          - type: Debug
+            toolchain: llvm-9
+            std: 17
+            fuzzers: true # fuzzers
+          # sanitizers
+          - type: Debug
+            toolchain: llvm-8
+            sanitize: true
+          # benchmarks
+          - type: Release
+            toolchain: gnu-9
+            benchmark: true
+          - type: Release
+            toolchain: llvm-10
+            benchmark: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v11
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v6
+        with:
+          name: arximboldi
+          signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "mkdir build"
+      - name: configure CMake
+        run: |
+          nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "
+            cd build && cmake .. \
+              -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
+              -DCHECK_SLOW_TESTS=false \
+              -DCXX_STANDARD=${{ matrix.std }} \
+              -DCHECK_BENCHMARKS=${{ matrix.benchmark }} \
+              -DENABLE_COVERAGE=${{ matrix.coverage }} \
+              -DENABLE_ASAN=${{ matrix.sanitize }} \
+              -DENABLE_LSAN=${{ matrix.sanitize }} \
+              -DENABLE_UBSAN=${{ matrix.sanitize }} \
+              -DCHECK_FUZZERS=${{ matrix.fuzzers }} \
+              -DDISABLE_FREE_LIST=${{ matrix.sanitize }}
+          "
+      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "cd build && make check -j`nproc`"
+      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "bash <(curl -s https://codecov.io/bash)"
+        if: ${{ matrix.coverage }}
+      - run: nix-shell --run "cd build && make upload-benchmark-reports"
+        if: ${{ matrix.benchmark }}
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: cachix/install-nix-action@v11
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v6
+        with:
+          name: arximboldi
+          signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+      - run: nix-shell --run "mkdir build"
+      - run: nix-shell --run "cd build && cmake .."
+      - run: nix-shell --run "cd build && make docs"
+      - uses: shimataro/ssh-key-action@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          key: ${{ secrets.SINUSOIDES_SSH_KEY }}
+          known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
+      - run: nix-shell --run "cd build && make upload-docs"
+        if: github.ref == 'refs/heads/master'

@@ -13,8 +13,7 @@ add_dependencies(docs doxygen)
 
 set(immer_ssh_method
   ssh -p 5488
-      -o StrictHostKeyChecking=no
-      -i ${CMAKE_SOURCE_DIR}/tools/travis/ssh-key)
+      -o StrictHostKeyChecking=no)
 
 add_custom_target(upload-docs
   COMMAND
