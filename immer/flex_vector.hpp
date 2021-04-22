@@ -500,14 +500,8 @@ public:
      * Returns an @a transient form of this container, an
      * `immer::flex_vector_transient`.
      */
-    IMMER_NODISCARD transient_type transient() const&
-    {
-        return transient_type{impl_};
-    }
-    IMMER_NODISCARD transient_type transient() &&
-    {
-        return transient_type{std::move(impl_)};
-    }
+    IMMER_NODISCARD transient_type transient() const& { return impl_; }
+    IMMER_NODISCARD transient_type transient() && { return std::move(impl_); }
 
     // Semi-private
     const impl_t& impl() const { return impl_; }

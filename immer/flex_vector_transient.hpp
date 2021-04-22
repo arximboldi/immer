@@ -231,12 +231,9 @@ public:
     IMMER_NODISCARD persistent_type persistent() &
     {
         this->owner_t::operator=(owner_t{});
-        return persistent_type{impl_};
+        return impl_;
     }
-    IMMER_NODISCARD persistent_type persistent() &&
-    {
-        return persistent_type{std::move(impl_)};
-    }
+    IMMER_NODISCARD persistent_type persistent() && { return std::move(impl_); }
 
 private:
     friend persistent_type;
