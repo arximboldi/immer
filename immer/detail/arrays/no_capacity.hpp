@@ -14,7 +14,7 @@
 
 #include <cassert>
 #include <cstddef>
-#include <exception>
+#include <stdexcept>
 
 namespace immer {
 namespace detail {
