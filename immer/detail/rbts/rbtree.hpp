@@ -15,7 +15,7 @@
 #include <immer/detail/type_traits.hpp>
 
 #include <cassert>
-#include <exception>
+#include <stdexcept>
 #include <memory>
 #include <numeric>
 
