@@ -390,7 +390,7 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count(i) == 1);
+                CHECK(v.count({i}) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -408,7 +408,7 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count(vals[i]) == 1);
+                CHECK(v.count({vals[i]}) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -427,9 +427,9 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count(i) == 0);
+                CHECK(v.count({i}) == 0);
             for (auto i : test_irange(i, n))
-                CHECK(v.count(i) == 1);
+                CHECK(v.count({i}) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -449,9 +449,9 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count(vals[i]) == 0);
+                CHECK(v.count({vals[i]}) == 0);
             for (auto i : test_irange(i, n))
-                CHECK(v.count(vals[i]) == 1);
+                CHECK(v.count({vals[i]}) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
