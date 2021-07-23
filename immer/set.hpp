@@ -122,7 +122,8 @@ public:
      * otherwise. It won't allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD size_type count(const T& value) const
+    template<typename K>
+    IMMER_NODISCARD size_type count(const K& value) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(value);
@@ -134,7 +135,8 @@ public:
      * It does not allocate memory and its complexity is *effectively*
      * @f$ O(1) @f$.
      */
-    IMMER_NODISCARD const T* find(const T& value) const
+    template<typename K>
+    IMMER_NODISCARD const T* find(const K& value) const
     {
         return impl_.template get<project_value_ptr,
                                   detail::constantly<const T*, nullptr>>(value);

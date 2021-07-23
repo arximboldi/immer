@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <memory>
 #include <numeric>
+#include <limits>
 
 namespace immer {
 namespace detail {

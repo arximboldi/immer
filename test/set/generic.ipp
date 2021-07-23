@@ -390,7 +390,7 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count({i}) == 1);
+                CHECK(v.count(i) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -408,7 +408,7 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count({vals[i]}) == 1);
+                CHECK(v.count(vals[i]) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -427,9 +427,9 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count({i}) == 0);
+                CHECK(v.count(i) == 0);
             for (auto i : test_irange(i, n))
-                CHECK(v.count({i}) == 1);
+                CHECK(v.count(i) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
@@ -449,11 +449,54 @@ TEST_CASE("exception safety")
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
-                CHECK(v.count({vals[i]}) == 0);
+                CHECK(v.count(vals[i]) == 0);
             for (auto i : test_irange(i, n))
-                CHECK(v.count({vals[i]}) == 1);
+                CHECK(v.count(vals[i]) == 1);
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
+    }
+}
+
+
+namespace {
+struct KeyType {
+    explicit KeyType(unsigned v) : value(v) {}
+    unsigned value;
+};
+
+struct LookupType {
+    explicit LookupType(unsigned v) : value(v) {}
+    unsigned value;
+};
+
+struct TransparentHash
+{
+    using hash_type = std::hash<unsigned>;
+
+    size_t operator()(KeyType const& k) const { return hash_type{}(k.value); }
+    size_t operator()(LookupType const& k) const
+    {
+        return hash_type{}(k.value);
+    }
+};
+
+bool operator==(KeyType const& k, KeyType const& l) {
+    return k.value == l.value;
+}
+bool operator==(KeyType const& k, LookupType const& l) {
+    return k.value == l.value;
+}
+}
+
+TEST_CASE("lookup with transparent hash")
+{
+    SECTION("default")
+    {
+        auto m = SET_T<KeyType, TransparentHash, std::equal_to<>>{};
+        m = m.insert(KeyType{1});
+
+        CHECK(m.count(LookupType{1}) == 1);
+        CHECK(m.count(LookupType{2}) == 0);
     }
 }

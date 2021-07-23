@@ -114,7 +114,8 @@ class map
     {
         auto operator()(const value_t& v) { return Hash{}(v.first); }
 
-        auto operator()(const K& v) { return Hash{}(v); }
+        template<typename Key>
+        auto operator()(const Key& v) { return Hash{}(v); }
     };
 
     struct equal_key
@@ -124,7 +125,8 @@ class map
             return Equal{}(a.first, b.first);
         }
 
-        auto operator()(const value_t& a, const K& b)
+        template<typename Key>
+        auto operator()(const value_t& a, const Key& b)
         {
             return Equal{}(a.first, b);
         }
@@ -197,7 +199,8 @@ public:
      * otherwise. It won't allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD size_type count(const K& k) const
+    template<typename Key>
+    IMMER_NODISCARD size_type count(const Key& k) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(k);
@@ -209,7 +212,8 @@ public:
      * default constructed value.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD const T& operator[](const K& k) const
+    template<typename Key>
+    IMMER_NODISCARD const T& operator[](const Key& k) const
     {
         return impl_.template get<project_value, default_value>(k);
     }
@@ -220,7 +224,8 @@ public:
      * `std::out_of_range` error.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    const T& at(const K& k) const
+    template<typename Key>
+    const T& at(const Key& k) const
     {
         return impl_.template get<project_value, error_value>(k);
     }
@@ -254,7 +259,8 @@ public:
      *
      * @endrst
      */
-    IMMER_NODISCARD const T* find(const K& k) const
+    template<typename Key>
+    IMMER_NODISCARD const T* find(const Key& k) const
     {
         return impl_.template get<project_value_ptr,
                                   detail::constantly<const T*, nullptr>>(k);
