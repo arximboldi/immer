@@ -289,6 +289,7 @@ struct LookupType {
 struct TransparentHash
 {
     using hash_type = std::hash<unsigned>;
+    using is_transparent = void;
 
     size_t operator()(KeyType const& k) const { return hash_type{}(k.value); }
     size_t operator()(LookupType const& k) const
@@ -301,9 +302,6 @@ bool operator==(KeyType const& k, KeyType const& l) {
     return k.value == l.value;
 }
 bool operator==(KeyType const& k, LookupType const& l) {
-    return k.value == l.value;
-}
-bool operator==(LookupType const& l, KeyType const& k) {
     return k.value == l.value;
 }
 }

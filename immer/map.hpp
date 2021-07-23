@@ -198,9 +198,23 @@ public:
      * Returns `1` when the key `k` is contained in the map or `0`
      * otherwise. It won't allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename Key>
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
     IMMER_NODISCARD size_type count(const Key& k) const
+    {
+        return impl_.template get<detail::constantly<size_type, 1>,
+                                  detail::constantly<size_type, 0>>(k);
+    }
+
+    /*!
+     * Returns `1` when the key `k` is contained in the map or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    IMMER_NODISCARD size_type count(const K& k) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(k);
@@ -211,9 +225,23 @@ public:
      * `k`.  If the key is not contained in the map, it returns a
      * default constructed value.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename Key>
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
     IMMER_NODISCARD const T& operator[](const Key& k) const
+    {
+        return impl_.template get<project_value, default_value>(k);
+    }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, it returns a
+     * default constructed value.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
+    IMMER_NODISCARD const T& operator[](const K& k) const
     {
         return impl_.template get<project_value, default_value>(k);
     }
@@ -224,8 +252,22 @@ public:
      * `std::out_of_range` error.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    template<typename Key>
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
     const T& at(const Key& k) const
+    {
+        return impl_.template get<project_value, error_value>(k);
+    }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, throws an
+     * `std::out_of_range` error.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
+    const T& at(const K& k) const
     {
         return impl_.template get<project_value, error_value>(k);
     }
@@ -259,7 +301,23 @@ public:
      *
      * @endrst
      */
-    template<typename Key>
+    IMMER_NODISCARD const T* find(const K& k) const
+    {
+        return impl_.template get<project_value_ptr,
+                                  detail::constantly<const T*, nullptr>>(k);
+    }
+
+
+    /*!
+     * Returns a pointer to the value associated with the key `k`.  If
+     * the key is not contained in the map, a `nullptr` is returned.
+     * It does not allocate memory and its complexity is *effectively*
+     * @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
     IMMER_NODISCARD const T* find(const Key& k) const
     {
         return impl_.template get<project_value_ptr,
