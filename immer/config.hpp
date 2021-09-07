@@ -101,10 +101,12 @@
 
 #define IMMER_DESCENT_DEEP 0
 
+#ifndef IMMER_ENABLE_DEBUG_SIZE_HEAP
 #ifdef NDEBUG
 #define IMMER_ENABLE_DEBUG_SIZE_HEAP 0
 #else
 #define IMMER_ENABLE_DEBUG_SIZE_HEAP 1
+#endif
 #endif
 
 namespace immer {
