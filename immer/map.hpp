@@ -114,7 +114,8 @@ class map
     {
         auto operator()(const value_t& v) { return Hash{}(v.first); }
 
-        auto operator()(const K& v) { return Hash{}(v); }
+        template<typename Key>
+        auto operator()(const Key& v) { return Hash{}(v); }
     };
 
     struct equal_key
@@ -124,7 +125,8 @@ class map
             return Equal{}(a.first, b.first);
         }
 
-        auto operator()(const value_t& a, const K& b)
+        template<typename Key>
+        auto operator()(const value_t& a, const Key& b)
         {
             return Equal{}(a.first, b);
         }
@@ -196,11 +198,41 @@ public:
      * Returns `1` when the key `k` is contained in the map or `0`
      * otherwise. It won't allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    IMMER_NODISCARD size_type count(const Key& k) const
+    {
+        return impl_.template get<detail::constantly<size_type, 1>,
+                                  detail::constantly<size_type, 0>>(k);
+    }
+
+    /*!
+     * Returns `1` when the key `k` is contained in the map or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
      */
     IMMER_NODISCARD size_type count(const K& k) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(k);
+    }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, it returns a
+     * default constructed value.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    IMMER_NODISCARD const T& operator[](const Key& k) const
+    {
+        return impl_.template get<project_value, default_value>(k);
     }
 
     /*!
@@ -219,6 +251,21 @@ public:
      * `k`.  If the key is not contained in the map, throws an
      * `std::out_of_range` error.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
+     */
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    const T& at(const Key& k) const
+    {
+        return impl_.template get<project_value, error_value>(k);
+    }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If the key is not contained in the map, throws an
+     * `std::out_of_range` error.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
      */
     const T& at(const K& k) const
     {
@@ -255,6 +302,23 @@ public:
      * @endrst
      */
     IMMER_NODISCARD const T* find(const K& k) const
+    {
+        return impl_.template get<project_value_ptr,
+                                  detail::constantly<const T*, nullptr>>(k);
+    }
+
+
+    /*!
+     * Returns a pointer to the value associated with the key `k`.  If
+     * the key is not contained in the map, a `nullptr` is returned.
+     * It does not allocate memory and its complexity is *effectively*
+     * @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
+    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    IMMER_NODISCARD const T* find(const Key& k) const
     {
         return impl_.template get<project_value_ptr,
                                   detail::constantly<const T*, nullptr>>(k);

@@ -276,6 +276,50 @@ TEST_CASE("exception safety")
 }
 
 namespace {
+struct KeyType {
+    explicit KeyType(unsigned v) : value(v) {}
+    unsigned value;
+};
+
+struct LookupType {
+    explicit LookupType(unsigned v) : value(v) {}
+    unsigned value;
+};
+
+struct TransparentHash
+{
+    using hash_type = std::hash<unsigned>;
+    using is_transparent = void;
+
+    size_t operator()(KeyType const& k) const { return hash_type{}(k.value); }
+    size_t operator()(LookupType const& k) const
+    {
+        return hash_type{}(k.value);
+    }
+};
+
+bool operator==(KeyType const& k, KeyType const& l) {
+    return k.value == l.value;
+}
+bool operator==(KeyType const& k, LookupType const& l) {
+    return k.value == l.value;
+}
+}
+
+TEST_CASE("lookup with transparent hash")
+{
+    SECTION("default")
+    {
+        auto m = MAP_T<KeyType, int, TransparentHash, std::equal_to<>>{};
+        m = m.insert({KeyType{1}, 12});
+
+        auto const& v = m.at(LookupType{1});
+        CHECK(v == 12);
+    }
+}
+
+
+namespace {
 
 class KElem
 {
