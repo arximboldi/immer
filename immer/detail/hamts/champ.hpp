@@ -34,10 +34,11 @@ struct champ
     node_t* root;
     size_t size;
 
-    static node_t* empty()
+    static node_t*& empty()
     {
-        static const auto node = node_t::make_inner_n(0);
-        return node->inc();
+        static auto node = node_t::make_inner_n(0);
+        node->inc();
+        return node;
     }
 
     champ(node_t* r, size_t sz = 0)
