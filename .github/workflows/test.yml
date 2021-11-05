@@ -35,12 +35,12 @@ jobs:
       - run: nix-shell --run "cd build && cmake .."
       - run: nix-shell --run "cd build && make docs"
       - uses: shimataro/ssh-key-action@v2
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && github.repository_owner == 'arximboldi'
         with:
           key: ${{ secrets.SINUSOIDES_SSH_KEY }}
           known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
       - run: nix-shell --run "cd build && make upload-docs"
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && github.repository_owner == 'arximboldi'
 
   check:
     strategy:
@@ -113,11 +113,11 @@ jobs:
           "
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "cd build && make check -j`nproc`"
       - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "bash <(curl -s https://codecov.io/bash)"
-        if: ${{ contains(matrix.opts, 'coverage') }}
+        if: contains(matrix.opts, 'coverage')
       - uses: shimataro/ssh-key-action@v2
-        if: ${{ contains(matrix.opts, 'benchmark') }}
+        if: contains(matrix.opts, 'benchmark') && github.repository_owner == 'arximboldi'
         with:
           key: ${{ secrets.SINUSOIDES_SSH_KEY }}
           known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
       - run: nix-shell --run "cd build && make upload-benchmark-reports"
-        if: ${{ contains(matrix.opts, 'benchmark') }}
+        if: contains(matrix.opts, 'benchmark') && github.repository_owner == 'arximboldi'
