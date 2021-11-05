@@ -15,6 +15,7 @@
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
+#include <immer/relocation/no_relocation_policy.hpp>
 #include <immer/transience/gc_transience_policy.hpp>
 #include <immer/transience/no_transience_policy.hpp>
 #include <type_traits>
@@ -90,13 +91,15 @@ template <typename HeapPolicy,
           bool PreferFewerBiggerObjects =
               get_prefer_fewer_bigger_objects_v<HeapPolicy>,
           bool UseTransientRValues =
-              get_use_transient_rvalues_v<RefcountPolicy>>
+              get_use_transient_rvalues_v<RefcountPolicy>,
+          typename RelocationPolicy = no_relocation_policy>
 struct memory_policy
 {
     using heap       = HeapPolicy;
     using refcount   = RefcountPolicy;
     using transience = TransiencePolicy;
     using lock       = LockPolicy;
+    using relocation = RelocationPolicy;
 
     static constexpr bool prefer_fewer_bigger_objects =
         PreferFewerBiggerObjects;

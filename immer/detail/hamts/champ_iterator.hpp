@@ -10,10 +10,37 @@
 
 #include <immer/detail/hamts/champ.hpp>
 #include <immer/detail/iterator_facade.hpp>
+#include <immer/relocation/gc_relocation_policy.hpp>
 
 namespace immer {
 namespace detail {
 namespace hamts {
+
+template <typename Policy, bits_t B>
+struct relocation_info_t
+{
+    void reset() {}
+    void increment() {}
+    void step_right(count_t) {}
+    void step_down(count_t) {}
+};
+
+template <bits_t B>
+struct relocation_info_t<gc_relocation_policy, B>
+{
+    count_t cur_off_;
+    std::uint8_t path_off_[max_depth<B>] = {
+        0,
+    };
+
+    void reset() { cur_off_ = 0; }
+
+    void increment() { cur_off_++; }
+
+    void step_right(count_t depth) { ++path_off_[depth - 1]; }
+
+    void step_down(count_t depth) { path_off_[depth - 1] = 0; }
+};
 
 template <typename T, typename Hash, typename Eq, typename MP, bits_t B>
 struct champ_iterator
@@ -24,15 +51,17 @@ struct champ_iterator
                       std::ptrdiff_t,
                       const T*>
 {
-    using tree_t = champ<T, Hash, Eq, MP, B>;
-    using node_t = typename tree_t::node_t;
+    using memory     = MP;
+    using relocation = typename memory::relocation;
+    using tree_t     = champ<T, Hash, Eq, MP, B>;
+    using node_t     = typename tree_t::node_t;
 
     struct end_t
     {};
 
     champ_iterator(const tree_t& v)
         : depth_{0}
-        , cur_off_{0}
+        , relocation_info_{}
     {
         if (v.root->datamap()) {
             cur_ = v.root->values();
@@ -48,7 +77,7 @@ struct champ_iterator
         : cur_{nullptr}
         , end_{nullptr}
         , depth_{0}
-        , cur_off_{0}
+        , relocation_info_{}
     {
         path_[0] = &v.root;
     }
@@ -57,7 +86,7 @@ struct champ_iterator
         : cur_{other.cur_}
         , end_{other.end_}
         , depth_{other.depth_}
-        , cur_off_{other.cur_off_}
+        , relocation_info_{other.relocation_info_}
     {
         std::copy(other.path_, other.path_ + depth_ + 1, path_);
     }
@@ -68,18 +97,15 @@ private:
     T* cur_;
     T* end_;
     count_t depth_;
-    count_t cur_off_;
     node_t* const* path_[max_depth<B> + 1] = {
         0,
     };
-    std::uint8_t path_off_[max_depth<B>] = {
-        0,
-    };
+    relocation_info_t<relocation, B> relocation_info_;
 
     void increment()
     {
         ++cur_;
-        ++cur_off_;
+        relocation_info_.increment();
         ensure_valid_();
     }
 
@@ -90,20 +116,20 @@ private:
             assert(parent);
             if (parent->nodemap()) {
                 ++depth_;
-                path_[depth_]         = parent->children();
-                path_off_[depth_ - 1] = 0;
-                auto child            = *path_[depth_];
+                path_[depth_] = parent->children();
+                relocation_info_.step_down(depth_);
+                auto child = *path_[depth_];
                 assert(child);
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
-                        cur_     = child->values();
-                        end_     = cur_ + child->data_count();
-                        cur_off_ = 0;
+                        cur_ = child->values();
+                        end_ = cur_ + child->data_count();
+                        relocation_info_.reset();
                     }
                 } else {
-                    cur_     = child->collisions();
-                    end_     = cur_ + child->collision_count();
-                    cur_off_ = 0;
+                    cur_ = child->collisions();
+                    end_ = cur_ + child->collision_count();
+                    relocation_info_.reset();
                 }
                 return true;
             }
@@ -119,19 +145,19 @@ private:
             auto next   = path_[depth_] + 1;
             if (next < last) {
                 path_[depth_] = next;
-                ++path_off_[depth_ - 1];
+                relocation_info_.step_right(depth_);
                 auto child = *path_[depth_];
                 assert(child);
                 if (depth_ < max_depth<B>) {
                     if (child->datamap()) {
-                        cur_     = child->values();
-                        end_     = cur_ + child->data_count();
-                        cur_off_ = 0;
+                        cur_ = child->values();
+                        end_ = cur_ + child->data_count();
+                        relocation_info_.reset();
                     }
                 } else {
-                    cur_     = child->collisions();
-                    end_     = cur_ + child->collision_count();
-                    cur_off_ = 0;
+                    cur_ = child->collisions();
+                    end_ = cur_ + child->collision_count();
+                    relocation_info_.reset();
                 }
                 return true;
             }
@@ -150,7 +176,7 @@ private:
                 // end of sequence
                 assert(depth_ == 0);
                 cur_ = end_ = nullptr;
-                cur_off_    = 0;
+                relocation_info_.reset();
                 return;
             }
         }
