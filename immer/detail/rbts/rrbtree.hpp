@@ -16,10 +16,10 @@
 #include <immer/detail/type_traits.hpp>
 
 #include <cassert>
-#include <stdexcept>
+#include <limits>
 #include <memory>
 #include <numeric>
-#include <limits>
+#include <stdexcept>
 
 namespace immer {
 namespace detail {
@@ -160,9 +160,10 @@ struct rrbtree
     {
         auto r = root->relaxed();
         assert(r == nullptr || r->d.count);
-        return r ? r->d.sizes[r->d.count - 1]
-                 : size ? (size - 1) & ~mask<BL>
-                        /* otherwise */ : 0;
+        return r      ? r->d.sizes[r->d.count - 1]
+               : size ? (size - 1) & ~mask<BL>
+                      /* otherwise */
+                      : 0;
     }
 
     template <typename Visitor, typename... Args>
@@ -312,15 +313,15 @@ struct rrbtree
         return tail_off == tail_off_other
                    ? make_leaf_sub_pos(tail, tail_size())
                          .visit(equals_visitor{}, other.tail)
-                   : tail_off > tail_off_other
-                         ? std::equal(tail->leaf(),
-                                      tail->leaf() + (size - tail_off),
-                                      other.tail->leaf() +
-                                          (tail_off - tail_off_other))
-                         /* otherwise */
-                         : std::equal(tail->leaf(),
-                                      tail->leaf() + (size - tail_off),
-                                      iter_t{other} + tail_off);
+               : tail_off > tail_off_other
+                   ? std::equal(tail->leaf(),
+                                tail->leaf() + (size - tail_off),
+                                other.tail->leaf() +
+                                    (tail_off - tail_off_other))
+                   /* otherwise */
+                   : std::equal(tail->leaf(),
+                                tail->leaf() + (size - tail_off),
+                                iter_t{other} + tail_off);
     }
 
     std::tuple<shift_t, node_t*> push_tail(node_t* root,

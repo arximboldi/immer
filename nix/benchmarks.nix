@@ -15,7 +15,7 @@ rec {
     };
     nativeBuildInputs = [ autoreconfHook ];
     propagatedBuildInputs = [ boehmgc ];
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = "http://hypirion.com/thesis";
       description = "RRB-tree implemented as a library in C. ";
       license = licenses.mit;
@@ -34,7 +34,7 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/steady $out/include/";
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = "https://github.com/marcusz/steady";
       description = "This is a fast and reliable persistent (immutable) vector class for C++";
       license = licenses.asl20;
@@ -53,7 +53,7 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include/chunkedseq; cp -vr $src/include/* $out/include/chunkedseq/";
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = "http://deepsea.inria.fr/chunkedseq";
       description = "Container data structure for representing sequences by many fixed-capacity heap-allocated buffers--chunks";
       license = licenses.mit;
@@ -72,7 +72,7 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/immutable $out/include/";
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = "https://github.com/rsms/immutable-cpp";
       description = "Persistent immutable data structures for C++";
       license = licenses.mit;
@@ -91,7 +91,7 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/hash_trie.hpp $out/include/";
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = "https://github.com/rsms/immutable-cpp";
       description = "Persistent immutable data structures for C++";
       license = licenses.mit;
