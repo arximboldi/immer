@@ -113,8 +113,8 @@ TEST_CASE("at")
     CHECK(v.at(0) == 0);
     CHECK(v.at(5) == 5);
 #ifndef IMMER_NO_EXCEPTIONS
-    CHECK_THROWS_AS(v.at(10), const std::out_of_range&);
-    CHECK_THROWS_AS(v.at(11), const std::out_of_range&);
+    CHECK_THROWS_AS(v.at(10), std::out_of_range);
+    CHECK_THROWS_AS(v.at(11), std::out_of_range);
 #endif
 }
 
