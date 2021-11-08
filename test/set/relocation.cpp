@@ -27,9 +27,10 @@ TEST_CASE("relocation info")
     auto v = test_set_t<unsigned>{};
     for (auto i = 0u; i < 512u; ++i)
         v = v.insert(i);
-    auto iter                                    = v.begin();
-    test_set_t<unsigned>::iterator::node_t *node = v.impl().root, *parent;
-    unsigned depth                               = 0;
+    auto iter                                      = v.begin();
+    test_set_t<unsigned>::iterator::node_t *node   = v.impl().root,
+                                           *parent = nullptr;
+    unsigned depth                                 = 0;
 
     while (node->nodemap()) {
         parent = node;
