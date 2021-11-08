@@ -1,10 +1,12 @@
 { toolchain ? "",
-  nixpkgs ? (import <nixpkgs> {}).fetchFromGitHub {
-    owner  = "NixOS";
-    repo   = "nixpkgs";
-    rev    = "053ad4e0db7241ae6a02394d62750fdc5d64aa9f";
-    sha256 = "11l9sr8zg8j1n5p43zjkqwpj59gn8c84z1kf16icnsbnv2smzqdc";
-  }}:
+  rev       ? "08ef0f28e3a41424b92ba1d203de64257a9fca6a",
+  sha256  ? "1mql1gp86bk6pfsrp0lcww6hw5civi6f8542d4nh356506jdxmcy",
+  nixpkgs ? builtins.fetchTarball {
+    name   = "nixpkgs-${rev}";
+    url    = "https://github.com/nixos/nixpkgs/archive/${rev}.tar.gz";
+    sha256 = sha256;
+  },
+}:
 
 with import nixpkgs {};
 
