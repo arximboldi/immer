@@ -10,13 +10,12 @@
 
 #include <immer/detail/hamts/champ.hpp>
 #include <immer/detail/iterator_facade.hpp>
-#include <immer/relocation/gc_relocation_policy.hpp>
 
 namespace immer {
 namespace detail {
 namespace hamts {
 
-template <typename Policy, bits_t B>
+template <bool Enabled, bits_t B>
 struct relocation_info_t
 {
     void reset() {}
@@ -26,7 +25,7 @@ struct relocation_info_t
 };
 
 template <bits_t B>
-struct relocation_info_t<gc_relocation_policy, B>
+struct relocation_info_t<true, B>
 {
     count_t cur_off_;
     std::uint8_t path_off_[max_depth<B>] = {
@@ -51,10 +50,8 @@ struct champ_iterator
                       std::ptrdiff_t,
                       const T*>
 {
-    using memory     = MP;
-    using relocation = typename memory::relocation;
-    using tree_t     = champ<T, Hash, Eq, MP, B>;
-    using node_t     = typename tree_t::node_t;
+    using tree_t = champ<T, Hash, Eq, MP, B>;
+    using node_t = typename tree_t::node_t;
 
     struct end_t
     {};
@@ -100,7 +97,7 @@ private:
     node_t* const* path_[max_depth<B> + 1] = {
         0,
     };
-    relocation_info_t<relocation, B> relocation_info_;
+    relocation_info_t<MP::track_base_offset_of_pointers, B> relocation_info_;
 
     void increment()
     {
