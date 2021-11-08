@@ -88,7 +88,7 @@ struct champ_iterator
         std::copy(other.path_, other.path_ + depth_ + 1, path_);
     }
 
-    const auto relocation_info() const { return relocation_info_; }
+    auto relocation_info() const { return relocation_info_; }
 
 private:
     friend iterator_core_access;
