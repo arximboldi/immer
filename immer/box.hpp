@@ -57,6 +57,8 @@ class box
     {}
 
 public:
+    const holder* impl() const { return impl_; };
+
     using value_type    = T;
     using memory_policy = MemoryPolicy;
 
@@ -131,24 +133,6 @@ public:
     /*! Access via pointer member access */
     const T* operator->() const { return &get(); }
 
-    /*! Comparison. */
-    IMMER_NODISCARD bool operator==(detail::exact_t<const box&> other) const
-    {
-        return impl_ == other.value.impl_ || get() == other.value.get();
-    }
-    // Note that the `exact_t` disambiguates comparisons against `T{}`
-    // directly.  In that case we want to use `operator T&` and
-    // compare directly.  We definitely never want to convert a value
-    // to a box (which causes an allocation) just to compare it.
-    IMMER_NODISCARD bool operator!=(detail::exact_t<const box&> other) const
-    {
-        return !(*this == other.value);
-    }
-    IMMER_NODISCARD bool operator<(detail::exact_t<const box&> other) const
-    {
-        return get() < other.value.get();
-    }
-
     /*!
      * Returns a new box built by applying the `fn` to the underlying
      * value.
@@ -179,6 +163,66 @@ public:
         return std::move(*this);
     }
 };
+
+template <typename T, typename MP>
+IMMER_NODISCARD bool operator==(const box<T, MP>& a, const box<T, MP>& b)
+{
+    return a.impl() == b.impl() || a.get() == b.get();
+}
+template <typename T, typename MP>
+IMMER_NODISCARD bool operator!=(const box<T, MP>& a, const box<T, MP>& b)
+{
+    return a.impl() != b.impl() && a.get() != b.get();
+}
+template <typename T, typename MP>
+IMMER_NODISCARD bool operator<(const box<T, MP>& a, const box<T, MP>& b)
+{
+    return a.impl() != b.impl() && a.get() < b.get();
+}
+
+template <typename T, typename MP, typename T2>
+IMMER_NODISCARD auto operator==(const box<T, MP>& a, T2&& b)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() == b)>
+{
+    return a.get() == b;
+}
+template <typename T, typename MP, typename T2>
+IMMER_NODISCARD auto operator!=(const box<T, MP>& a, T2&& b)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() != b)>
+{
+    return a.get() != b;
+}
+template <typename T, typename MP, typename T2>
+IMMER_NODISCARD auto operator<(const box<T, MP>& a, T2&& b)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() < b)>
+{
+    return a.get() < b;
+}
+
+template <typename T2, typename T, typename MP>
+IMMER_NODISCARD auto operator==(T2&& b, const box<T, MP>& a)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() == b)>
+{
+    return a.get() == b;
+}
+template <typename T2, typename T, typename MP>
+IMMER_NODISCARD auto operator!=(T2&& b, const box<T, MP>& a)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() != b)>
+{
+    return a.get() != b;
+}
+template <typename T2, typename T, typename MP>
+IMMER_NODISCARD auto operator<(T2&& b, const box<T, MP>& a)
+    -> std::enable_if_t<!std::is_same<box<T, MP>, std::decay_t<T2>>::value,
+                        decltype(a.get() < b)>
+{
+    return a.get() < b;
+}
 
 } // namespace immer
 

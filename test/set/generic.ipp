@@ -250,7 +250,7 @@ TEST_CASE("accumulate")
         auto vals = make_values_with_collisions(n);
         auto s    = make_test_set(vals);
         auto acc  = [](unsigned r, conflictor x) { return r + x.v1 + x.v2; };
-        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0, acc);
+        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0u, acc);
         auto sum2 = immer::accumulate(s, 0u, acc);
         CHECK(sum1 == sum2);
     }
@@ -307,6 +307,9 @@ TEST_CASE("iterator")
 struct non_default
 {
     unsigned value;
+    non_default(unsigned v)
+        : value{v}
+    {}
     non_default() = delete;
     operator unsigned() const { return value; }
 
@@ -458,21 +461,26 @@ TEST_CASE("exception safety")
     }
 }
 
-
 namespace {
-struct KeyType {
-    explicit KeyType(unsigned v) : value(v) {}
+struct KeyType
+{
+    explicit KeyType(unsigned v)
+        : value(v)
+    {}
     unsigned value;
 };
 
-struct LookupType {
-    explicit LookupType(unsigned v) : value(v) {}
+struct LookupType
+{
+    explicit LookupType(unsigned v)
+        : value(v)
+    {}
     unsigned value;
 };
 
 struct TransparentHash
 {
-    using hash_type = std::hash<unsigned>;
+    using hash_type      = std::hash<unsigned>;
     using is_transparent = void;
 
     size_t operator()(KeyType const& k) const { return hash_type{}(k.value); }
@@ -482,20 +490,22 @@ struct TransparentHash
     }
 };
 
-bool operator==(KeyType const& k, KeyType const& l) {
+bool operator==(KeyType const& k, KeyType const& l)
+{
     return k.value == l.value;
 }
-bool operator==(KeyType const& k, LookupType const& l) {
+bool operator==(KeyType const& k, LookupType const& l)
+{
     return k.value == l.value;
 }
-}
+} // namespace
 
 TEST_CASE("lookup with transparent hash")
 {
     SECTION("default")
     {
         auto m = SET_T<KeyType, TransparentHash, std::equal_to<>>{};
-        m = m.insert(KeyType{1});
+        m      = m.insert(KeyType{1});
 
         CHECK(m.count(LookupType{1}) == 1);
         CHECK(m.count(LookupType{2}) == 0);
