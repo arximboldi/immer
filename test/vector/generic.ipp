@@ -336,27 +336,27 @@ TEST_CASE("accumulate")
         using namespace std;
         {
             auto sum = immer::accumulate(begin(v) + 100, begin(v) + 300, 0u);
-            CHECK(sum == expected_i(100, 300));
+            CHECK(sum == expected_i(100u, 300u));
         }
         {
             auto sum = immer::accumulate(begin(v) + 31, begin(v) + 300, 0u);
-            CHECK(sum == expected_i(31, 300));
+            CHECK(sum == expected_i(31u, 300u));
         }
         {
             auto sum = immer::accumulate(begin(v), begin(v) + 33, 0u);
-            CHECK(sum == expected_i(0, 33));
+            CHECK(sum == expected_i(0u, 33u));
         }
         {
             auto sum = immer::accumulate(begin(v) + 100, begin(v) + 660, 0u);
-            CHECK(sum == expected_i(100, 660));
+            CHECK(sum == expected_i(100u, 660u));
         }
         {
             auto sum = immer::accumulate(begin(v) + 100, begin(v) + 105, 0u);
-            CHECK(sum == expected_i(100, 105));
+            CHECK(sum == expected_i(100u, 105u));
         }
         {
             auto sum = immer::accumulate(begin(v) + 660, begin(v) + 664, 0u);
-            CHECK(sum == expected_i(660, 664));
+            CHECK(sum == expected_i(660u, 664u));
         }
     }
 }

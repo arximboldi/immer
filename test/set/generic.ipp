@@ -250,7 +250,7 @@ TEST_CASE("accumulate")
         auto vals = make_values_with_collisions(n);
         auto s    = make_test_set(vals);
         auto acc  = [](unsigned r, conflictor x) { return r + x.v1 + x.v2; };
-        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0, acc);
+        auto sum1 = std::accumulate(vals.begin(), vals.end(), 0u, acc);
         auto sum2 = immer::accumulate(s, 0u, acc);
         CHECK(sum1 == sum2);
     }
