@@ -28,6 +28,8 @@ let
     if toolchain == "gnu-7"    then { stdenv = gcc7Stdenv; cc = gcc7; } else
     if toolchain == "gnu-8"    then { stdenv = gcc8Stdenv; cc = gcc8; } else
     if toolchain == "gnu-9"    then { stdenv = gcc9Stdenv; cc = gcc9; } else
+    if toolchain == "gnu-10"   then { stdenv = gcc10Stdenv; cc = gcc10; } else
+    if toolchain == "gnu-11"   then { stdenv = gcc11Stdenv; cc = gcc11; } else
     if toolchain == "llvm-39"  then { stdenv = llvmPackages_39.libcxxStdenv; cc = llvmPackages_39.libcxxClang; } else
     if toolchain == "llvm-4"   then { stdenv = llvmPackages_4.libcxxStdenv; cc = llvmPackages_4.libcxxClang; } else
     if toolchain == "llvm-5"   then { stdenv = llvmPackages_5.libcxxStdenv; cc = llvmPackages_5.libcxxClang; } else
@@ -36,6 +38,9 @@ let
     if toolchain == "llvm-8"   then { stdenv = llvmPackages_8.libcxxStdenv; cc = llvmPackages_8.libcxxClang; } else
     if toolchain == "llvm-9"   then { stdenv = llvmPackages_9.stdenv;  cc = llvmPackages_9.clang; } else
     if toolchain == "llvm-10"  then { stdenv = llvmPackages_10.stdenv; cc = llvmPackages_10.clang; } else
+    if toolchain == "llvm-11"  then { stdenv = llvmPackages_11.stdenv; cc = llvmPackages_11.clang; } else
+    if toolchain == "llvm-12"  then { stdenv = llvmPackages_12.stdenv; cc = llvmPackages_12.clang; } else
+    if toolchain == "llvm-13"  then { stdenv = llvmPackages_13.stdenv; cc = llvmPackages_13.clang; } else
     abort "unknown toolchain";
 
 in

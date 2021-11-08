@@ -63,6 +63,13 @@ jobs:
             toolchain: llvm-9
             std: 17
             opts: ['fuzzers']
+          # std 20
+          - type: Debug
+            toolchain: gnu-11
+            std: 20
+          - type: Debug
+            toolchain: llvm-13
+            std: 20
           # sanitizers
           - type: Debug
             toolchain: llvm-8
