@@ -121,8 +121,8 @@ TEST_CASE("at")
     CHECK(v.at(42) == 42);
     CHECK(v.at(665) == 665);
 #ifndef IMMER_NO_EXCEPTIONS
-    CHECK_THROWS_AS(v.at(666), std::out_of_range&);
-    CHECK_THROWS_AS(v.at(1234), std::out_of_range&);
+    CHECK_THROWS_AS(v.at(666), std::out_of_range);
+    CHECK_THROWS_AS(v.at(1234), std::out_of_range);
 #endif
 }
 
@@ -276,19 +276,25 @@ TEST_CASE("exception safety")
 }
 
 namespace {
-struct KeyType {
-    explicit KeyType(unsigned v) : value(v) {}
+struct KeyType
+{
+    explicit KeyType(unsigned v)
+        : value(v)
+    {}
     unsigned value;
 };
 
-struct LookupType {
-    explicit LookupType(unsigned v) : value(v) {}
+struct LookupType
+{
+    explicit LookupType(unsigned v)
+        : value(v)
+    {}
     unsigned value;
 };
 
 struct TransparentHash
 {
-    using hash_type = std::hash<unsigned>;
+    using hash_type      = std::hash<unsigned>;
     using is_transparent = void;
 
     size_t operator()(KeyType const& k) const { return hash_type{}(k.value); }
@@ -298,26 +304,27 @@ struct TransparentHash
     }
 };
 
-bool operator==(KeyType const& k, KeyType const& l) {
+bool operator==(KeyType const& k, KeyType const& l)
+{
     return k.value == l.value;
 }
-bool operator==(KeyType const& k, LookupType const& l) {
+bool operator==(KeyType const& k, LookupType const& l)
+{
     return k.value == l.value;
 }
-}
+} // namespace
 
 TEST_CASE("lookup with transparent hash")
 {
     SECTION("default")
     {
         auto m = MAP_T<KeyType, int, TransparentHash, std::equal_to<>>{};
-        m = m.insert({KeyType{1}, 12});
+        m      = m.insert({KeyType{1}, 12});
 
         auto const& v = m.at(LookupType{1});
         CHECK(v == 12);
     }
 }
-
 
 namespace {
 

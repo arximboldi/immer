@@ -117,13 +117,13 @@ public:
         return derived() + n;
     }
 
-    bool operator==(const DerivedT& rhs) const
+    friend bool operator==(const DerivedT& a, const DerivedT& b)
     {
-        return access_t::equal(derived(), rhs);
+        return access_t::equal(a, b);
     }
-    bool operator!=(const DerivedT& rhs) const
+    friend bool operator!=(const DerivedT& a, const DerivedT& b)
     {
-        return !access_t::equal(derived(), rhs);
+        return !access_t::equal(a, b);
     }
 
     DerivedT& operator++()
@@ -180,31 +180,31 @@ public:
         auto tmp = derived();
         return tmp -= n;
     }
-    DifferenceTypeT operator-(const DerivedT& rhs) const
+    friend DifferenceTypeT operator-(const DerivedT& a, const DerivedT& b)
     {
         static_assert(is_random_access, "");
-        return access_t::distance_to(rhs, derived());
+        return access_t::distance_to(b, a);
     }
 
-    bool operator<(const DerivedT& rhs) const
+    friend bool operator<(const DerivedT& a, const DerivedT& b)
     {
         static_assert(is_random_access, "");
-        return access_t::distance_to(derived(), rhs) > 0;
+        return access_t::distance_to(a, b) > 0;
     }
-    bool operator<=(const DerivedT& rhs) const
+    friend bool operator<=(const DerivedT& a, const DerivedT& b)
     {
         static_assert(is_random_access, "");
-        return access_t::distance_to(derived(), rhs) >= 0;
+        return access_t::distance_to(a, b) >= 0;
     }
-    bool operator>(const DerivedT& rhs) const
+    friend bool operator>(const DerivedT& a, const DerivedT& b)
     {
         static_assert(is_random_access, "");
-        return access_t::distance_to(derived(), rhs) < 0;
+        return access_t::distance_to(a, b) < 0;
     }
-    bool operator>=(const DerivedT& rhs) const
+    friend bool operator>=(const DerivedT& a, const DerivedT& b)
     {
         static_assert(is_random_access, "");
-        return access_t::distance_to(derived(), rhs) <= 0;
+        return access_t::distance_to(a, b) <= 0;
     }
 };
 

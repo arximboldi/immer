@@ -34,6 +34,91 @@ TEST_CASE("equality")
     CHECK(x != BOX_T<int>{42});
 }
 
+struct counters
+{
+    unsigned construct = 0;
+    unsigned copy      = 0;
+    unsigned compare   = 0;
+
+    static counters* p_;
+    struct scope
+    {
+        scope(counters* p)
+        {
+            assert(p == p_ || !p_);
+            p_ = p;
+        }
+        ~scope() { p_ = nullptr; }
+    };
+    scope use() { return {this}; }
+};
+counters* counters::p_ = nullptr;
+
+template <typename T>
+struct spionage
+{
+    T value = {};
+
+    spionage()
+        : value{}
+    {
+        ++counters::p_->construct;
+    }
+    spionage(T v)
+        : value{v}
+    {
+        ++counters::p_->construct;
+    }
+    spionage(const spionage& v)
+        : value{v.value}
+    {
+        ++counters::p_->copy;
+    }
+    spionage(spionage&& v)
+        : value{std::move(v.value)}
+    {
+        ++counters::p_->copy;
+    }
+    bool operator==(const spionage& b) const
+    {
+        ++counters::p_->compare;
+        return value == b.value;
+    }
+    bool operator!=(const spionage& b) const
+    {
+        ++counters::p_->compare;
+        return value != b.value;
+    }
+    bool operator==(const T& b) const
+    {
+        ++counters::p_->compare;
+        return value == b;
+    }
+    bool operator!=(const T& b) const
+    {
+        ++counters::p_->compare;
+        return value != b;
+    }
+};
+
+TEST_CASE("equality not too much construction")
+{
+    auto c = counters{};
+    auto s = c.use();
+
+    auto x = BOX_T<spionage<int>>{};
+    auto y = x;
+    CHECK(x == 0.0f);
+    CHECK(x == y);
+    CHECK(c.copy == 0);
+    CHECK(c.construct == 1);
+
+    CHECK(x == BOX_T<spionage<int>>{});
+    CHECK(x != BOX_T<spionage<int>>{42});
+    CHECK(c.copy == 0);
+    CHECK(c.construct == 3);
+}
+
 TEST_CASE("update")
 {
     auto x = BOX_T<int>{};
