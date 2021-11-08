@@ -307,6 +307,9 @@ TEST_CASE("iterator")
 struct non_default
 {
     unsigned value;
+    non_default(unsigned v)
+        : value{v}
+    {}
     non_default() = delete;
     operator unsigned() const { return value; }
 

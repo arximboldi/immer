@@ -384,6 +384,9 @@ TEST_CASE("vector of strings")
 struct non_default
 {
     unsigned value;
+    non_default(unsigned value_)
+        : value{value_}
+    {}
     non_default() = delete;
     operator unsigned() const { return value; }
 
