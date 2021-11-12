@@ -23,6 +23,7 @@ stdenv.mkDerivation rec {
   src = srcFilter ./.;
   nativeBuildInputs = [ cmake ];
   dontBuild = true;
+  dontUseCmakeBuildDir = true;
   meta = {
     homepage    = "https://github.com/arximboldi/immer";
     description = "Postmodern immutable data structures for C++";
