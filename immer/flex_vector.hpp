@@ -249,7 +249,7 @@ public:
     }
 
     /*!
-     * Returns a flex_vector with `value` inserted at the frony.  It may
+     * Returns a flex_vector with `value` inserted at the front.  It may
      * allocate memory and its complexity is @f$ O(log(size)) @f$.
      *
      * @rst
