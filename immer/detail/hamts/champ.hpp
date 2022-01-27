@@ -113,21 +113,28 @@ struct champ
         }
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff(const champ& new_champ,
               AddedFn&& added_fn,
               ChangedFn&& changed_fn,
               RemovedFn&& removed_fn) const
     {
-        diff(root,
-             new_champ.root,
-             0,
-             std::forward<AddedFn>(added_fn),
-             std::forward<ChangedFn>(changed_fn),
-             std::forward<RemovedFn>(removed_fn));
+        diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(
+            root,
+            new_champ.root,
+            0,
+            std::forward<AddedFn>(added_fn),
+            std::forward<ChangedFn>(changed_fn),
+            std::forward<RemovedFn>(removed_fn));
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff(node_t* old_node,
               node_t* new_node,
               count_t depth,
@@ -191,14 +198,14 @@ struct champ
                     auto new_offset = new_node->children_count(bit);
                     auto old_child  = old_node->children()[old_offset];
                     auto new_child  = new_node->children()[new_offset];
-                    diff(old_child,
+                    diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_child,
                          new_child,
                          depth + 1,
                          std::forward<AddedFn>(added_fn),
                          std::forward<ChangedFn>(changed_fn),
                          std::forward<RemovedFn>(removed_fn));
                 } else if ((old_datamap & bit) && (new_nodemap & bit)) {
-                    diff_data_node(old_node,
+                    diff_data_node<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
                                    new_node,
                                    bit,
                                    depth,
@@ -206,7 +213,7 @@ struct champ
                                    std::forward<ChangedFn>(changed_fn),
                                    std::forward<RemovedFn>(removed_fn));
                 } else if ((old_nodemap & bit) && (new_datamap & bit)) {
-                    diff_node_data(old_node,
+                    diff_node_data<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
                                    new_node,
                                    bit,
                                    depth,
@@ -214,7 +221,7 @@ struct champ
                                    std::forward<ChangedFn>(changed_fn),
                                    std::forward<RemovedFn>(removed_fn));
                 } else if ((old_datamap & bit) && (new_datamap & bit)) {
-                    diff_data_data(old_node,
+                    diff_data_data<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
                                    new_node,
                                    bit,
                                    std::forward<AddedFn>(added_fn),
@@ -223,7 +230,7 @@ struct champ
                 }
             }
         } else {
-            diff_collisions(old_node,
+            diff_collisions<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
                             new_node,
                             std::forward<AddedFn>(added_fn),
                             std::forward<ChangedFn>(changed_fn),
@@ -231,7 +238,10 @@ struct champ
         }
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff_data_node(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
@@ -249,8 +259,8 @@ struct champ
         for_each_chunk_traversal(
             new_child, depth + 1, [&](auto const& begin, auto const& end) {
                 for (auto it = begin; it != end; it++) {
-                    if (old_value.first == it->first) {
-                        if (old_value.second != it->second)
+                    if (Equal{}(old_value, *it)) {
+                        if (!EqualValue{}(old_value, *it))
                             changed_fn(old_value, *it);
                         found = true;
                     } else {
@@ -262,7 +272,10 @@ struct champ
             removed_fn(old_value);
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff_node_data(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
@@ -280,8 +293,8 @@ struct champ
         for_each_chunk_traversal(
             old_child, depth + 1, [&](auto const& begin, auto const& end) {
                 for (auto it = begin; it != end; it++) {
-                    if (it->first == new_value.first) {
-                        if (it->second != new_value.second)
+                    if (Equal{}(*it, new_value)) {
+                        if (!EqualValue{}(*it, new_value))
                             changed_fn(*it, new_value);
                         found = true;
                     } else {
@@ -293,7 +306,10 @@ struct champ
             added_fn(new_value);
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff_data_data(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
@@ -305,16 +321,19 @@ struct champ
         auto new_offset       = new_node->data_count(bit);
         auto const& old_value = old_node->values()[old_offset];
         auto const& new_value = new_node->values()[new_offset];
-        if (old_value.first != new_value.first) {
+        if (!Equal{}(old_value, new_value)) {
             removed_fn(old_value);
             added_fn(new_value);
         } else {
-            if (old_value.second != new_value.second)
+            if (!EqualValue{}(old_value, new_value))
                 changed_fn(old_value, new_value);
         }
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue>
     void diff_collisions(node_t* old_node,
                          node_t* new_node,
                          AddedFn&& added_fn,
@@ -329,8 +348,8 @@ struct champ
         for (auto old_it = old_begin; old_it != old_end; old_it++) {
             bool found = false;
             for (auto new_it = new_begin; new_it != new_end; new_it++) {
-                if (old_it->first == new_it->first) {
-                    if (old_it->second != new_it->second)
+                if (Equal{}(*old_it, *new_it)) {
+                    if (!EqualValue{}(*old_it, *new_it))
                         changed_fn(*old_it, *new_it);
                     found = true;
                     break;
@@ -343,7 +362,7 @@ struct champ
         for (auto new_it = new_begin; new_it != new_end; new_it++) {
             bool found = false;
             for (auto old_it = old_begin; old_it != old_end; old_it++) {
-                if (old_it->first == new_it->first) {
+                if (Equal{}(*old_it, *new_it)) {
                     found = true;
                     break;
                 }

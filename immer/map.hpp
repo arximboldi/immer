@@ -14,8 +14,8 @@
 #include <immer/memory_policy.hpp>
 
 #include <cassert>
-#include <stdexcept>
 #include <functional>
+#include <stdexcept>
 
 namespace immer {
 
@@ -324,13 +324,16 @@ public:
                                   detail::constantly<const T*, nullptr>>(k);
     }
 
-    template <typename AddedFn, typename ChangedFn, typename RemovedFn>
+    template <typename AddedFn,
+              typename ChangedFn,
+              typename RemovedFn,
+              typename EqualValue = equal_value>
     void diff(map const& other,
               AddedFn&& added_fn,
               ChangedFn&& changed_fn,
               RemovedFn&& removed_fn) const
     {
-        return impl_.template diff<AddedFn, ChangedFn, RemovedFn>(
+        return impl_.template diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(
             other.impl_,
             std::forward<AddedFn>(added_fn),
             std::forward<ChangedFn>(changed_fn),

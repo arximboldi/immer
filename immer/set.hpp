@@ -183,6 +183,18 @@ public:
         return !(*this == other);
     }
 
+    template <typename AddedFn, typename RemovedFn>
+    void diff(const set& other, AddedFn&& added, RemovedFn&& removed) const
+    {
+        // values can only be added or removed to sets, no changes possible
+        auto do_nothing = [](const auto&, const auto&) {};
+        impl_.template diff<AddedFn, decltype(do_nothing), RemovedFn, Equal>(
+            other.impl_,
+            std::forward<AddedFn>(added),
+            std::move(do_nothing),
+            std::forward<RemovedFn>(removed));
+    }
+
     /*!
      * Returns a set containing `value`.  If the `value` is already in
      * the set, it returns the same set.  It may allocate memory and

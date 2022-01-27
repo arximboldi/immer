@@ -39,7 +39,6 @@ struct conflictor
     {
         return v1 == x.v1 && v2 == x.v2;
     }
-    bool operator!=(const conflictor& other) const { return !(*this == other); }
 };
 
 struct hash_conflictor
