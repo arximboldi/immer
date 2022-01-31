@@ -117,14 +117,14 @@ struct champ
     void diff(const champ& new_champ, Differ&& differ) const
     {
         diff<Differ, EqualValue>(
-            root, new_champ.root, 0, std::forward<Differ>(differ));
+            root, new_champ.root, 0, differ);
     }
 
     template <typename Differ, typename EqualValue>
     void diff(node_t* old_node,
               node_t* new_node,
               count_t depth,
-              Differ&& differ) const
+              Differ& differ) const
     {
         if (old_node == new_node)
             return;
@@ -185,29 +185,29 @@ struct champ
                     diff<Differ, EqualValue>(old_child,
                                              new_child,
                                              depth + 1,
-                                             std::forward<Differ>(differ));
+                                             differ);
                 } else if ((old_datamap & bit) && (new_nodemap & bit)) {
                     diff_data_node<Differ, EqualValue>(
                         old_node,
                         new_node,
                         bit,
                         depth,
-                        std::forward<Differ>(differ));
+                        differ);
                 } else if ((old_nodemap & bit) && (new_datamap & bit)) {
                     diff_node_data<Differ, EqualValue>(
                         old_node,
                         new_node,
                         bit,
                         depth,
-                        std::forward<Differ>(differ));
+                        differ);
                 } else if ((old_datamap & bit) && (new_datamap & bit)) {
                     diff_data_data<Differ, EqualValue>(
-                        old_node, new_node, bit, std::forward<Differ>(differ));
+                        old_node, new_node, bit, differ);
                 }
             }
         } else {
             diff_collisions<Differ, EqualValue>(
-                old_node, new_node, std::forward<Differ>(differ));
+                old_node, new_node, differ);
         }
     }
 
@@ -216,7 +216,7 @@ struct champ
                         node_t* new_node,
                         bitmap_t bit,
                         count_t depth,
-                        Differ&& differ) const
+                        Differ& differ) const
     {
         auto old_offset       = old_node->data_count(bit);
         auto const& old_value = old_node->values()[old_offset];
@@ -245,7 +245,7 @@ struct champ
                         node_t* new_node,
                         bitmap_t bit,
                         count_t depth,
-                        Differ&& differ) const
+                        Differ& differ) const
     {
         auto old_offset       = old_node->children_count(bit);
         auto old_child        = old_node->children()[old_offset];
@@ -273,7 +273,7 @@ struct champ
     void diff_data_data(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
-                        Differ&& differ) const
+                        Differ& differ) const
     {
         auto old_offset       = old_node->data_count(bit);
         auto new_offset       = new_node->data_count(bit);
@@ -290,7 +290,7 @@ struct champ
 
     template <typename Differ, typename EqualValue>
     void
-    diff_collisions(node_t* old_node, node_t* new_node, Differ&& differ) const
+    diff_collisions(node_t* old_node, node_t* new_node, Differ& differ) const
     {
         auto old_begin = old_node->collisions();
         auto old_end   = old_node->collisions() + old_node->collision_count();
