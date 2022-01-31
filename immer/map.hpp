@@ -324,22 +324,6 @@ public:
                                   detail::constantly<const T*, nullptr>>(k);
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue = equal_value>
-    void diff(map const& other,
-              AddedFn&& added_fn,
-              ChangedFn&& changed_fn,
-              RemovedFn&& removed_fn) const
-    {
-        return impl_.template diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(
-            other.impl_,
-            std::forward<AddedFn>(added_fn),
-            std::forward<ChangedFn>(changed_fn),
-            std::forward<RemovedFn>(removed_fn));
-    }
-
     /*!
      * Returns whether the sets are equal.
      */

@@ -512,16 +512,12 @@ TEST_CASE("lookup with transparent hash")
     }
 }
 
-
-void test_diff(unsigned old_num,
-               unsigned add_num,
-               unsigned remove_num)
+void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
 {
     auto values = make_values_with_collisions(old_num + add_num);
-    std::vector<conflictor> initial_values(
-        values.begin(), values.begin() + old_num);
-    std::vector<conflictor> new_values(
-        values.begin() + old_num, values.end());
+    std::vector<conflictor> initial_values(values.begin(),
+                                           values.begin() + old_num);
+    std::vector<conflictor> new_values(values.begin() + old_num, values.end());
     auto set = make_test_set(initial_values);
 
     auto first_snapshot = set;
@@ -546,7 +542,8 @@ void test_diff(unsigned old_num,
         added_keys.insert(data);
     }
 
-    first_snapshot.diff(
+    diff_with(
+        first_snapshot,
         set,
         [&](auto const& data) { REQUIRE(added_keys.erase(data) > 0); },
         [&](auto const& data) { REQUIRE(removed_keys.erase(data) > 0); });

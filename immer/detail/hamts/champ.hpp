@@ -113,34 +113,18 @@ struct champ
         }
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
-    void diff(const champ& new_champ,
-              AddedFn&& added_fn,
-              ChangedFn&& changed_fn,
-              RemovedFn&& removed_fn) const
+    template <typename Differ, typename EqualValue>
+    void diff(const champ& new_champ, Differ&& differ) const
     {
-        diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(
-            root,
-            new_champ.root,
-            0,
-            std::forward<AddedFn>(added_fn),
-            std::forward<ChangedFn>(changed_fn),
-            std::forward<RemovedFn>(removed_fn));
+        diff<Differ, EqualValue>(
+            root, new_champ.root, 0, std::forward<Differ>(differ));
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
+    template <typename Differ, typename EqualValue>
     void diff(node_t* old_node,
               node_t* new_node,
               count_t depth,
-              AddedFn&& added_fn,
-              ChangedFn&& changed_fn,
-              RemovedFn&& removed_fn) const
+              Differ&& differ) const
     {
         if (old_node == new_node)
             return;
@@ -163,12 +147,12 @@ struct champ
                         depth + 1,
                         [&](auto const& begin, auto const& end) {
                             for (auto it = begin; it != end; it++)
-                                added_fn(*it);
+                                differ.added(*it);
                         });
                 } else if (new_datamap & bit) {
                     auto offset       = new_node->data_count(bit);
                     auto const& value = new_node->values()[offset];
-                    added_fn(value);
+                    differ.added(value);
                 }
             }
 
@@ -182,12 +166,12 @@ struct champ
                         depth + 1,
                         [&](auto const& begin, auto const& end) {
                             for (auto it = begin; it != end; it++)
-                                removed_fn(*it);
+                                differ.removed(*it);
                         });
                 } else if (old_datamap & bit) {
                     auto offset       = old_node->data_count(bit);
                     auto const& value = old_node->values()[offset];
-                    removed_fn(value);
+                    differ.removed(value);
                 }
             }
 
@@ -198,57 +182,41 @@ struct champ
                     auto new_offset = new_node->children_count(bit);
                     auto old_child  = old_node->children()[old_offset];
                     auto new_child  = new_node->children()[new_offset];
-                    diff<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_child,
-                         new_child,
-                         depth + 1,
-                         std::forward<AddedFn>(added_fn),
-                         std::forward<ChangedFn>(changed_fn),
-                         std::forward<RemovedFn>(removed_fn));
+                    diff<Differ, EqualValue>(old_child,
+                                             new_child,
+                                             depth + 1,
+                                             std::forward<Differ>(differ));
                 } else if ((old_datamap & bit) && (new_nodemap & bit)) {
-                    diff_data_node<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
-                                   new_node,
-                                   bit,
-                                   depth,
-                                   std::forward<AddedFn>(added_fn),
-                                   std::forward<ChangedFn>(changed_fn),
-                                   std::forward<RemovedFn>(removed_fn));
+                    diff_data_node<Differ, EqualValue>(
+                        old_node,
+                        new_node,
+                        bit,
+                        depth,
+                        std::forward<Differ>(differ));
                 } else if ((old_nodemap & bit) && (new_datamap & bit)) {
-                    diff_node_data<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
-                                   new_node,
-                                   bit,
-                                   depth,
-                                   std::forward<AddedFn>(added_fn),
-                                   std::forward<ChangedFn>(changed_fn),
-                                   std::forward<RemovedFn>(removed_fn));
+                    diff_node_data<Differ, EqualValue>(
+                        old_node,
+                        new_node,
+                        bit,
+                        depth,
+                        std::forward<Differ>(differ));
                 } else if ((old_datamap & bit) && (new_datamap & bit)) {
-                    diff_data_data<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
-                                   new_node,
-                                   bit,
-                                   std::forward<AddedFn>(added_fn),
-                                   std::forward<ChangedFn>(changed_fn),
-                                   std::forward<RemovedFn>(removed_fn));
+                    diff_data_data<Differ, EqualValue>(
+                        old_node, new_node, bit, std::forward<Differ>(differ));
                 }
             }
         } else {
-            diff_collisions<AddedFn, ChangedFn, RemovedFn, EqualValue>(old_node,
-                            new_node,
-                            std::forward<AddedFn>(added_fn),
-                            std::forward<ChangedFn>(changed_fn),
-                            std::forward<RemovedFn>(removed_fn));
+            diff_collisions<Differ, EqualValue>(
+                old_node, new_node, std::forward<Differ>(differ));
         }
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
+    template <typename Differ, typename EqualValue>
     void diff_data_node(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
                         count_t depth,
-                        AddedFn&& added_fn,
-                        ChangedFn&& changed_fn,
-                        RemovedFn&& removed_fn) const
+                        Differ&& differ) const
     {
         auto old_offset       = old_node->data_count(bit);
         auto const& old_value = old_node->values()[old_offset];
@@ -261,28 +229,23 @@ struct champ
                 for (auto it = begin; it != end; it++) {
                     if (Equal{}(old_value, *it)) {
                         if (!EqualValue{}(old_value, *it))
-                            changed_fn(old_value, *it);
+                            differ.changed(old_value, *it);
                         found = true;
                     } else {
-                        added_fn(*it);
+                        differ.added(*it);
                     }
                 }
             });
         if (!found)
-            removed_fn(old_value);
+            differ.removed(old_value);
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
+    template <typename Differ, typename EqualValue>
     void diff_node_data(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
                         count_t depth,
-                        AddedFn&& added_fn,
-                        ChangedFn&& changed_fn,
-                        RemovedFn&& removed_fn) const
+                        Differ&& differ) const
     {
         auto old_offset       = old_node->children_count(bit);
         auto old_child        = old_node->children()[old_offset];
@@ -295,50 +258,39 @@ struct champ
                 for (auto it = begin; it != end; it++) {
                     if (Equal{}(*it, new_value)) {
                         if (!EqualValue{}(*it, new_value))
-                            changed_fn(*it, new_value);
+                            differ.changed(*it, new_value);
                         found = true;
                     } else {
-                        removed_fn(*it);
+                        differ.removed(*it);
                     }
                 }
             });
         if (!found)
-            added_fn(new_value);
+            differ.added(new_value);
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
+    template <typename Differ, typename EqualValue>
     void diff_data_data(node_t* old_node,
                         node_t* new_node,
                         bitmap_t bit,
-                        AddedFn&& added_fn,
-                        ChangedFn&& changed_fn,
-                        RemovedFn&& removed_fn) const
+                        Differ&& differ) const
     {
         auto old_offset       = old_node->data_count(bit);
         auto new_offset       = new_node->data_count(bit);
         auto const& old_value = old_node->values()[old_offset];
         auto const& new_value = new_node->values()[new_offset];
         if (!Equal{}(old_value, new_value)) {
-            removed_fn(old_value);
-            added_fn(new_value);
+            differ.removed(old_value);
+            differ.added(new_value);
         } else {
             if (!EqualValue{}(old_value, new_value))
-                changed_fn(old_value, new_value);
+                differ.changed(old_value, new_value);
         }
     }
 
-    template <typename AddedFn,
-              typename ChangedFn,
-              typename RemovedFn,
-              typename EqualValue>
-    void diff_collisions(node_t* old_node,
-                         node_t* new_node,
-                         AddedFn&& added_fn,
-                         ChangedFn&& changed_fn,
-                         RemovedFn&& removed_fn) const
+    template <typename Differ, typename EqualValue>
+    void
+    diff_collisions(node_t* old_node, node_t* new_node, Differ&& differ) const
     {
         auto old_begin = old_node->collisions();
         auto old_end   = old_node->collisions() + old_node->collision_count();
@@ -350,13 +302,13 @@ struct champ
             for (auto new_it = new_begin; new_it != new_end; new_it++) {
                 if (Equal{}(*old_it, *new_it)) {
                     if (!EqualValue{}(*old_it, *new_it))
-                        changed_fn(*old_it, *new_it);
+                        differ.changed(*old_it, *new_it);
                     found = true;
                     break;
                 }
             }
             if (!found)
-                removed_fn(*old_it);
+                differ.removed(*old_it);
         }
         // search new entries
         for (auto new_it = new_begin; new_it != new_end; new_it++) {
@@ -368,7 +320,7 @@ struct champ
                 }
             }
             if (!found)
-                added_fn(*new_it);
+                differ.added(*new_it);
         }
     }
 
