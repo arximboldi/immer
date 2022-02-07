@@ -208,6 +208,19 @@ bool all_of(Iter first, Iter last, Pred p)
     });
 }
 
+/*!
+ * Object that can be used to process changes as computed by the @a diff
+ * algorithm.
+ *
+ * @tparam AddedFn Unary function that is be called whenever an added element is
+ *         found. It is called with the added element as argument.
+ *
+ * @tparam RemovedFn Unary function that is called whenever a removed element is
+ *         found.  It is called with the removed element as argument.
+ *
+ * @tparam RemovedFn Unary function that is called whenever a removed element is
+ *         found.  It is called with the removed element as argument.
+ */
 template <class AddedFn, class RemovedFn, class ChangedFn>
 struct differ
 {
@@ -216,6 +229,9 @@ struct differ
     ChangedFn changed;
 };
 
+/*!
+ * Produces a @a differ object with `added`, `removed` and `changed` functions.
+ */
 template <class AddedFn, class RemovedFn, class ChangedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
     -> differ<std::decay_t<AddedFn>,
@@ -227,6 +243,10 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
             std::forward<ChangedFn>(changed)};
 }
 
+/*!
+ * Produces a @a differ object with `added` and `removed` functions and no
+ * `changed` function.
+ */
 template <class AddedFn, class RemovedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed)
 {
@@ -235,6 +255,31 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed)
                        [](auto&&...) {});
 }
 
+/*!
+ * Compute the differences between `a` and `b`.
+ *
+ * Changes detected are notified via the differ object, which should support the
+ * following expressions:
+ *
+ *   - `differ.added(x)`, invoked when element `x` is found in `b` but not in
+ *      `a`.
+ *
+ *   - `differ.removed(x)`, invoked when element `x` is found in `a` but not in
+ *      `b`.
+ *
+ *   - `differ.changed(x, y)`, invoked when element `x` and `y` from `a` and `b`
+ *      share the same key but map to a different value.
+ *
+ * This method leverages structural sharing to offer a complexity @f$ O(|diff|)
+ * @f$ when `b` is derived from `a` by performing @f$ |diff| @f$ updates.  This
+ * is, this function can detect changes in effectively constant time per update,
+ * as oposed to the @f$ O(|a|+|b|) @f$ complexity of a trivial implementation.
+ *
+ * .. note:: This method is only implemented for ``map`` and ``set``. When sets
+ *           are diffed, the ``changed`` function is never called.
+ *
+ * @endrst
+ */
 template <typename T, typename Differ>
 void diff(const T& a, const T& b, Differ&& differ)
 {
@@ -242,6 +287,12 @@ void diff(const T& a, const T& b, Differ&& differ)
         b.impl(), std::forward<Differ>(differ));
 }
 
+/*!
+ * Compute the differences between `a` and `b` using the callbacks in `fns` as
+ * differ.  Equivalent to `diff(a, b, make_differ(fns)...)`.
+ *
+ * @see diff
+ */
 template <typename T, typename... Fns>
 void diff(const T& a, const T& b, Fns&&... fns)
 {
