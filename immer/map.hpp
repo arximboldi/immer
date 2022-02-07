@@ -14,8 +14,8 @@
 #include <immer/memory_policy.hpp>
 
 #include <cassert>
-#include <stdexcept>
 #include <functional>
+#include <stdexcept>
 
 namespace immer {
 

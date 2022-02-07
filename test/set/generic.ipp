@@ -511,3 +511,51 @@ TEST_CASE("lookup with transparent hash")
         CHECK(m.count(LookupType{2}) == 0);
     }
 }
+
+void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
+{
+    auto values = make_values_with_collisions(old_num + add_num);
+    std::vector<conflictor> initial_values(values.begin(),
+                                           values.begin() + old_num);
+    std::vector<conflictor> new_values(values.begin() + old_num, values.end());
+    auto set = make_test_set(initial_values);
+
+    auto first_snapshot = set;
+    CHECK(old_num == first_snapshot.size());
+
+    // remove
+    auto shuffle = initial_values;
+    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::vector<conflictor> remove_keys(shuffle.begin(),
+                                        shuffle.begin() + remove_num);
+
+    using key_set = std::unordered_set<conflictor, hash_conflictor>;
+    key_set removed_keys(remove_keys.begin(), remove_keys.end());
+    for (auto const& key : remove_keys)
+        set = set.erase(key);
+    CHECK(old_num - remove_num == set.size());
+
+    // add
+    key_set added_keys;
+    for (auto const& data : new_values) {
+        set = set.insert(data);
+        added_keys.insert(data);
+    }
+
+    diff_with(
+        first_snapshot,
+        set,
+        [&](auto const& data) { REQUIRE(added_keys.erase(data) > 0); },
+        [&](auto const& data) { REQUIRE(removed_keys.erase(data) > 0); });
+
+    CHECK(added_keys.empty());
+    CHECK(removed_keys.empty());
+}
+
+TEST_CASE("diff")
+{
+    test_diff(16, 10, 10);
+    test_diff(100, 10, 10);
+    test_diff(1500, 10, 1000);
+    test_diff(16, 1500, 10);
+}

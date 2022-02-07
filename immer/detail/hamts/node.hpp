@@ -648,7 +648,8 @@ struct node
                 auto merged = make_merged(
                     shift + B, std::move(v1), hash1, std::move(v2), hash2);
                 IMMER_TRY {
-                    return make_inner_n(1, idx1 >> shift, merged);
+                    return make_inner_n(
+                        1, static_cast<count_t>(idx1 >> shift), merged);
                 }
                 IMMER_CATCH (...) {
                     delete_deep_shift(merged, shift + B);
@@ -656,9 +657,9 @@ struct node
                 }
             } else {
                 return make_inner_n(0,
-                                    idx1 >> shift,
+                                    static_cast<count_t>(idx1 >> shift),
                                     std::move(v1),
-                                    idx2 >> shift,
+                                    static_cast<count_t>(idx2 >> shift),
                                     std::move(v2));
             }
         } else {

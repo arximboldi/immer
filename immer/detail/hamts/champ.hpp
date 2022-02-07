@@ -113,6 +113,217 @@ struct champ
         }
     }
 
+    template <typename Differ, typename EqualValue>
+    void diff(const champ& new_champ, Differ&& differ) const
+    {
+        diff<Differ, EqualValue>(
+            root, new_champ.root, 0, differ);
+    }
+
+    template <typename Differ, typename EqualValue>
+    void diff(node_t* old_node,
+              node_t* new_node,
+              count_t depth,
+              Differ& differ) const
+    {
+        if (old_node == new_node)
+            return;
+        if (depth < max_depth<B>) {
+            auto old_nodemap = old_node->nodemap();
+            auto new_nodemap = new_node->nodemap();
+            auto old_datamap = old_node->datamap();
+            auto new_datamap = new_node->datamap();
+            auto old_bits    = old_nodemap | old_datamap;
+            auto new_bits    = new_nodemap | new_datamap;
+            auto changes     = old_bits ^ new_bits;
+
+            // added bits
+            for (auto bit : set_bits_range<bitmap_t>(new_bits & changes)) {
+                if (new_nodemap & bit) {
+                    auto offset = new_node->children_count(bit);
+                    auto child  = new_node->children()[offset];
+                    for_each_chunk_traversal(
+                        child,
+                        depth + 1,
+                        [&](auto const& begin, auto const& end) {
+                            for (auto it = begin; it != end; it++)
+                                differ.added(*it);
+                        });
+                } else if (new_datamap & bit) {
+                    auto offset       = new_node->data_count(bit);
+                    auto const& value = new_node->values()[offset];
+                    differ.added(value);
+                }
+            }
+
+            // removed bits
+            for (auto bit : set_bits_range<bitmap_t>(old_bits & changes)) {
+                if (old_nodemap & bit) {
+                    auto offset = old_node->children_count(bit);
+                    auto child  = old_node->children()[offset];
+                    for_each_chunk_traversal(
+                        child,
+                        depth + 1,
+                        [&](auto const& begin, auto const& end) {
+                            for (auto it = begin; it != end; it++)
+                                differ.removed(*it);
+                        });
+                } else if (old_datamap & bit) {
+                    auto offset       = old_node->data_count(bit);
+                    auto const& value = old_node->values()[offset];
+                    differ.removed(value);
+                }
+            }
+
+            // bits in both nodes
+            for (auto bit : set_bits_range<bitmap_t>(old_bits & new_bits)) {
+                if ((old_nodemap & bit) && (new_nodemap & bit)) {
+                    auto old_offset = old_node->children_count(bit);
+                    auto new_offset = new_node->children_count(bit);
+                    auto old_child  = old_node->children()[old_offset];
+                    auto new_child  = new_node->children()[new_offset];
+                    diff<Differ, EqualValue>(old_child,
+                                             new_child,
+                                             depth + 1,
+                                             differ);
+                } else if ((old_datamap & bit) && (new_nodemap & bit)) {
+                    diff_data_node<Differ, EqualValue>(
+                        old_node,
+                        new_node,
+                        bit,
+                        depth,
+                        differ);
+                } else if ((old_nodemap & bit) && (new_datamap & bit)) {
+                    diff_node_data<Differ, EqualValue>(
+                        old_node,
+                        new_node,
+                        bit,
+                        depth,
+                        differ);
+                } else if ((old_datamap & bit) && (new_datamap & bit)) {
+                    diff_data_data<Differ, EqualValue>(
+                        old_node, new_node, bit, differ);
+                }
+            }
+        } else {
+            diff_collisions<Differ, EqualValue>(
+                old_node, new_node, differ);
+        }
+    }
+
+    template <typename Differ, typename EqualValue>
+    void diff_data_node(node_t* old_node,
+                        node_t* new_node,
+                        bitmap_t bit,
+                        count_t depth,
+                        Differ& differ) const
+    {
+        auto old_offset       = old_node->data_count(bit);
+        auto const& old_value = old_node->values()[old_offset];
+        auto new_offset       = new_node->children_count(bit);
+        auto new_child        = new_node->children()[new_offset];
+
+        bool found = false;
+        for_each_chunk_traversal(
+            new_child, depth + 1, [&](auto const& begin, auto const& end) {
+                for (auto it = begin; it != end; it++) {
+                    if (Equal{}(old_value, *it)) {
+                        if (!EqualValue{}(old_value, *it))
+                            differ.changed(old_value, *it);
+                        found = true;
+                    } else {
+                        differ.added(*it);
+                    }
+                }
+            });
+        if (!found)
+            differ.removed(old_value);
+    }
+
+    template <typename Differ, typename EqualValue>
+    void diff_node_data(node_t* old_node,
+                        node_t* new_node,
+                        bitmap_t bit,
+                        count_t depth,
+                        Differ& differ) const
+    {
+        auto old_offset       = old_node->children_count(bit);
+        auto old_child        = old_node->children()[old_offset];
+        auto new_offset       = new_node->data_count(bit);
+        auto const& new_value = new_node->values()[new_offset];
+
+        bool found = false;
+        for_each_chunk_traversal(
+            old_child, depth + 1, [&](auto const& begin, auto const& end) {
+                for (auto it = begin; it != end; it++) {
+                    if (Equal{}(*it, new_value)) {
+                        if (!EqualValue{}(*it, new_value))
+                            differ.changed(*it, new_value);
+                        found = true;
+                    } else {
+                        differ.removed(*it);
+                    }
+                }
+            });
+        if (!found)
+            differ.added(new_value);
+    }
+
+    template <typename Differ, typename EqualValue>
+    void diff_data_data(node_t* old_node,
+                        node_t* new_node,
+                        bitmap_t bit,
+                        Differ& differ) const
+    {
+        auto old_offset       = old_node->data_count(bit);
+        auto new_offset       = new_node->data_count(bit);
+        auto const& old_value = old_node->values()[old_offset];
+        auto const& new_value = new_node->values()[new_offset];
+        if (!Equal{}(old_value, new_value)) {
+            differ.removed(old_value);
+            differ.added(new_value);
+        } else {
+            if (!EqualValue{}(old_value, new_value))
+                differ.changed(old_value, new_value);
+        }
+    }
+
+    template <typename Differ, typename EqualValue>
+    void
+    diff_collisions(node_t* old_node, node_t* new_node, Differ& differ) const
+    {
+        auto old_begin = old_node->collisions();
+        auto old_end   = old_node->collisions() + old_node->collision_count();
+        auto new_begin = new_node->collisions();
+        auto new_end   = new_node->collisions() + new_node->collision_count();
+        // search changes and removals
+        for (auto old_it = old_begin; old_it != old_end; old_it++) {
+            bool found = false;
+            for (auto new_it = new_begin; new_it != new_end; new_it++) {
+                if (Equal{}(*old_it, *new_it)) {
+                    if (!EqualValue{}(*old_it, *new_it))
+                        differ.changed(*old_it, *new_it);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                differ.removed(*old_it);
+        }
+        // search new entries
+        for (auto new_it = new_begin; new_it != new_end; new_it++) {
+            bool found = false;
+            for (auto old_it = old_begin; old_it != old_end; old_it++) {
+                if (Equal{}(*old_it, *new_it)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                differ.added(*new_it);
+        }
+    }
+
     template <typename Project, typename Default, typename K>
     decltype(auto) get(const K& k) const
     {

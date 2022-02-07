@@ -363,3 +363,74 @@ TEST_CASE("issue 134")
 }
 
 } // namespace
+
+void test_diff(unsigned old_num,
+               unsigned add_num,
+               unsigned remove_num,
+               unsigned change_num)
+{
+    auto values = make_values_with_collisions(old_num + add_num);
+    std::vector<std::pair<conflictor, unsigned>> initial_values(
+        values.begin(), values.begin() + old_num);
+    std::vector<std::pair<conflictor, unsigned>> new_values(
+        values.begin() + old_num, values.end());
+    auto map = make_test_map(initial_values);
+
+    std::vector<conflictor> old_keys;
+    for (auto const& val : map)
+        old_keys.push_back(val.first);
+
+    auto first_snapshot = map;
+    CHECK(old_num == first_snapshot.size());
+
+    // remove
+    auto shuffle = old_keys;
+    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::vector<conflictor> remove_keys(shuffle.begin(),
+                                        shuffle.begin() + remove_num);
+    std::vector<conflictor> rest_keys(shuffle.begin() + remove_num,
+                                      shuffle.end());
+
+    using key_set = std::unordered_set<conflictor, hash_conflictor>;
+    key_set removed_keys(remove_keys.begin(), remove_keys.end());
+    for (auto const& key : remove_keys)
+        map = map.erase(key);
+    CHECK(old_num - remove_num == map.size());
+
+    // add
+    key_set added_keys;
+    for (auto const& data : new_values) {
+        map = map.set(data.first, data.second);
+        added_keys.insert(data.first);
+    }
+
+    // change
+    key_set changed_keys;
+    for (auto i = 0u; i < change_num; i++) {
+        auto key = rest_keys[i];
+        map      = map.update(key, [](auto val) { return ++val; });
+        changed_keys.insert(key);
+    }
+
+    diff_with(first_snapshot,
+        map,
+        [&](auto const& data) { REQUIRE(added_keys.erase(data.first) > 0); },
+        [&](auto const& data) { REQUIRE(removed_keys.erase(data.first) > 0); },
+        [&](auto const& old_data, auto const& new_data) {
+            (void) old_data;
+            REQUIRE(changed_keys.erase(new_data.first) > 0);
+        });
+
+    CHECK(added_keys.empty());
+    CHECK(changed_keys.empty());
+    CHECK(removed_keys.empty());
+}
+
+TEST_CASE("diff")
+{
+    test_diff(16, 10, 10, 3);
+    test_diff(100, 10, 10, 10);
+    test_diff(1500, 10, 1000, 100);
+    test_diff(16, 1500, 10, 3);
+    test_diff(100, 0, 0, 50);
+}
