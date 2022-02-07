@@ -412,7 +412,8 @@ void test_diff(unsigned old_num,
         changed_keys.insert(key);
     }
 
-    diff_with(first_snapshot,
+    diff(
+        first_snapshot,
         map,
         [&](auto const& data) { REQUIRE(added_keys.erase(data.first) > 0); },
         [&](auto const& data) { REQUIRE(removed_keys.erase(data.first) > 0); },

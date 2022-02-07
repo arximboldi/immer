@@ -216,12 +216,6 @@ struct differ
     ChangedFn changed;
 };
 
-template <typename T>
-struct noop_changed
-{
-    void operator()(const T&, const T&) {}
-};
-
 template <class AddedFn, class RemovedFn, class ChangedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
     -> differ<std::decay_t<AddedFn>,
@@ -233,13 +227,12 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
             std::forward<ChangedFn>(changed)};
 }
 
-template <class AddedFn, class RemovedFn, class T>
+template <class AddedFn, class RemovedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed)
-    -> differ<std::decay_t<AddedFn>, std::decay_t<RemovedFn>, noop_changed<T>>
 {
-    return {std::forward<AddedFn>(added),
-            std::forward<RemovedFn>(removed),
-            noop_changed<T>{}};
+    return make_differ(std::forward<AddedFn>(added),
+                       std::forward<RemovedFn>(removed),
+                       [](auto&&...) {});
 }
 
 template <typename T, typename Differ>
@@ -249,31 +242,10 @@ void diff(const T& a, const T& b, Differ&& differ)
         b.impl(), std::forward<Differ>(differ));
 }
 
-template <typename T, typename AddedFn, typename ChangedFn, typename RemovedFn>
-void diff_with(const T& a,
-               const T& b,
-               AddedFn&& added_fn,
-               RemovedFn&& removed_fn,
-               ChangedFn&& changed_fn)
+template <typename T, typename... Fns>
+void diff(const T& a, const T& b, Fns&&... fns)
 {
-    diff(a,
-         b,
-         std::move(make_differ(std::forward<AddedFn>(added_fn),
-                               std::forward<RemovedFn>(removed_fn),
-                               std::forward<ChangedFn>(changed_fn))));
-}
-
-template <typename T, typename AddedFn, typename RemovedFn>
-void diff_with(const T& a,
-               const T& b,
-               AddedFn&& added_fn,
-               RemovedFn&& removed_fn)
-{
-    diff(a,
-         b,
-         make_differ<AddedFn, RemovedFn, T::value_type>(
-             std::forward<AddedFn>(added_fn),
-             std::forward<RemovedFn>(removed_fn)));
+    diff(a, b, make_differ(std::forward<Fns>(fns)...));
 }
 
 /** @} */ // group: algorithm
