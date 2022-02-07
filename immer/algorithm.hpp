@@ -245,7 +245,7 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed)
 template <typename T, typename Differ>
 void diff(const T& a, const T& b, Differ&& differ)
 {
-    a.impl().template diff<Differ, std::equal_to<T::value_type>>(
+    a.impl().template diff<std::equal_to<typename T::value_type>>(
         b.impl(), std::forward<Differ>(differ));
 }
 
