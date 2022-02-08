@@ -542,7 +542,7 @@ void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
         added_keys.insert(data);
     }
 
-    diff_with(
+    diff(
         first_snapshot,
         set,
         [&](auto const& data) { REQUIRE(added_keys.erase(data) > 0); },

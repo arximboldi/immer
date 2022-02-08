@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <numeric>
 #include <type_traits>
 
@@ -208,6 +209,19 @@ bool all_of(Iter first, Iter last, Pred p)
     });
 }
 
+/*!
+ * Object that can be used to process changes as computed by the @a diff
+ * algorithm.
+ *
+ * @tparam AddedFn Unary function that is be called whenever an added element is
+ *         found. It is called with the added element as argument.
+ *
+ * @tparam RemovedFn Unary function that is called whenever a removed element is
+ *         found.  It is called with the removed element as argument.
+ *
+ * @tparam RemovedFn Unary function that is called whenever a removed element is
+ *         found.  It is called with the removed element as argument.
+ */
 template <class AddedFn, class RemovedFn, class ChangedFn>
 struct differ
 {
@@ -216,12 +230,9 @@ struct differ
     ChangedFn changed;
 };
 
-template <typename T>
-struct noop_changed
-{
-    void operator()(const T&, const T&) {}
-};
-
+/*!
+ * Produces a @a differ object with `added`, `removed` and `changed` functions.
+ */
 template <class AddedFn, class RemovedFn, class ChangedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
     -> differ<std::decay_t<AddedFn>,
@@ -233,47 +244,60 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed, ChangedFn&& changed)
             std::forward<ChangedFn>(changed)};
 }
 
-template <class AddedFn, class RemovedFn, class T>
+/*!
+ * Produces a @a differ object with `added` and `removed` functions and no
+ * `changed` function.
+ */
+template <class AddedFn, class RemovedFn>
 auto make_differ(AddedFn&& added, RemovedFn&& removed)
-    -> differ<std::decay_t<AddedFn>, std::decay_t<RemovedFn>, noop_changed<T>>
 {
-    return {std::forward<AddedFn>(added),
-            std::forward<RemovedFn>(removed),
-            noop_changed<T>{}};
+    return make_differ(std::forward<AddedFn>(added),
+                       std::forward<RemovedFn>(removed),
+                       [](auto&&...) {});
 }
 
+/*!
+ * Compute the differences between `a` and `b`.
+ *
+ * Changes detected are notified via the differ object, which should support the
+ * following expressions:
+ *
+ *   - `differ.added(x)`, invoked when element `x` is found in `b` but not in
+ *      `a`.
+ *
+ *   - `differ.removed(x)`, invoked when element `x` is found in `a` but not in
+ *      `b`.
+ *
+ *   - `differ.changed(x, y)`, invoked when element `x` and `y` from `a` and `b`
+ *      share the same key but map to a different value.
+ *
+ * This method leverages structural sharing to offer a complexity @f$ O(|diff|)
+ * @f$ when `b` is derived from `a` by performing @f$ |diff| @f$ updates.  This
+ * is, this function can detect changes in effectively constant time per update,
+ * as oposed to the @f$ O(|a|+|b|) @f$ complexity of a trivial implementation.
+ *
+ * .. note:: This method is only implemented for ``map`` and ``set``. When sets
+ *           are diffed, the ``changed`` function is never called.
+ *
+ * @endrst
+ */
 template <typename T, typename Differ>
 void diff(const T& a, const T& b, Differ&& differ)
 {
-    a.impl().template diff<Differ, std::equal_to<T::value_type>>(
+    a.impl().template diff<std::equal_to<typename T::value_type>>(
         b.impl(), std::forward<Differ>(differ));
 }
 
-template <typename T, typename AddedFn, typename ChangedFn, typename RemovedFn>
-void diff_with(const T& a,
-               const T& b,
-               AddedFn&& added_fn,
-               RemovedFn&& removed_fn,
-               ChangedFn&& changed_fn)
+/*!
+ * Compute the differences between `a` and `b` using the callbacks in `fns` as
+ * differ.  Equivalent to `diff(a, b, make_differ(fns)...)`.
+ *
+ * @see diff
+ */
+template <typename T, typename... Fns>
+void diff(const T& a, const T& b, Fns&&... fns)
 {
-    diff(a,
-         b,
-         std::move(make_differ(std::forward<AddedFn>(added_fn),
-                               std::forward<RemovedFn>(removed_fn),
-                               std::forward<ChangedFn>(changed_fn))));
-}
-
-template <typename T, typename AddedFn, typename RemovedFn>
-void diff_with(const T& a,
-               const T& b,
-               AddedFn&& added_fn,
-               RemovedFn&& removed_fn)
-{
-    diff(a,
-         b,
-         make_differ<AddedFn, RemovedFn, T::value_type>(
-             std::forward<AddedFn>(added_fn),
-             std::forward<RemovedFn>(removed_fn)));
+    diff(a, b, make_differ(std::forward<Fns>(fns)...));
 }
 
 /** @} */ // group: algorithm
