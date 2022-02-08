@@ -276,6 +276,8 @@ auto make_differ(AddedFn&& added, RemovedFn&& removed)
  * is, this function can detect changes in effectively constant time per update,
  * as oposed to the @f$ O(|a|+|b|) @f$ complexity of a trivial implementation.
  *
+ * @rst
+ *
  * .. note:: This method is only implemented for ``map`` and ``set``. When sets
  *           are diffed, the ``changed`` function is never called.
  *
@@ -291,8 +293,6 @@ void diff(const T& a, const T& b, Differ&& differ)
 /*!
  * Compute the differences between `a` and `b` using the callbacks in `fns` as
  * differ.  Equivalent to `diff(a, b, make_differ(fns)...)`.
- *
- * @see diff
  */
 template <typename T, typename... Fns>
 void diff(const T& a, const T& b, Fns&&... fns)
