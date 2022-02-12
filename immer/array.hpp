@@ -33,7 +33,7 @@ class array_transient;
  * .. tip:: Don't be fooled by the bad complexity of this data
  *    structure.  It is a great choice for short sequence or when it
  *    is seldom or never changed.  This depends on the ``sizeof(T)``
- *    and the expensiveness of its ``T``'s copy constructor, in case
+ *    and the expensiveness of its ``T``'s copy constructor. In case
  *    of doubt, measure.  For basic types, using an `array` when
  *    :math:`n < 100` is a good heuristic.
  *
