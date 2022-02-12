@@ -2,7 +2,7 @@
 Python bindings
 ===============
 
-This library includes experimental bindings bring efficient immutable
+This library includes experimental bindings that provide efficient immutable
 vectors for the Python language.  They were developed as part of the
 research for the `ICFP'17 paper`_.  The interface is quite
 **incomplete**, yet you can already do some things like:

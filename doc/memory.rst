@@ -1,7 +1,7 @@
 Memory management
 =================
 
-Memory management is specially important for immutable data
+Memory management is especially important for immutable data
 structures.  This is mainly due to:
 
 #. In order to preserve the old value, new memory has to be allocated
@@ -143,7 +143,7 @@ Heap adaptors
 Inspired by `Andrei Alexandrescu's talk on allocators <allocation
 vexation>`_ and `Emery Berger's heap layers <heap layers>`_ we provide
 allocator adaptors that can be combined using C++ mixins.  These
-enable building more complex allocator out of simpler strategies, or
+enable building more complex allocators out of simpler strategies, or
 provide application specific optimizations on top of general
 allocators.
 

@@ -41,7 +41,7 @@ class map_transient;
  *
  * @rst
  *
- * This cotainer provides a good trade-off between cache locality,
+ * This container provides a good trade-off between cache locality,
  * search, update performance and structural sharing.  It does so by
  * storing the data in contiguous chunks of :math:`2^{B}` elements.
  * When storing big objects, the size of these contiguous chunks can
@@ -297,7 +297,7 @@ public:
      *   ``std::optional<const T&>`` but this construction is not valid
      *   in any current standard.  As a compromise we return a
      *   pointer, which has similar syntactic properties yet it is
-     *   unfortunatelly unnecessarily unrestricted.
+     *   unfortunately unnecessarily unrestricted.
      *
      * @endrst
      */
@@ -381,7 +381,7 @@ public:
     IMMER_NODISCARD map erase(const K& k) const { return impl_.sub(k); }
 
     /*!
-     * Returns an @a transient form of this container, a
+     * Returns a @a transient form of this container, an
      * `immer::map_transient`.
      */
     IMMER_NODISCARD transient_type transient() const&

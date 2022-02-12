@@ -18,7 +18,7 @@ internally, common data with other objects.  We sometimes refer to
 this property as **structural sharing**.  This behaviour is
 transparent to the user.
 
-Assigment
+Assignment
 ---------
 
 We are sorry, we lied. These containers provide *one mutating

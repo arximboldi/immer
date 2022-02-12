@@ -4,9 +4,9 @@ Transients
 ==========
 
 *Transients* is a concept borrowed `from Clojure
-<clojure-transients>`_, with some twists to turn make more idiomatic
+<clojure-transients>`_, with some twists to make it more idiomatic
 in C++.  Essentially, they are a mutable interface built on top of the
-same data structures the implements the immutable containers under the
+same data structures that implement the immutable containers under the
 hood.
 
 These can be useful for :ref:`performing efficient batch
