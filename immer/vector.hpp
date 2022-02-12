@@ -40,7 +40,7 @@ class vector_transient;
  *
  * @rst
  *
- * This cotainer provides a good trade-off between cache locality,
+ * This container provides a good trade-off between cache locality,
  * random access, update performance and structural sharing.  It does
  * so by storing the data in contiguous chunks of :math:`2^{BL}`
  * elements.  By default, when ``sizeof(T) == sizeof(void*)`` then
