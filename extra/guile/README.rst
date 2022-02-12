@@ -2,7 +2,7 @@
 Guile bindings
 ==============
 
-This library includes experimental bindings bring efficient immutable
+This library includes experimental bindings that provide efficient immutable
 vectors for the `GNU Guile`_ Scheme implementation.  The interface is
 somewhat **incomplete**, but you can already do something interesting
 things like:
