@@ -24,3 +24,6 @@ tools/clojure/.lein*
 *.pyc
 
 /result*
+
+.build
+.swiftpm
