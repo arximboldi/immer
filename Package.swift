@@ -25,5 +25,5 @@ let package = Package(
             sources: ["spm.cpp"],
             publicHeadersPath: ".")
     ],
-    cxxLanguageStandard: .cxx20
+    cxxLanguageStandard: .cxx14
 )
