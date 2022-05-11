@@ -17,6 +17,14 @@ jobs:
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
       - run: nix-build
 
+  build-spm:
+     runs-on: macos-latest
+     steps:
+       - uses: actions/checkout@v2
+         with:
+           submodules: true
+       - run: swift build
+
   docs:
     runs-on: ubuntu-latest
     steps:
