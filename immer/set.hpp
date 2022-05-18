@@ -68,7 +68,6 @@ class set
     };
 
 public:
-    using key_type        = T;
     using value_type      = T;
     using size_type       = detail::hamts::size_t;
     using diference_type  = std::ptrdiff_t;
@@ -125,7 +124,9 @@ public:
      * This overload participates in overload resolution only if
      * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename K, typename U = Hash, typename = typename U::is_transparent>
+    template <typename K,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     IMMER_NODISCARD size_type count(const K& value) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
@@ -164,7 +165,9 @@ public:
      * This overload participates in overload resolution only if
      * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename K, typename U = Hash, typename = typename U::is_transparent>
+    template <typename K,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     IMMER_NODISCARD const T* find(const K& value) const
     {
         return impl_.template get<project_value_ptr,

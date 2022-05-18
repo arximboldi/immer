@@ -35,6 +35,35 @@ template <typename T,
           typename Equal          = std::equal_to<T>,
           typename MemoryPolicy   = default_memory_policy,
           detail::hamts::bits_t B = default_bits>
-class set_transient;
+class set_transient : MemoryPolicy::transience_t::owner
+{
+    using base_t = typename MemoryPolicy::transience_t::owner;
+
+public:
+    using value_type      = T;
+    using size_type       = detail::hamts::size_t;
+    using diference_type  = std::ptrdiff_t;
+    using hasher          = Hash;
+    using key_equal       = Equal;
+    using reference       = const T&;
+    using const_reference = const T&;
+
+    using persistent_type = set<T, Hash, Equal, MemoryPolicy, B>;
+
+    set_transient() = default;
+
+    IMMER_NODISCARD persistent_type persistent() & { return {}; }
+    IMMER_NODISCARD persistent_type persistent() && { return {}; }
+
+private:
+    friend persistent_type;
+    using impl_t = typename persistent_type::impl_t;
+
+    set_transient(impl_t impl)
+        : impl_(std::move(impl))
+    {}
+
+    impl_t impl_ = impl_t::empty();
+};
 
 } // namespace immer

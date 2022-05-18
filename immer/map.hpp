@@ -114,8 +114,11 @@ class map
     {
         auto operator()(const value_t& v) { return Hash{}(v.first); }
 
-        template<typename Key>
-        auto operator()(const Key& v) { return Hash{}(v); }
+        template <typename Key>
+        auto operator()(const Key& v)
+        {
+            return Hash{}(v);
+        }
     };
 
     struct equal_key
@@ -125,7 +128,7 @@ class map
             return Equal{}(a.first, b.first);
         }
 
-        template<typename Key>
+        template <typename Key>
         auto operator()(const value_t& a, const Key& b)
         {
             return Equal{}(a.first, b);
@@ -161,7 +164,7 @@ public:
     using transient_type = map_transient<K, T, Hash, Equal, MemoryPolicy, B>;
 
     /*!
-     * Default constructor.  It creates a set of `size() == 0`.  It
+     * Default constructor.  It creates a map of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
     map() = default;
@@ -202,7 +205,9 @@ public:
      * This overload participates in overload resolution only if
      * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    template <typename Key,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     IMMER_NODISCARD size_type count(const Key& k) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
@@ -229,7 +234,9 @@ public:
      * This overload participates in overload resolution only if
      * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    template <typename Key,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     IMMER_NODISCARD const T& operator[](const Key& k) const
     {
         return impl_.template get<project_value, default_value>(k);
@@ -252,7 +259,9 @@ public:
      * `std::out_of_range` error.  It does not allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    template <typename Key,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     const T& at(const Key& k) const
     {
         return impl_.template get<project_value, error_value>(k);
@@ -307,7 +316,6 @@ public:
                                   detail::constantly<const T*, nullptr>>(k);
     }
 
-
     /*!
      * Returns a pointer to the value associated with the key `k`.  If
      * the key is not contained in the map, a `nullptr` is returned.
@@ -317,7 +325,9 @@ public:
      * This overload participates in overload resolution only if
      * `Hash::is_transparent` is valid and denotes a type.
      */
-    template<typename Key, typename U = Hash, typename = typename U::is_transparent>
+    template <typename Key,
+              typename U = Hash,
+              typename   = typename U::is_transparent>
     IMMER_NODISCARD const T* find(const Key& k) const
     {
         return impl_.template get<project_value_ptr,
