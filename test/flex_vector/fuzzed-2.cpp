@@ -172,7 +172,7 @@ TEST_CASE("bug: use after free on move-take")
         var0      = std::move(var0).take(68);
     }
 
-#if __GNUC__ != 9 && __GNUC__ != 8
+#ifndef IMMER_DISABLE_FUZZER_DUE_TO_GCC_BUG
     SECTION("")
     {
         constexpr std::uint8_t input[] = {
