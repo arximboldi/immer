@@ -62,6 +62,9 @@ class set
 {
     using impl_t = detail::hamts::champ<T, Hash, Equal, MemoryPolicy, B>;
 
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
+
     struct project_value_ptr
     {
         const T* operator()(const T& v) const noexcept { return &v; }
@@ -214,9 +217,13 @@ public:
      * the set, it returns the same set.  It may allocate memory and
      * its complexity is *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD set insert(T value) const
+    IMMER_NODISCARD set insert(T value) const&
     {
         return impl_.add(std::move(value));
+    }
+    IMMER_NODISCARD decltype(auto) insert(T value) &&
+    {
+        return insert_move(move_t{}, std::move(value));
     }
 
     /*!
@@ -224,7 +231,14 @@ public:
      * set it returns the same set.  It may allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD set erase(const T& value) const { return impl_.sub(value); }
+    IMMER_NODISCARD set erase(const T& value) const&
+    {
+        return impl_.sub(value);
+    }
+    IMMER_NODISCARD decltype(auto) erase(const T& value) &&
+    {
+        return erase_move(move_t{}, value);
+    }
 
     /*!
      * Returns an @a transient form of this container, a
@@ -244,6 +258,28 @@ public:
 
 private:
     friend transient_type;
+
+    set&& insert_move(std::true_type, value_type value)
+    {
+        // xxx: implement mutable version
+        impl_ = impl_.add(std::move(value));
+        return std::move(*this);
+    }
+    set insert_move(std::false_type, value_type value)
+    {
+        return impl_.add(std::move(value));
+    }
+
+    set&& erase_move(std::true_type, const value_type& value)
+    {
+        // xxx: implement mutable version
+        impl_ = impl_.sub(value);
+        return std::move(*this);
+    }
+    set erase_move(std::false_type, const value_type& value)
+    {
+        return impl_.sub(value);
+    }
 
     set(impl_t impl)
         : impl_(std::move(impl))

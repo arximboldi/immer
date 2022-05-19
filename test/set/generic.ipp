@@ -65,7 +65,7 @@ auto make_test_set(unsigned n)
 {
     auto s = SET_T<unsigned>{};
     for (auto i = 0u; i < n; ++i)
-        s = s.insert(i);
+        s = std::move(s).insert(i);
     return s;
 }
 
@@ -73,7 +73,7 @@ auto make_test_set(const std::vector<conflictor>& vals)
 {
     auto s = SET_T<conflictor, hash_conflictor>{};
     for (auto&& v : vals)
-        s = s.insert(v);
+        s = std::move(s).insert(v);
     return s;
 }
 
@@ -151,7 +151,7 @@ TEST_CASE("initializer list and range constructors")
     auto v2 = SET_T<std::string>{v0.begin(), v0.end()};
     CHECK(v1.size() == 4);
     CHECK(v1.count(std::string{"foo"}) == 1);
-    CHECK(v1.at(std::string{"bar"}) == 13);
+    CHECK(v1.count(std::string{"bar"}) == 1);
     CHECK(v1 == v2);
 }
 
@@ -179,13 +179,27 @@ TEST_CASE("insert a lot")
     generate_n(back_inserter(vals), N, gen);
     auto s = SET_T<unsigned>{};
 
-    for (auto i = 0u; i < N; ++i) {
-        s = s.insert(vals[i]);
-        CHECK(s.size() == i + 1);
-        for (auto j : test_irange(0u, i + 1))
-            CHECK(s.count(vals[j]) == 1);
-        for (auto j : test_irange(i + 1u, N))
-            CHECK(s.count(vals[j]) == 0);
+    SECTION("immutable")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = s.insert(vals[i]);
+            CHECK(s.size() == i + 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 1);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 0);
+        }
+    }
+    SECTION("move")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).insert(vals[i]);
+            CHECK(s.size() == i + 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 1);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 0);
+        }
     }
 }
 
@@ -194,13 +208,27 @@ TEST_CASE("insert conflicts")
     constexpr auto N = 666u;
     auto vals        = make_values_with_collisions(N);
     auto s           = SET_T<conflictor, hash_conflictor>{};
-    for (auto i = 0u; i < N; ++i) {
-        s = s.insert(vals[i]);
-        CHECK(s.size() == i + 1);
-        for (auto j : test_irange(0u, i + 1))
-            CHECK(s.count(vals[j]) == 1);
-        for (auto j : test_irange(i + 1u, N))
-            CHECK(s.count(vals[j]) == 0);
+    SECTION("immutable")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = s.insert(vals[i]);
+            CHECK(s.size() == i + 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 1);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 0);
+        }
+    }
+    SECTION("move")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).insert(vals[i]);
+            CHECK(s.size() == i + 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 1);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 0);
+        }
     }
 }
 
@@ -215,13 +243,27 @@ TEST_CASE("erase a lot")
     for (auto i = 0u; i < N; ++i)
         s = s.insert(vals[i]);
 
-    for (auto i = 0u; i < N; ++i) {
-        s = s.erase(vals[i]);
-        CHECK(s.size() == N - i - 1);
-        for (auto j : test_irange(0u, i + 1))
-            CHECK(s.count(vals[j]) == 0);
-        for (auto j : test_irange(i + 1u, N))
-            CHECK(s.count(vals[j]) == 1);
+    SECTION("immutable")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = s.erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
     }
 }
 
@@ -233,13 +275,27 @@ TEST_CASE("erase conflicts")
     for (auto i = 0u; i < N; ++i)
         s = s.insert(vals[i]);
 
-    for (auto i = 0u; i < N; ++i) {
-        s = s.erase(vals[i]);
-        CHECK(s.size() == N - i - 1);
-        for (auto j : test_irange(0u, i + 1))
-            CHECK(s.count(vals[j]) == 0);
-        for (auto j : test_irange(i + 1u, N))
-            CHECK(s.count(vals[j]) == 1);
+    SECTION("immutable")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = s.erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
     }
 }
 

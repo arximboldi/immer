@@ -68,6 +68,9 @@ class map
 {
     using value_t = std::pair<K, T>;
 
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
+
     struct project_value
     {
         const T& operator()(const value_t& v) const noexcept
@@ -375,9 +378,13 @@ public:
      * It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    IMMER_NODISCARD map insert(value_type value) const
+    IMMER_NODISCARD map insert(value_type value) const&
     {
         return impl_.add(std::move(value));
+    }
+    IMMER_NODISCARD decltype(auto) insert(value_type value) &&
+    {
+        return insert_move(move_t{}, std::move(value));
     }
 
     /*!
@@ -386,9 +393,13 @@ public:
      * It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    IMMER_NODISCARD map set(key_type k, mapped_type v) const
+    IMMER_NODISCARD map set(key_type k, mapped_type v) const&
     {
         return impl_.add({std::move(k), std::move(v)});
+    }
+    IMMER_NODISCARD decltype(auto) set(key_type k, mapped_type v) &&
+    {
+        return set_move(move_t{}, std::move(k), std::move(v));
     }
 
     /*!
@@ -399,11 +410,16 @@ public:
      * and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
-    IMMER_NODISCARD map update(key_type k, Fn&& fn) const
+    IMMER_NODISCARD map update(key_type k, Fn&& fn) const&
     {
         return impl_
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
+    }
+    template <typename Fn>
+    IMMER_NODISCARD decltype(auto) update(key_type k, Fn&& fn) &&
+    {
+        return update_move(move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
@@ -411,7 +427,11 @@ public:
      * associated in the map it returns the same map.  It may allocate
      * memory and its complexity is *effectively* @f$ O(1) @f$.
      */
-    IMMER_NODISCARD map erase(const K& k) const { return impl_.sub(k); }
+    IMMER_NODISCARD map erase(const K& k) const& { return impl_.sub(k); }
+    IMMER_NODISCARD decltype(auto) erase(const K& k) &&
+    {
+        return erase_move(move_t{}, k);
+    }
 
     /*!
      * Returns a @a transient form of this container, an
@@ -431,6 +451,56 @@ public:
 
 private:
     friend transient_type;
+
+    map&& insert_move(std::true_type, value_type value)
+    {
+        // xxx: implement mutable version
+        impl_ = impl_.add(std::move(value));
+        return std::move(*this);
+    }
+    map insert_move(std::false_type, value_type value)
+    {
+        return impl_.add(std::move(value));
+    }
+
+    map&& set_move(std::true_type, key_type k, mapped_type m)
+    {
+        // xxx: implement mutable version
+        impl_ = impl_.add({std::move(k), std::move(m)});
+        return std::move(*this);
+    }
+    map set_move(std::false_type, key_type k, mapped_type m)
+    {
+        return impl_.add({std::move(k), std::move(m)});
+    }
+
+    template <typename Fn>
+    map&& update_move(std::true_type, key_type k, Fn&& fn)
+    {
+        // xxx: implement mutable version
+        impl_ =
+            impl_.template update<project_value, default_value, combine_value>(
+                std::move(k), std::forward<Fn>(fn));
+        return std::move(*this);
+    }
+    template <typename Fn>
+    map update_move(std::false_type, key_type k, Fn&& fn)
+    {
+        return impl_
+            .template update<project_value, default_value, combine_value>(
+                std::move(k), std::forward<Fn>(fn));
+    }
+
+    map&& erase_move(std::true_type, const key_type& value)
+    {
+        // xxx: implement mutable version
+        impl_ = impl_.sub(value);
+        return std::move(*this);
+    }
+    map erase_move(std::false_type, const key_type& value)
+    {
+        return impl_.sub(value);
+    }
 
     map(impl_t impl)
         : impl_(std::move(impl))
