@@ -20,6 +20,7 @@
 #include <catch.hpp>
 
 #include <random>
+#include <unordered_map>
 #include <unordered_set>
 
 template <typename T = unsigned>
@@ -100,6 +101,19 @@ TEST_CASE("basic insertion")
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
+}
+
+TEST_CASE("initializer list and range constructors")
+{
+    auto v0 = std::unordered_map<std::string, int>{
+        {{"foo", 42}, {"bar", 13}, {"baz", 18}, {"zab", 64}}};
+    auto v1 = MAP_T<std::string, int>{
+        {{"foo", 42}, {"bar", 13}, {"baz", 18}, {"zab", 64}}};
+    auto v2 = MAP_T<std::string, int>{v0.begin(), v0.end()};
+    CHECK(v1.size() == 4);
+    CHECK(v1.count(std::string{"foo"}) == 1);
+    CHECK(v1.at(std::string{"bar"}) == 13);
+    CHECK(v1 == v2);
 }
 
 TEST_CASE("accessor")

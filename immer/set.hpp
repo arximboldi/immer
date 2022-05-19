@@ -89,6 +89,29 @@ public:
     set() = default;
 
     /*!
+     * Constructs a set containing the elements in `values`.
+     */
+    set(std::initializer_list<value_type> values)
+    {
+        for (auto&& v : values)
+            *this = std::move(*this).insert(v);
+    }
+
+    /*!
+     * Constructs a set containing the elements in the range
+     * defined by the input iterator `first` and range sentinel `last`.
+     */
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
+                               bool> = true>
+    set(Iter first, Sent last)
+    {
+        for (; first != last; ++first)
+            *this = std::move(*this).insert(*first);
+    }
+
+    /*!
      * Returns an iterator pointing at the first element of the
      * collection. It does not allocate memory and its complexity is
      * @f$ O(1) @f$.

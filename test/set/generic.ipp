@@ -144,6 +144,17 @@ TEST_CASE("instantiation")
     }
 }
 
+TEST_CASE("initializer list and range constructors")
+{
+    auto v0 = std::unordered_set<std::string>{{"foo", "bar", "baz", "zab"}};
+    auto v1 = SET_T<std::string>{{"foo", "bar", "baz", "zab"}};
+    auto v2 = SET_T<std::string>{v0.begin(), v0.end()};
+    CHECK(v1.size() == 4);
+    CHECK(v1.count(std::string{"foo"}) == 1);
+    CHECK(v1.at(std::string{"bar"}) == 13);
+    CHECK(v1 == v2);
+}
+
 TEST_CASE("basic insertion")
 {
     auto v1 = SET_T<unsigned>{};

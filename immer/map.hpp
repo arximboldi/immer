@@ -164,6 +164,29 @@ public:
     using transient_type = map_transient<K, T, Hash, Equal, MemoryPolicy, B>;
 
     /*!
+     * Constructs a map containing the elements in `values`.
+     */
+    map(std::initializer_list<value_type> values)
+    {
+        for (auto&& v : values)
+            *this = std::move(*this).insert(v);
+    }
+
+    /*!
+     * Constructs a map containing the elements in the range
+     * defined by the input iterator `first` and range sentinel `last`.
+     */
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
+                               bool> = true>
+    map(Iter first, Sent last)
+    {
+        for (; first != last; ++first)
+            *this = std::move(*this).insert(*first);
+    }
+
+    /*!
      * Default constructor.  It creates a map of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
      */
