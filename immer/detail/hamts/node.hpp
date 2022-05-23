@@ -35,6 +35,7 @@ struct node
     using transience  = typename memory::transience_t;
     using refs_t      = typename memory::refcount;
     using ownee_t     = typename transience::ownee;
+    using edit_t      = typename transience::edit;
     using value_t     = T;
     using bitmap_t    = typename get_bitmap_type<B>::type;
 
@@ -55,7 +56,7 @@ struct node
         aligned_storage_for<T> buffer;
     };
 
-    using values_t = combine_standard_layout_t<values_data_t, refs_t>;
+    using values_t = combine_standard_layout_t<values_data_t, refs_t, ownee_t>;
 
     struct inner_t
     {
@@ -79,7 +80,7 @@ struct node
         data_t data;
     };
 
-    using impl_t = combine_standard_layout_t<impl_data_t, refs_t>;
+    using impl_t = combine_standard_layout_t<impl_data_t, refs_t, ownee_t>;
 
     impl_t impl;
 
@@ -202,6 +203,11 @@ struct node
         return get<ownee_t>(x->impl);
     }
     static ownee_t& ownee(node_t* x) { return get<ownee_t>(x->impl); }
+
+    bool can_mutate(edit_t e) const
+    {
+        return refs(this).unique() || ownee(this).can_mutate(e);
+    }
 
     static node_t* make_inner_n(count_t n)
     {

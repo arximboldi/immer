@@ -412,6 +412,7 @@ struct champ
     do_add_mut(edit_t e, node_t* node, T v, hash_t hash, shift_t shift) const
     {
         assert(node);
+        auto mutate = node->can_mutate(e);
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
@@ -426,17 +427,25 @@ struct champ
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset = node->children_count(bit);
-                assert(node->children()[offset]);
-                auto result = do_add_mut(
-                    e, node->children()[offset], std::move(v), hash, shift + B);
-                IMMER_TRY {
-                    result.first =
-                        node_t::copy_inner_replace(node, offset, result.first);
-                    return result;
-                }
-                IMMER_CATCH (...) {
-                    node_t::delete_deep_shift(result.first, shift + B);
-                    IMMER_RETHROW;
+                auto child  = node->children()[offset];
+                if (mutate) {
+                    auto result =
+                        do_add_mut(e, child, std::move(v), hash, shift + B);
+                    node->children()[offset] = result.first;
+                    return {node, result.second};
+                } else {
+                    assert(node->children()[offset]);
+                    auto result = do_add(child, std::move(v), hash, shift + B);
+                    IMMER_TRY {
+                        result.first = node_t::copy_inner_replace(
+                            node, offset, result.first);
+                        node_t::ownee(result.first) = e;
+                        return result;
+                    }
+                    IMMER_CATCH (...) {
+                        node_t::delete_deep_shift(result.first, shift + B);
+                        IMMER_RETHROW;
+                    }
                 }
             } else if (node->datamap() & bit) {
                 auto offset = node->data_count(bit);
