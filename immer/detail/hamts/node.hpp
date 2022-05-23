@@ -35,7 +35,6 @@ struct node
     using transience  = typename memory::transience_t;
     using refs_t      = typename memory::refcount;
     using ownee_t     = typename transience::ownee;
-    using edit_t      = typename transience::edit;
     using value_t     = T;
     using bitmap_t    = typename get_bitmap_type<B>::type;
 
