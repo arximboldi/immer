@@ -23,3 +23,42 @@ TEST_CASE("instantiate")
     CHECK(t.persistent() == m);
     CHECK(t.persistent() == m.transient().persistent());
 }
+
+TEST_CASE("access")
+{
+    auto m = SET_T<int>{12, 42};
+    auto t = m.transient();
+    CHECK(t.size() == 2);
+    CHECK(t.count(42) == 1);
+    CHECK(*t.find(12) == 12);
+    CHECK(std::accumulate(t.begin(), t.end(), 0) == 54);
+}
+
+TEST_CASE("insert")
+{
+    auto t = SET_TRANSIENT_T<int>{};
+
+    t.insert(42);
+    CHECK(*t.find(42) == 42);
+    CHECK(t.size() == 1);
+
+    t.insert(13);
+    CHECK(*t.find(13) == 13);
+    CHECK(t.size() == 2);
+
+    t.insert(42);
+    CHECK(*t.find(42) == 42);
+    CHECK(t.size() == 2);
+}
+
+TEST_CASE("erase")
+{
+    auto t = SET_T<int>{12, 42}.transient();
+
+    t.erase(42);
+    CHECK(t.find(42) == nullptr);
+    CHECK(t.count(42) == 0);
+    CHECK(t.find(12) != nullptr);
+    CHECK(t.count(12) == 1);
+    CHECK(t.size() == 1);
+}

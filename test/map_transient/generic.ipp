@@ -23,3 +23,63 @@ TEST_CASE("instantiate")
     CHECK(t.persistent() == m);
     CHECK(t.persistent() == m.transient().persistent());
 }
+
+TEST_CASE("access")
+{
+    auto m = MAP_T<std::string, int>{{"foo", 12}, {"bar", 42}};
+    auto t = m.transient();
+    CHECK(t.size() == 2);
+    CHECK(t.count("foo") == 1);
+    CHECK(t["foo"] == 12);
+    CHECK(t.at("foo") == 12);
+    CHECK(t.find("foo") == m.find("foo"));
+    CHECK(std::accumulate(t.begin(), t.end(), 0, [](auto acc, auto&& x) {
+              return acc + x.second;
+          }) == 54);
+}
+
+TEST_CASE("insert")
+{
+    auto t = MAP_TRANSIENT_T<std::string, int>{};
+
+    t.insert({"foo", 42});
+    CHECK(t["foo"] == 42);
+    CHECK(t.size() == 1);
+
+    t.insert({"bar", 13});
+    CHECK(t["bar"] == 13);
+    CHECK(t.size() == 2);
+
+    t.insert({"foo", 6});
+    CHECK(t["foo"] == 6);
+    CHECK(t.size() == 2);
+}
+
+TEST_CASE("set")
+{
+    auto t = MAP_TRANSIENT_T<std::string, int>{};
+
+    t.set("foo", 42);
+    CHECK(t["foo"] == 42);
+    CHECK(t.size() == 1);
+
+    t.set("bar", 13);
+    CHECK(t["bar"] == 13);
+    CHECK(t.size() == 2);
+
+    t.set("foo", 6);
+    CHECK(t["foo"] == 6);
+    CHECK(t.size() == 2);
+}
+
+TEST_CASE("erase")
+{
+    auto t = MAP_T<std::string, int>{{"foo", 12}, {"bar", 42}}.transient();
+
+    t.erase("foo");
+    CHECK(t.find("foo") == nullptr);
+    CHECK(t.count("foo") == 0);
+    CHECK(t.find("bar") != nullptr);
+    CHECK(t.count("bar") == 1);
+    CHECK(t.size() == 1);
+}
