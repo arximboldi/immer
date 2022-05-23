@@ -51,4 +51,20 @@ auto benchmark_insert()
     };
 }
 
+template <typename Generator, typename Set>
+auto benchmark_insert_move()
+{
+    return [](nonius::chronometer meter) {
+        auto n = meter.param<N>();
+        auto g = Generator{}(n);
+
+        measure(meter, [&] {
+            auto v = Set{};
+            for (auto i = 0u; i < n; ++i)
+                v = std::move(v).insert(g[i]);
+            return v;
+        });
+    };
+}
+
 } // namespace
