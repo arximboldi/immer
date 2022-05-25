@@ -20,6 +20,7 @@
 #include <catch.hpp>
 
 #include <random>
+#include <unordered_map>
 #include <unordered_set>
 
 template <typename T = unsigned>
@@ -66,7 +67,7 @@ auto make_test_map(unsigned n)
 {
     auto s = MAP_T<unsigned, unsigned>{};
     for (auto i = 0u; i < n; ++i)
-        s = s.insert({i, i});
+        s = std::move(s).insert({i, i});
     return s;
 }
 
@@ -74,7 +75,7 @@ auto make_test_map(const std::vector<std::pair<conflictor, unsigned>>& vals)
 {
     auto s = MAP_T<conflictor, unsigned, hash_conflictor>{};
     for (auto&& v : vals)
-        s = s.insert(v);
+        s = std::move(s).insert(v);
     return s;
 }
 
@@ -100,6 +101,19 @@ TEST_CASE("basic insertion")
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
+}
+
+TEST_CASE("initializer list and range constructors")
+{
+    auto v0 = std::unordered_map<std::string, int>{
+        {{"foo", 42}, {"bar", 13}, {"baz", 18}, {"zab", 64}}};
+    auto v1 = MAP_T<std::string, int>{
+        {{"foo", 42}, {"bar", 13}, {"baz", 18}, {"zab", 64}}};
+    auto v2 = MAP_T<std::string, int>{v0.begin(), v0.end()};
+    CHECK(v1.size() == 4);
+    CHECK(v1.count(std::string{"foo"}) == 1);
+    CHECK(v1.at(std::string{"bar"}) == 13);
+    CHECK(v1 == v2);
 }
 
 TEST_CASE("accessor")
@@ -216,9 +230,19 @@ TEST_CASE("update a lot")
 {
     auto v = make_test_map(666u);
 
-    for (decltype(v.size()) i = 0; i < v.size(); ++i) {
-        v = v.update(i, [](auto&& x) { return x + 1; });
-        CHECK(v[i] == i + 1);
+    SECTION("immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.update(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).update(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
     }
 }
 
@@ -236,7 +260,7 @@ TEST_CASE("exception safety")
         auto v = dadaist_map_t{};
         auto d = dadaism{};
         for (auto i = 0u; i < n; ++i)
-            v = v.set(i, i);
+            v = std::move(v).set(i, i);
         for (auto i = 0u; i < v.size();) {
             try {
                 auto s = d.next();
@@ -263,6 +287,29 @@ TEST_CASE("exception safety")
             try {
                 auto s = d.next();
                 v      = v.update(vals[i].first, [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = std::move(v).update(vals[i].first,
+                                        [](auto x) { return x + 1; });
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
