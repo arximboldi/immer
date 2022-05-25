@@ -193,6 +193,10 @@ struct node
     }
     static const ownee_t& ownee(const values_t* x) { return get<ownee_t>(*x); }
     static ownee_t& ownee(values_t* x) { return get<ownee_t>(*x); }
+    static bool can_mutate(values_t* x, edit_t e)
+    {
+        return refs(x).unique() || ownee(x).can_mutate(e);
+    }
 
     static refs_t& refs(const node_t* x)
     {
@@ -340,6 +344,29 @@ struct node
             IMMER_RETHROW;
         }
         return p;
+    }
+
+    T* ensure_mutable_values(edit_t e)
+    {
+        assert(can_mutate(e));
+        auto old = impl.d.data.inner.values;
+        if (node_t::can_mutate(old, e))
+            return values();
+        auto nv  = data_count();
+        auto nxt = new (heap::allocate(sizeof_values_n(nv))) values_t{};
+        auto dst = (T*) &nxt->d.buffer;
+        auto src = values();
+        IMMER_TRY {
+            std::uninitialized_copy(src, src + nv, dst);
+        }
+        IMMER_CATCH (...) {
+            deallocate_values(nxt, nv);
+            IMMER_RETHROW;
+        }
+        if (refs(old).dec())
+            delete_values(old, nv);
+        impl.d.data.inner.values = nxt;
+        return dst;
     }
 
     static node_t* copy_collision_insert(node_t* src, T v)

@@ -412,7 +412,6 @@ struct champ
     do_add_mut(edit_t e, node_t* node, T v, hash_t hash, shift_t shift) const
     {
         assert(node);
-        auto mutate = node->can_mutate(e);
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
@@ -428,7 +427,7 @@ struct champ
             if (node->nodemap() & bit) {
                 auto offset = node->children_count(bit);
                 auto child  = node->children()[offset];
-                if (mutate) {
+                if (node->can_mutate(e)) {
                     auto result =
                         do_add_mut(e, child, std::move(v), hash, shift + B);
                     node->children()[offset] = result.first;
@@ -450,11 +449,17 @@ struct champ
             } else if (node->datamap() & bit) {
                 auto offset = node->data_count(bit);
                 auto val    = node->values() + offset;
-                if (Equal{}(*val, v))
-                    return {node_t::copy_inner_replace_value(
-                                node, offset, std::move(v)),
-                            false};
-                else {
+                if (Equal{}(*val, v)) {
+                    if (node->can_mutate(e)) {
+                        auto vals    = node->ensure_mutable_values(e);
+                        vals[offset] = std::move(v);
+                        return {node, false};
+                    } else {
+                        return {node_t::copy_inner_replace_value(
+                                    node, offset, std::move(v)),
+                                false};
+                    }
+                } else {
                     auto child = node_t::make_merged(
                         shift + B, std::move(v), hash, *val, Hash{}(*val));
                     IMMER_TRY {
