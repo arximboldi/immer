@@ -416,10 +416,15 @@ struct champ
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
             for (; fst != lst; ++fst)
-                if (Equal{}(*fst, v))
-                    return {
-                        node_t::copy_collision_replace(node, fst, std::move(v)),
-                        false};
+                if (Equal{}(*fst, v)) {
+                    if (node->can_mutate(e)) {
+                        *fst = std::move(v);
+                    } else {
+                        return {node_t::copy_collision_replace(
+                                    node, fst, std::move(v)),
+                                false};
+                    }
+                }
             return {node_t::copy_collision_insert(node, std::move(v)), true};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
