@@ -696,6 +696,7 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
+        destroy_n((T*) &p->d.buffer, n);
         deallocate_values(p, n);
     }
 
@@ -714,6 +715,7 @@ struct node
         assert(p);
         IMMER_ASSERT_TAGGED(p->kind() == kind_t::collision);
         auto n = p->collision_count();
+        destroy_n(p->collisions(), n);
         deallocate_collision(p, n);
     }
 
@@ -747,13 +749,11 @@ struct node
 
     static void deallocate_values(values_t* p, count_t n)
     {
-        destroy_n((T*) &p->d.buffer, n);
         heap::deallocate(node_t::sizeof_values_n(n), p);
     }
 
     static void deallocate_collision(node_t* p, count_t n)
     {
-        destroy_n(p->collisions(), n);
         heap::deallocate(node_t::sizeof_collision_n(n), p);
     }
 
