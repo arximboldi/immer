@@ -15,6 +15,14 @@
 
 namespace immer {
 
+template <typename K,
+          typename T,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          detail::hamts::bits_t B>
+class map;
+
 /*!
  * @rst
  *
