@@ -27,6 +27,8 @@ struct champ
     static constexpr auto bits = B;
 
     using node_t   = node<T, Hash, Equal, MemoryPolicy, B>;
+    using edit_t   = typename MemoryPolicy::transience_t::edit;
+    using owner_t  = typename MemoryPolicy::transience_t::owner;
     using bitmap_t = typename get_bitmap_type<B>::type;
 
     static_assert(branches<B> <= sizeof(bitmap_t) * 8, "");
@@ -404,6 +406,91 @@ struct champ
         auto res      = do_add(root, std::move(v), hash, 0);
         auto new_size = size + (res.second ? 1 : 0);
         return {res.first, new_size};
+    }
+
+    std::pair<node_t*, bool>
+    do_add_mut(edit_t e, node_t* node, T v, hash_t hash, shift_t shift) const
+    {
+        assert(node);
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst)
+                if (Equal{}(*fst, v)) {
+                    if (node->can_mutate(e)) {
+                        *fst = std::move(v);
+                    } else {
+                        return {node_t::copy_collision_replace(
+                                    node, fst, std::move(v)),
+                                false};
+                    }
+                }
+            return {node_t::copy_collision_insert(node, std::move(v)), true};
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = bitmap_t{1u} << idx;
+            if (node->nodemap() & bit) {
+                auto offset = node->children_count(bit);
+                auto child  = node->children()[offset];
+                if (node->can_mutate(e)) {
+                    auto result =
+                        do_add_mut(e, child, std::move(v), hash, shift + B);
+                    node->children()[offset] = result.first;
+                    return {node, result.second};
+                } else {
+                    assert(node->children()[offset]);
+                    auto result = do_add(child, std::move(v), hash, shift + B);
+                    IMMER_TRY {
+                        result.first = node_t::copy_inner_replace(
+                            node, offset, result.first);
+                        node_t::ownee(result.first) = e;
+                        return result;
+                    }
+                    IMMER_CATCH (...) {
+                        node_t::delete_deep_shift(result.first, shift + B);
+                        IMMER_RETHROW;
+                    }
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = node->data_count(bit);
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, v)) {
+                    if (node->can_mutate(e)) {
+                        auto vals    = node->ensure_mutable_values(e);
+                        vals[offset] = std::move(v);
+                        return {node, false};
+                    } else {
+                        return {node_t::copy_inner_replace_value(
+                                    node, offset, std::move(v)),
+                                false};
+                    }
+                } else {
+                    auto child = node_t::make_merged(
+                        shift + B, std::move(v), hash, *val, Hash{}(*val));
+                    IMMER_TRY {
+                        return {node_t::copy_inner_replace_merged(
+                                    node, bit, offset, child),
+                                true};
+                    }
+                    IMMER_CATCH (...) {
+                        node_t::delete_deep_shift(child, shift + B);
+                        IMMER_RETHROW;
+                    }
+                }
+            } else {
+                return {
+                    node_t::copy_inner_insert_value(node, bit, std::move(v)),
+                    true};
+            }
+        }
+    }
+
+    void add_mut(edit_t e, T v)
+    {
+        auto hash = Hash{}(v);
+        auto res  = do_add_mut(e, root, std::move(v), hash, 0);
+        root      = res.first;
+        size += res.second ? 1 : 0;
     }
 
     template <typename Project,

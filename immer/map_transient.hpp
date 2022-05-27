@@ -237,11 +237,7 @@ public:
      * replaces its association in the map.  It may allocate memory and its
      * complexity is *effectively* @f$ O(1) @f$.
      */
-    void insert(value_type value)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
-    }
+    void insert(value_type value) { impl_.add_mut(*this, std::move(value)); }
 
     /*!
      * Inserts the association `(k, v)`.  If the key is already in the map, it
@@ -250,8 +246,7 @@ public:
      */
     void set(key_type k, mapped_type v)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add({std::move(k), std::move(v)});
+        impl_.add_mut(*this, {std::move(k), std::move(v)});
     }
 
     /*!

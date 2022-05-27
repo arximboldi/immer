@@ -151,11 +151,7 @@ public:
      * there  It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    void insert(T value)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
-    }
+    void insert(T value) { impl_.add_mut(*this, std::move(value)); }
 
     /*!
      * Removes the `value` from the set, doing nothing if the value is not in

@@ -56,7 +56,7 @@ struct node
         aligned_storage_for<T> buffer;
     };
 
-    using values_t = combine_standard_layout_t<values_data_t, refs_t>;
+    using values_t = combine_standard_layout_t<values_data_t, refs_t, ownee_t>;
 
     struct inner_t
     {
@@ -80,7 +80,7 @@ struct node
         data_t data;
     };
 
-    using impl_t = combine_standard_layout_t<impl_data_t, refs_t>;
+    using impl_t = combine_standard_layout_t<impl_data_t, refs_t, ownee_t>;
 
     impl_t impl;
 
@@ -193,6 +193,10 @@ struct node
     }
     static const ownee_t& ownee(const values_t* x) { return get<ownee_t>(*x); }
     static ownee_t& ownee(values_t* x) { return get<ownee_t>(*x); }
+    static bool can_mutate(values_t* x, edit_t e)
+    {
+        return refs(x).unique() || ownee(x).can_mutate(e);
+    }
 
     static refs_t& refs(const node_t* x)
     {
@@ -203,6 +207,11 @@ struct node
         return get<ownee_t>(x->impl);
     }
     static ownee_t& ownee(node_t* x) { return get<ownee_t>(x->impl); }
+
+    bool can_mutate(edit_t e) const
+    {
+        return refs(this).unique() || ownee(this).can_mutate(e);
+    }
 
     static node_t* make_inner_n(count_t n)
     {
@@ -335,6 +344,29 @@ struct node
             IMMER_RETHROW;
         }
         return p;
+    }
+
+    T* ensure_mutable_values(edit_t e)
+    {
+        assert(can_mutate(e));
+        auto old = impl.d.data.inner.values;
+        if (node_t::can_mutate(old, e))
+            return values();
+        auto nv  = data_count();
+        auto nxt = new (heap::allocate(sizeof_values_n(nv))) values_t{};
+        auto dst = (T*) &nxt->d.buffer;
+        auto src = values();
+        IMMER_TRY {
+            std::uninitialized_copy(src, src + nv, dst);
+        }
+        IMMER_CATCH (...) {
+            deallocate_values(nxt, nv);
+            IMMER_RETHROW;
+        }
+        if (refs(old).dec())
+            delete_values(old, nv);
+        impl.d.data.inner.values = nxt;
+        return dst;
     }
 
     static node_t* copy_collision_insert(node_t* src, T v)
@@ -691,6 +723,7 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
+        destroy_n((T*) &p->d.buffer, n);
         deallocate_values(p, n);
     }
 
@@ -709,6 +742,7 @@ struct node
         assert(p);
         IMMER_ASSERT_TAGGED(p->kind() == kind_t::collision);
         auto n = p->collision_count();
+        destroy_n(p->collisions(), n);
         deallocate_collision(p, n);
     }
 
@@ -742,13 +776,11 @@ struct node
 
     static void deallocate_values(values_t* p, count_t n)
     {
-        destroy_n((T*) &p->d.buffer, n);
         heap::deallocate(node_t::sizeof_values_n(n), p);
     }
 
     static void deallocate_collision(node_t* p, count_t n)
     {
-        destroy_n(p->collisions(), n);
         heap::deallocate(node_t::sizeof_collision_n(n), p);
     }
 

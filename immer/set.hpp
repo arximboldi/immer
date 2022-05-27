@@ -261,8 +261,7 @@ private:
 
     set&& insert_move(std::true_type, value_type value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
+        impl_.add_mut({}, std::move(value));
         return std::move(*this);
     }
     set insert_move(std::false_type, value_type value)

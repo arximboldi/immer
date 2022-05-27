@@ -454,8 +454,7 @@ private:
 
     map&& insert_move(std::true_type, value_type value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
+        impl_.add_mut({}, std::move(value));
         return std::move(*this);
     }
     map insert_move(std::false_type, value_type value)
@@ -465,8 +464,7 @@ private:
 
     map&& set_move(std::true_type, key_type k, mapped_type m)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add({std::move(k), std::move(m)});
+        impl_.add_mut({}, {std::move(k), std::move(m)});
         return std::move(*this);
     }
     map set_move(std::false_type, key_type k, mapped_type m)
