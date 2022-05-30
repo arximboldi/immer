@@ -435,7 +435,12 @@ struct champ
                 if (node->can_mutate(e)) {
                     auto result =
                         do_add_mut(e, child, std::move(v), hash, shift + B);
-                    node->children()[offset] = result.first;
+                    auto p = node->children()[offset];
+                    if (p != result.first) {
+                        node->children()[offset] = result.first;
+                        if (p->dec())
+                            node_t::delete_deep_shift(p, shift + B);
+                    }
                     return {node, result.second};
                 } else {
                     assert(node->children()[offset]);
@@ -489,7 +494,12 @@ struct champ
     {
         auto hash = Hash{}(v);
         auto res  = do_add_mut(e, root, std::move(v), hash, 0);
-        root      = res.first;
+        if (res.first != root) {
+            auto p = root;
+            root   = res.first;
+            if (p->dec())
+                node_t::delete_deep(p, 0);
+        }
         size += res.second ? 1 : 0;
     }
 
