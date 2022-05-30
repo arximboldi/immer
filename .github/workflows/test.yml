@@ -82,7 +82,7 @@ jobs:
           - type: Debug
             toolchain: llvm-8
             std: 14
-            opts: ['sanitizer']
+            opts: ['sanitize']
           # benchmarks
           - type: Release
             toolchain: gnu-9
