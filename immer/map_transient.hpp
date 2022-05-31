@@ -258,11 +258,10 @@ public:
     template <typename Fn>
     void update(key_type k, Fn&& fn)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.template update<persistent_type::project_value,
-                                      persistent_type::default_value,
-                                      persistent_type::combine_value>(
-            std::move(k), std::forward<Fn>(fn));
+        impl_.template update_mut<typename persistent_type::project_value,
+                                  typename persistent_type::default_value,
+                                  typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
