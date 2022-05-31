@@ -9,7 +9,8 @@
 #include <immer/config.hpp>
 #include <immer/memory_policy.hpp>
 
-struct setup_t {
+struct setup_t
+{
     using memory_policy = immer::default_memory_policy;
 
     static constexpr auto bits = 3u;

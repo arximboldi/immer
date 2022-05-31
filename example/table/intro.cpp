@@ -11,10 +11,6 @@
 
 int main()
 {
-    /*
-        3) tests for transient version (stub)
-        4) docs
-    */
     struct Item
     {
         std::string id;

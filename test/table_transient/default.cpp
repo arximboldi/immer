@@ -9,7 +9,8 @@
 #include <immer/table.hpp>
 #include <immer/table_transient.hpp>
 
-struct setup_t {
+struct setup_t
+{
     template <typename T>
     using table_transient = immer::table_transient<
         T,
@@ -20,13 +21,13 @@ struct setup_t {
         immer::default_bits>;
 
     template <typename T>
-    using table = immer::table<
-        T,
-        immer::table_key_fn,
-        std::hash<immer::table_key_t<immer::table_key_fn, T>>,
-        std::equal_to<immer::table_key_t<immer::table_key_fn, T>>,
-        immer::default_memory_policy,
-        immer::default_bits>;
+    using table =
+        immer::table<T,
+                     immer::table_key_fn,
+                     std::hash<immer::table_key_t<immer::table_key_fn, T>>,
+                     std::equal_to<immer::table_key_t<immer::table_key_fn, T>>,
+                     immer::default_memory_policy,
+                     immer::default_bits>;
 };
 #define SETUP_T setup_t
 

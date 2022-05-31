@@ -16,12 +16,20 @@ template <typename T,
           detail::hamts::bits_t B>
 class table_transient;
 
+/*!
+ * Function template to get the key in `immer::table_key_fn`.
+ * It assumes the key is `id` class member.
+ */
 template <typename T>
 auto get_table_key(const T& x) -> decltype(x.id)
 {
     return x.id;
 }
 
+/*!
+ * Default value for `KeyFn` in `immer::table`.
+ * It assumes the key is `id` class member.
+ */
 struct table_key_fn
 {
     template <typename T>
@@ -34,6 +42,41 @@ struct table_key_fn
 template <typename KeyFn, typename T>
 using table_key_t = std::decay_t<decltype(KeyFn{}(std::declval<T>()))>;
 
+/*!
+ * Immutable unordered set of values of type `T`. Values are indexed via
+ * `operator()(const T&)` from `KeyFn` template parameter.
+ * By default, key is `&T::id`.
+ *
+ * @tparam T The type of the values to be stored in the container.
+ * @tparam KeyFn Type which implements `operator()(const T&)`
+ * @tparam Hash  The type of a function object capable of hashing
+ *               values of type `T`.
+ * @tparam Equal The type of a function object capable of comparing
+ *               values of type `T`.
+ * @tparam MemoryPolicy Memory management policy. See @ref
+ *              memory_policy.
+ *
+ * @rst
+ *
+ * This container is based on the `immer::map` underlying data structure.
+ *
+ * This container provides a good trade-off between cache locality,
+ * search, update performance and structural sharing.  It does so by
+ * storing the data in contiguous chunks of :math:`2^{B}` elements.
+ * When storing big objects, the size of these contiguous chunks can
+ * become too big, damaging performance.  If this is measured to be
+ * problematic for a specific use-case, it can be solved by using a
+ * `immer::box` to wrap the type `T`.
+ *
+ * **Example**
+ *   .. literalinclude:: ../example/table/intro.cpp
+ *      :language: c++
+ *      :start-after: intro/start
+ *      :end-before:  intro/end
+ *
+ * @endrst
+ *
+ */
 template <typename T,
           typename KeyFn          = table_key_fn,
           typename Hash           = std::hash<table_key_t<KeyFn, T>>,
@@ -139,12 +182,19 @@ public:
     using transient_type =
         table_transient<T, KeyFn, Hash, Equal, MemoryPolicy, B>;
 
+    /*!
+     * Constructs a table containing the elements in `values`.
+     */
     table(std::initializer_list<value_type> values)
     {
         for (auto&& v : values)
             *this = std::move(*this).insert(v);
     }
 
+    /*!
+     * Constructs a table containing the elements in the range
+     * defined by the input iterator `first` and range sentinel `last`.
+     */
     template <typename Iter,
               typename Sent,
               std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
@@ -155,19 +205,48 @@ public:
             *this = std::move(*this).insert(*first);
     }
 
+    /*!
+     * Default constructor.  It creates a table of `size() == 0`. It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     table() = default;
 
+    /*!
+     * Returns an iterator pointing at the first element of the
+     * collection. It does not allocate memory and its complexity is
+     * @f$ O(1) @f$.
+     */
     IMMER_NODISCARD iterator begin() const { return {impl_}; }
 
+    /*!
+     * Returns an iterator pointing just after the last element of the
+     * collection. It does not allocate and its complexity is @f$ O(1) @f$.
+     */
     IMMER_NODISCARD iterator end() const
     {
         return {impl_, typename iterator::end_t{}};
     }
 
+    /*!
+     * Returns the number of elements in the container.  It does
+     * not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     IMMER_NODISCARD size_type size() const { return impl_.size; }
 
+    /*!
+     * Returns `true` if there are no elements in the container.  It
+     * does not allocate memory and its complexity is @f$ O(1) @f$.
+     */
     IMMER_NODISCARD bool empty() const { return impl_.size == 0; }
 
+    /*!
+     * Returns `1` when the key `k` is contained in the table or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
     template <typename Key,
               typename U = Hash,
               typename   = typename U::is_transparent>
@@ -177,12 +256,26 @@ public:
                                   detail::constantly<size_type, 0>>(k);
     }
 
+    /*!
+     * Returns `1` when the key `k` is contained in the table or `0`
+     * otherwise. It won't allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
     IMMER_NODISCARD size_type count(const K& k) const
     {
         return impl_.template get<detail::constantly<size_type, 1>,
                                   detail::constantly<size_type, 0>>(k);
     }
 
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If there is no entry with such a key in the table, it returns a
+     * default constructed value.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
     template <typename Key,
               typename U = Hash,
               typename   = typename U::is_transparent>
@@ -191,11 +284,26 @@ public:
         return impl_.template get<project_value, default_value>(k);
     }
 
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`.  If there is no entry with such a key in the table, it returns a
+     * default constructed value.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
     IMMER_NODISCARD const T& operator[](const K& k) const
     {
         return impl_.template get<project_value, default_value>(k);
     }
 
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`. If there is no entry with such a key in the table, throws an
+     * `std::out_of_range` error.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
     template <typename Key,
               typename U = Hash,
               typename   = typename U::is_transparent>
@@ -203,16 +311,39 @@ public:
     {
         return impl_.template get<project_value, error_value>(k);
     }
+
+    /*!
+     * Returns a `const` reference to the values associated to the key
+     * `k`. If there is no entry with such a key in the table, throws an
+     * `std::out_of_range` error.  It does not allocate memory and its
+     * complexity is *effectively* @f$ O(1) @f$.
+     */
     const T& at(const K& k) const
     {
         return impl_.template get<project_value, error_value>(k);
     }
 
+    /*!
+     * Returns a pointer to the value associated with the key `k`.
+     * If there is no entry with such a key in the table,
+     * a `nullptr` is returned. It does not allocate memory and
+     * its complexity is *effectively* @f$ O(1) @f$.
+     */
     IMMER_NODISCARD const T* find(const K& k) const
     {
         return impl_.template get<project_value_ptr,
                                   detail::constantly<const T*, nullptr>>(k);
     }
+
+    /*!
+     * Returns a pointer to the value associated with the key `k`.
+     * If there is no entry with such a key in the table,
+     * a `nullptr` is returned. It does not allocate memory and
+     * its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * This overload participates in overload resolution only if
+     * `Hash::is_transparent` is valid and denotes a type.
+     */
     template <typename Key,
               typename U = Hash,
               typename   = typename U::is_transparent>
@@ -226,20 +357,41 @@ public:
     {
         return impl_.template equals<equal_value>(other.impl_);
     }
+
     IMMER_NODISCARD bool operator!=(const table& other) const
     {
         return !(*this == other);
     }
 
+    /*!
+     * Returns a table containing the `value`.
+     * If there is an entry with its key is already,
+     * it replaces this entry by `value`.
+     * It may allocate memory and its complexity is *effectively* @f$
+     * O(1) @f$.
+     */
     IMMER_NODISCARD table insert(value_type value) const&
     {
         return impl_.add(std::move(value));
     }
+
+    /*!
+     * Returns a table containing the `value`.
+     * If there is an entry with its key is already,
+     * it replaces this entry by `value`.
+     * It may allocate memory and its complexity is *effectively* @f$
+     * O(1) @f$.
+     */
     IMMER_NODISCARD decltype(auto) insert(value_type value) &&
     {
         return insert_move(move_t{}, std::move(value));
     }
 
+    /*!
+     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
+     * `T` to `T`. It may allocate memory and its complexity
+     * is *effectively* @f$ O(1) @f$.
+     */
     template <typename Fn>
     IMMER_NODISCARD table update(key_type k, Fn&& fn) const&
     {
@@ -247,31 +399,54 @@ public:
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
     }
+
+    /*!
+     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
+     * `T` to `T`. It may allocate memory and its complexity
+     * is *effectively* @f$ O(1) @f$.
+     */
     template <typename Fn>
     IMMER_NODISCARD decltype(auto) update(key_type k, Fn&& fn) &&
     {
         return update_move(move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
-    IMMER_NODISCARD table erase(const K& k) const&
-    {
-        return impl_.sub(k);
-    }
+    /*!
+     * Returns a table without entries with given key `k`. If the key is not
+     * present it returns `*this`. It may allocate
+     * memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
+    IMMER_NODISCARD table erase(const K& k) const& { return impl_.sub(k); }
 
+    /*!
+     * Returns a table without entries with given key `k`. If the key is not
+     * present it returns `*this`. It may allocate
+     * memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
     IMMER_NODISCARD decltype(auto) erase(const K& k) &&
     {
         return erase_move(move_t{}, k);
     }
 
+    /*!
+     * Returns a @a transient form of this container, an
+     * `immer::table_transient`.
+     */
     IMMER_NODISCARD transient_type transient() const&
     {
         return transient_type{impl_};
     }
+
+    /*!
+     * Returns a @a transient form of this container, an
+     * `immer::table_transient`.
+     */
     IMMER_NODISCARD transient_type transient() &&
     {
         return transient_type{std::move(impl_)};
     }
 
+    // Semi-private
     const impl_t& impl() const { return impl_; }
 
 private:

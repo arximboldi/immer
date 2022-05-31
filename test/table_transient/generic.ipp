@@ -12,13 +12,15 @@
 #error "define the table types via SETUP_T macro"
 #endif
 
-#include <string> 
+#include <string>
 
-struct Item {
+struct Item
+{
     std::string id;
     int value;
 
-    bool operator == (const Item& other) const {
+    bool operator==(const Item& other) const
+    {
         return value == other.value && id == other.id;
     }
 };
