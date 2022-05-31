@@ -178,17 +178,18 @@ struct with_capacity
     static size_t recommend_up(size_t sz, size_t cap)
     {
         auto max = std::numeric_limits<size_t>::max();
-        return sz <= cap ? cap
-                         : cap >= max / 2 ? max
-                                          /* otherwise */
-                                          : std::max(2 * cap, sz);
+        return sz <= cap        ? cap
+               : cap >= max / 2 ? max
+                                /* otherwise */
+                                : std::max(2 * cap, sz);
     }
 
     static size_t recommend_down(size_t sz, size_t cap)
     {
-        return sz == 0 ? 1
-                       : sz < cap / 2 ? sz * 2 :
-                                      /* otherwise */ cap;
+        return sz == 0        ? 1
+               : sz < cap / 2 ? sz * 2
+                              :
+                              /* otherwise */ cap;
     }
 
     with_capacity push_back(T value) const
