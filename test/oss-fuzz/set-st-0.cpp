@@ -8,10 +8,13 @@
 
 #include "input.hpp"
 
-#include "extra/fuzzer/fuzzer_gc_guard.hpp"
-
 #include <immer/heap/gc_heap.hpp>
-#include <immer/map.hpp>
+#include <immer/refcount/no_refcount_policy.hpp>
+#include <immer/set.hpp>
+
+#include <immer/algorithm.hpp>
+
+#include <array>
 
 #include <catch.hpp>
 
@@ -32,30 +35,29 @@ int run_input(const std::uint8_t* data, std::size_t size)
 {
     constexpr auto var_count = 4;
 
-    using map_t = immer::
-        map<std::size_t, int, colliding_hash_t, std::equal_to<>, st_memory>;
+    using set_t =
+        immer::set<size_t, colliding_hash_t, std::equal_to<>, st_memory>;
 
-    auto vars = std::array<map_t, var_count>{};
+    auto vars = std::array<set_t, var_count>{};
 
     auto is_valid_var = [&](auto idx) { return idx >= 0 && idx < var_count; };
 
     return fuzzer_input{data, size}.run([&](auto& in) {
         enum ops
         {
-            op_set,
+            op_insert,
             op_erase,
-            op_set_move,
+            op_insert_move,
             op_erase_move,
             op_iterate,
-            op_find,
-            op_update
+            op_diff
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
         switch (read<char>(in)) {
-        case op_set: {
+        case op_insert: {
             auto value = read<size_t>(in);
-            vars[dst]  = vars[src].set(value, 42);
+            vars[dst]  = vars[src].insert(value);
             break;
         }
         case op_erase: {
@@ -63,35 +65,38 @@ int run_input(const std::uint8_t* data, std::size_t size)
             vars[dst]  = vars[src].erase(value);
             break;
         }
-        case op_set_move: {
+        case op_insert_move: {
             auto value = read<size_t>(in);
-            vars[dst]  = std::move(vars[src]).set(value, 42);
+            vars[dst]  = std::move(vars[src]).insert(value);
             break;
         }
         case op_erase_move: {
             auto value = read<size_t>(in);
-            vars[dst]  = std::move(vars[src]).erase(value);
+            vars[dst]  = vars[src].erase(value);
             break;
         }
         case op_iterate: {
             auto srcv = vars[src];
             for (const auto& v : srcv) {
-                vars[dst] = vars[dst].set(v.first, v.second);
+                vars[dst] = vars[dst].insert(v);
             }
             break;
         }
-        case op_find: {
-            auto value = read<size_t>(in);
-            auto res   = vars[src].find(value);
-            if (res != nullptr) {
-                vars[dst] = vars[dst].set(*res, 42);
-            }
-            break;
-        }
-        case op_update: {
-            auto key  = read<size_t>(in);
-            vars[dst] = vars[src].update(key, [](int x) { return x + 1; });
-            break;
+        case op_diff: {
+            auto&& a = vars[src];
+            auto&& b = vars[dst];
+            diff(
+                a,
+                b,
+                [&](auto&& x) {
+                    assert(!a.count(x));
+                    assert(b.count(x));
+                },
+                [&](auto&& x) {
+                    assert(a.count(x));
+                    assert(!b.count(x));
+                },
+                [&](auto&& x, auto&& y) { assert(false); });
         }
         default:
             break;
@@ -102,22 +107,12 @@ int run_input(const std::uint8_t* data, std::size_t size)
 
 } // namespace
 
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=24466")
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=47693")
 {
     SECTION("fuzzer")
     {
         auto input = load_input(
-            "clusterfuzz-testcase-minimized-map-st-5193157168594944");
-        CHECK(run_input(input.data(), input.size()) == 0);
-    }
-}
-
-TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=47700")
-{
-    SECTION("fuzzer")
-    {
-        auto input =
-            load_input("clusterfuzz-testcase-minimized-map-6457979420934144");
+            "clusterfuzz-testcase-minimized-set-st-4717454829420544");
         CHECK(run_input(input.data(), input.size()) == 0);
     }
 }
