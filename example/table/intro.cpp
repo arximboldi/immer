@@ -7,16 +7,21 @@
 //
 #include <string>
 // include:intro/start
-#include <immer/single_hash_index.hpp>
+#include <immer/table.hpp>
 
 int main()
 {
-    struct Item {
+    /*
+        3) tests for non-default
+        4) docs
+    */
+    struct Item
+    {
         std::string id;
         int value;
     };
 
-    const auto v0 = immer::single_hash_index<Item>{};
+    const auto v0 = immer::table<Item>{};
     const auto v1 = v0.insert({"hello", 42});
     assert(v0["hello"].value == 0);
     assert(v1["hello"].value == 42);

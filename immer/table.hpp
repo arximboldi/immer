@@ -9,30 +9,40 @@
 namespace immer {
 
 template <typename T,
-          typename KeyExtractor,
+          typename KeyFn,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
           detail::hamts::bits_t B>
-class single_hash_index_transient;
+class table_transient;
 
-template <class T>
-struct default_key_extractor
+template <typename T>
+auto get_table_key(const T& x) -> decltype(x.id)
 {
-    using key_type = decltype(T().id);
+    return x.id;
+}
 
-    key_type operator()(const T& t) const { return t.id; }
+struct table_key_fn
+{
+    template <typename T>
+    decltype(auto) operator()(const T& x) const
+    {
+        return get_table_key(x);
+    }
 };
 
+template <typename KeyFn, typename T>
+using table_key_t = std::decay_t<decltype(KeyFn{}(std::declval<T>()))>;
+
 template <typename T,
-          typename KeyExtractor = default_key_extractor<T>,
-          typename Hash         = std::hash<typename KeyExtractor::key_type>,
-          typename Equal = std::equal_to<typename KeyExtractor::key_type>,
+          typename KeyFn          = table_key_fn,
+          typename Hash           = std::hash<table_key_t<KeyFn, T>>,
+          typename Equal          = std::equal_to<table_key_t<KeyFn, T>>,
           typename MemoryPolicy   = default_memory_policy,
           detail::hamts::bits_t B = default_bits>
-class single_hash_index
+class table
 {
-    using K       = typename KeyExtractor::key_type;
+    using K       = table_key_t<KeyFn, T>;
     using value_t = T;
 
     using move_t =
@@ -79,7 +89,7 @@ class single_hash_index
 
     struct hash_key
     {
-        auto operator()(const value_t& v) { return Hash{}(KeyExtractor{}(v)); }
+        auto operator()(const value_t& v) { return Hash{}(KeyFn{}(v)); }
 
         template <typename Key>
         auto operator()(const Key& v)
@@ -92,14 +102,14 @@ class single_hash_index
     {
         auto operator()(const value_t& a, const value_t& b)
         {
-            auto ke = KeyExtractor{};
+            auto ke = KeyFn{};
             return Equal{}(ke(a), ke(b));
         }
 
         template <typename Key>
         auto operator()(const value_t& a, const Key& b)
         {
-            return Equal{}(KeyExtractor{}(a), b);
+            return Equal{}(KeyFn{}(a), b);
         }
     };
 
@@ -126,9 +136,10 @@ public:
         champ_iterator<value_t, hash_key, equal_key, MemoryPolicy, B>;
     using const_iterator = iterator;
 
-    using transient_type = single_hash_index_transient<T, KeyExtractor, Hash, Equal, MemoryPolicy, B>;
+    using transient_type =
+        table_transient<T, KeyFn, Hash, Equal, MemoryPolicy, B>;
 
-    single_hash_index(std::initializer_list<value_type> values)
+    table(std::initializer_list<value_type> values)
     {
         for (auto&& v : values)
             *this = std::move(*this).insert(v);
@@ -138,13 +149,13 @@ public:
               typename Sent,
               std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
                                bool> = true>
-    single_hash_index(Iter first, Sent last)
+    table(Iter first, Sent last)
     {
         for (; first != last; ++first)
             *this = std::move(*this).insert(*first);
     }
 
-    single_hash_index() = default;
+    table() = default;
 
     IMMER_NODISCARD iterator begin() const { return {impl_}; }
 
@@ -211,16 +222,16 @@ public:
                                   detail::constantly<const T*, nullptr>>(k);
     }
 
-    IMMER_NODISCARD bool operator==(const single_hash_index& other) const
+    IMMER_NODISCARD bool operator==(const table& other) const
     {
         return impl_.template equals<equal_value>(other.impl_);
     }
-    IMMER_NODISCARD bool operator!=(const single_hash_index& other) const
+    IMMER_NODISCARD bool operator!=(const table& other) const
     {
         return !(*this == other);
     }
 
-    IMMER_NODISCARD single_hash_index insert(value_type value) const&
+    IMMER_NODISCARD table insert(value_type value) const&
     {
         return impl_.add(std::move(value));
     }
@@ -230,7 +241,7 @@ public:
     }
 
     template <typename Fn>
-    IMMER_NODISCARD single_hash_index update(key_type k, Fn&& fn) const&
+    IMMER_NODISCARD table update(key_type k, Fn&& fn) const&
     {
         return impl_
             .template update<project_value, default_value, combine_value>(
@@ -242,7 +253,7 @@ public:
         return update_move(move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
-    IMMER_NODISCARD single_hash_index erase(const K& k) const&
+    IMMER_NODISCARD table erase(const K& k) const&
     {
         return impl_.sub(k);
     }
@@ -266,20 +277,20 @@ public:
 private:
     friend transient_type;
 
-    single_hash_index&& insert_move(std::true_type, value_type value)
+    table&& insert_move(std::true_type, value_type value)
     {
         // xxx: implement mutable version
         impl_ = impl_.add(std::move(value));
         return std::move(*this);
     }
 
-    single_hash_index insert_move(std::false_type, value_type value)
+    table insert_move(std::false_type, value_type value)
     {
         return impl_.add(std::move(value));
     }
 
     template <typename Fn>
-    single_hash_index&& update_move(std::true_type, key_type k, Fn&& fn)
+    table&& update_move(std::true_type, key_type k, Fn&& fn)
     {
         // xxx: implement mutable version
         impl_ =
@@ -289,28 +300,29 @@ private:
     }
 
     template <typename Fn>
-    single_hash_index update_move(std::false_type, key_type k, Fn&& fn)
+    table update_move(std::false_type, key_type k, Fn&& fn)
     {
         return impl_
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
     }
 
-    single_hash_index&& erase_move(std::true_type, const key_type& value)
+    table&& erase_move(std::true_type, const key_type& value)
     {
         // xxx: implement mutable version
         impl_ = impl_.sub(value);
         return std::move(*this);
     }
 
-    single_hash_index erase_move(std::false_type, const key_type& value)
+    table erase_move(std::false_type, const key_type& value)
     {
         return impl_.sub(value);
     }
 
-    single_hash_index(impl_t impl)
+    table(impl_t impl)
         : impl_(std::move(impl))
-    {}
+    {
+    }
 
     impl_t impl_ = impl_t::empty();
 };

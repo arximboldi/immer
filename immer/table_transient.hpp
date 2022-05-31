@@ -12,7 +12,7 @@ template <typename T,
           typename Equal,
           typename MemoryPolicy,
           detail::hamts::bits_t B>
-class single_hash_index;
+class table;
 
 template <typename T,
           typename KeyExtractor,
@@ -20,14 +20,14 @@ template <typename T,
           typename Equal,
           typename MemoryPolicy,
           detail::hamts::bits_t B>
-class single_hash_index_transient : MemoryPolicy::transience_t::owner
+class table_transient : MemoryPolicy::transience_t::owner
 {
     using K = typename KeyExtractor::key_type;
     using base_t  = typename MemoryPolicy::transience_t::owner;
     using owner_t = base_t;
 
 public:
-    using persistent_type = single_hash_index<T, KeyExtractor, Hash, Equal, MemoryPolicy, B>;
+    using persistent_type = table<T, KeyExtractor, Hash, Equal, MemoryPolicy, B>;
     using key_type        = K;
     using mapped_type     = T;
     using value_type      = T;
@@ -41,7 +41,7 @@ public:
     using iterator       = typename persistent_type::iterator;
     using const_iterator = iterator;
 
-    single_hash_index_transient() = default;
+    table_transient() = default;
 
     IMMER_NODISCARD iterator begin() const { return {impl_}; }
 
@@ -153,7 +153,7 @@ private:
     friend persistent_type;
     using impl_t = typename persistent_type::impl_t;
 
-    single_hash_index_transient(impl_t impl)
+    table_transient(impl_t impl)
         : impl_(std::move(impl))
     {}
 
