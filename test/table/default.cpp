@@ -9,11 +9,11 @@
 #include <immer/config.hpp>
 #include <immer/memory_policy.hpp>
 
-struct default_setup {
+struct setup_t {
     using memory_policy = immer::default_memory_policy;
 
     static constexpr auto bits = immer::default_bits;
 };
 
-#define SETUP_T default_setup
+#define SETUP_T setup_t
 #include "generic.ipp"

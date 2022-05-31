@@ -7,7 +7,7 @@
 namespace immer {
 
 template <typename T,
-          typename KeyExtractor,
+          typename KeyFn,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
@@ -15,19 +15,19 @@ template <typename T,
 class table;
 
 template <typename T,
-          typename KeyExtractor,
+          typename KeyFn,
           typename Hash,
           typename Equal,
           typename MemoryPolicy,
           detail::hamts::bits_t B>
 class table_transient : MemoryPolicy::transience_t::owner
 {
-    using K = typename KeyExtractor::key_type;
+    using K = std::decay_t<decltype(KeyFn{}(std::declval<T>()))>;
     using base_t  = typename MemoryPolicy::transience_t::owner;
     using owner_t = base_t;
 
 public:
-    using persistent_type = table<T, KeyExtractor, Hash, Equal, MemoryPolicy, B>;
+    using persistent_type = table<T, KeyFn, Hash, Equal, MemoryPolicy, B>;
     using key_type        = K;
     using mapped_type     = T;
     using value_type      = T;
