@@ -72,6 +72,23 @@ TEST_CASE("set")
     CHECK(t.size() == 2);
 }
 
+TEST_CASE("update")
+{
+    auto t = MAP_TRANSIENT_T<std::string, int>{};
+
+    t.update("foo", [](auto x) { return x + 42; });
+    CHECK(t["foo"] == 42);
+    CHECK(t.size() == 1);
+
+    t.update("bar", [](auto x) { return x + 13; });
+    CHECK(t["bar"] == 13);
+    CHECK(t.size() == 2);
+
+    t.update("foo", [](auto x) { return x + 6; });
+    CHECK(t["foo"] == 48);
+    CHECK(t.size() == 2);
+}
+
 TEST_CASE("erase")
 {
     auto t = MAP_T<std::string, int>{{"foo", 12}, {"bar", 42}}.transient();

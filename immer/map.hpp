@@ -475,10 +475,8 @@ private:
     template <typename Fn>
     map&& update_move(std::true_type, key_type k, Fn&& fn)
     {
-        // xxx: implement mutable version
-        impl_ =
-            impl_.template update<project_value, default_value, combine_value>(
-                std::move(k), std::forward<Fn>(fn));
+        impl_.template update_mut<project_value, default_value, combine_value>(
+            {}, std::move(k), std::forward<Fn>(fn));
         return std::move(*this);
     }
     template <typename Fn>
