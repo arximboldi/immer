@@ -419,6 +419,7 @@ struct champ
                 if (Equal{}(*fst, v)) {
                     if (node->can_mutate(e)) {
                         *fst = std::move(v);
+                        return {node, false};
                     } else {
                         return {node_t::copy_collision_replace(
                                     node, fst, std::move(v)),

@@ -255,7 +255,7 @@ TEST_CASE("exception safety")
     using dadaist_conflictor_map_t = typename dadaist_wrapper<
         MAP_T<conflictor, unsigned, hash_conflictor>>::type;
 
-    SECTION("update collisions")
+    SECTION("update")
     {
         auto v = dadaist_map_t{};
         auto d = dadaism{};
@@ -287,6 +287,52 @@ TEST_CASE("exception safety")
             try {
                 auto s = d.next();
                 v      = v.update(vals[i].first, [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("set collisisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                auto x = vals[i].second;
+                v      = v.set(vals[i].first, x + 1);
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("set collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                auto x = vals[i].second;
+                v      = std::move(v).set(vals[i].first, x + 1);
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
