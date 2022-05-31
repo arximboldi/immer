@@ -489,8 +489,7 @@ private:
 
     map&& erase_move(std::true_type, const key_type& value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
+        impl_.sub_mut({}, value);
         return std::move(*this);
     }
     map erase_move(std::false_type, const key_type& value)

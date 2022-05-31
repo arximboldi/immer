@@ -849,6 +849,104 @@ struct champ
         }
     }
 
+    template <typename K>
+    sub_result do_sub_mut(
+        edit_t e, node_t* node, const K& k, hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (auto cur = fst; cur != lst; ++cur)
+                if (Equal{}(*cur, k))
+                    return node->collision_count() > 2
+                               ? node_t::copy_collision_remove(node, cur)
+                               : sub_result{fst + (cur == fst)};
+            return {};
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = bitmap_t{1u} << idx;
+            if (node->nodemap() & bit) {
+                auto offset   = node->children_count(bit);
+                auto mutate   = node->can_mutate(e);
+                auto children = node->children();
+                auto child    = children[offset];
+                auto result = mutate ? do_sub_mut(e, child, k, hash, shift + B)
+                                     : do_sub(child, k, hash, shift + B);
+                switch (result.kind) {
+                case sub_result::nothing:
+                    return {};
+                case sub_result::singleton:
+                    return node->datamap() == 0 &&
+                                   node->children_count() == 1 && shift > 0
+                               ? result
+                               : node_t::copy_inner_replace_inline(
+                                     node, bit, offset, *result.data.singleton);
+                case sub_result::tree:
+                    if (mutate) {
+                        if (child != result.data.tree) {
+                            children[offset] = result.data.tree;
+                            if (child->dec())
+                                node_t::delete_deep_shift(child, shift + B);
+                        }
+                        return node;
+                    } else {
+                        IMMER_TRY {
+                            return node_t::copy_inner_replace(
+                                node, offset, result.data.tree);
+                        }
+                        IMMER_CATCH (...) {
+                            node_t::delete_deep_shift(result.data.tree,
+                                                      shift + B);
+                            IMMER_RETHROW;
+                        }
+                    }
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = node->data_count(bit);
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k)) {
+                    auto nv = node->data_count();
+                    if (node->nodemap() || nv > 2)
+                        return node_t::copy_inner_remove_value(
+                            node, bit, offset);
+                    else if (nv == 2) {
+                        return shift > 0 ? sub_result{node->values() + !offset}
+                                         : node_t::make_inner_n(
+                                               0,
+                                               node->datamap() & ~bit,
+                                               node->values()[!offset]);
+                    } else {
+                        assert(shift == 0);
+                        return empty();
+                    }
+                }
+            }
+            return {};
+        }
+    }
+
+    template <typename K>
+    void sub_mut(edit_t e, const K& k)
+    {
+        auto hash = Hash{}(k);
+        auto res  = do_sub_mut(e, root, k, hash, 0);
+        switch (res.kind) {
+        case sub_result::nothing:
+            break;
+        case sub_result::tree:
+            if (root != res.data.tree) {
+                auto p = root;
+                root   = res.data.tree;
+                if (p->dec())
+                    node_t::delete_deep(p, 0);
+            }
+            --size;
+            break;
+        default:
+            IMMER_UNREACHABLE;
+        }
+    }
+
     template <typename Eq = Equal>
     bool equals(const champ& other) const
     {

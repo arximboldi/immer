@@ -277,11 +277,7 @@ public:
      * associated in the map.  It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void erase(const K& k)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(k);
-    }
+    void erase(const K& k) { impl_.sub_mut(*this, k); }
 
     /*!
      * Returns an @a immutable form of this container, an
