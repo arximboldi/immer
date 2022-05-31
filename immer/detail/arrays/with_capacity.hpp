@@ -292,6 +292,7 @@ struct with_capacity
 
     with_capacity take(std::size_t sz) const
     {
+        assert(sz <= size);
         auto cap = recommend_down(sz, capacity);
         auto p   = node_t::copy_n(cap, ptr, sz);
         return {p, sz, cap};
@@ -299,6 +300,7 @@ struct with_capacity
 
     void take_mut(edit_t e, std::size_t sz)
     {
+        assert(sz <= size);
         if (ptr->can_mutate(e)) {
             destroy_n(data() + size, size - sz);
             size = sz;

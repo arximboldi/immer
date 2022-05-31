@@ -456,6 +456,22 @@ TEST_CASE("exception safety")
         IMMER_TRACE_E(d.happenings);
     }
 
+    SECTION("push back move")
+    {
+        auto v = dadaist_vector_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; v.size() < static_cast<decltype(v.size())>(n);) {
+            auto s = d.next();
+            try {
+                v = std::move(v).push_back({i});
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
     SECTION("update")
     {
         auto v = make_test_vector<dadaist_vector_t>(0, n);
@@ -464,6 +480,24 @@ TEST_CASE("exception safety")
             auto s = d.next();
             try {
                 v = v.update(i, [](auto x) { return dada(), x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            CHECK_VECTOR_EQUALS(
+                v, boost::join(boost::irange(1u, 1u + i), boost::irange(i, n)));
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update move")
+    {
+        auto v = make_test_vector<dadaist_vector_t>(0, n);
+        auto d = dadaism{};
+        for (auto i = 0u; i < n;) {
+            auto s = d.next();
+            try {
+                v = std::move(v).update(i,
+                                        [](auto x) { return dada(), x + 1; });
                 ++i;
             } catch (dada_error) {}
             CHECK_VECTOR_EQUALS(
@@ -485,6 +519,25 @@ TEST_CASE("exception safety")
                 CHECK_VECTOR_EQUALS(r, boost::irange(0u, i++));
             } catch (dada_error) {
                 CHECK_VECTOR_EQUALS(r, boost::irange(0u, 0u));
+            }
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("take move")
+    {
+        auto v = make_test_vector<dadaist_vector_t>(0, n);
+        auto d = dadaism{};
+        auto r = dadaist_vector_t{v};
+        for (auto i = 0u; i < n - 1;) {
+            auto s = d.next();
+            try {
+                r = std::move(r).take(n - i - 1);
+                CHECK_VECTOR_EQUALS(r, boost::irange(0u, n - i - 1));
+                ++i;
+            } catch (dada_error) {
+                CHECK_VECTOR_EQUALS(r, boost::irange(0u, n - i));
             }
         }
         CHECK(d.happenings > 0);
