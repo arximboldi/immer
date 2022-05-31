@@ -222,9 +222,9 @@ public:
     }
 
     /*!
-     * Updates table via `this->insert(fn((*this)[k]))`. In particular, `fn`
-     * maps `T` to `T`. It may allocate memory and its complexity is
-     * *effectively* @f$ O(1) @f$.
+     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
+     * `T` to `T`. The `fn` return value should have key `k`.
+     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
     void update(key_type k, Fn&& fn)

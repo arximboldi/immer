@@ -389,8 +389,8 @@ public:
 
     /*!
      * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. It may allocate memory and its complexity
-     * is *effectively* @f$ O(1) @f$.
+     * `T` to `T`. The `fn` return value should have key `k`.
+     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
     IMMER_NODISCARD table update(key_type k, Fn&& fn) const&
@@ -402,8 +402,8 @@ public:
 
     /*!
      * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. It may allocate memory and its complexity
-     * is *effectively* @f$ O(1) @f$.
+     * `T` to `T`. The `fn` return value should have key `k`.
+     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
     IMMER_NODISCARD decltype(auto) update(key_type k, Fn&& fn) &&
