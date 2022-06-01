@@ -784,7 +784,16 @@ struct champ
                     return node->collision_count() > 2
                                ? node_t::copy_collision_remove(node, cur)
                                : sub_result{fst + (cur == fst)};
+#if !defined(_MSC_VER)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+            // Apparently GCC is generating this warning sometimes when
+            // compiling the benchmarks. It makes however no sense at all.
             return {};
+#if !defined(_MSC_VER)
+#pragma GCC diagnostic pop
+#endif
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
