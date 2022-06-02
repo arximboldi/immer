@@ -454,8 +454,7 @@ private:
 
     table&& insert_move(std::true_type, value_type value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
+        impl_.add_mut({}, std::move(value));
         return std::move(*this);
     }
 
@@ -467,10 +466,8 @@ private:
     template <typename Fn>
     table&& update_move(std::true_type, key_type k, Fn&& fn)
     {
-        // xxx: implement mutable version
-        impl_ =
-            impl_.template update<project_value, default_value, combine_value>(
-                std::move(k), std::forward<Fn>(fn));
+        impl_.template update_mut<project_value, default_value, combine_value>(
+            std::move(k), std::forward<Fn>(fn));
         return std::move(*this);
     }
 
@@ -478,14 +475,13 @@ private:
     table update_move(std::false_type, key_type k, Fn&& fn)
     {
         return impl_
-            .template update<project_value, default_value, combine_value>(
-                std::move(k), std::forward<Fn>(fn));
+            .template update_mut<project_value, default_value, combine_value>(
+                {}, std::move(k), std::forward<Fn>(fn));
     }
 
     table&& erase_move(std::true_type, const key_type& value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
+        impl_.sub_mut({}, value);
         return std::move(*this);
     }
 
@@ -496,8 +492,7 @@ private:
 
     table(impl_t impl)
         : impl_(std::move(impl))
-    {
-    }
+    {}
 
     impl_t impl_ = impl_t::empty();
 };
