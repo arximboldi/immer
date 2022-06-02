@@ -129,7 +129,7 @@ private:
  * @rst
  *
  * .. warning:: If memory policy used includes thread unsafe reference counting,
- *    no no thread safety is assumed, and the atom becomes thread unsafe too!
+ *    no thread safety is assumed, and the atom becomes thread unsafe too!
  *
  * .. note:: ``box<T>`` provides a value based box of type ``T``, this is, we
  *    can think about it as a value-based version of ``std::shared_ptr``.  In a
