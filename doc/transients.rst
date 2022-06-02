@@ -49,3 +49,10 @@ map_transient
 .. doxygenclass:: immer::map_transient
     :members:
     :undoc-members:
+
+table_transient
+---------------
+
+.. doxygenclass:: immer::table_transient
+    :members:
+    :undoc-members:
