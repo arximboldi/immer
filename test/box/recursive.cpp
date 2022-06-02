@@ -14,6 +14,7 @@
 #include <immer/vector.hpp>
 
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <catch.hpp>
 
 struct rec_vec
@@ -108,6 +109,8 @@ TEST_CASE("recursive set")
     CHECK(v3.children.count(rec_set{14, {}}) == 0);
 }
 
+namespace example1 {
+
 struct a_type;
 
 struct b_type
@@ -134,9 +137,51 @@ a_type::a_type()
     : b{}
 {}
 
+} // namespace example1
+
 TEST_CASE("recursive optional")
 {
-    auto x = a_type{};
-    auto y = b_type{42, x};
+    auto x = example1::a_type{};
+    auto y = example1::b_type{42, x};
+    CHECK(y.a == 42);
+}
+
+namespace example2 {
+
+struct empty_t
+{};
+
+struct a_type;
+
+struct b_type
+{
+    b_type(int a, immer::box<a_type> val);
+    int a;
+    immer::box<a_type> val;
+};
+
+struct a_type
+{
+    a_type();
+    // this does not work with std::variant, because it seems like
+    // `immer::box<b_type>` is still not considered complete at this point...
+    boost::variant<empty_t, b_type> b;
+};
+
+b_type::b_type(int a, immer::box<a_type> val)
+    : a(a)
+    , val(val)
+{}
+
+a_type::a_type()
+    : b{}
+{}
+
+} // namespace example2
+
+TEST_CASE("recursive variant")
+{
+    auto x = example2::a_type{};
+    auto y = example2::b_type{42, x};
     CHECK(y.a == 42);
 }
