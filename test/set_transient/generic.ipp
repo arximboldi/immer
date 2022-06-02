@@ -62,3 +62,38 @@ TEST_CASE("erase")
     CHECK(t.count(12) == 1);
     CHECK(t.size() == 1);
 }
+
+TEST_CASE("insert erase many")
+{
+    auto t = SET_T<int>{}.transient();
+    auto n = 1000;
+    for (auto i = 0; i < n; ++i) {
+        t.insert(i);
+        CHECK(t.find(i) != nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(i + 1));
+    }
+    for (auto i = 0; i < n; ++i) {
+        t.erase(i);
+        CHECK(t.find(i) == nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(n - i - 1));
+    }
+}
+
+TEST_CASE("erase many from non transient")
+{
+    const auto n = 10000;
+    auto t       = [] {
+        auto t = SET_T<int>{};
+        for (auto i = 0; i < n; ++i) {
+            t = t.insert(i);
+            CHECK(t.find(i) != nullptr);
+            CHECK(t.size() == static_cast<std::size_t>(i + 1));
+        }
+        return t.transient();
+    }();
+    for (auto i = 0; i < n; ++i) {
+        t.erase(i);
+        CHECK(t.find(i) == nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(n - i - 1));
+    }
+}

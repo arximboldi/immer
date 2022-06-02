@@ -421,12 +421,13 @@ struct champ
                         *fst = std::move(v);
                         return {node, false};
                     } else {
-                        return {node_t::copy_collision_replace(
-                                    node, fst, std::move(v)),
-                                false};
+                        auto r = node_t::copy_collision_replace(
+                            node, fst, std::move(v));
+                        return {node_t::owned(r, e), false};
                     }
                 }
-            return {node_t::copy_collision_insert(node, std::move(v)), true};
+            auto r = node_t::copy_collision_insert(node, std::move(v));
+            return {node_t::owned(r, e), true};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -449,7 +450,7 @@ struct champ
                     IMMER_TRY {
                         result.first = node_t::copy_inner_replace(
                             node, offset, result.first);
-                        node_t::ownee(result.first) = e;
+                        node_t::owned(result.first, e);
                         return result;
                     }
                     IMMER_CATCH (...) {
@@ -466,17 +467,17 @@ struct champ
                         vals[offset] = std::move(v);
                         return {node, false};
                     } else {
-                        return {node_t::copy_inner_replace_value(
-                                    node, offset, std::move(v)),
-                                false};
+                        auto r = node_t::copy_inner_replace_value(
+                            node, offset, std::move(v));
+                        return {node_t::owned_values(r, e), false};
                     }
                 } else {
-                    auto child = node_t::make_merged(
-                        shift + B, std::move(v), hash, *val, Hash{}(*val));
+                    auto child = node_t::make_merged_e(
+                        e, shift + B, std::move(v), hash, *val, Hash{}(*val));
                     IMMER_TRY {
-                        return {node_t::copy_inner_replace_merged(
-                                    node, bit, offset, child),
-                                true};
+                        auto r = node_t::copy_inner_replace_merged(
+                            node, bit, offset, child);
+                        return {node_t::owned_values_safe(r, e), true};
                     }
                     IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
@@ -484,9 +485,9 @@ struct champ
                     }
                 }
             } else {
-                return {
-                    node_t::copy_inner_insert_value(node, bit, std::move(v)),
-                    true};
+                auto r =
+                    node_t::copy_inner_insert_value(node, bit, std::move(v));
+                return {node_t::owned_values(r, e), true};
             }
         }
     }
@@ -626,20 +627,19 @@ struct champ
                             std::forward<Fn>(fn)(Project{}(std::move(*fst))));
                         return {node, false};
                     } else {
-                        return {node_t::copy_collision_replace(
-                                    node,
-                                    fst,
-                                    Combine{}(
-                                        std::forward<K>(k),
-                                        std::forward<Fn>(fn)(Project{}(*fst)))),
-                                false};
+                        auto r = node_t::copy_collision_replace(
+                            node,
+                            fst,
+                            Combine{}(std::forward<K>(k),
+                                      std::forward<Fn>(fn)(Project{}(*fst))));
+                        return {node_t::owned(r, e), false};
                     }
                 }
-            return {node_t::copy_collision_insert(
-                        node,
-                        Combine{}(std::forward<K>(k),
-                                  std::forward<Fn>(fn)(Default{}()))),
-                    true};
+            auto r = node_t::copy_collision_insert(
+                node,
+                Combine{}(std::forward<K>(k),
+                          std::forward<Fn>(fn)(Default{}())));
+            return {node_t::owned(r, e), true};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -662,6 +662,7 @@ struct champ
                     IMMER_TRY {
                         result.first = node_t::copy_inner_replace(
                             node, offset, result.first);
+                        node_t::owned(result.first, e);
                         return result;
                     }
                     IMMER_CATCH (...) {
@@ -680,16 +681,16 @@ struct champ
                                                      std::move(vals[offset]))));
                         return {node, false};
                     } else {
-                        return {node_t::copy_inner_replace_value(
-                                    node,
-                                    offset,
-                                    Combine{}(
-                                        std::forward<K>(k),
-                                        std::forward<Fn>(fn)(Project{}(*val)))),
-                                false};
+                        auto r = node_t::copy_inner_replace_value(
+                            node,
+                            offset,
+                            Combine{}(std::forward<K>(k),
+                                      std::forward<Fn>(fn)(Project{}(*val))));
+                        return {node_t::owned_values(r, e), false};
                     }
                 } else {
-                    auto child = node_t::make_merged(
+                    auto child = node_t::make_merged_e(
+                        e,
                         shift + B,
                         Combine{}(std::forward<K>(k),
                                   std::forward<Fn>(fn)(Default{}())),
@@ -697,9 +698,9 @@ struct champ
                         *val,
                         Hash{}(*val));
                     IMMER_TRY {
-                        return {node_t::copy_inner_replace_merged(
-                                    node, bit, offset, child),
-                                true};
+                        auto r = node_t::copy_inner_replace_merged(
+                            node, bit, offset, child);
+                        return {node_t::owned_values_safe(r, e), true};
                     }
                     IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
@@ -707,12 +708,12 @@ struct champ
                     }
                 }
             } else {
-                return {node_t::copy_inner_insert_value(
-                            node,
-                            bit,
-                            Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Default{}()))),
-                        true};
+                auto r = node_t::copy_inner_insert_value(
+                    node,
+                    bit,
+                    Combine{}(std::forward<K>(k),
+                              std::forward<Fn>(fn)(Default{}())));
+                return {node_t::owned_values(r, e), true};
             }
         }
     }
@@ -783,7 +784,16 @@ struct champ
                     return node->collision_count() > 2
                                ? node_t::copy_collision_remove(node, cur)
                                : sub_result{fst + (cur == fst)};
+#if !defined(_MSC_VER)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+            // Apparently GCC is generating this warning sometimes when
+            // compiling the benchmarks. It makes however no sense at all.
             return {};
+#if !defined(_MSC_VER)
+#pragma GCC diagnostic pop
+#endif
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -844,6 +854,115 @@ struct champ
             return *this;
         case sub_result::tree:
             return {res.data.tree, size - 1};
+        default:
+            IMMER_UNREACHABLE;
+        }
+    }
+
+    template <typename K>
+    sub_result do_sub_mut(
+        edit_t e, node_t* node, const K& k, hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (auto cur = fst; cur != lst; ++cur)
+                if (Equal{}(*cur, k))
+                    return node->collision_count() > 2
+                               ? node_t::owned(
+                                     node_t::copy_collision_remove(node, cur),
+                                     e)
+                               : sub_result{fst + (cur == fst)};
+            return {};
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = bitmap_t{1u} << idx;
+            if (node->nodemap() & bit) {
+                auto offset   = node->children_count(bit);
+                auto mutate   = node->can_mutate(e);
+                auto children = node->children();
+                auto child    = children[offset];
+                auto result = mutate ? do_sub_mut(e, child, k, hash, shift + B)
+                                     : do_sub(child, k, hash, shift + B);
+                switch (result.kind) {
+                case sub_result::nothing:
+                    return {};
+                case sub_result::singleton:
+                    return node->datamap() == 0 &&
+                                   node->children_count() == 1 && shift > 0
+                               ? result
+                               : node_t::owned_values(
+                                     node_t::copy_inner_replace_inline(
+                                         node,
+                                         bit,
+                                         offset,
+                                         *result.data.singleton),
+                                     e);
+                case sub_result::tree:
+                    if (mutate) {
+                        if (child != result.data.tree) {
+                            children[offset] = result.data.tree;
+                            if (child->dec())
+                                node_t::delete_deep_shift(child, shift + B);
+                        }
+                        return node;
+                    } else {
+                        IMMER_TRY {
+                            auto r = node_t::copy_inner_replace(
+                                node, offset, result.data.tree);
+                            return node_t::owned(r, e);
+                        }
+                        IMMER_CATCH (...) {
+                            node_t::delete_deep_shift(result.data.tree,
+                                                      shift + B);
+                            IMMER_RETHROW;
+                        }
+                    }
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = node->data_count(bit);
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k)) {
+                    auto nv = node->data_count();
+                    if (node->nodemap() || nv > 2) {
+                        auto r =
+                            node_t::copy_inner_remove_value(node, bit, offset);
+                        return node_t::owned_values_safe(r, e);
+                    } else if (nv == 2) {
+                        return shift > 0 ? sub_result{node->values() + !offset}
+                                         : node_t::owned_values(
+                                               node_t::make_inner_n(
+                                                   0,
+                                                   node->datamap() & ~bit,
+                                                   node->values()[!offset]),
+                                               e);
+                    } else {
+                        assert(shift == 0);
+                        return empty();
+                    }
+                }
+            }
+            return {};
+        }
+    }
+
+    template <typename K>
+    void sub_mut(edit_t e, const K& k)
+    {
+        auto hash = Hash{}(k);
+        auto res  = do_sub_mut(e, root, k, hash, 0);
+        switch (res.kind) {
+        case sub_result::nothing:
+            break;
+        case sub_result::tree:
+            if (root != res.data.tree) {
+                auto p = root;
+                root   = res.data.tree;
+                if (p->dec())
+                    node_t::delete_deep(p, 0);
+            }
+            --size;
+            break;
         default:
             IMMER_UNREACHABLE;
         }

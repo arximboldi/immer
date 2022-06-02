@@ -158,11 +158,7 @@ public:
      * the set.  It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    void erase(const T& value)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
-    }
+    void erase(const T& value) { impl_.sub_mut(*this, value); }
 
     /*!
      * Returns an @a immutable form of this container, an

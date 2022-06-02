@@ -352,21 +352,24 @@ struct node
         auto old = impl.d.data.inner.values;
         if (node_t::can_mutate(old, e))
             return values();
-        auto nv  = data_count();
-        auto nxt = new (heap::allocate(sizeof_values_n(nv))) values_t{};
-        auto dst = (T*) &nxt->d.buffer;
-        auto src = values();
-        IMMER_TRY {
-            std::uninitialized_copy(src, src + nv, dst);
+        else {
+            auto nv    = data_count();
+            auto nxt   = new (heap::allocate(sizeof_values_n(nv))) values_t{};
+            auto dst   = (T*) &nxt->d.buffer;
+            auto src   = values();
+            ownee(nxt) = e;
+            IMMER_TRY {
+                std::uninitialized_copy(src, src + nv, dst);
+            }
+            IMMER_CATCH (...) {
+                deallocate_values(nxt, nv);
+                IMMER_RETHROW;
+            }
+            if (refs(old).dec())
+                delete_values(old, nv);
+            impl.d.data.inner.values = nxt;
+            return dst;
         }
-        IMMER_CATCH (...) {
-            deallocate_values(nxt, nv);
-            IMMER_RETHROW;
-        }
-        if (refs(old).dec())
-            delete_values(old, nv);
-        impl.d.data.inner.values = nxt;
-        return dst;
     }
 
     static node_t* copy_collision_insert(node_t* src, T v)
@@ -465,6 +468,27 @@ struct node
         srcp[offset]->dec_unsafe();
         dstp[offset] = child;
         return dst;
+    }
+
+    static node_t* owned(node_t* n, edit_t e)
+    {
+        ownee(n) = e;
+        return n;
+    }
+
+    static node_t* owned_values(node_t* n, edit_t e)
+    {
+        ownee(n)                           = e;
+        ownee(n->impl.d.data.inner.values) = e;
+        return n;
+    }
+
+    static node_t* owned_values_safe(node_t* n, edit_t e)
+    {
+        ownee(n) = e;
+        if (n->impl.d.data.inner.values)
+            ownee(n->impl.d.data.inner.values) = e;
+        return n;
     }
 
     static node_t* copy_inner_replace_value(node_t* src, count_t offset, T v)
@@ -696,6 +720,38 @@ struct node
             }
         } else {
             return make_collision(std::move(v1), std::move(v2));
+        }
+    }
+
+    static node_t* make_merged_e(
+        edit_t e, shift_t shift, T v1, hash_t hash1, T v2, hash_t hash2)
+    {
+        if (shift < max_shift<B>) {
+            auto idx1 = hash1 & (mask<B> << shift);
+            auto idx2 = hash2 & (mask<B> << shift);
+            if (idx1 == idx2) {
+                auto merged = make_merged_e(
+                    e, shift + B, std::move(v1), hash1, std::move(v2), hash2);
+                IMMER_TRY {
+                    return owned(
+                        make_inner_n(
+                            1, static_cast<count_t>(idx1 >> shift), merged),
+                        e);
+                }
+                IMMER_CATCH (...) {
+                    delete_deep_shift(merged, shift + B);
+                    IMMER_RETHROW;
+                }
+            } else {
+                auto r = make_inner_n(0,
+                                      static_cast<count_t>(idx1 >> shift),
+                                      std::move(v1),
+                                      static_cast<count_t>(idx2 >> shift),
+                                      std::move(v2));
+                return owned_values(r, e);
+            }
+        } else {
+            return owned(make_collision(std::move(v1), std::move(v2)), e);
         }
     }
 
