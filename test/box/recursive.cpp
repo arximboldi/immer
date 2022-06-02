@@ -13,6 +13,7 @@
 #include <immer/set.hpp>
 #include <immer/vector.hpp>
 
+#include <boost/optional.hpp>
 #include <catch.hpp>
 
 struct rec_vec
@@ -105,4 +106,37 @@ TEST_CASE("recursive set")
     CHECK(v3.children.count(rec_set{12, {}}) == 1);
     CHECK(v3.children.count(rec_set{13, {}}) == 1);
     CHECK(v3.children.count(rec_set{14, {}}) == 0);
+}
+
+struct a_type;
+
+struct b_type
+{
+    b_type(int a, immer::box<a_type> val);
+    int a;
+    immer::box<a_type> val;
+};
+
+struct a_type
+{
+    a_type();
+    // this does not work with std::optional, because it seems like
+    // `immer::box<b_type>` is still not considered complete at this point...
+    boost::optional<immer::box<b_type>> b;
+};
+
+b_type::b_type(int a, immer::box<a_type> val)
+    : a(a)
+    , val(val)
+{}
+
+a_type::a_type()
+    : b{}
+{}
+
+TEST_CASE("recursive optional")
+{
+    auto x = a_type{};
+    auto y = b_type{42, x};
+    CHECK(y.a == 42);
 }
