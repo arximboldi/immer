@@ -15,17 +15,12 @@ template <typename T,
 class table;
 
 /*!
+ * Mutable version of `immer::table`.
+ *
  * @rst
  *
- * .. admonition:: Become a sponsor!
- *    :class: danger
- *
- *    This component is planned but it has **not been implemented yet**.
- *
- *    Transience can critically improve the performance of applications
- *    intensively using ``set`` and ``map``. If you are working for an
- *    organization using the library in a commercial project, please consider
- *    **sponsoring this work**: juanpe@sinusoid.al
+ * Refer to :doc:`transients` to learn more about when and how to use
+ * the mutable versions of immutable containers.
  *
  * @endrst
  */
