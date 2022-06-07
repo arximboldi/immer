@@ -186,10 +186,8 @@ public:
      * Constructs a table containing the elements in `values`.
      */
     table(std::initializer_list<value_type> values)
-    {
-        for (auto&& v : values)
-            *this = std::move(*this).insert(v);
-    }
+        : impl_{impl_t::from_initializer_list(values)}
+    {}
 
     /*!
      * Constructs a table containing the elements in the range
@@ -200,10 +198,8 @@ public:
               std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
                                bool> = true>
     table(Iter first, Sent last)
-    {
-        for (; first != last; ++first)
-            *this = std::move(*this).insert(*first);
-    }
+        : impl_{impl_t::from_range(first, last)}
+    {}
 
     /*!
      * Default constructor.  It creates a table of `size() == 0`. It
@@ -454,8 +450,7 @@ private:
 
     table&& insert_move(std::true_type, value_type value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
+        impl_.add_mut({}, std::move(value));
         return std::move(*this);
     }
 
@@ -467,10 +462,8 @@ private:
     template <typename Fn>
     table&& update_move(std::true_type, key_type k, Fn&& fn)
     {
-        // xxx: implement mutable version
-        impl_ =
-            impl_.template update<project_value, default_value, combine_value>(
-                std::move(k), std::forward<Fn>(fn));
+        impl_.template update_mut<project_value, default_value, combine_value>(
+            {}, std::move(k), std::forward<Fn>(fn));
         return std::move(*this);
     }
 
@@ -484,8 +477,7 @@ private:
 
     table&& erase_move(std::true_type, const key_type& value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
+        impl_.sub_mut({}, value);
         return std::move(*this);
     }
 
@@ -496,8 +488,7 @@ private:
 
     table(impl_t impl)
         : impl_(std::move(impl))
-    {
-    }
+    {}
 
     impl_t impl_ = impl_t::empty();
 };

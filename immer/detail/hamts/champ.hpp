@@ -89,6 +89,28 @@ struct champ
             node_t::delete_deep(root, 0);
     }
 
+    template <typename U>
+    static auto from_initializer_list(std::initializer_list<U> values)
+    {
+        auto e      = owner_t{};
+        auto result = champ{empty()};
+        for (auto&& v : values)
+            result.add_mut(e, v);
+        return result;
+    }
+
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<compatible_sentinel_v<Iter, Sent>, bool> = true>
+    static auto from_range(Iter first, Sent last)
+    {
+        auto e      = owner_t{};
+        auto result = champ{empty()};
+        for (; first != last; ++first)
+            result.add_mut(e, *first);
+        return result;
+    }
+
     template <typename Fn>
     void for_each_chunk(Fn&& fn) const
     {

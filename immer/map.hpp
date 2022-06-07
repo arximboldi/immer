@@ -170,10 +170,8 @@ public:
      * Constructs a map containing the elements in `values`.
      */
     map(std::initializer_list<value_type> values)
-    {
-        for (auto&& v : values)
-            *this = std::move(*this).insert(v);
-    }
+        : impl_{impl_t::from_initializer_list(values)}
+    {}
 
     /*!
      * Constructs a map containing the elements in the range
@@ -184,10 +182,8 @@ public:
               std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
                                bool> = true>
     map(Iter first, Sent last)
-    {
-        for (; first != last; ++first)
-            *this = std::move(*this).insert(*first);
-    }
+        : impl_{impl_t::from_range(first, last)}
+    {}
 
     /*!
      * Default constructor.  It creates a map of `size() == 0`.  It
