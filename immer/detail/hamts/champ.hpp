@@ -364,8 +364,13 @@ struct champ
         return Default{}();
     }
 
-    std::pair<node_t*, bool>
-    do_add(node_t* node, T v, hash_t hash, shift_t shift) const
+    struct add_result
+    {
+        node_t* node;
+        bool added;
+    };
+
+    add_result do_add(node_t* node, T v, hash_t hash, shift_t shift) const
     {
         assert(node);
         if (shift == max_shift<B>) {
@@ -386,12 +391,12 @@ struct champ
                 auto result = do_add(
                     node->children()[offset], std::move(v), hash, shift + B);
                 IMMER_TRY {
-                    result.first =
-                        node_t::copy_inner_replace(node, offset, result.first);
+                    result.node =
+                        node_t::copy_inner_replace(node, offset, result.node);
                     return result;
                 }
                 IMMER_CATCH (...) {
-                    node_t::delete_deep_shift(result.first, shift + B);
+                    node_t::delete_deep_shift(result.node, shift + B);
                     IMMER_RETHROW;
                 }
             } else if (node->datamap() & bit) {
@@ -426,11 +431,18 @@ struct champ
     {
         auto hash     = Hash{}(v);
         auto res      = do_add(root, std::move(v), hash, 0);
-        auto new_size = size + (res.second ? 1 : 0);
-        return {res.first, new_size};
+        auto new_size = size + (res.added ? 1 : 0);
+        return {res.node, new_size};
     }
 
-    std::pair<node_t*, bool>
+    struct add_mut_result
+    {
+        node_t* node;
+        bool added;
+        bool mutated;
+    };
+
+    add_mut_result
     do_add_mut(edit_t e, node_t* node, T v, hash_t hash, shift_t shift) const
     {
         assert(node);
@@ -441,15 +453,17 @@ struct champ
                 if (Equal{}(*fst, v)) {
                     if (node->can_mutate(e)) {
                         *fst = std::move(v);
-                        return {node, false};
+                        return {node, false, true};
                     } else {
                         auto r = node_t::copy_collision_replace(
                             node, fst, std::move(v));
-                        return {node_t::owned(r, e), false};
+                        return {node_t::owned(r, e), false, false};
                     }
                 }
-            auto r = node_t::copy_collision_insert(node, std::move(v));
-            return {node_t::owned(r, e), true};
+            auto mutate = node->can_mutate(e);
+            auto r = mutate ? node_t::move_collision_insert(node, std::move(v))
+                            : node_t::copy_collision_insert(node, std::move(v));
+            return {node_t::owned(r, e), true, mutate};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -459,24 +473,21 @@ struct champ
                 if (node->can_mutate(e)) {
                     auto result =
                         do_add_mut(e, child, std::move(v), hash, shift + B);
-                    auto p = node->children()[offset];
-                    if (p != result.first) {
-                        node->children()[offset] = result.first;
-                        if (p->dec())
-                            node_t::delete_deep_shift(p, shift + B);
-                    }
-                    return {node, result.second};
+                    node->children()[offset] = result.node;
+                    if (!result.mutated)
+                        child->dec_unsafe();
+                    return {node, result.added, true};
                 } else {
                     assert(node->children()[offset]);
                     auto result = do_add(child, std::move(v), hash, shift + B);
                     IMMER_TRY {
-                        result.first = node_t::copy_inner_replace(
-                            node, offset, result.first);
-                        node_t::owned(result.first, e);
-                        return result;
+                        result.node = node_t::copy_inner_replace(
+                            node, offset, result.node);
+                        node_t::owned(result.node, e);
+                        return {result.node, result.added, false};
                     }
                     IMMER_CATCH (...) {
-                        node_t::delete_deep_shift(result.first, shift + B);
+                        node_t::delete_deep_shift(result.node, shift + B);
                         IMMER_RETHROW;
                     }
                 }
@@ -487,19 +498,28 @@ struct champ
                     if (node->can_mutate(e)) {
                         auto vals    = node->ensure_mutable_values(e);
                         vals[offset] = std::move(v);
-                        return {node, false};
+                        return {node, false, true};
                     } else {
                         auto r = node_t::copy_inner_replace_value(
                             node, offset, std::move(v));
-                        return {node_t::owned_values(r, e), false};
+                        return {node_t::owned_values(r, e), false, false};
                     }
                 } else {
-                    auto child = node_t::make_merged_e(
-                        e, shift + B, std::move(v), hash, *val, Hash{}(*val));
+                    auto mutate = node->can_mutate(e);
+                    auto hash2  = Hash{}(*val);
+                    auto child =
+                        node_t::make_merged_e(e,
+                                              shift + B,
+                                              std::move(v),
+                                              hash,
+                                              mutate ? std::move(*val) : *val,
+                                              hash2);
                     IMMER_TRY {
-                        auto r = node_t::copy_inner_replace_merged(
-                            node, bit, offset, child);
-                        return {node_t::owned_values_safe(r, e), true};
+                        auto r = mutate ? node_t::move_inner_replace_merged(
+                                              e, node, bit, offset, child)
+                                        : node_t::copy_inner_replace_merged(
+                                              node, bit, offset, child);
+                        return {node_t::owned_values_safe(r, e), true, mutate};
                     }
                     IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
@@ -507,9 +527,12 @@ struct champ
                     }
                 }
             } else {
-                auto r =
-                    node_t::copy_inner_insert_value(node, bit, std::move(v));
-                return {node_t::owned_values(r, e), true};
+                auto mutate = node->can_mutate(e);
+                auto r      = mutate ? node_t::move_inner_insert_value(
+                                      e, node, bit, std::move(v))
+                                     : node_t::copy_inner_insert_value(
+                                      node, bit, std::move(v));
+                return {node_t::owned_values(r, e), true, mutate};
             }
         }
     }
@@ -518,13 +541,10 @@ struct champ
     {
         auto hash = Hash{}(v);
         auto res  = do_add_mut(e, root, std::move(v), hash, 0);
-        if (res.first != root) {
-            auto p = root;
-            root   = res.first;
-            if (p->dec())
-                node_t::delete_deep(p, 0);
-        }
-        size += res.second ? 1 : 0;
+        if (!res.mutated)
+            root->dec_unsafe();
+        root = res.node;
+        size += res.added ? 1 : 0;
     }
 
     template <typename Project,
