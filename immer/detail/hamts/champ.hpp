@@ -906,58 +906,126 @@ struct champ
         }
     }
 
-    template <typename K>
-    sub_result do_sub_mut(
-        edit_t e, node_t* node, const K& k, hash_t hash, shift_t shift) const
+    struct sub_result_mut
     {
+        using kind_t = typename sub_result::kind_t;
+        using data_t = typename sub_result::data_t;
+
+        kind_t kind;
+        data_t data;
+        bool mutated;
+
+        sub_result_mut(sub_result a)
+            : kind{a.kind}
+            , data{a.data}
+            , mutated{false}
+        {}
+        sub_result_mut(sub_result a, bool m)
+            : kind{a.kind}
+            , data{a.data}
+            , mutated{m}
+        {}
+        sub_result_mut(bool m)
+            : kind{kind_t::nothing}
+            , mutated{m} {};
+        sub_result_mut(T* x, bool m)
+            : kind{kind_t::singleton}
+            , mutated{m}
+        {
+            data.singleton = x;
+        };
+        sub_result_mut(node_t* x, bool m)
+            : kind{kind_t::tree}
+            , mutated{m}
+        {
+            data.tree = x;
+        };
+    };
+
+    template <typename K>
+    sub_result_mut do_sub_mut(edit_t e,
+                              node_t* node,
+                              const K& k,
+                              hash_t hash,
+                              shift_t shift,
+                              void* store) const
+    {
+        auto mutate = node->can_mutate(e);
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
             auto lst = fst + node->collision_count();
-            for (auto cur = fst; cur != lst; ++cur)
-                if (Equal{}(*cur, k))
-                    return node->collision_count() > 2
-                               ? node_t::owned(
-                                     node_t::copy_collision_remove(node, cur),
-                                     e)
-                               : sub_result{fst + (cur == fst)};
-            return {};
+            for (auto cur = fst; cur != lst; ++cur) {
+                if (Equal{}(*cur, k)) {
+                    if (node->collision_count() <= 2) {
+                        if (mutate) {
+                            auto r = new (store)
+                                T{std::move(node->collisions()[cur == fst])};
+                            node_t::delete_collision(node);
+                            return sub_result_mut{r, true};
+                        } else {
+                            return sub_result_mut{fst + (cur == fst), false};
+                        }
+                    } else {
+                        auto r = mutate
+                                     ? node_t::move_collision_remove(node, cur)
+                                     : node_t::copy_collision_remove(node, cur);
+                        return {node_t::owned(r, e), mutate};
+                    }
+                }
+            }
+            return {false};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
             if (node->nodemap() & bit) {
                 auto offset   = node->children_count(bit);
-                auto mutate   = node->can_mutate(e);
                 auto children = node->children();
                 auto child    = children[offset];
-                auto result = mutate ? do_sub_mut(e, child, k, hash, shift + B)
-                                     : do_sub(child, k, hash, shift + B);
+                auto result =
+                    mutate ? do_sub_mut(e, child, k, hash, shift + B, store)
+                           : do_sub(child, k, hash, shift + B);
                 switch (result.kind) {
                 case sub_result::nothing:
-                    return {};
+                    return {mutate};
                 case sub_result::singleton:
-                    return node->datamap() == 0 &&
-                                   node->children_count() == 1 && shift > 0
-                               ? result
-                               : node_t::owned_values(
-                                     node_t::copy_inner_replace_inline(
+                    if (node->datamap() == 0 && node->children_count() == 1 &&
+                        shift > 0) {
+                        if (mutate)
+                            node_t::delete_inner(node);
+                        return result;
+                    } else {
+                        auto r =
+                            mutate ? node_t::move_inner_replace_inline(
+                                         e,
                                          node,
                                          bit,
                                          offset,
-                                         *result.data.singleton),
-                                     e);
+                                         result.mutated
+                                             ? std::move(*result.data.singleton)
+                                             : *result.data.singleton)
+                                   : node_t::copy_inner_replace_inline(
+                                         node,
+                                         bit,
+                                         offset,
+                                         *result.data.singleton);
+                        if (result.mutated)
+                            detail::destroy_at(result.data.singleton);
+                        return {node_t::owned_values(r, e), mutate};
+                    }
                 case sub_result::tree:
                     if (mutate) {
-                        if (child != result.data.tree) {
-                            children[offset] = result.data.tree;
-                            if (child->dec())
-                                node_t::delete_deep_shift(child, shift + B);
-                        }
-                        return node;
+                        children[offset] = result.data.tree;
+                        if (!result.mutated)
+                            child->dec_unsafe();
+                        return {node, true};
                     } else {
                         IMMER_TRY {
-                            auto r = node_t::copy_inner_replace(
-                                node, offset, result.data.tree);
-                            return node_t::owned(r, e);
+                            auto r = mutate
+                                         ? node_t::move_inner_replace(
+                                               node, offset, result.data.tree)
+                                         : node_t::copy_inner_replace(
+                                               node, offset, result.data.tree);
+                            return {node_t::owned(r, e), mutate};
                         }
                         IMMER_CATCH (...) {
                             node_t::delete_deep_shift(result.data.tree,
@@ -972,42 +1040,57 @@ struct champ
                 if (Equal{}(*val, k)) {
                     auto nv = node->data_count();
                     if (node->nodemap() || nv > 2) {
-                        auto r =
-                            node_t::copy_inner_remove_value(node, bit, offset);
-                        return node_t::owned_values_safe(r, e);
+                        auto r = mutate ? node_t::move_inner_remove_value(
+                                              e, node, bit, offset)
+                                        : node_t::copy_inner_remove_value(
+                                              node, bit, offset);
+                        return {node_t::owned_values_safe(r, e), mutate};
                     } else if (nv == 2) {
-                        return shift > 0 ? sub_result{node->values() + !offset}
-                                         : node_t::owned_values(
-                                               node_t::make_inner_n(
-                                                   0,
-                                                   node->datamap() & ~bit,
-                                                   node->values()[!offset]),
-                                               e);
+                        if (shift > 0) {
+                            if (mutate) {
+                                auto r = new (store)
+                                    T{std::move(node->values()[!offset])};
+                                node_t::delete_inner(node);
+                                return {r, mutate};
+                            } else {
+                                return {node->values() + !offset, mutate};
+                            }
+                        } else {
+                            auto& v = node->values()[!offset];
+                            auto r =
+                                node_t::make_inner_n(0,
+                                                     node->datamap() & ~bit,
+                                                     mutate ? std::move(v) : v);
+                            assert(!node->nodemap());
+                            if (mutate)
+                                node_t::delete_inner(node);
+                            return {node_t::owned_values(r, e), mutate};
+                        }
                     } else {
                         assert(shift == 0);
-                        return empty();
+                        if (mutate)
+                            node_t::delete_inner(node);
+                        return {empty(), true};
                     }
                 }
             }
-            return {};
+            return {mutate};
         }
     }
 
     template <typename K>
     void sub_mut(edit_t e, const K& k)
     {
-        auto hash = Hash{}(k);
-        auto res  = do_sub_mut(e, root, k, hash, 0);
+        auto store = aligned_storage_for<T>{};
+        auto hash  = Hash{}(k);
+        auto res   = do_sub_mut(e, root, k, hash, 0, &store);
         switch (res.kind) {
         case sub_result::nothing:
             break;
         case sub_result::tree:
-            if (root != res.data.tree) {
-                auto p = root;
-                root   = res.data.tree;
-                if (p->dec())
-                    node_t::delete_deep(p, 0);
-            }
+            if (!res.mutated)
+                root->dec_unsafe();
+            root = res.data.tree;
             --size;
             break;
         default:

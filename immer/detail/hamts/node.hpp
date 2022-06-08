@@ -446,6 +446,32 @@ struct node
         return dst;
     }
 
+    static node_t* move_collision_remove(node_t* src, T* v)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::collision);
+        assert(src->collision_count() > 1);
+        auto n    = src->collision_count();
+        auto dst  = make_collision_n(n - 1);
+        auto srcp = src->collisions();
+        auto dstp = dst->collisions();
+        IMMER_TRY {
+            dstp = detail::uninitialized_move(srcp, v, dstp);
+            IMMER_TRY {
+                detail::uninitialized_move(v + 1, srcp + n, dstp);
+            }
+            IMMER_CATCH (...) {
+                destroy(dst->collisions(), dstp);
+                IMMER_RETHROW;
+            }
+        }
+        IMMER_CATCH (...) {
+            deallocate_collision(dst, n - 1);
+            IMMER_RETHROW;
+        }
+        delete_collision(src);
+        return dst;
+    }
+
     static node_t* copy_collision_replace(node_t* src, T* pos, T v)
     {
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::collision);
@@ -492,6 +518,22 @@ struct node
         inc_nodes(srcp, n);
         srcp[offset]->dec_unsafe();
         dstp[offset] = child;
+        return dst;
+    }
+
+    static node_t*
+    move_inner_replace(node_t* src, count_t offset, node_t* child)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        auto n    = src->children_count();
+        auto dst  = make_inner_n(n, src->impl.d.data.inner.values);
+        auto srcp = src->children();
+        auto dstp = dst->children();
+        dst->impl.d.data.inner.datamap = src->datamap();
+        dst->impl.d.data.inner.nodemap = src->nodemap();
+        std::copy(srcp, srcp + n, dstp);
+        dstp[offset] = child;
+        delete_inner(src);
         return dst;
     }
 
@@ -690,6 +732,68 @@ struct node
         return dst;
     }
 
+    static node_t* move_inner_replace_inline(
+        edit_t e, node_t* src, bitmap_t bit, count_t noffset, T value)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        assert(!(src->datamap() & bit));
+        assert(src->nodemap() & bit);
+        assert(noffset == src->children_count(bit));
+        auto n                         = src->children_count();
+        auto nv                        = src->data_count();
+        auto dst                       = make_inner_n(n - 1, nv + 1);
+        auto voffset                   = src->data_count(bit);
+        dst->impl.d.data.inner.nodemap = src->nodemap() & ~bit;
+        dst->impl.d.data.inner.datamap = src->datamap() | bit;
+        IMMER_TRY {
+            auto mutate_values =
+                nv && can_mutate(dst->impl.d.data.inner.values, e);
+            if (nv) {
+                if (mutate_values)
+                    detail::uninitialized_move(
+                        src->values(), src->values() + voffset, dst->values());
+                else
+                    detail::uninitialized_copy(
+                        src->values(), src->values() + voffset, dst->values());
+            }
+            IMMER_TRY {
+                new (dst->values() + voffset) T{std::move(value)};
+                IMMER_TRY {
+                    if (nv) {
+                        if (mutate_values)
+                            detail::uninitialized_move(src->values() + voffset,
+                                                       src->values() + nv,
+                                                       dst->values() + voffset +
+                                                           1);
+                        else
+                            detail::uninitialized_copy(src->values() + voffset,
+                                                       src->values() + nv,
+                                                       dst->values() + voffset +
+                                                           1);
+                    }
+                }
+                IMMER_CATCH (...) {
+                    dst->values()[voffset].~T();
+                    IMMER_RETHROW;
+                }
+            }
+            IMMER_CATCH (...) {
+                detail::destroy_n(dst->values(), voffset);
+                IMMER_RETHROW;
+            }
+        }
+        IMMER_CATCH (...) {
+            deallocate_inner(dst, n - 1, nv + 1);
+            IMMER_RETHROW;
+        }
+        std::copy(src->children(), src->children() + noffset, dst->children());
+        std::copy(src->children() + noffset + 1,
+                  src->children() + n,
+                  dst->children() + noffset);
+        delete_inner(src);
+        return dst;
+    }
+
     static node_t*
     copy_inner_remove_value(node_t* src, bitmap_t bit, count_t voffset)
     {
@@ -723,6 +827,65 @@ struct node
         }
         inc_nodes(src->children(), n);
         std::copy(src->children(), src->children() + n, dst->children());
+        return dst;
+    }
+
+    static node_t* move_inner_remove_value(edit_t e,
+                                           node_t* src,
+                                           bitmap_t bit,
+                                           count_t voffset)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        assert(!(src->nodemap() & bit));
+        assert(src->datamap() & bit);
+        assert(voffset == src->data_count(bit));
+        auto n                         = src->children_count();
+        auto nv                        = src->data_count();
+        auto dst                       = make_inner_n(n, nv - 1);
+        dst->impl.d.data.inner.datamap = src->datamap() & ~bit;
+        dst->impl.d.data.inner.nodemap = src->nodemap();
+        if (nv > 1) {
+            auto mutate_values = can_mutate(dst->impl.d.data.inner.values, e);
+            if (mutate_values) {
+                IMMER_TRY {
+                    detail::uninitialized_move(
+                        src->values(), src->values() + voffset, dst->values());
+                    IMMER_TRY {
+                        detail::uninitialized_move(src->values() + voffset + 1,
+                                                   src->values() + nv,
+                                                   dst->values() + voffset);
+                    }
+                    IMMER_CATCH (...) {
+                        detail::destroy_n(dst->values(), voffset);
+                        IMMER_RETHROW;
+                    }
+                }
+                IMMER_CATCH (...) {
+                    deallocate_inner(dst, n, nv - 1);
+                    IMMER_RETHROW;
+                }
+            } else {
+                IMMER_TRY {
+                    detail::uninitialized_copy(
+                        src->values(), src->values() + voffset, dst->values());
+                    IMMER_TRY {
+                        detail::uninitialized_copy(src->values() + voffset + 1,
+                                                   src->values() + nv,
+                                                   dst->values() + voffset);
+                    }
+                    IMMER_CATCH (...) {
+                        detail::destroy_n(dst->values(), voffset);
+                        IMMER_RETHROW;
+                    }
+                }
+                IMMER_CATCH (...) {
+                    deallocate_inner(dst, n, nv - 1);
+                    IMMER_RETHROW;
+                }
+            }
+        }
+        std::copy(src->children(), src->children() + n, dst->children());
+        delete_inner(src);
         return dst;
     }
 
