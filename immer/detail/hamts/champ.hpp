@@ -547,12 +547,14 @@ struct champ
         size += res.added ? 1 : 0;
     }
 
+    using update_result = add_result;
+
     template <typename Project,
               typename Default,
               typename Combine,
               typename K,
               typename Fn>
-    std::pair<node_t*, bool>
+    update_result
     do_update(node_t* node, K&& k, Fn&& fn, hash_t hash, shift_t shift) const
     {
         if (shift == max_shift<B>) {
@@ -584,12 +586,12 @@ struct champ
                     hash,
                     shift + B);
                 IMMER_TRY {
-                    result.first =
-                        node_t::copy_inner_replace(node, offset, result.first);
+                    result.node =
+                        node_t::copy_inner_replace(node, offset, result.node);
                     return result;
                 }
                 IMMER_CATCH (...) {
-                    node_t::delete_deep_shift(result.first, shift + B);
+                    node_t::delete_deep_shift(result.node, shift + B);
                     IMMER_RETHROW;
                 }
             } else if (node->datamap() & bit) {
@@ -642,21 +644,23 @@ struct champ
         auto hash = Hash{}(k);
         auto res  = do_update<Project, Default, Combine>(
             root, k, std::forward<Fn>(fn), hash, 0);
-        auto new_size = size + (res.second ? 1 : 0);
-        return {res.first, new_size};
+        auto new_size = size + (res.added ? 1 : 0);
+        return {res.node, new_size};
     }
+
+    using update_mut_result = add_mut_result;
 
     template <typename Project,
               typename Default,
               typename Combine,
               typename K,
               typename Fn>
-    std::pair<node_t*, bool> do_update_mut(edit_t e,
-                                           node_t* node,
-                                           K&& k,
-                                           Fn&& fn,
-                                           hash_t hash,
-                                           shift_t shift) const
+    update_mut_result do_update_mut(edit_t e,
+                                    node_t* node,
+                                    K&& k,
+                                    Fn&& fn,
+                                    hash_t hash,
+                                    shift_t shift) const
     {
         if (shift == max_shift<B>) {
             auto fst = node->collisions();
@@ -667,21 +671,22 @@ struct champ
                         *fst = Combine{}(
                             std::forward<K>(k),
                             std::forward<Fn>(fn)(Project{}(std::move(*fst))));
-                        return {node, false};
+                        return {node, false, true};
                     } else {
                         auto r = node_t::copy_collision_replace(
                             node,
                             fst,
                             Combine{}(std::forward<K>(k),
                                       std::forward<Fn>(fn)(Project{}(*fst))));
-                        return {node_t::owned(r, e), false};
+                        return {node_t::owned(r, e), false, false};
                     }
                 }
-            auto r = node_t::copy_collision_insert(
-                node,
-                Combine{}(std::forward<K>(k),
-                          std::forward<Fn>(fn)(Default{}())));
-            return {node_t::owned(r, e), true};
+            auto v      = Combine{}(std::forward<K>(k),
+                               std::forward<Fn>(fn)(Default{}()));
+            auto mutate = node->can_mutate(e);
+            auto r = mutate ? node_t::move_collision_insert(node, std::move(v))
+                            : node_t::copy_collision_insert(node, std::move(v));
+            return {node_t::owned(r, e), true, mutate};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -691,24 +696,21 @@ struct champ
                 if (node->can_mutate(e)) {
                     auto result = do_update_mut<Project, Default, Combine>(
                         e, child, k, std::forward<Fn>(fn), hash, shift + B);
-                    auto p = node->children()[offset];
-                    if (p != result.first) {
-                        node->children()[offset] = result.first;
-                        if (p->dec())
-                            node_t::delete_deep_shift(p, shift + B);
-                    }
-                    return {node, result.second};
+                    node->children()[offset] = result.node;
+                    if (!result.mutated)
+                        child->dec_unsafe();
+                    return {node, result.added, true};
                 } else {
                     auto result = do_update<Project, Default, Combine>(
                         child, k, std::forward<Fn>(fn), hash, shift + B);
                     IMMER_TRY {
-                        result.first = node_t::copy_inner_replace(
-                            node, offset, result.first);
-                        node_t::owned(result.first, e);
-                        return result;
+                        result.node = node_t::copy_inner_replace(
+                            node, offset, result.node);
+                        node_t::owned(result.node, e);
+                        return {result.node, result.added, false};
                     }
                     IMMER_CATCH (...) {
-                        node_t::delete_deep_shift(result.first, shift + B);
+                        node_t::delete_deep_shift(result.node, shift + B);
                         IMMER_RETHROW;
                     }
                 }
@@ -721,28 +723,32 @@ struct champ
                         vals[offset] = Combine{}(std::forward<K>(k),
                                                  std::forward<Fn>(fn)(Project{}(
                                                      std::move(vals[offset]))));
-                        return {node, false};
+                        return {node, false, true};
                     } else {
                         auto r = node_t::copy_inner_replace_value(
                             node,
                             offset,
                             Combine{}(std::forward<K>(k),
                                       std::forward<Fn>(fn)(Project{}(*val))));
-                        return {node_t::owned_values(r, e), false};
+                        return {node_t::owned_values(r, e), false, false};
                     }
                 } else {
-                    auto child = node_t::make_merged_e(
+                    auto mutate = node->can_mutate(e);
+                    auto hash2  = Hash{}(*val);
+                    auto child  = node_t::make_merged_e(
                         e,
                         shift + B,
                         Combine{}(std::forward<K>(k),
                                   std::forward<Fn>(fn)(Default{}())),
                         hash,
-                        *val,
-                        Hash{}(*val));
+                        mutate ? std::move(*val) : *val,
+                        hash2);
                     IMMER_TRY {
-                        auto r = node_t::copy_inner_replace_merged(
-                            node, bit, offset, child);
-                        return {node_t::owned_values_safe(r, e), true};
+                        auto r = mutate ? node_t::move_inner_replace_merged(
+                                              e, node, bit, offset, child)
+                                        : node_t::copy_inner_replace_merged(
+                                              node, bit, offset, child);
+                        return {node_t::owned_values_safe(r, e), true, mutate};
                     }
                     IMMER_CATCH (...) {
                         node_t::delete_deep_shift(child, shift + B);
@@ -750,12 +756,14 @@ struct champ
                     }
                 }
             } else {
-                auto r = node_t::copy_inner_insert_value(
-                    node,
-                    bit,
-                    Combine{}(std::forward<K>(k),
-                              std::forward<Fn>(fn)(Default{}())));
-                return {node_t::owned_values(r, e), true};
+                auto mutate = node->can_mutate(e);
+                auto v      = Combine{}(std::forward<K>(k),
+                                   std::forward<Fn>(fn)(Default{}()));
+                auto r      = mutate ? node_t::move_inner_insert_value(
+                                      e, node, bit, std::move(v))
+                                     : node_t::copy_inner_insert_value(
+                                      node, bit, std::move(v));
+                return {node_t::owned_values(r, e), true, mutate};
             }
         }
     }
@@ -770,13 +778,10 @@ struct champ
         auto hash = Hash{}(k);
         auto res  = do_update_mut<Project, Default, Combine>(
             e, root, k, std::forward<Fn>(fn), hash, 0);
-        if (res.first != root) {
-            auto p = root;
-            root   = res.first;
-            if (p->dec())
-                node_t::delete_deep(p, 0);
-        }
-        size += res.second ? 1 : 0;
+        if (!res.mutated)
+            root->dec_unsafe();
+        root = res.node;
+        size += res.added ? 1 : 0;
     }
 
     // basically:
