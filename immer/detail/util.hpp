@@ -40,14 +40,14 @@ T&& auto_const_cast(const T&& x)
 }
 
 template <class T>
-inline auto destroy_at(T* p)
+inline auto destroy_at(T* p) noexcept
     -> std::enable_if_t<std::is_trivially_destructible<T>::value>
 {
     p->~T();
 }
 
 template <class T>
-inline auto destroy_at(T* p)
+inline auto destroy_at(T* p) noexcept
     -> std::enable_if_t<!std::is_trivially_destructible<T>::value>
 {
     p->~T();
@@ -58,32 +58,32 @@ constexpr bool can_trivially_detroy = std::is_trivially_destructible<
     typename std::iterator_traits<Iter1>::value_type>::value;
 
 template <class Iter>
-auto destroy(Iter, Iter last)
+auto destroy(Iter, Iter last) noexcept
     -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
 {
     return last;
 }
 template <class Iter>
-auto destroy(Iter first, Iter last)
+auto destroy(Iter first, Iter last) noexcept
     -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
 {
     for (; first != last; ++first)
-        destroy_at(std::addressof(*first));
+        detail::destroy_at(std::addressof(*first));
     return first;
 }
 
 template <class Iter, class Size>
-auto destroy_n(Iter first, Size n)
+auto destroy_n(Iter first, Size n) noexcept
     -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
 {
     return first + n;
 }
 template <class Iter, class Size>
-auto destroy_n(Iter first, Size n)
+auto destroy_n(Iter first, Size n) noexcept
     -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
 {
     for (; n > 0; (void) ++first, --n)
-        destroy_at(std::addressof(*first));
+        detail::destroy_at(std::addressof(*first));
     return first;
 }
 
@@ -95,7 +95,7 @@ constexpr bool can_trivially_copy =
             typename std::iterator_traits<Iter1>::value_type>::value;
 
 template <typename Iter1, typename Iter2>
-auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
+auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out) noexcept
     -> std::enable_if_t<can_trivially_copy<Iter1, Iter2>, Iter2>
 {
     return std::copy(first, last, out);
@@ -114,13 +114,13 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
         }
         return current;
     } catch (...) {
-        destroy(out, current);
+        detail::destroy(out, current);
         throw;
     }
 }
 
 template <typename SourceIter, typename Sent, typename SinkIter>
-auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
+auto uninitialized_copy(SourceIter first, Sent last, SinkIter out) noexcept
     -> std::enable_if_t<can_trivially_copy<SourceIter, SinkIter>, SinkIter>
 {
     return std::copy(first, last, out);
