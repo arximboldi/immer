@@ -574,7 +574,7 @@ struct rrbtree
             auto ts    = size - tail_off;
             auto newts = new_size - tail_off;
             if (tail->can_mutate(e)) {
-                destroy_n(tail->leaf() + newts, ts - newts);
+                detail::destroy_n(tail->leaf() + newts, ts - newts);
             } else {
                 auto new_tail = node_t::copy_leaf_e(e, tail, newts);
                 dec_leaf(tail, ts);
@@ -793,17 +793,17 @@ struct rrbtree
                 return;
             } else if (tail_size + r.size <= branches<BL>) {
                 l.ensure_mutable_tail(el, tail_size);
-                uninitialized_copy(r.tail->leaf(),
-                                   r.tail->leaf() + r.size,
-                                   l.tail->leaf() + tail_size);
+                detail::uninitialized_copy(r.tail->leaf(),
+                                           r.tail->leaf() + r.size,
+                                           l.tail->leaf() + tail_size);
                 l.size += r.size;
                 return;
             } else {
                 auto remaining = branches<BL> - tail_size;
                 l.ensure_mutable_tail(el, tail_size);
-                uninitialized_copy(r.tail->leaf(),
-                                   r.tail->leaf() + remaining,
-                                   l.tail->leaf() + tail_size);
+                detail::uninitialized_copy(r.tail->leaf(),
+                                           r.tail->leaf() + remaining,
+                                           l.tail->leaf() + tail_size);
                 IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
@@ -819,7 +819,7 @@ struct rrbtree
                     }
                 }
                 IMMER_CATCH (...) {
-                    destroy_n(r.tail->leaf() + tail_size, remaining);
+                    detail::destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
             }
@@ -1062,26 +1062,26 @@ struct rrbtree
             } else if (tail_size + r.size <= branches<BL>) {
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    uninitialized_move(r.tail->leaf(),
-                                       r.tail->leaf() + r.size,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_move(r.tail->leaf(),
+                                               r.tail->leaf() + r.size,
+                                               l.tail->leaf() + tail_size);
                 else
-                    uninitialized_copy(r.tail->leaf(),
-                                       r.tail->leaf() + r.size,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_copy(r.tail->leaf(),
+                                               r.tail->leaf() + r.size,
+                                               l.tail->leaf() + tail_size);
                 l.size += r.size;
                 return;
             } else {
                 auto remaining = branches<BL> - tail_size;
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    uninitialized_move(r.tail->leaf(),
-                                       r.tail->leaf() + remaining,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_move(r.tail->leaf(),
+                                               r.tail->leaf() + remaining,
+                                               l.tail->leaf() + tail_size);
                 else
-                    uninitialized_copy(r.tail->leaf(),
-                                       r.tail->leaf() + remaining,
-                                       l.tail->leaf() + tail_size);
+                    detail::uninitialized_copy(r.tail->leaf(),
+                                               r.tail->leaf() + remaining,
+                                               l.tail->leaf() + tail_size);
                 IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
@@ -1097,7 +1097,7 @@ struct rrbtree
                     }
                 }
                 IMMER_CATCH (...) {
-                    destroy_n(r.tail->leaf() + tail_size, remaining);
+                    detail::destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
             }

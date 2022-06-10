@@ -110,7 +110,7 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
     try {
         for (; first != last; ++first, (void) ++current) {
             ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) value_t{std::move(*first)};
+                std::addressof(*current)))) value_t(std::move(*first));
         }
         return current;
     } catch (...) {
@@ -134,7 +134,7 @@ auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
     IMMER_TRY {
         for (; first != last; ++first, (void) ++current) {
             ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) value_t{*first};
+                std::addressof(*current)))) value_t(*first);
         }
         return current;
     }

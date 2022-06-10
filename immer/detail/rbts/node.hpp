@@ -598,7 +598,8 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(n);
         IMMER_TRY {
-            uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
+            detail::uninitialized_copy(
+                src->leaf(), src->leaf() + n, dst->leaf());
         }
         IMMER_CATCH (...) {
             heap::deallocate(node_t::sizeof_leaf_n(n), dst);
@@ -612,7 +613,8 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         IMMER_TRY {
-            uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
+            detail::uninitialized_copy(
+                src->leaf(), src->leaf() + n, dst->leaf());
         }
         IMMER_CATCH (...) {
             heap::deallocate(node_t::max_sizeof_leaf, dst);
@@ -627,7 +629,8 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(allocn);
         IMMER_TRY {
-            uninitialized_copy(src->leaf(), src->leaf() + n, dst->leaf());
+            detail::uninitialized_copy(
+                src->leaf(), src->leaf() + n, dst->leaf());
         }
         IMMER_CATCH (...) {
             heap::deallocate(node_t::sizeof_leaf_n(allocn), dst);
@@ -642,14 +645,15 @@ struct node
         IMMER_ASSERT_TAGGED(src2->kind() == kind_t::leaf);
         auto dst = make_leaf_n(n1 + n2);
         IMMER_TRY {
-            uninitialized_copy(src1->leaf(), src1->leaf() + n1, dst->leaf());
+            detail::uninitialized_copy(
+                src1->leaf(), src1->leaf() + n1, dst->leaf());
         }
         IMMER_CATCH (...) {
             heap::deallocate(node_t::sizeof_leaf_n(n1 + n2), dst);
             IMMER_RETHROW;
         }
         IMMER_TRY {
-            uninitialized_copy(
+            detail::uninitialized_copy(
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         }
         IMMER_CATCH (...) {
@@ -667,14 +671,15 @@ struct node
         IMMER_ASSERT_TAGGED(src2->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         IMMER_TRY {
-            uninitialized_copy(src1->leaf(), src1->leaf() + n1, dst->leaf());
+            detail::uninitialized_copy(
+                src1->leaf(), src1->leaf() + n1, dst->leaf());
         }
         IMMER_CATCH (...) {
             heap::deallocate(max_sizeof_leaf, dst);
             IMMER_RETHROW;
         }
         IMMER_TRY {
-            uninitialized_copy(
+            detail::uninitialized_copy(
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         }
         IMMER_CATCH (...) {
@@ -690,7 +695,7 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_e(e);
         IMMER_TRY {
-            uninitialized_copy(
+            detail::uninitialized_copy(
                 src->leaf() + idx, src->leaf() + last, dst->leaf());
         }
         IMMER_CATCH (...) {
@@ -705,7 +710,7 @@ struct node
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
         auto dst = make_leaf_n(last - idx);
         IMMER_TRY {
-            uninitialized_copy(
+            detail::uninitialized_copy(
                 src->leaf() + idx, src->leaf() + last, dst->leaf());
         }
         IMMER_CATCH (...) {
@@ -723,7 +728,7 @@ struct node
             new (dst->leaf() + n) T{std::forward<U>(x)};
         }
         IMMER_CATCH (...) {
-            destroy_n(dst->leaf(), n);
+            detail::destroy_n(dst->leaf(), n);
             heap::deallocate(node_t::sizeof_leaf_n(n + 1), dst);
             IMMER_RETHROW;
         }
@@ -786,7 +791,7 @@ struct node
     static void delete_leaf(node_t* p, count_t n)
     {
         IMMER_ASSERT_TAGGED(p->kind() == kind_t::leaf);
-        destroy_n(p->leaf(), n);
+        detail::destroy_n(p->leaf(), n);
         heap::deallocate(ownee(p).owned() ? node_t::max_sizeof_leaf
                                           : node_t::sizeof_leaf_n(n),
                          p);

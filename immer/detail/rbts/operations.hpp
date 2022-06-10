@@ -1627,9 +1627,9 @@ struct concat_merger
                 auto data = to_->leaf();
                 auto to_copy =
                     std::min(from_count - from_offset, *curr_ - to_offset_);
-                std::copy(from_data + from_offset,
-                          from_data + from_offset + to_copy,
-                          data + to_offset_);
+                detail::uninitialized_copy(from_data + from_offset,
+                                           from_data + from_offset + to_copy,
+                                           data + to_offset_);
                 to_offset_ += to_copy;
                 from_offset += to_copy;
                 if (*curr_ == to_offset_) {
@@ -2124,13 +2124,15 @@ struct concat_merger_mut
                                   data + to_offset_);
                 } else {
                     if (!from_mutate)
-                        uninitialized_copy(from_data + from_offset,
-                                           from_data + from_offset + to_copy,
-                                           data + to_offset_);
+                        detail::uninitialized_copy(from_data + from_offset,
+                                                   from_data + from_offset +
+                                                       to_copy,
+                                                   data + to_offset_);
                     else
-                        uninitialized_move(from_data + from_offset,
-                                           from_data + from_offset + to_copy,
-                                           data + to_offset_);
+                        detail::uninitialized_move(from_data + from_offset,
+                                                   from_data + from_offset +
+                                                       to_copy,
+                                                   data + to_offset_);
                 }
                 to_offset_ += to_copy;
                 from_offset += to_copy;

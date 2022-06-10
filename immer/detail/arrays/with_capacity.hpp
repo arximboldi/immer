@@ -302,7 +302,7 @@ struct with_capacity
     {
         assert(sz <= size);
         if (ptr->can_mutate(e)) {
-            destroy_n(data() + size, size - sz);
+            detail::destroy_n(data() + size, size - sz);
             size = sz;
         } else {
             auto cap = recommend_down(sz, capacity);
