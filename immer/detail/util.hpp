@@ -129,18 +129,19 @@ template <typename SourceIter, typename Sent, typename SinkIter>
 auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
     -> std::enable_if_t<!can_trivially_copy<SourceIter, SinkIter>, SinkIter>
 {
-    auto current = out;
+    using value_t = typename std::iterator_traits<SinkIter>::value_type;
+    auto current  = out;
     IMMER_TRY {
-        while (first != last) {
-            *current++ = *first;
-            ++first;
+        for (; first != last; ++first, (void) ++current) {
+            ::new (const_cast<void*>(static_cast<const volatile void*>(
+                std::addressof(*current)))) value_t{*first};
         }
+        return current;
     }
     IMMER_CATCH (...) {
-        destroy(out, current);
+        detail::destroy(out, current);
         IMMER_RETHROW;
     }
-    return current;
 }
 
 template <typename Heap, typename T, typename... Args>
