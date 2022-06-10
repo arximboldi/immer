@@ -119,6 +119,30 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
     }
 }
 
+template <typename SourceIter, typename Sent, typename SinkIter>
+auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
+    -> std::enable_if_t<can_trivially_copy<SourceIter, SinkIter>, SinkIter>
+{
+    return std::copy(first, last, out);
+}
+template <typename SourceIter, typename Sent, typename SinkIter>
+auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
+    -> std::enable_if_t<!can_trivially_copy<SourceIter, SinkIter>, SinkIter>
+{
+    auto current = out;
+    IMMER_TRY {
+        while (first != last) {
+            *current++ = *first;
+            ++first;
+        }
+    }
+    IMMER_CATCH (...) {
+        destroy(out, current);
+        IMMER_RETHROW;
+    }
+    return current;
+}
+
 template <typename Heap, typename T, typename... Args>
 T* make(Args&&... args)
 {
@@ -270,54 +294,6 @@ typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
     return last - first;
-}
-
-/*!
- * An alias to `std::uninitialized_copy`
- */
-template <
-    typename Iterator,
-    typename Sentinel,
-    typename SinkIter,
-    std::enable_if_t<
-        detail::std_uninitialized_copy_supports_v<Iterator, Sentinel, SinkIter>,
-        bool> = true>
-SinkIter uninitialized_copy(Iterator first, Sentinel last, SinkIter d_first)
-{
-    return std::uninitialized_copy(first, last, d_first);
-}
-
-/*!
- * Equivalent of the `std::uninitialized_copy` applied to the
- * sentinel-delimited forward range @f$ [first, last) @f$
- */
-template <typename SourceIter,
-          typename Sent,
-          typename SinkIter,
-          std::enable_if_t<
-              (!detail::std_uninitialized_copy_supports_v<SourceIter,
-                                                          Sent,
-                                                          SinkIter>) &&detail::
-                      compatible_sentinel_v<SourceIter, Sent> &&
-                  detail::is_forward_iterator_v<SinkIter>,
-              bool> = true>
-SinkIter uninitialized_copy(SourceIter first, Sent last, SinkIter d_first)
-{
-    auto current = d_first;
-    IMMER_TRY {
-        while (first != last) {
-            *current++ = *first;
-            ++first;
-        }
-    }
-    IMMER_CATCH (...) {
-        using Value = typename std::iterator_traits<SinkIter>::value_type;
-        for (; d_first != current; ++d_first) {
-            d_first->~Value();
-        }
-        IMMER_RETHROW;
-    }
-    return current;
 }
 
 } // namespace detail
