@@ -1183,8 +1183,8 @@ struct slice_right_visitor : visitor_base<slice_right_visitor<NodeT, Collapse>>
         auto old_tail_size = pos.count();
         auto new_tail_size = pos.index(last) + 1;
         auto new_tail      = new_tail_size == old_tail_size
-                            ? pos.node()->inc()
-                            : node_t::copy_leaf(pos.node(), new_tail_size);
+                                 ? pos.node()->inc()
+                                 : node_t::copy_leaf(pos.node(), new_tail_size);
         return std::make_tuple(0, nullptr, new_tail_size, new_tail);
     }
 };
@@ -1263,10 +1263,10 @@ struct slice_left_mut_visitor
             return r;
         } else {
             using std::get;
-            auto newn = mutate ? (node->ensure_mutable_relaxed(e), node)
-                               : node_t::make_inner_r_e(e);
-            auto newr           = newn->relaxed();
-            auto newcount       = count - idx;
+            auto newn     = mutate ? (node->ensure_mutable_relaxed(e), node)
+                                   : node_t::make_inner_r_e(e);
+            auto newr     = newn->relaxed();
+            auto newcount = count - idx;
             auto new_child_size = child_size - child_dropped_size;
             IMMER_TRY {
                 auto subs =
@@ -1277,9 +1277,9 @@ struct slice_left_mut_visitor
                     pos.each_left(dec_visitor{}, idx);
                 pos.copy_sizes(
                     idx + 1, newcount - 1, new_child_size, newr->d.sizes + 1);
-                std::uninitialized_copy(node->inner() + idx + 1,
-                                        node->inner() + count,
-                                        newn->inner() + 1);
+                std::copy(node->inner() + idx + 1,
+                          node->inner() + count,
+                          newn->inner() + 1);
                 newn->inner()[0] = get<1>(subs);
                 newr->d.sizes[0] = new_child_size;
                 newr->d.count    = newcount;
@@ -1348,9 +1348,9 @@ struct slice_left_mut_visitor
                     idx + 1, newcount - 1, newr->d.sizes[0], newr->d.sizes + 1);
                 newr->d.count    = newcount;
                 newn->inner()[0] = get<1>(subs);
-                std::uninitialized_copy(node->inner() + idx + 1,
-                                        node->inner() + count,
-                                        newn->inner() + 1);
+                std::copy(node->inner() + idx + 1,
+                          node->inner() + count,
+                          newn->inner() + 1);
                 if (!mutate) {
                     node_t::inc_nodes(newn->inner() + 1, newcount - 1);
                     if (Mutating)
@@ -1439,9 +1439,9 @@ struct slice_left_visitor : visitor_base<slice_left_visitor<NodeT, Collapse>>
                 assert(newr->d.sizes[newr->d.count - 1] ==
                        pos.size() - dropped_size);
                 newn->inner()[0] = get<1>(subs);
-                std::uninitialized_copy(n->inner() + idx + 1,
-                                        n->inner() + count,
-                                        newn->inner() + 1);
+                std::copy(n->inner() + idx + 1,
+                          n->inner() + count,
+                          newn->inner() + 1);
                 node_t::inc_nodes(newn->inner() + 1, newr->d.count - 1);
                 return std::make_tuple(pos.shift(), newn);
             }
@@ -1627,9 +1627,9 @@ struct concat_merger
                 auto data = to_->leaf();
                 auto to_copy =
                     std::min(from_count - from_offset, *curr_ - to_offset_);
-                std::uninitialized_copy(from_data + from_offset,
-                                        from_data + from_offset + to_copy,
-                                        data + to_offset_);
+                detail::uninitialized_copy(from_data + from_offset,
+                                           from_data + from_offset + to_copy,
+                                           data + to_offset_);
                 to_offset_ += to_copy;
                 from_offset += to_copy;
                 if (*curr_ == to_offset_) {
@@ -1662,9 +1662,9 @@ struct concat_merger
                 auto data = to_->inner();
                 auto to_copy =
                     std::min(from_count - from_offset, *curr_ - to_offset_);
-                std::uninitialized_copy(from_data + from_offset,
-                                        from_data + from_offset + to_copy,
-                                        data + to_offset_);
+                std::copy(from_data + from_offset,
+                          from_data + from_offset + to_copy,
+                          data + to_offset_);
                 node_t::inc_nodes(from_data + from_offset, to_copy);
                 auto sizes = to_->relaxed()->d.sizes;
                 p.copy_sizes(
@@ -2124,10 +2124,10 @@ struct concat_merger_mut
                                   data + to_offset_);
                 } else {
                     if (!from_mutate)
-                        std::uninitialized_copy(from_data + from_offset,
-                                                from_data + from_offset +
-                                                    to_copy,
-                                                data + to_offset_);
+                        detail::uninitialized_copy(from_data + from_offset,
+                                                   from_data + from_offset +
+                                                       to_copy,
+                                                   data + to_offset_);
                     else
                         detail::uninitialized_move(from_data + from_offset,
                                                    from_data + from_offset +

@@ -8,6 +8,10 @@
 
 #pragma once
 
+#if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#define IMMER_HAS_CPP17 1
+#endif
+
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(nodiscard)
 #define IMMER_NODISCARD [[nodiscard]]
