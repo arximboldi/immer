@@ -359,7 +359,7 @@ struct node
             auto src   = values();
             ownee(nxt) = e;
             IMMER_TRY {
-                std::uninitialized_copy(src, src + nv, dst);
+                uninitialized_copy(src, src + nv, dst);
             }
             IMMER_CATCH (...) {
                 deallocate_values(nxt, nv);
@@ -382,7 +382,7 @@ struct node
         IMMER_TRY {
             new (dstp) T{std::move(v)};
             IMMER_TRY {
-                std::uninitialized_copy(srcp, srcp + n, dstp + 1);
+                uninitialized_copy(srcp, srcp + n, dstp + 1);
             }
             IMMER_CATCH (...) {
                 dstp->~T();
@@ -406,7 +406,7 @@ struct node
         IMMER_TRY {
             new (dstp) T{std::move(v)};
             IMMER_TRY {
-                detail::uninitialized_move(srcp, srcp + n, dstp + 1);
+                uninitialized_move(srcp, srcp + n, dstp + 1);
             }
             IMMER_CATCH (...) {
                 dstp->~T();
@@ -430,9 +430,9 @@ struct node
         auto srcp = src->collisions();
         auto dstp = dst->collisions();
         IMMER_TRY {
-            dstp = std::uninitialized_copy(srcp, v, dstp);
+            dstp = uninitialized_copy(srcp, v, dstp);
             IMMER_TRY {
-                std::uninitialized_copy(v + 1, srcp + n, dstp);
+                uninitialized_copy(v + 1, srcp + n, dstp);
             }
             IMMER_CATCH (...) {
                 destroy(dst->collisions(), dstp);
@@ -457,9 +457,9 @@ struct node
         IMMER_TRY {
             new (dstp) T{std::move(v)};
             IMMER_TRY {
-                dstp = std::uninitialized_copy(srcp, pos, dstp + 1);
+                dstp = uninitialized_copy(srcp, pos, dstp + 1);
                 IMMER_TRY {
-                    std::uninitialized_copy(pos + 1, srcp + n, dstp);
+                    uninitialized_copy(pos + 1, srcp + n, dstp);
                 }
                 IMMER_CATCH (...) {
                     destroy(dst->collisions(), dstp);
@@ -488,7 +488,7 @@ struct node
         auto dstp = dst->children();
         dst->impl.d.data.inner.datamap = src->datamap();
         dst->impl.d.data.inner.nodemap = src->nodemap();
-        std::uninitialized_copy(srcp, srcp + n, dstp);
+        std::copy(srcp, srcp + n, dstp);
         inc_nodes(srcp, n);
         srcp[offset]->dec_unsafe();
         dstp[offset] = child;
@@ -526,7 +526,7 @@ struct node
         dst->impl.d.data.inner.datamap = src->datamap();
         dst->impl.d.data.inner.nodemap = src->nodemap();
         IMMER_TRY {
-            std::uninitialized_copy(
+            uninitialized_copy(
                 src->values(), src->values() + nv, dst->values());
             IMMER_TRY {
                 dst->values()[offset] = std::move(v);
@@ -541,8 +541,7 @@ struct node
             IMMER_RETHROW;
         }
         inc_nodes(src->children(), n);
-        std::uninitialized_copy(
-            src->children(), src->children() + n, dst->children());
+        std::copy(src->children(), src->children() + n, dst->children());
         return dst;
     }
 
@@ -563,12 +562,12 @@ struct node
         dst->impl.d.data.inner.nodemap = src->nodemap() | bit;
         if (nv > 1) {
             IMMER_TRY {
-                std::uninitialized_copy(
+                uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
                 IMMER_TRY {
-                    std::uninitialized_copy(src->values() + voffset + 1,
-                                            src->values() + nv,
-                                            dst->values() + voffset);
+                    uninitialized_copy(src->values() + voffset + 1,
+                                       src->values() + nv,
+                                       dst->values() + voffset);
                 }
                 IMMER_CATCH (...) {
                     destroy_n(dst->values(), voffset);
@@ -581,11 +580,10 @@ struct node
             }
         }
         inc_nodes(src->children(), n);
-        std::uninitialized_copy(
-            src->children(), src->children() + noffset, dst->children());
-        std::uninitialized_copy(src->children() + noffset,
-                                src->children() + n,
-                                dst->children() + noffset + 1);
+        std::copy(src->children(), src->children() + noffset, dst->children());
+        std::copy(src->children() + noffset,
+                  src->children() + n,
+                  dst->children() + noffset + 1);
         dst->children()[noffset] = node;
         return dst;
     }
@@ -607,20 +605,20 @@ struct node
             auto mutate_values = can_mutate(dst->impl.d.data.inner.values, e);
             IMMER_TRY {
                 if (mutate_values)
-                    detail::uninitialized_move(
+                    uninitialized_move(
                         src->values(), src->values() + voffset, dst->values());
                 else
-                    std::uninitialized_copy(
+                    uninitialized_copy(
                         src->values(), src->values() + voffset, dst->values());
                 IMMER_TRY {
                     if (mutate_values)
-                        detail::uninitialized_move(src->values() + voffset + 1,
-                                                   src->values() + nv,
-                                                   dst->values() + voffset);
+                        uninitialized_move(src->values() + voffset + 1,
+                                           src->values() + nv,
+                                           dst->values() + voffset);
                     else
-                        std::uninitialized_copy(src->values() + voffset + 1,
-                                                src->values() + nv,
-                                                dst->values() + voffset);
+                        uninitialized_copy(src->values() + voffset + 1,
+                                           src->values() + nv,
+                                           dst->values() + voffset);
                 }
                 IMMER_CATCH (...) {
                     destroy_n(dst->values(), voffset);
@@ -633,11 +631,10 @@ struct node
             }
         }
         // inc_nodes(src->children(), n);
-        std::uninitialized_copy(
-            src->children(), src->children() + noffset, dst->children());
-        std::uninitialized_copy(src->children() + noffset,
-                                src->children() + n,
-                                dst->children() + noffset + 1);
+        std::copy(src->children(), src->children() + noffset, dst->children());
+        std::copy(src->children() + noffset,
+                  src->children() + n,
+                  dst->children() + noffset + 1);
         dst->children()[noffset] = node;
         delete_inner(src);
         return dst;
@@ -660,15 +657,15 @@ struct node
         dst->impl.d.data.inner.datamap = src->datamap() | bit;
         IMMER_TRY {
             if (nv)
-                std::uninitialized_copy(
+                uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
             IMMER_TRY {
                 new (dst->values() + voffset) T{std::move(value)};
                 IMMER_TRY {
                     if (nv)
-                        std::uninitialized_copy(src->values() + voffset,
-                                                src->values() + nv,
-                                                dst->values() + voffset + 1);
+                        uninitialized_copy(src->values() + voffset,
+                                           src->values() + nv,
+                                           dst->values() + voffset + 1);
                 }
                 IMMER_CATCH (...) {
                     dst->values()[voffset].~T();
@@ -686,11 +683,10 @@ struct node
         }
         inc_nodes(src->children(), n);
         src->children()[noffset]->dec_unsafe();
-        std::uninitialized_copy(
-            src->children(), src->children() + noffset, dst->children());
-        std::uninitialized_copy(src->children() + noffset + 1,
-                                src->children() + n,
-                                dst->children() + noffset);
+        std::copy(src->children(), src->children() + noffset, dst->children());
+        std::copy(src->children() + noffset + 1,
+                  src->children() + n,
+                  dst->children() + noffset);
         return dst;
     }
 
@@ -708,12 +704,12 @@ struct node
         dst->impl.d.data.inner.nodemap = src->nodemap();
         if (nv > 1) {
             IMMER_TRY {
-                std::uninitialized_copy(
+                uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
                 IMMER_TRY {
-                    std::uninitialized_copy(src->values() + voffset + 1,
-                                            src->values() + nv,
-                                            dst->values() + voffset);
+                    uninitialized_copy(src->values() + voffset + 1,
+                                       src->values() + nv,
+                                       dst->values() + voffset);
                 }
                 IMMER_CATCH (...) {
                     destroy_n(dst->values(), voffset);
@@ -726,8 +722,7 @@ struct node
             }
         }
         inc_nodes(src->children(), n);
-        std::uninitialized_copy(
-            src->children(), src->children() + n, dst->children());
+        std::copy(src->children(), src->children() + n, dst->children());
         return dst;
     }
 
@@ -742,15 +737,15 @@ struct node
         dst->impl.d.data.inner.nodemap = src->nodemap();
         IMMER_TRY {
             if (nv)
-                std::uninitialized_copy(
+                uninitialized_copy(
                     src->values(), src->values() + offset, dst->values());
             IMMER_TRY {
                 new (dst->values() + offset) T{std::move(v)};
                 IMMER_TRY {
                     if (nv)
-                        std::uninitialized_copy(src->values() + offset,
-                                                src->values() + nv,
-                                                dst->values() + offset + 1);
+                        uninitialized_copy(src->values() + offset,
+                                           src->values() + nv,
+                                           dst->values() + offset + 1);
                 }
                 IMMER_CATCH (...) {
                     dst->values()[offset].~T();
@@ -767,8 +762,7 @@ struct node
             IMMER_RETHROW;
         }
         inc_nodes(src->children(), n);
-        std::uninitialized_copy(
-            src->children(), src->children() + n, dst->children());
+        std::copy(src->children(), src->children() + n, dst->children());
         return dst;
     }
 
@@ -787,10 +781,10 @@ struct node
                 nv && can_mutate(dst->impl.d.data.inner.values, e);
             if (nv) {
                 if (mutate_values)
-                    detail::uninitialized_move(
+                    uninitialized_move(
                         src->values(), src->values() + offset, dst->values());
                 else
-                    std::uninitialized_copy(
+                    uninitialized_copy(
                         src->values(), src->values() + offset, dst->values());
             }
             IMMER_TRY {
@@ -798,14 +792,13 @@ struct node
                 IMMER_TRY {
                     if (nv) {
                         if (mutate_values)
-                            detail::uninitialized_move(src->values() + offset,
-                                                       src->values() + nv,
-                                                       dst->values() + offset +
-                                                           1);
+                            uninitialized_move(src->values() + offset,
+                                               src->values() + nv,
+                                               dst->values() + offset + 1);
                         else
-                            std::uninitialized_copy(src->values() + offset,
-                                                    src->values() + nv,
-                                                    dst->values() + offset + 1);
+                            uninitialized_copy(src->values() + offset,
+                                               src->values() + nv,
+                                               dst->values() + offset + 1);
                     }
                 }
                 IMMER_CATCH (...) {
@@ -822,8 +815,7 @@ struct node
             deallocate_inner(dst, n, nv + 1);
             IMMER_RETHROW;
         }
-        std::uninitialized_copy(
-            src->children(), src->children() + n, dst->children());
+        std::copy(src->children(), src->children() + n, dst->children());
         delete_inner(src);
         return dst;
     }

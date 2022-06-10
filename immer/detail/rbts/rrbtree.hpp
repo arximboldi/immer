@@ -793,17 +793,17 @@ struct rrbtree
                 return;
             } else if (tail_size + r.size <= branches<BL>) {
                 l.ensure_mutable_tail(el, tail_size);
-                std::uninitialized_copy(r.tail->leaf(),
-                                        r.tail->leaf() + r.size,
-                                        l.tail->leaf() + tail_size);
+                uninitialized_copy(r.tail->leaf(),
+                                   r.tail->leaf() + r.size,
+                                   l.tail->leaf() + tail_size);
                 l.size += r.size;
                 return;
             } else {
                 auto remaining = branches<BL> - tail_size;
                 l.ensure_mutable_tail(el, tail_size);
-                std::uninitialized_copy(r.tail->leaf(),
-                                        r.tail->leaf() + remaining,
-                                        l.tail->leaf() + tail_size);
+                uninitialized_copy(r.tail->leaf(),
+                                   r.tail->leaf() + remaining,
+                                   l.tail->leaf() + tail_size);
                 IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
@@ -1062,26 +1062,26 @@ struct rrbtree
             } else if (tail_size + r.size <= branches<BL>) {
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    detail::uninitialized_move(r.tail->leaf(),
-                                               r.tail->leaf() + r.size,
-                                               l.tail->leaf() + tail_size);
+                    uninitialized_move(r.tail->leaf(),
+                                       r.tail->leaf() + r.size,
+                                       l.tail->leaf() + tail_size);
                 else
-                    std::uninitialized_copy(r.tail->leaf(),
-                                            r.tail->leaf() + r.size,
-                                            l.tail->leaf() + tail_size);
+                    uninitialized_copy(r.tail->leaf(),
+                                       r.tail->leaf() + r.size,
+                                       l.tail->leaf() + tail_size);
                 l.size += r.size;
                 return;
             } else {
                 auto remaining = branches<BL> - tail_size;
                 l.ensure_mutable_tail(el, tail_size);
                 if (r.tail->can_mutate(er))
-                    detail::uninitialized_move(r.tail->leaf(),
-                                               r.tail->leaf() + remaining,
-                                               l.tail->leaf() + tail_size);
+                    uninitialized_move(r.tail->leaf(),
+                                       r.tail->leaf() + remaining,
+                                       l.tail->leaf() + tail_size);
                 else
-                    std::uninitialized_copy(r.tail->leaf(),
-                                            r.tail->leaf() + remaining,
-                                            l.tail->leaf() + tail_size);
+                    uninitialized_copy(r.tail->leaf(),
+                                       r.tail->leaf() + remaining,
+                                       l.tail->leaf() + tail_size);
                 IMMER_TRY {
                     auto new_tail =
                         node_t::copy_leaf_e(el, r.tail, remaining, r.size);
