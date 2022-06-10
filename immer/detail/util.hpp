@@ -45,13 +45,32 @@ using std::destroy_n;
 using std::uninitialized_move;
 #else
 template <class T>
-inline void destroy_at(T* p)
+inline auto destroy_at(T* p)
+    -> std::enable_if_t<std::is_trivially_destructible<T>::value>
 {
     p->~T();
 }
 
+template <class T>
+inline auto destroy_at(T* p)
+    -> std::enable_if_t<!std::is_trivially_destructible<T>::value>
+{
+    p->~T();
+}
+
+template <typename Iter1>
+constexpr bool can_trivially_detroy = std::is_trivially_destructible<
+    typename std::iterator_traits<Iter1>::value_type>::value;
+
 template <class Iter>
-Iter destroy(Iter first, Iter last)
+auto destroy(Iter, Iter last)
+    -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
+{
+    return last;
+}
+template <class Iter>
+auto destroy(Iter first, Iter last)
+    -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
 {
     for (; first != last; ++first)
         destroy_at(std::addressof(*first));
@@ -59,7 +78,14 @@ Iter destroy(Iter first, Iter last)
 }
 
 template <class Iter, class Size>
-Iter destroy_n(Iter first, Size n)
+auto destroy_n(Iter first, Size n)
+    -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
+{
+    return first + n;
+}
+template <class Iter, class Size>
+auto destroy_n(Iter first, Size n)
+    -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
 {
     for (; n > 0; (void) ++first, --n)
         destroy_at(std::addressof(*first));
@@ -67,7 +93,22 @@ Iter destroy_n(Iter first, Size n)
 }
 
 template <typename Iter1, typename Iter2>
-Iter2 uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
+constexpr bool can_trivially_copy =
+    std::is_same<typename std::iterator_traits<Iter1>::value_type,
+                 typename std::iterator_traits<Iter2>::value_type>::value&&
+        std::is_trivially_copyable<
+            typename std::iterator_traits<Iter1>::value_type>::value;
+
+template <typename Iter1, typename Iter2>
+auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
+    -> std::enable_if_t<can_trivially_copy<Iter1, Iter2>, Iter2>
+{
+    return std::copy(first, last, out);
+}
+template <typename Iter1, typename Iter2>
+auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
+    -> std::enable_if_t<!can_trivially_copy<Iter1, Iter2>, Iter2>
+
 {
     using value_t = typename std::iterator_traits<Iter2>::value_type;
     auto current  = out;
