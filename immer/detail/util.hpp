@@ -39,11 +39,6 @@ T&& auto_const_cast(const T&& x)
     return const_cast<T&&>(std::move(x));
 }
 
-#if IMMER_HAS_CPP17
-using std::destroy;
-using std::destroy_n;
-using std::uninitialized_move;
-#else
 template <class T>
 inline auto destroy_at(T* p)
     -> std::enable_if_t<std::is_trivially_destructible<T>::value>
@@ -123,7 +118,6 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
         throw;
     }
 }
-#endif // IMMER_HAS_CPP17
 
 template <typename Heap, typename T, typename... Args>
 T* make(Args&&... args)
