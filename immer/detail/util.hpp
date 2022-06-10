@@ -39,27 +39,50 @@ T&& auto_const_cast(const T&& x)
     return const_cast<T&&>(std::move(x));
 }
 
-template <typename Iter1, typename Iter2>
-auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
+#if IMMER_HAS_CPP17
+using std::destroy;
+using std::destroy_n;
+using std::uninitialized_move;
+#else
+template <class T>
+inline void destroy_at(T* p)
 {
-    return std::uninitialized_copy(
-        std::make_move_iterator(in1), std::make_move_iterator(in2), out);
+    p->~T();
 }
 
-template <class T>
-void destroy(T* first, T* last)
+template <class Iter>
+Iter destroy(Iter first, Iter last)
 {
     for (; first != last; ++first)
-        first->~T();
+        destroy_at(std::addressof(*first));
+    return first;
 }
 
-template <class T, class Size>
-void destroy_n(T* p, Size n)
+template <class Iter, class Size>
+Iter destroy_n(Iter first, Size n)
 {
-    auto e = p + n;
-    for (; p != e; ++p)
-        p->~T();
+    for (; n > 0; (void) ++first, --n)
+        destroy_at(std::addressof(*first));
+    return first;
 }
+
+template <typename Iter1, typename Iter2>
+Iter2 uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
+{
+    using value_t = typename std::iterator_traits<Iter2>::value_type;
+    auto current  = out;
+    try {
+        for (; first != last; ++first, (void) ++current) {
+            ::new (const_cast<void*>(static_cast<const volatile void*>(
+                std::addressof(*current)))) value_t{std::move(*first)};
+        }
+        return current;
+    } catch (...) {
+        destroy(out, current);
+        throw;
+    }
+}
+#endif // IMMER_HAS_CPP17
 
 template <typename Heap, typename T, typename... Args>
 T* make(Args&&... args)
