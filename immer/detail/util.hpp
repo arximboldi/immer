@@ -107,15 +107,15 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
 {
     using value_t = typename std::iterator_traits<Iter2>::value_type;
     auto current  = out;
-    try {
+    IMMER_TRY {
         for (; first != last; ++first, (void) ++current) {
             ::new (const_cast<void*>(static_cast<const volatile void*>(
                 std::addressof(*current)))) value_t(std::move(*first));
         }
         return current;
-    } catch (...) {
+    } IMMER_CATCH (...) {
         detail::destroy(out, current);
-        throw;
+        IMMER_RETHROW;
     }
 }
 
