@@ -94,6 +94,7 @@ class table
     struct project_value
     {
         const T& operator()(const value_t& v) const noexcept { return v; }
+        T&& operator()(value_t&& v) const noexcept { return std::move(v); }
     };
 
     struct project_value_ptr
