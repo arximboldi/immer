@@ -460,7 +460,7 @@ struct node
                 detail::uninitialized_move(v + 1, srcp + n, dstp);
             }
             IMMER_CATCH (...) {
-                destroy(dst->collisions(), dstp);
+                detail::destroy(dst->collisions(), dstp);
                 IMMER_RETHROW;
             }
         }
