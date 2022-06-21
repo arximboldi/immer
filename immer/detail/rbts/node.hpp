@@ -657,7 +657,7 @@ struct node
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         }
         IMMER_CATCH (...) {
-            destroy_n(dst->leaf(), n1);
+            detail::destroy_n(dst->leaf(), n1);
             heap::deallocate(node_t::sizeof_leaf_n(n1 + n2), dst);
             IMMER_RETHROW;
         }
@@ -683,7 +683,7 @@ struct node
                 src2->leaf(), src2->leaf() + n2, dst->leaf() + n1);
         }
         IMMER_CATCH (...) {
-            destroy_n(dst->leaf(), n1);
+            detail::destroy_n(dst->leaf(), n1);
             heap::deallocate(max_sizeof_leaf, dst);
             IMMER_RETHROW;
         }

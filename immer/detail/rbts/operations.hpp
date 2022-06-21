@@ -1067,8 +1067,8 @@ struct slice_right_mut_visitor
                 node->inc();
             return std::make_tuple(0, nullptr, new_tail_size, node);
         } else if (mutate) {
-            destroy_n(node->leaf() + new_tail_size,
-                      old_tail_size - new_tail_size);
+            detail::destroy_n(node->leaf() + new_tail_size,
+                              old_tail_size - new_tail_size);
             return std::make_tuple(0, nullptr, new_tail_size, node);
         } else {
             auto new_tail = node_t::copy_leaf_e(e, node, new_tail_size);
@@ -1386,7 +1386,7 @@ struct slice_left_mut_visitor
             auto data     = node->leaf();
             auto newcount = count - idx;
             std::move(data + idx, data + count, data);
-            destroy_n(data + newcount, idx);
+            detail::destroy_n(data + newcount, idx);
             return std::make_tuple(0, node);
         } else {
             auto newn = node_t::copy_leaf_e(e, node, idx, count);

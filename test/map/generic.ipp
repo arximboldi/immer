@@ -366,6 +366,28 @@ TEST_CASE("exception safety")
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);
     }
+
+    SECTION("erase collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                // auto s = d.next();
+                v = std::move(v).erase(vals[i].first);
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count(vals[i].first) == 0);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings == 0);
+        IMMER_TRACE_E(d.happenings);
+    }
 }
 
 namespace {

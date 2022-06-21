@@ -77,6 +77,10 @@ class map
         {
             return v.second;
         }
+        T&& operator()(value_t&& v) const noexcept
+        {
+            return std::move(v.second);
+        }
     };
 
     struct project_value_ptr
