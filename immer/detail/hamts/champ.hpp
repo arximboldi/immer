@@ -995,7 +995,7 @@ struct champ
                             if (!result.mutated)
                                 child->dec_unsafe();
                         }
-                        return result;
+                        return {result.data.singleton, mutate};
                     } else {
                         auto r =
                             mutate ? node_t::move_inner_replace_inline(
