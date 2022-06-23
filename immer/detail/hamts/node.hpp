@@ -521,22 +521,6 @@ struct node
         return dst;
     }
 
-    static node_t*
-    move_inner_replace(node_t* src, count_t offset, node_t* child)
-    {
-        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
-        auto n    = src->children_count();
-        auto dst  = make_inner_n(n, src->impl.d.data.inner.values);
-        auto srcp = src->children();
-        auto dstp = dst->children();
-        dst->impl.d.data.inner.datamap = src->datamap();
-        dst->impl.d.data.inner.nodemap = src->nodemap();
-        std::copy(srcp, srcp + n, dstp);
-        dstp[offset] = child;
-        delete_inner(src);
-        return dst;
-    }
-
     static node_t* owned(node_t* n, edit_t e)
     {
         ownee(n) = e;

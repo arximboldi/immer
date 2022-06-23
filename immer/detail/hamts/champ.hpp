@@ -1025,12 +1025,9 @@ struct champ
                         return {node, true};
                     } else {
                         IMMER_TRY {
-                            auto r = mutate
-                                         ? node_t::move_inner_replace(
-                                               node, offset, result.data.tree)
-                                         : node_t::copy_inner_replace(
-                                               node, offset, result.data.tree);
-                            return {node_t::owned(r, e), mutate};
+                            auto r = node_t::copy_inner_replace(
+                                node, offset, result.data.tree);
+                            return {node_t::owned(r, e), false};
                         }
                         IMMER_CATCH (...) {
                             node_t::delete_deep_shift(result.data.tree,
