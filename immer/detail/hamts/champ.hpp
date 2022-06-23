@@ -990,8 +990,11 @@ struct champ
                 case sub_result::singleton:
                     if (node->datamap() == 0 && node->children_count() == 1 &&
                         shift > 0) {
-                        if (mutate)
+                        if (mutate) {
                             node_t::delete_inner(node);
+                            if (!result.mutated)
+                                child->dec_unsafe();
+                        }
                         return result;
                     } else {
                         auto r =
@@ -1010,6 +1013,8 @@ struct champ
                                          *result.data.singleton);
                         if (result.mutated)
                             detail::destroy_at(result.data.singleton);
+                        else if (mutate)
+                            child->dec_unsafe();
                         return {node_t::owned_values(r, e), mutate};
                     }
                 case sub_result::tree:
