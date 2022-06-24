@@ -244,6 +244,14 @@ TEST_CASE("update a lot")
             CHECK(v[i] == i + 1);
         }
     }
+
+    SECTION("erase")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).erase(i);
+            CHECK(v.count(i) == 0);
+        }
+    }
 }
 
 TEST_CASE("exception safety")

@@ -990,9 +990,12 @@ struct champ
                 case sub_result::singleton:
                     if (node->datamap() == 0 && node->children_count() == 1 &&
                         shift > 0) {
-                        if (mutate)
+                        if (mutate) {
                             node_t::delete_inner(node);
-                        return result;
+                            if (!result.mutated)
+                                child->dec_unsafe();
+                        }
+                        return {result.data.singleton, mutate};
                     } else {
                         auto r =
                             mutate ? node_t::move_inner_replace_inline(
@@ -1010,6 +1013,8 @@ struct champ
                                          *result.data.singleton);
                         if (result.mutated)
                             detail::destroy_at(result.data.singleton);
+                        else if (mutate)
+                            child->dec_unsafe();
                         return {node_t::owned_values(r, e), mutate};
                     }
                 case sub_result::tree:
@@ -1020,12 +1025,9 @@ struct champ
                         return {node, true};
                     } else {
                         IMMER_TRY {
-                            auto r = mutate
-                                         ? node_t::move_inner_replace(
-                                               node, offset, result.data.tree)
-                                         : node_t::copy_inner_replace(
-                                               node, offset, result.data.tree);
-                            return {node_t::owned(r, e), mutate};
+                            auto r = node_t::copy_inner_replace(
+                                node, offset, result.data.tree);
+                            return {node_t::owned(r, e), false};
                         }
                         IMMER_CATCH (...) {
                             node_t::delete_deep_shift(result.data.tree,

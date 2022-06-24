@@ -6,25 +6,35 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include "input.hpp"
 
-#include <immer/map.hpp>
+#include "extra/fuzzer/fuzzer_gc_guard.hpp"
 
 #include <immer/algorithm.hpp>
+#include <immer/heap/gc_heap.hpp>
+#include <immer/map.hpp>
 
-#include <array>
+#include <catch.hpp>
+
+using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
+                                       immer::unsafe_refcount_policy,
+                                       immer::no_lock_policy,
+                                       immer::no_transience_policy,
+                                       false>;
 
 struct colliding_hash_t
 {
     std::size_t operator()(std::size_t x) const { return x & ~15; }
 };
 
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
-                                      std::size_t size)
+namespace {
+
+int run_input(const std::uint8_t* data, std::size_t size)
 {
     constexpr auto var_count = 4;
 
-    using map_t = immer::map<std::size_t, int, colliding_hash_t>;
+    using map_t = immer::
+        map<std::size_t, int, colliding_hash_t, std::equal_to<>, st_memory>;
 
     auto vars = std::array<map_t, var_count>{};
 
@@ -40,8 +50,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             op_iterate,
             op_find,
             op_update,
-            op_update_move,
-            op_diff,
+            op_diff
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
@@ -86,12 +95,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             vars[dst] = vars[src].update(key, [](int x) { return x + 1; });
             break;
         }
-        case op_update_move: {
-            auto key = read<size_t>(in);
-            vars[dst] =
-                std::move(vars[src]).update(key, [](int x) { return x + 1; });
-            break;
-        }
         case op_diff: {
             auto&& a = vars[src];
             auto&& b = vars[dst];
@@ -116,4 +119,16 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         return true;
     });
+}
+
+} // namespace
+
+TEST_CASE("https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=48207")
+{
+    SECTION("fuzzer")
+    {
+        auto input = load_input(
+            "clusterfuzz-testcase-minimized-map-st-5313188008165376");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
 }

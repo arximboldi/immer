@@ -47,6 +47,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             op_iterate,
             op_find,
             op_update,
+            op_update_move,
             op_diff
         };
         auto src = read<char>(in, is_valid_var);
@@ -90,6 +91,12 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         case op_update: {
             auto key  = read<size_t>(in);
             vars[dst] = vars[src].update(key, [](int x) { return x + 1; });
+            break;
+        }
+        case op_update_move: {
+            auto key = read<size_t>(in);
+            vars[dst] =
+                std::move(vars[src]).update(key, [](int x) { return x + 1; });
             break;
         }
         case op_diff: {
