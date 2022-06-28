@@ -973,7 +973,7 @@ struct champ
                     }
                 }
             }
-            return {false};
+            return {mutate};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -1072,7 +1072,7 @@ struct champ
                         assert(shift == 0);
                         if (mutate)
                             node_t::delete_inner(node);
-                        return {empty(), true};
+                        return {empty(), mutate};
                     }
                 }
             }
