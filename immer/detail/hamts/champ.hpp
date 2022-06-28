@@ -17,6 +17,60 @@ namespace immer {
 namespace detail {
 namespace hamts {
 
+#if IMMER_DEBUG_STATS
+struct champ_debug_stats
+{
+    std::size_t bits       = {};
+    std::size_t value_size = {};
+    std::size_t child_size = sizeof(void*);
+
+    std::size_t inner_node_count         = {};
+    std::size_t inner_node_w_value_count = {};
+    std::size_t inner_node_w_child_count = {};
+    std::size_t collision_node_count     = {};
+
+    std::size_t child_count     = {};
+    std::size_t value_count     = {};
+    std::size_t collision_count = {};
+
+    void print() const
+    {
+        auto m = std::size_t{1} << bits;
+        std::cerr << "---\n";
+        {
+            std::cerr << "collisions\n"
+                      << "  ratio = " << (100. * collision_count / value_count)
+                      << " %\n";
+        }
+        {
+            auto capacity          = m * inner_node_count;
+            auto child_utilization = 100. * child_count / capacity;
+            auto value_utilization = 100. * value_count / capacity;
+            auto utilization =
+                100. * (value_count * value_size + child_count * child_size) /
+                (capacity * value_size + capacity * child_size);
+            std::cerr << "utilization\n"
+                      << "  total    = " << utilization << " %\n"
+                      << "  children = " << child_utilization << " %\n"
+                      << "  values   = " << value_utilization << " %\n";
+        }
+        {
+            auto value_capacity    = m * inner_node_w_value_count;
+            auto child_capacity    = m * inner_node_w_child_count;
+            auto child_utilization = 100. * child_count / child_capacity;
+            auto value_utilization = 100. * value_count / value_capacity;
+            auto utilization =
+                100. * (value_count * value_size + child_count * child_size) /
+                (value_capacity * value_size + child_capacity * child_size);
+            std::cerr << "utilization (dense)\n"
+                      << "  total    = " << utilization << " %\n"
+                      << "  children = " << child_utilization << " %\n"
+                      << "  values   = " << value_utilization << " %\n";
+        }
+    }
+};
+#endif
+
 template <typename T,
           typename Hash,
           typename Equal,
@@ -88,6 +142,38 @@ struct champ
         if (root->dec())
             node_t::delete_deep(root, 0);
     }
+
+#if IMMER_DEBUG_STATS
+    void do_get_debug_stats(champ_debug_stats& stats,
+                            node_t* node,
+                            count_t depth) const
+    {
+        if (depth < max_depth<B>) {
+            ++stats.inner_node_count;
+            stats.inner_node_w_value_count += node->data_count() > 0;
+            stats.inner_node_w_child_count += node->children_count() > 0;
+            stats.value_count += node->data_count();
+            stats.child_count += node->children_count();
+            auto nodemap = node->nodemap();
+            if (nodemap) {
+                auto fst = node->children();
+                auto lst = fst + node->children_count();
+                for (; fst != lst; ++fst)
+                    do_get_debug_stats(stats, *fst, depth + 1);
+            }
+        } else {
+            ++stats.collision_node_count;
+            stats.collision_count += node->collision_count();
+        }
+    }
+
+    champ_debug_stats get_debug_stats() const
+    {
+        auto stats = champ_debug_stats{B, sizeof(T)};
+        do_get_debug_stats(stats, root, 0);
+        return stats;
+    }
+#endif
 
     template <typename U>
     static auto from_initializer_list(std::initializer_list<U> values)
@@ -973,7 +1059,7 @@ struct champ
                     }
                 }
             }
-            return {false};
+            return {mutate};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -1072,7 +1158,7 @@ struct champ
                         assert(shift == 0);
                         if (mutate)
                             node_t::delete_inner(node);
-                        return {empty(), true};
+                        return {empty(), mutate};
                     }
                 }
             }

@@ -70,6 +70,10 @@
 #define IMMER_DEBUG_PRINT 0
 #endif
 
+#ifndef IMMER_DEBUG_STATS
+#define IMMER_DEBUG_STATS 0
+#endif
+
 #ifndef IMMER_DEBUG_DEEP_CHECK
 #define IMMER_DEBUG_DEEP_CHECK 0
 #endif
@@ -77,6 +81,10 @@
 #if IMMER_DEBUG_TRACES || IMMER_DEBUG_PRINT
 #include <iostream>
 #include <prettyprint.hpp>
+#endif
+
+#if IMMER_DEBUG_STATS
+#include <iostream>
 #endif
 
 #if IMMER_DEBUG_TRACES
