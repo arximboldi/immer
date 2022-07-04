@@ -165,6 +165,11 @@ TEST_CASE("equals and setting")
     CHECK(v.set(1234, 42) == v.insert({1234, 42}));
     CHECK(v.update(1234, [](auto&& x) { return x + 1; }) == v.set(1234, 1));
     CHECK(v.update(42, [](auto&& x) { return x + 1; }) == v.set(42, 43));
+
+#if IMMER_DEBUG_STATS
+    std::cout << (v.impl().get_debug_stats() + v.impl().get_debug_stats())
+                     .get_summary();
+#endif
 }
 
 TEST_CASE("iterator")

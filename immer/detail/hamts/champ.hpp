@@ -33,40 +33,82 @@ struct champ_debug_stats
     std::size_t value_count     = {};
     std::size_t collision_count = {};
 
-    void print() const
+    friend champ_debug_stats operator+(champ_debug_stats a, champ_debug_stats b)
+    {
+        if (a.bits != b.bits || a.value_size != b.value_size ||
+            a.child_size != b.child_size)
+            throw std::runtime_error{"accumulating incompatible stats"};
+        return {
+            a.bits,
+            a.value_size,
+            a.child_size,
+            a.inner_node_count + b.inner_node_count,
+            a.inner_node_w_value_count + b.inner_node_w_value_count,
+            a.inner_node_w_child_count + b.inner_node_w_child_count,
+            a.collision_node_count + b.collision_node_count,
+            a.child_count + b.child_count,
+            a.value_count + b.value_count,
+            a.collision_count + b.collision_count,
+        };
+    }
+
+    struct summary
+    {
+        double collision_ratio;
+
+        double utilization;
+        double child_utilization;
+        double value_utilization;
+
+        double dense_utilization;
+        double dense_value_utilization;
+        double dense_child_utilization;
+
+        friend std::ostream& operator<<(std::ostream& os, const summary& s)
+        {
+            os << "---\n";
+            os << "collisions\n"
+               << "  ratio = " << s.collision_ratio << " %\n";
+            os << "utilization\n"
+               << "  total    = " << s.utilization << " %\n"
+               << "  children = " << s.child_utilization << " %\n"
+               << "  values   = " << s.value_utilization << " %\n";
+            os << "utilization (dense)\n"
+               << "  total    = " << s.dense_utilization << " %\n"
+               << "  children = " << s.dense_child_utilization << " %\n"
+               << "  values   = " << s.dense_value_utilization << " %\n";
+            return os;
+        }
+    };
+
+    summary get_summary() const
     {
         auto m = std::size_t{1} << bits;
-        std::cerr << "---\n";
-        {
-            std::cerr << "collisions\n"
-                      << "  ratio = " << (100. * collision_count / value_count)
-                      << " %\n";
-        }
-        {
-            auto capacity          = m * inner_node_count;
-            auto child_utilization = 100. * child_count / capacity;
-            auto value_utilization = 100. * value_count / capacity;
-            auto utilization =
-                100. * (value_count * value_size + child_count * child_size) /
-                (capacity * value_size + capacity * child_size);
-            std::cerr << "utilization\n"
-                      << "  total    = " << utilization << " %\n"
-                      << "  children = " << child_utilization << " %\n"
-                      << "  values   = " << value_utilization << " %\n";
-        }
-        {
-            auto value_capacity    = m * inner_node_w_value_count;
-            auto child_capacity    = m * inner_node_w_child_count;
-            auto child_utilization = 100. * child_count / child_capacity;
-            auto value_utilization = 100. * value_count / value_capacity;
-            auto utilization =
-                100. * (value_count * value_size + child_count * child_size) /
-                (value_capacity * value_size + child_capacity * child_size);
-            std::cerr << "utilization (dense)\n"
-                      << "  total    = " << utilization << " %\n"
-                      << "  children = " << child_utilization << " %\n"
-                      << "  values   = " << value_utilization << " %\n";
-        }
+
+        auto collision_ratio = 100. * collision_count / value_count;
+
+        auto capacity          = m * inner_node_count;
+        auto child_utilization = 100. * child_count / capacity;
+        auto value_utilization = 100. * value_count / capacity;
+        auto utilization =
+            100. * (value_count * value_size + child_count * child_size) /
+            (capacity * value_size + capacity * child_size);
+
+        auto value_capacity          = m * inner_node_w_value_count;
+        auto child_capacity          = m * inner_node_w_child_count;
+        auto dense_child_utilization = 100. * child_count / child_capacity;
+        auto dense_value_utilization = 100. * value_count / value_capacity;
+        auto dense_utilization =
+            100. * (value_count * value_size + child_count * child_size) /
+            (value_capacity * value_size + child_capacity * child_size);
+
+        return {collision_ratio,
+                utilization,
+                child_utilization,
+                value_utilization,
+                dense_utilization,
+                dense_child_utilization,
+                dense_value_utilization};
     }
 };
 #endif
