@@ -423,6 +423,25 @@ public:
     }
 
     /*!
+     * Returns a map replacing the association `(k, v)` by the association new
+     * association `(k, fn(v))`, where `v` is the currently associated value for
+     * `k` in the map.  It does nothing if `k` is not present in the map. It
+     * may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    IMMER_NODISCARD map update_if_exists(key_type k, Fn&& fn) const&
+    {
+        return impl_.template update_if_exists<project_value, combine_value>(
+            std::move(k), std::forward<Fn>(fn));
+    }
+    template <typename Fn>
+    IMMER_NODISCARD decltype(auto) update_if_exists(key_type k, Fn&& fn) &&
+    {
+        return update_if_exists_move(
+            move_t{}, std::move(k), std::forward<Fn>(fn));
+    }
+
+    /*!
      * Returns a map without the key `k`.  If the key is not
      * associated in the map it returns the same map.  It may allocate
      * memory and its complexity is *effectively* @f$ O(1) @f$.
@@ -485,6 +504,20 @@ private:
         return impl_
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
+    map&& update_if_exists_move(std::true_type, key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<project_value, combine_value>(
+            {}, std::move(k), std::forward<Fn>(fn));
+        return std::move(*this);
+    }
+    template <typename Fn>
+    map update_if_exists_move(std::false_type, key_type k, Fn&& fn)
+    {
+        return impl_.template update_if_exists<project_value, combine_value>(
+            std::move(k), std::forward<Fn>(fn));
     }
 
     map&& erase_move(std::true_type, const key_type& value)

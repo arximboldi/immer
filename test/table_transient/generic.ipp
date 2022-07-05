@@ -76,6 +76,13 @@ TEST_CASE("insert")
     });
     CHECK(t["lol"].value == 1);
     CHECK(t.size() == 3);
+
+    t.update_if_exists("foo", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["foo"].value == 8);
+    CHECK(t.size() == 3);
 }
 
 TEST_CASE("erase")

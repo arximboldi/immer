@@ -268,6 +268,21 @@ public:
     }
 
     /*!
+     * Replaces the association `(k, v)` by the association new association `(k,
+     * fn(v))`, where `v` is the currently associated value for `k` in the map
+     * or does nothing if `k` is not present in the map. It may allocate memory
+     * and its complexity is *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    void update_if_exists(key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<
+            typename persistent_type::project_value,
+            typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
+    }
+
+    /*!
      * Removes the key `k` from the k.  Does nothing if the key is not
      * associated in the map.  It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.

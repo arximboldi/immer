@@ -225,6 +225,19 @@ public:
                                   typename persistent_type::combine_value>(
             *this, std::move(k), std::forward<Fn>(fn));
     }
+
+    /*!
+     * Returns `this->insert(fn((*this)[k]))` when `this->count(k) > 0`. In
+     * particular, `fn` maps `T` to `T`. The key `k` will be replaced into the
+     * value returned by `fn`.  It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    void update_if_exists(key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<
+            typename persistent_type::project_value,
+            typename persistent_type::combine_value>(
             *this, std::move(k), std::forward<Fn>(fn));
     }
 

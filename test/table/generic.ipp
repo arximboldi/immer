@@ -282,6 +282,20 @@ TEST_CASE("update a lot")
             CHECK(v[i].second == i + 1);
         }
     }
+    SECTION("if_exists immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.update_if_exists(i, incr_id);
+            CHECK(v[i].second == i + 1);
+        }
+    }
+    SECTION("if_exists move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).update_if_exists(i, incr_id);
+            CHECK(v[i].second == i + 1);
+        }
+    }
 }
 
 TEST_CASE("exception safety")
