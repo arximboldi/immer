@@ -32,9 +32,23 @@ struct pair_key_fn
     }
 
     template <typename F, typename S>
+    auto operator()(std::pair<F, S> p, F k) const
+    {
+        p.first = std::move(k);
+        return p;
+    }
+
+    template <typename F, typename S>
     F operator()(const dadaist<std::pair<F, S>>& p) const
     {
         return p.value.first;
+    }
+
+    template <typename F, typename S>
+    auto operator()(dadaist<std::pair<F, S>> p, F k) const
+    {
+        p.value.first = std::move(k);
+        return p;
     }
 };
 
@@ -300,8 +314,7 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {
-            }
+            } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(i).value.second == i + 1);
             for (auto i : test_irange(i, n))
@@ -333,8 +346,7 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {
-            }
+            } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first).value.second == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -358,8 +370,7 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {
-            }
+            } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first).value.second == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -376,8 +387,7 @@ struct KeyType
 {
     explicit KeyType(uint32_t v)
         : value(v)
-    {
-    }
+    {}
     uint32_t value;
 };
 
@@ -385,8 +395,7 @@ struct LookupType
 {
     explicit LookupType(uint32_t v)
         : value(v)
-    {
-    }
+    {}
     uint32_t value;
 };
 

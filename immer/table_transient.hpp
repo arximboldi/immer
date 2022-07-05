@@ -213,16 +213,18 @@ public:
     void insert(value_type value) { impl_.add_mut(*this, std::move(value)); }
 
     /*!
-     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. The `fn` return value should have key `k`.
-     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps `T` to
+     * `T`. The key `k` will be set into the value returned bu `fn`.  It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
     void update(key_type k, Fn&& fn)
     {
-        impl_ = impl_.template update<persistent_type::project_value,
-                                      persistent_type::default_value,
-                                      persistent_type::combine_value>(
+        impl_.template update_mut<typename persistent_type::project_value,
+                                  typename persistent_type::default_value,
+                                  typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
+    }
             *this, std::move(k), std::forward<Fn>(fn));
     }
 
