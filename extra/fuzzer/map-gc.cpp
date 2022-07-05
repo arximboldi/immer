@@ -53,6 +53,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             op_find,
             op_update,
             op_update_move,
+            op_update_if_exists,
+            op_update_if_exists_move,
             op_diff
         };
         auto src = read<char>(in, is_valid_var);
@@ -102,6 +104,18 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             auto key = read<size_t>(in);
             vars[dst] =
                 std::move(vars[src]).update(key, [](int x) { return x + 1; });
+            break;
+        }
+        case op_update_if_exists: {
+            auto key = read<size_t>(in);
+            vars[dst] =
+                vars[src].update_if_exists(key, [](int x) { return x + 1; });
+            break;
+        }
+        case op_update_if_exists_move: {
+            auto key  = read<size_t>(in);
+            vars[dst] = std::move(vars[src]).update_if_exists(
+                key, [](int x) { return x + 1; });
             break;
         }
         case op_diff: {

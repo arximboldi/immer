@@ -33,40 +33,82 @@ struct champ_debug_stats
     std::size_t value_count     = {};
     std::size_t collision_count = {};
 
-    void print() const
+    friend champ_debug_stats operator+(champ_debug_stats a, champ_debug_stats b)
+    {
+        if (a.bits != b.bits || a.value_size != b.value_size ||
+            a.child_size != b.child_size)
+            throw std::runtime_error{"accumulating incompatible stats"};
+        return {
+            a.bits,
+            a.value_size,
+            a.child_size,
+            a.inner_node_count + b.inner_node_count,
+            a.inner_node_w_value_count + b.inner_node_w_value_count,
+            a.inner_node_w_child_count + b.inner_node_w_child_count,
+            a.collision_node_count + b.collision_node_count,
+            a.child_count + b.child_count,
+            a.value_count + b.value_count,
+            a.collision_count + b.collision_count,
+        };
+    }
+
+    struct summary
+    {
+        double collision_ratio;
+
+        double utilization;
+        double child_utilization;
+        double value_utilization;
+
+        double dense_utilization;
+        double dense_value_utilization;
+        double dense_child_utilization;
+
+        friend std::ostream& operator<<(std::ostream& os, const summary& s)
+        {
+            os << "---\n";
+            os << "collisions\n"
+               << "  ratio = " << s.collision_ratio << " %\n";
+            os << "utilization\n"
+               << "  total    = " << s.utilization << " %\n"
+               << "  children = " << s.child_utilization << " %\n"
+               << "  values   = " << s.value_utilization << " %\n";
+            os << "utilization (dense)\n"
+               << "  total    = " << s.dense_utilization << " %\n"
+               << "  children = " << s.dense_child_utilization << " %\n"
+               << "  values   = " << s.dense_value_utilization << " %\n";
+            return os;
+        }
+    };
+
+    summary get_summary() const
     {
         auto m = std::size_t{1} << bits;
-        std::cerr << "---\n";
-        {
-            std::cerr << "collisions\n"
-                      << "  ratio = " << (100. * collision_count / value_count)
-                      << " %\n";
-        }
-        {
-            auto capacity          = m * inner_node_count;
-            auto child_utilization = 100. * child_count / capacity;
-            auto value_utilization = 100. * value_count / capacity;
-            auto utilization =
-                100. * (value_count * value_size + child_count * child_size) /
-                (capacity * value_size + capacity * child_size);
-            std::cerr << "utilization\n"
-                      << "  total    = " << utilization << " %\n"
-                      << "  children = " << child_utilization << " %\n"
-                      << "  values   = " << value_utilization << " %\n";
-        }
-        {
-            auto value_capacity    = m * inner_node_w_value_count;
-            auto child_capacity    = m * inner_node_w_child_count;
-            auto child_utilization = 100. * child_count / child_capacity;
-            auto value_utilization = 100. * value_count / value_capacity;
-            auto utilization =
-                100. * (value_count * value_size + child_count * child_size) /
-                (value_capacity * value_size + child_capacity * child_size);
-            std::cerr << "utilization (dense)\n"
-                      << "  total    = " << utilization << " %\n"
-                      << "  children = " << child_utilization << " %\n"
-                      << "  values   = " << value_utilization << " %\n";
-        }
+
+        auto collision_ratio = 100. * collision_count / value_count;
+
+        auto capacity          = m * inner_node_count;
+        auto child_utilization = 100. * child_count / capacity;
+        auto value_utilization = 100. * value_count / capacity;
+        auto utilization =
+            100. * (value_count * value_size + child_count * child_size) /
+            (capacity * value_size + capacity * child_size);
+
+        auto value_capacity          = m * inner_node_w_value_count;
+        auto child_capacity          = m * inner_node_w_child_count;
+        auto dense_child_utilization = 100. * child_count / child_capacity;
+        auto dense_value_utilization = 100. * value_count / value_capacity;
+        auto dense_utilization =
+            100. * (value_count * value_size + child_count * child_size) /
+            (value_capacity * value_size + child_capacity * child_size);
+
+        return {collision_ratio,
+                utilization,
+                child_utilization,
+                value_utilization,
+                dense_utilization,
+                dense_child_utilization,
+                dense_value_utilization};
     }
 };
 #endif
@@ -734,6 +776,72 @@ struct champ
         return {res.node, new_size};
     }
 
+    template <typename Project, typename Combine, typename K, typename Fn>
+    node_t* do_update_if_exists(
+        node_t* node, K&& k, Fn&& fn, hash_t hash, shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst)
+                if (Equal{}(*fst, k))
+                    return node_t::copy_collision_replace(
+                        node,
+                        fst,
+                        Combine{}(std::forward<K>(k),
+                                  std::forward<Fn>(fn)(Project{}(*fst))));
+            return nullptr;
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = bitmap_t{1u} << idx;
+            if (node->nodemap() & bit) {
+                auto offset = node->children_count(bit);
+                auto result = do_update_if_exists<Project, Combine>(
+                    node->children()[offset],
+                    k,
+                    std::forward<Fn>(fn),
+                    hash,
+                    shift + B);
+                IMMER_TRY {
+                    return result ? node_t::copy_inner_replace(
+                                        node, offset, result)
+                                  : nullptr;
+                }
+                IMMER_CATCH (...) {
+                    node_t::delete_deep_shift(result, shift + B);
+                    IMMER_RETHROW;
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = node->data_count(bit);
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k))
+                    return node_t::copy_inner_replace_value(
+                        node,
+                        offset,
+                        Combine{}(std::forward<K>(k),
+                                  std::forward<Fn>(fn)(Project{}(*val))));
+                else {
+                    return nullptr;
+                }
+            } else {
+                return nullptr;
+            }
+        }
+    }
+
+    template <typename Project, typename Combine, typename K, typename Fn>
+    champ update_if_exists(const K& k, Fn&& fn) const
+    {
+        auto hash = Hash{}(k);
+        auto res  = do_update_if_exists<Project, Combine>(
+            root, k, std::forward<Fn>(fn), hash, 0);
+        if (res) {
+            return {res, size};
+        } else {
+            return {root->inc(), size};
+        };
+    }
+
     using update_mut_result = add_mut_result;
 
     template <typename Project,
@@ -868,6 +976,115 @@ struct champ
             root->dec_unsafe();
         root = res.node;
         size += res.added ? 1 : 0;
+    }
+
+    struct update_if_exists_mut_result
+    {
+        node_t* node;
+        bool mutated;
+    };
+
+    template <typename Project, typename Combine, typename K, typename Fn>
+    update_if_exists_mut_result do_update_if_exists_mut(edit_t e,
+                                                        node_t* node,
+                                                        K&& k,
+                                                        Fn&& fn,
+                                                        hash_t hash,
+                                                        shift_t shift) const
+    {
+        if (shift == max_shift<B>) {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst)
+                if (Equal{}(*fst, k)) {
+                    if (node->can_mutate(e)) {
+                        *fst = Combine{}(
+                            std::forward<K>(k),
+                            std::forward<Fn>(fn)(Project{}(std::move(*fst))));
+                        return {node, true};
+                    } else {
+                        auto r = node_t::copy_collision_replace(
+                            node,
+                            fst,
+                            Combine{}(std::forward<K>(k),
+                                      std::forward<Fn>(fn)(Project{}(*fst))));
+                        return {node_t::owned(r, e), false};
+                    }
+                }
+            return {nullptr, false};
+        } else {
+            auto idx = (hash & (mask<B> << shift)) >> shift;
+            auto bit = bitmap_t{1u} << idx;
+            if (node->nodemap() & bit) {
+                auto offset = node->children_count(bit);
+                auto child  = node->children()[offset];
+                if (node->can_mutate(e)) {
+                    auto result = do_update_if_exists_mut<Project, Combine>(
+                        e, child, k, std::forward<Fn>(fn), hash, shift + B);
+                    if (result.node) {
+                        node->children()[offset] = result.node;
+                        if (!result.mutated)
+                            child->dec_unsafe();
+                        return {node, true};
+                    } else {
+                        return {nullptr, false};
+                    }
+                } else {
+                    auto result = do_update_if_exists<Project, Combine>(
+                        child, k, std::forward<Fn>(fn), hash, shift + B);
+                    IMMER_TRY {
+                        if (result) {
+                            result = node_t::copy_inner_replace(
+                                node, offset, result);
+                            node_t::owned(result, e);
+                            return {result, false};
+                        } else {
+                            return {nullptr, false};
+                        }
+                    }
+                    IMMER_CATCH (...) {
+                        node_t::delete_deep_shift(result, shift + B);
+                        IMMER_RETHROW;
+                    }
+                }
+            } else if (node->datamap() & bit) {
+                auto offset = node->data_count(bit);
+                auto val    = node->values() + offset;
+                if (Equal{}(*val, k)) {
+                    if (node->can_mutate(e)) {
+                        auto vals    = node->ensure_mutable_values(e);
+                        vals[offset] = Combine{}(std::forward<K>(k),
+                                                 std::forward<Fn>(fn)(Project{}(
+                                                     std::move(vals[offset]))));
+                        return {node, true};
+                    } else {
+                        auto r = node_t::copy_inner_replace_value(
+                            node,
+                            offset,
+                            Combine{}(std::forward<K>(k),
+                                      std::forward<Fn>(fn)(Project{}(*val))));
+                        return {node_t::owned_values(r, e), false};
+                    }
+                } else {
+                    return {nullptr, false};
+                }
+            } else {
+                return {nullptr, false};
+            }
+        }
+    }
+
+    template <typename Project, typename Combine, typename K, typename Fn>
+    void update_if_exists_mut(edit_t e, const K& k, Fn&& fn)
+    {
+        auto hash = Hash{}(k);
+        auto res  = do_update_if_exists_mut<Project, Combine>(
+            e, root, k, std::forward<Fn>(fn), hash, 0);
+        if (res.node) {
+            if (!res.mutated)
+                root->dec_unsafe();
+            root = res.node;
+        }
     }
 
     // basically:

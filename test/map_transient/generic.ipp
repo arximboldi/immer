@@ -87,6 +87,14 @@ TEST_CASE("update")
     t.update("foo", [](auto x) { return x + 6; });
     CHECK(t["foo"] == 48);
     CHECK(t.size() == 2);
+
+    t.update_if_exists("foo", [](auto x) { return x + 42; });
+    CHECK(t["foo"] == 90);
+    CHECK(t.size() == 2);
+
+    t.update_if_exists("manolo", [](auto x) { return x + 42; });
+    CHECK(t["manolo"] == 0);
+    CHECK(t.size() == 2);
 }
 
 TEST_CASE("erase")

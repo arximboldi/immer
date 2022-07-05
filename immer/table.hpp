@@ -21,9 +21,20 @@ class table_transient;
  * It assumes the key is `id` class member.
  */
 template <typename T>
-auto get_table_key(const T& x) -> decltype(x.id)
+auto get_table_key(T const& x) -> decltype(x.id)
 {
     return x.id;
+}
+
+/*!
+ * Function template to set the key in `immer::table_key_fn`.
+ * It assumes the key is `id` class member.
+ */
+template <typename T, typename K>
+auto set_table_key(T x, K&& k) -> T
+{
+    x.id = std::forward<K>(k);
+    return x;
 }
 
 /*!
@@ -33,9 +44,15 @@ auto get_table_key(const T& x) -> decltype(x.id)
 struct table_key_fn
 {
     template <typename T>
-    decltype(auto) operator()(const T& x) const
+    decltype(auto) operator()(T&& x) const
     {
-        return get_table_key(x);
+        return get_table_key(std::forward<T>(x));
+    }
+
+    template <typename T, typename K>
+    auto operator()(T&& x, K&& k) const
+    {
+        return set_table_key(std::forward<T>(x), std::forward<K>(k));
     }
 };
 
@@ -108,9 +125,9 @@ class table
     struct combine_value
     {
         template <typename Kf, typename Tf>
-        value_t operator()(Kf&& k, Tf&& v) const
+        auto operator()(Kf&& k, Tf&& v) const
         {
-            return std::forward<Tf>(v);
+            return KeyFn{}(std::forward<Tf>(v), std::forward<Kf>(k));
         }
     };
 
@@ -133,10 +150,13 @@ class table
 
     struct hash_key
     {
-        auto operator()(const value_t& v) { return Hash{}(KeyFn{}(v)); }
+        std::size_t operator()(const value_t& v) const
+        {
+            return Hash{}(KeyFn{}(v));
+        }
 
         template <typename Key>
-        auto operator()(const Key& v)
+        std::size_t operator()(const Key& v) const
         {
             return Hash{}(v);
         }
@@ -144,14 +164,14 @@ class table
 
     struct equal_key
     {
-        auto operator()(const value_t& a, const value_t& b)
+        bool operator()(const value_t& a, const value_t& b) const
         {
             auto ke = KeyFn{};
             return Equal{}(ke(a), ke(b));
         }
 
         template <typename Key>
-        auto operator()(const value_t& a, const Key& b)
+        bool operator()(const value_t& a, const Key& b) const
         {
             return Equal{}(KeyFn{}(a), b);
         }
@@ -159,7 +179,10 @@ class table
 
     struct equal_value
     {
-        auto operator()(const value_t& a, const value_t& b) { return a == b; }
+        bool operator()(const value_t& a, const value_t& b) const
+        {
+            return a == b;
+        }
     };
 
     using impl_t =
@@ -386,8 +409,9 @@ public:
 
     /*!
      * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. The `fn` return value should have key `k`.
-     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     * `T` to `T`. The key `k` will be replaced inside the value returned by
+     * `fn`. It may allocate memory and its complexity is *effectively* @f$ O(1)
+     * @f$.
      */
     template <typename Fn>
     IMMER_NODISCARD table update(key_type k, Fn&& fn) const&
@@ -396,16 +420,29 @@ public:
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
     }
-
-    /*!
-     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. The `fn` return value should have key `k`.
-     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
-     */
     template <typename Fn>
     IMMER_NODISCARD decltype(auto) update(key_type k, Fn&& fn) &&
     {
         return update_move(move_t{}, std::move(k), std::forward<Fn>(fn));
+    }
+
+    /*!
+     * Returns `this.count(k) ? this->insert(fn((*this)[k])) : *this`. In
+     * particular, `fn` maps `T` to `T`. The key `k` will be replaced inside the
+     * value returned by `fn`.  It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    IMMER_NODISCARD table update_if_exists(key_type k, Fn&& fn) const&
+    {
+        return impl_.template update_if_exists<project_value, combine_value>(
+            std::move(k), std::forward<Fn>(fn));
+    }
+    template <typename Fn>
+    IMMER_NODISCARD decltype(auto) update_if_exists(key_type k, Fn&& fn) &&
+    {
+        return update_if_exists_move(
+            move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
@@ -454,7 +491,6 @@ private:
         impl_.add_mut({}, std::move(value));
         return std::move(*this);
     }
-
     table insert_move(std::false_type, value_type value)
     {
         return impl_.add(std::move(value));
@@ -467,7 +503,6 @@ private:
             {}, std::move(k), std::forward<Fn>(fn));
         return std::move(*this);
     }
-
     template <typename Fn>
     table update_move(std::false_type, key_type k, Fn&& fn)
     {
@@ -476,12 +511,25 @@ private:
                 std::move(k), std::forward<Fn>(fn));
     }
 
+    template <typename Fn>
+    table&& update_if_exists_move(std::true_type, key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<project_value, combine_value>(
+            {}, std::move(k), std::forward<Fn>(fn));
+        return std::move(*this);
+    }
+    template <typename Fn>
+    table update_if_exists_move(std::false_type, key_type k, Fn&& fn)
+    {
+        return impl_.template update_if_exists<project_value, combine_value>(
+            std::move(k), std::forward<Fn>(fn));
+    }
+
     table&& erase_move(std::true_type, const key_type& value)
     {
         impl_.sub_mut({}, value);
         return std::move(*this);
     }
-
     table erase_move(std::false_type, const key_type& value)
     {
         return impl_.sub(value);

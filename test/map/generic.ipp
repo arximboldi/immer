@@ -165,6 +165,15 @@ TEST_CASE("equals and setting")
     CHECK(v.set(1234, 42) == v.insert({1234, 42}));
     CHECK(v.update(1234, [](auto&& x) { return x + 1; }) == v.set(1234, 1));
     CHECK(v.update(42, [](auto&& x) { return x + 1; }) == v.set(42, 43));
+
+    CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }) == v);
+    CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }) ==
+          v.set(42, 43));
+
+#if IMMER_DEBUG_STATS
+    std::cout << (v.impl().get_debug_stats() + v.impl().get_debug_stats())
+                     .get_summary();
+#endif
 }
 
 TEST_CASE("iterator")
@@ -254,6 +263,27 @@ TEST_CASE("update a lot")
     }
 }
 
+TEST_CASE("update_if_exists a lot")
+{
+    auto v = make_test_map(666u);
+
+    SECTION("immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.update_if_exists(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).update_if_exists(i,
+                                              [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+}
+
 TEST_CASE("exception safety")
 {
     constexpr auto n = 2666u;
@@ -284,6 +314,27 @@ TEST_CASE("exception safety")
         IMMER_TRACE_E(d.happenings);
     }
 
+    SECTION("update_if_exists")
+    {
+        auto v = dadaist_map_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).set(i, i);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = v.update_if_exists(i, [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(i) == i + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(i) == i);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
     SECTION("update collisisions")
     {
         auto vals = make_values_with_collisions(n);
@@ -295,6 +346,29 @@ TEST_CASE("exception safety")
             try {
                 auto s = d.next();
                 v      = v.update(vals[i].first, [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update_if_exists collisisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = v.update_if_exists(vals[i].first,
+                                       [](auto x) { return x + 1; });
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
@@ -364,6 +438,29 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = std::move(v).update(vals[i].first,
                                         [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {}
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update_if_exists collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = std::move(v).update_if_exists(vals[i].first,
+                                                  [](auto x) { return x + 1; });
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))

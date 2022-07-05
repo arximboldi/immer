@@ -16,8 +16,8 @@
 
 struct Item
 {
-    std::string id;
-    int value;
+    std::string id{};
+    int value{};
 
     bool operator==(const Item& other) const
     {
@@ -62,6 +62,27 @@ TEST_CASE("insert")
     t.insert(Item{"foo", 6});
     CHECK(t["foo"].value == 6);
     CHECK(t.size() == 2);
+
+    t.update("foo", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["foo"].value == 7);
+    CHECK(t.size() == 2);
+
+    t.update("lol", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["lol"].value == 1);
+    CHECK(t.size() == 3);
+
+    t.update_if_exists("foo", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["foo"].value == 8);
+    CHECK(t.size() == 3);
 }
 
 TEST_CASE("erase")
