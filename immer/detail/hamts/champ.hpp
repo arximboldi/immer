@@ -635,15 +635,16 @@ struct champ
                         return {node_t::owned_values(r, e), false, false};
                     }
                 } else {
-                    auto mutate = node->can_mutate(e);
-                    auto hash2  = Hash{}(*val);
-                    auto child =
-                        node_t::make_merged_e(e,
-                                              shift + B,
-                                              std::move(v),
-                                              hash,
-                                              mutate ? std::move(*val) : *val,
-                                              hash2);
+                    auto mutate        = node->can_mutate(e);
+                    auto mutate_values = mutate && node->can_mutate_values(e);
+                    auto hash2         = Hash{}(*val);
+                    auto child         = node_t::make_merged_e(
+                        e,
+                        shift + B,
+                        std::move(v),
+                        hash,
+                        mutate_values ? std::move(*val) : *val,
+                        hash2);
                     IMMER_TRY {
                         auto r = mutate ? node_t::move_inner_replace_merged(
                                               e, node, bit, offset, child)
@@ -933,15 +934,16 @@ struct champ
                         return {node_t::owned_values(r, e), false, false};
                     }
                 } else {
-                    auto mutate = node->can_mutate(e);
-                    auto hash2  = Hash{}(*val);
-                    auto child  = node_t::make_merged_e(
+                    auto mutate        = node->can_mutate(e);
+                    auto mutate_values = mutate && node->can_mutate_values(e);
+                    auto hash2         = Hash{}(*val);
+                    auto child         = node_t::make_merged_e(
                         e,
                         shift + B,
                         Combine{}(std::forward<K>(k),
                                   std::forward<Fn>(fn)(Default{}())),
                         hash,
-                        mutate ? std::move(*val) : *val,
+                        mutate_values ? std::move(*val) : *val,
                         hash2);
                     IMMER_TRY {
                         auto r = mutate ? node_t::move_inner_replace_merged(
@@ -1013,7 +1015,8 @@ struct champ
                             node,
                             fst,
                             Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*fst))));
+                                      std::forward<Fn>(fn)(
+                                          Project{}(detail::as_const(*fst)))));
                         return {node_t::owned(r, e), false};
                     }
                 }
@@ -1068,7 +1071,8 @@ struct champ
                             node,
                             offset,
                             Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*val))));
+                                      std::forward<Fn>(fn)(
+                                          Project{}(detail::as_const(*val)))));
                         return {node_t::owned_values(r, e), false};
                     }
                 } else {

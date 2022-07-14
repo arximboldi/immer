@@ -16,11 +16,14 @@
 #include "test/util.hpp"
 
 #include <immer/algorithm.hpp>
+#include <immer/box.hpp>
 
 #include <catch.hpp>
 
 #include <random>
 #include <unordered_set>
+
+using memory_policy_t = SET_T<unsigned>::memory_policy_type;
 
 template <typename T = unsigned>
 auto make_generator()
@@ -28,6 +31,15 @@ auto make_generator()
     auto engine = std::default_random_engine{42};
     auto dist   = std::uniform_int_distribution<T>{};
     return std::bind(dist, engine);
+}
+
+template <typename T = unsigned>
+auto make_generator_s()
+{
+    auto engine = std::default_random_engine{42};
+    auto dist   = std::uniform_int_distribution<T>{};
+    return
+        [g = std::bind(dist, engine)]() mutable { return std::to_string(g()); };
 }
 
 struct conflictor
@@ -232,6 +244,41 @@ TEST_CASE("insert conflicts")
     }
 }
 
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("insert boxed move string")
+{
+    constexpr auto N = 666u;
+    constexpr auto S = 7;
+    auto s           = SET_T<immer::box<std::string, memory_policy_t>>{};
+    SECTION("preserve immutability")
+    {
+        auto s0 = s;
+        auto i0 = 0u;
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).insert(std::to_string(i));
+            {
+                CHECK(s.size() == i + 1);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(s.count(std::to_string(j)) == 1);
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(s.count(std::to_string(j)) == 0);
+            }
+            {
+                CHECK(s0.size() == i0);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(s0.count(std::to_string(j)) == 1);
+                for (auto j : test_irange(i0, N))
+                    CHECK(s0.count(std::to_string(j)) == 0);
+            }
+        }
+    }
+}
+#endif
+
 TEST_CASE("erase a lot")
 {
     constexpr auto N = 666u;
@@ -241,7 +288,7 @@ TEST_CASE("erase a lot")
 
     auto s = SET_T<unsigned>{};
     for (auto i = 0u; i < N; ++i)
-        s = s.insert(vals[i]);
+        s = std::move(s).insert(vals[i]);
 
     SECTION("immutable")
     {
@@ -267,13 +314,77 @@ TEST_CASE("erase a lot")
     }
 }
 
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("erase a lot boxed string")
+{
+    constexpr auto N = 666u;
+    auto gen         = make_generator_s();
+    auto vals        = std::vector<immer::box<std::string, memory_policy_t>>{};
+    generate_n(back_inserter(vals), N, gen);
+
+    auto s = SET_T<immer::box<std::string, memory_policy_t>>{};
+    for (auto i = 0u; i < N; ++i)
+        s = std::move(s).insert(vals[i]);
+
+    SECTION("immutable")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = s.erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).erase(vals[i]);
+            CHECK(s.size() == N - i - 1);
+            for (auto j : test_irange(0u, i + 1))
+                CHECK(s.count(vals[j]) == 0);
+            for (auto j : test_irange(i + 1u, N))
+                CHECK(s.count(vals[j]) == 1);
+        }
+    }
+    SECTION("move preserve immutability")
+    {
+        constexpr auto S = 7;
+        auto s0          = s;
+        auto i0          = 0u;
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).erase(vals[i]);
+            {
+                CHECK(s.size() == N - i - 1);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(s.count(vals[j]) == 0);
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(s.count(vals[j]) == 1);
+            }
+            {
+                CHECK(s0.size() == N - i0);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(s0.count(vals[j]) == 0);
+                for (auto j : test_irange(i0, N))
+                    CHECK(s0.count(vals[j]) == 1);
+            }
+        }
+    }
+}
+#endif
+
 TEST_CASE("erase conflicts")
 {
     constexpr auto N = 666u;
     auto vals        = make_values_with_collisions(N);
     auto s           = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i)
-        s = s.insert(vals[i]);
+        s = std::move(s).insert(vals[i]);
 
     SECTION("immutable")
     {
