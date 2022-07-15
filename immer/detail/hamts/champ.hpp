@@ -246,7 +246,8 @@ struct champ
     }
 
     template <typename Fn>
-    void for_each_chunk_traversal(node_t* node, count_t depth, Fn&& fn) const
+    void
+    for_each_chunk_traversal(const node_t* node, count_t depth, Fn&& fn) const
     {
         if (depth < max_depth<B>) {
             auto datamap = node->datamap();
@@ -272,8 +273,8 @@ struct champ
     }
 
     template <typename EqualValue, typename Differ>
-    void diff(node_t* old_node,
-              node_t* new_node,
+    void diff(const node_t* old_node,
+              const node_t* new_node,
               count_t depth,
               Differ&& differ) const
     {
@@ -350,8 +351,8 @@ struct champ
     }
 
     template <typename EqualValue, typename Differ>
-    void diff_data_node(node_t* old_node,
-                        node_t* new_node,
+    void diff_data_node(const node_t* old_node,
+                        const node_t* new_node,
                         bitmap_t bit,
                         count_t depth,
                         Differ&& differ) const
@@ -379,8 +380,8 @@ struct champ
     }
 
     template <typename EqualValue, typename Differ>
-    void diff_node_data(node_t* old_node,
-                        node_t* new_node,
+    void diff_node_data(const node_t* old_node,
+                        const node_t* const new_node,
                         bitmap_t bit,
                         count_t depth,
                         Differ&& differ) const
@@ -408,8 +409,8 @@ struct champ
     }
 
     template <typename EqualValue, typename Differ>
-    void diff_data_data(node_t* old_node,
-                        node_t* new_node,
+    void diff_data_data(const node_t* old_node,
+                        const node_t* new_node,
                         bitmap_t bit,
                         Differ&& differ) const
     {
@@ -427,8 +428,9 @@ struct champ
     }
 
     template <typename EqualValue, typename Differ>
-    void
-    diff_collisions(node_t* old_node, node_t* new_node, Differ&& differ) const
+    void diff_collisions(const node_t* old_node,
+                         const node_t* new_node,
+                         Differ&& differ) const
     {
         auto old_begin = old_node->collisions();
         auto old_end   = old_node->collisions() + old_node->collision_count();
@@ -690,13 +692,13 @@ struct champ
             auto lst = fst + node->collision_count();
             for (; fst != lst; ++fst)
                 if (Equal{}(*fst, k))
-                    return {
-                        node_t::copy_collision_replace(
-                            node,
-                            fst,
-                            Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*fst)))),
-                        false};
+                    return {node_t::copy_collision_replace(
+                                node,
+                                fst,
+                                Combine{}(std::forward<K>(k),
+                                          std::forward<Fn>(fn)(Project{}(
+                                              detail::as_const(*fst))))),
+                            false};
             return {node_t::copy_collision_insert(
                         node,
                         Combine{}(std::forward<K>(k),
@@ -726,13 +728,13 @@ struct champ
                 auto offset = node->data_count(bit);
                 auto val    = node->values() + offset;
                 if (Equal{}(*val, k))
-                    return {
-                        node_t::copy_inner_replace_value(
-                            node,
-                            offset,
-                            Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*val)))),
-                        false};
+                    return {node_t::copy_inner_replace_value(
+                                node,
+                                offset,
+                                Combine{}(std::forward<K>(k),
+                                          std::forward<Fn>(fn)(Project{}(
+                                              detail::as_const(*val))))),
+                            false};
                 else {
                     auto child = node_t::make_merged(
                         shift + B,
@@ -789,7 +791,8 @@ struct champ
                         node,
                         fst,
                         Combine{}(std::forward<K>(k),
-                                  std::forward<Fn>(fn)(Project{}(*fst))));
+                                  std::forward<Fn>(fn)(
+                                      Project{}(detail::as_const(*fst)))));
             return nullptr;
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
@@ -819,7 +822,8 @@ struct champ
                         node,
                         offset,
                         Combine{}(std::forward<K>(k),
-                                  std::forward<Fn>(fn)(Project{}(*val))));
+                                  std::forward<Fn>(fn)(
+                                      Project{}(detail::as_const(*val)))));
                 else {
                     return nullptr;
                 }
@@ -871,7 +875,8 @@ struct champ
                             node,
                             fst,
                             Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*fst))));
+                                      std::forward<Fn>(fn)(
+                                          Project{}(detail::as_const(*fst)))));
                         return {node_t::owned(r, e), false, false};
                     }
                 }
@@ -923,7 +928,8 @@ struct champ
                             node,
                             offset,
                             Combine{}(std::forward<K>(k),
-                                      std::forward<Fn>(fn)(Project{}(*val))));
+                                      std::forward<Fn>(fn)(
+                                          Project{}(detail::as_const(*val)))));
                         return {node_t::owned_values(r, e), false, false};
                     }
                 } else {
