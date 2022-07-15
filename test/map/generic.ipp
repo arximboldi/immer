@@ -13,6 +13,7 @@
 #endif
 
 #include <immer/algorithm.hpp>
+#include <immer/box.hpp>
 
 #include "test/dada.hpp"
 #include "test/util.hpp"
@@ -22,6 +23,8 @@
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
+
+using memory_policy_t = MAP_T<unsigned, unsigned>::memory_policy_type;
 
 template <typename T = unsigned>
 auto make_generator()
@@ -283,6 +286,113 @@ TEST_CASE("update_if_exists a lot")
         }
     }
 }
+
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("update boxed move string")
+{
+    constexpr auto N = 666u;
+    constexpr auto S = 7;
+    auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};
+    SECTION("preserve immutability")
+    {
+        auto s0 = s;
+        auto i0 = 0u;
+        // insert
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update(std::to_string(i),
+                                    [&](auto&&) { return std::to_string(i); });
+            {
+                CHECK(s.size() == i + 1);
+                for (auto j : test_irange(0u, i + 1)) {
+                    CHECK(s.count(std::to_string(j)) == 1);
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+                }
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(s.count(std::to_string(j)) == 0);
+            }
+            {
+                CHECK(s0.size() == i0);
+                for (auto j : test_irange(0u, i0)) {
+                    CHECK(s0.count(std::to_string(j)) == 1);
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+                }
+                for (auto j : test_irange(i0, N))
+                    CHECK(s0.count(std::to_string(j)) == 0);
+            }
+        }
+        // update
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update(std::to_string(i), [&](auto&&) {
+                return std::to_string(i + 1);
+            });
+            {
+                CHECK(s.size() == N);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+            }
+            {
+                CHECK(s0.size() == N);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i0, N))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+            }
+        }
+    }
+}
+#endif
+
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("update_if_exists boxed move string")
+{
+    constexpr auto N = 666u;
+    constexpr auto S = 7;
+    auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};
+    SECTION("preserve immutability")
+    {
+        auto s0 = s;
+        auto i0 = 0u;
+        // insert
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).set(std::to_string(i), std::to_string(i));
+        }
+        // update
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update_if_exists(std::to_string(i), [&](auto&&) {
+                return std::to_string(i + 1);
+            });
+            {
+                CHECK(s.size() == N);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+            }
+            {
+                CHECK(s0.size() == N);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i0, N))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+            }
+        }
+    }
+}
+#endif
 
 TEST_CASE("exception safety")
 {

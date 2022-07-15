@@ -25,6 +25,18 @@ namespace immer {
 namespace detail {
 
 template <typename T>
+const T* as_const(T* x)
+{
+    return x;
+}
+
+template <typename T>
+const T& as_const(T& x)
+{
+    return x;
+}
+
+template <typename T>
 using aligned_storage_for =
     typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
@@ -113,7 +125,8 @@ auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
                 std::addressof(*current)))) value_t(std::move(*first));
         }
         return current;
-    } IMMER_CATCH (...) {
+    }
+    IMMER_CATCH (...) {
         detail::destroy(out, current);
         IMMER_RETHROW;
     }

@@ -92,7 +92,7 @@ struct for_each_chunk_visitor : visitor_base<for_each_chunk_visitor>
     static void visit_leaf(Pos&& pos, Fn&& fn)
     {
         auto data = pos.node()->leaf();
-        fn(data, data + pos.count());
+        fn(as_const(data), as_const(data) + pos.count());
     }
 };
 
@@ -109,7 +109,7 @@ struct for_each_chunk_p_visitor : visitor_base<for_each_chunk_p_visitor>
     template <typename Pos, typename Fn>
     static bool visit_leaf(Pos&& pos, Fn&& fn)
     {
-        auto data = pos.node()->leaf();
+        auto data = as_const(pos.node()->leaf());
         return fn(data, data + pos.count());
     }
 };

@@ -85,6 +85,8 @@ public:
 
     using transient_type = set_transient<T, Hash, Equal, MemoryPolicy, B>;
 
+    using memory_policy_type = MemoryPolicy;
+
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.

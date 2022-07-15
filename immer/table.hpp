@@ -206,6 +206,8 @@ public:
     using transient_type =
         table_transient<T, KeyFn, Hash, Equal, MemoryPolicy, B>;
 
+    using memory_policy_type = MemoryPolicy;
+
     /*!
      * Constructs a table containing the elements in `values`.
      */
