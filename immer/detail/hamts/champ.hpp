@@ -844,7 +844,7 @@ struct champ
             return {res, size};
         } else {
             return {root->inc(), size};
-        };
+        }
     }
 
     using update_mut_result = add_mut_result;
