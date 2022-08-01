@@ -604,8 +604,8 @@ struct champ
                     auto result =
                         do_add_mut(e, child, std::move(v), hash, shift + B);
                     node->children()[offset] = result.node;
-                    if (!result.mutated)
-                        child->dec_unsafe();
+                    if (!result.mutated && child->dec())
+                        node_t::delete_deep_shift(child, shift + B);
                     return {node, result.added, true};
                 } else {
                     assert(node->children()[offset]);
@@ -672,8 +672,8 @@ struct champ
     {
         auto hash = Hash{}(v);
         auto res  = do_add_mut(e, root, std::move(v), hash, 0);
-        if (!res.mutated)
-            root->dec_unsafe();
+        if (!res.mutated && root->dec())
+            node_t::delete_deep(root, 0);
         root = res.node;
         size += res.added ? 1 : 0;
     }
@@ -897,8 +897,8 @@ struct champ
                     auto result = do_update_mut<Project, Default, Combine>(
                         e, child, k, std::forward<Fn>(fn), hash, shift + B);
                     node->children()[offset] = result.node;
-                    if (!result.mutated)
-                        child->dec_unsafe();
+                    if (!result.mutated && child->dec())
+                        node_t::delete_deep_shift(child, shift + B);
                     return {node, result.added, true};
                 } else {
                     auto result = do_update<Project, Default, Combine>(
@@ -980,8 +980,8 @@ struct champ
         auto hash = Hash{}(k);
         auto res  = do_update_mut<Project, Default, Combine>(
             e, root, k, std::forward<Fn>(fn), hash, 0);
-        if (!res.mutated)
-            root->dec_unsafe();
+        if (!res.mutated && root->dec())
+            node_t::delete_deep(root, 0);
         root = res.node;
         size += res.added ? 1 : 0;
     }
@@ -1032,8 +1032,8 @@ struct champ
                         e, child, k, std::forward<Fn>(fn), hash, shift + B);
                     if (result.node) {
                         node->children()[offset] = result.node;
-                        if (!result.mutated)
-                            child->dec_unsafe();
+                        if (!result.mutated && child->dec())
+                            node_t::delete_deep_shift(child, shift + B);
                         return {node, true};
                     } else {
                         return {nullptr, false};
@@ -1091,8 +1091,8 @@ struct champ
         auto res  = do_update_if_exists_mut<Project, Combine>(
             e, root, k, std::forward<Fn>(fn), hash, 0);
         if (res.node) {
-            if (!res.mutated)
-                root->dec_unsafe();
+            if (!res.mutated && root->dec())
+                node_t::delete_deep(root, 0);
             root = res.node;
         }
     }
@@ -1305,8 +1305,8 @@ struct champ
                         shift > 0) {
                         if (mutate) {
                             node_t::delete_inner(node);
-                            if (!result.mutated)
-                                child->dec_unsafe();
+                            if (!result.mutated && child->dec())
+                                node_t::delete_deep_shift(child, shift + B);
                         }
                         return {result.data.singleton, mutate};
                     } else {
@@ -1326,15 +1326,15 @@ struct champ
                                          *result.data.singleton);
                         if (result.mutated)
                             detail::destroy_at(result.data.singleton);
-                        else if (mutate)
-                            child->dec_unsafe();
+                        else if (mutate && child->dec())
+                            node_t::delete_deep_shift(child, shift + B);
                         return {node_t::owned_values(r, e), mutate};
                     }
                 case sub_result::tree:
                     if (mutate) {
                         children[offset] = result.data.tree;
-                        if (!result.mutated)
-                            child->dec_unsafe();
+                        if (!result.mutated && child->dec())
+                            node_t::delete_deep_shift(child, shift + B);
                         return {node, true};
                     } else {
                         IMMER_TRY {
@@ -1403,8 +1403,8 @@ struct champ
         case sub_result::nothing:
             break;
         case sub_result::tree:
-            if (!res.mutated)
-                root->dec_unsafe();
+            if (!res.mutated && root->dec())
+                node_t::delete_deep(root, 0);
             root = res.data.tree;
             --size;
             break;

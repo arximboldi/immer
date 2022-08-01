@@ -540,6 +540,19 @@ struct node
         return dst;
     }
 
+    static node_t* do_copy_inner_replace(
+        node_t* dst, node_t* src, count_t n, count_t offset, node_t* child)
+    {
+        IMMER_ASSERT_TAGGED(dst->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        auto p = src->inner();
+        inc_nodes(p, offset);
+        inc_nodes(p + offset + 1, n - offset - 1);
+        std::copy(p, p + n, dst->inner());
+        dst->inner()[offset] = child;
+        return dst;
+    }
+
     static node_t* copy_inner_r(node_t* src, count_t n)
     {
         IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
@@ -582,6 +595,23 @@ struct node
         return dst;
     }
 
+    static node_t* do_copy_inner_replace_r(
+        node_t* dst, node_t* src, count_t n, count_t offset, node_t* child)
+    {
+        IMMER_ASSERT_TAGGED(dst->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        auto src_r = src->relaxed();
+        auto dst_r = dst->relaxed();
+        auto p     = src->inner();
+        inc_nodes(p, offset);
+        inc_nodes(p + offset + 1, n - offset - 1);
+        std::copy(src->inner(), src->inner() + n, dst->inner());
+        std::copy(src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+        dst_r->d.count       = n;
+        dst->inner()[offset] = child;
+        return dst;
+    }
+
     static node_t* do_copy_inner_sr(node_t* dst, node_t* src, count_t n)
     {
         if (embed_relaxed)
@@ -589,6 +619,21 @@ struct node
         else {
             inc_nodes(src->inner(), n);
             std::copy(src->inner(), src->inner() + n, dst->inner());
+            return dst;
+        }
+    }
+
+    static node_t* do_copy_inner_replace_sr(
+        node_t* dst, node_t* src, count_t n, count_t offset, node_t* child)
+    {
+        if (embed_relaxed)
+            return do_copy_inner_replace_r(dst, src, n, offset, child);
+        else {
+            auto p = src->inner();
+            inc_nodes(p, offset);
+            inc_nodes(p + offset + 1, n - offset - 1);
+            std::copy(p, p + n, dst->inner());
+            dst->inner()[offset] = child;
             return dst;
         }
     }
@@ -817,10 +862,12 @@ struct node
                     auto dst_r = impl.d.data.inner.relaxed =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     if (src_r) {
-                        node_t::refs(src_r).dec_unsafe();
                         auto n = dst_r->d.count = src_r->d.count;
                         std::copy(
                             src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                        if (node_t::refs(src_r).dec())
+                            heap::deallocate(node_t::sizeof_inner_r_n(n),
+                                             src_r);
                     }
                     node_t::ownee(dst_r) = e;
                     return dst_r;
@@ -842,10 +889,12 @@ struct node
                     auto dst_r = impl.d.data.inner.relaxed =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     if (src_r) {
-                        node_t::refs(src_r).dec_unsafe();
                         auto n = dst_r->d.count = src_r->d.count;
                         std::copy(
                             src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                        if (node_t::refs(src_r).dec())
+                            heap::deallocate(node_t::sizeof_inner_r_n(n),
+                                             src_r);
                     }
                     node_t::ownee(dst_r) = ec;
                     return dst_r;
@@ -866,9 +915,11 @@ struct node
                     auto dst_r =
                         new (heap::allocate(max_sizeof_relaxed)) relaxed_t;
                     if (src_r) {
-                        node_t::refs(src_r).dec_unsafe();
                         std::copy(
                             src_r->d.sizes, src_r->d.sizes + n, dst_r->d.sizes);
+                        if (node_t::refs(src_r).dec())
+                            heap::deallocate(node_t::sizeof_inner_r_n(n),
+                                             src_r);
                     }
                     dst_r->d.count                   = n;
                     node_t::ownee(dst_r)             = e;
@@ -890,7 +941,6 @@ struct node
     }
 
     bool dec() const { return refs(this).dec(); }
-    void dec_unsafe() const { refs(this).dec_unsafe(); }
 
     static void inc_nodes(node_t** p, count_t n)
     {
