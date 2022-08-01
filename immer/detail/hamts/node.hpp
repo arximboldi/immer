@@ -369,8 +369,9 @@ struct node
                 deallocate_values(nxt, nv);
                 IMMER_RETHROW;
             }
-            refs(old).dec_unsafe();
             impl.d.data.inner.values = nxt;
+            if (refs(old).dec())
+                delete_values(old, nv);
             return dst;
         }
     }
@@ -518,8 +519,8 @@ struct node
         dst->impl.d.data.inner.datamap = src->datamap();
         dst->impl.d.data.inner.nodemap = src->nodemap();
         std::copy(srcp, srcp + n, dstp);
-        inc_nodes(srcp, n);
-        srcp[offset]->dec_unsafe();
+        inc_nodes(srcp, offset);
+        inc_nodes(srcp + offset + 1, n - offset - 1);
         dstp[offset] = child;
         return dst;
     }
@@ -710,8 +711,8 @@ struct node
             deallocate_inner(dst, n - 1, nv + 1);
             IMMER_RETHROW;
         }
-        inc_nodes(src->children(), n);
-        src->children()[noffset]->dec_unsafe();
+        inc_nodes(src->children(), noffset);
+        inc_nodes(src->children() + noffset + 1, n - noffset - 1);
         std::copy(src->children(), src->children() + noffset, dst->children());
         std::copy(src->children() + noffset + 1,
                   src->children() + n,
@@ -1046,7 +1047,6 @@ struct node
     }
 
     bool dec() const { return refs(this).dec(); }
-    void dec_unsafe() const { refs(this).dec_unsafe(); }
 
     static void inc_nodes(node_t** p, count_t n)
     {
