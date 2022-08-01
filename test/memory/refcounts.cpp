@@ -42,16 +42,6 @@ void test_refcount()
         CHECK(!elem.dec());
         CHECK(elem.dec());
     }
-
-    SECTION("inc dec unsafe")
-    {
-        refcount elem{};
-        elem.inc();
-        CHECK(!elem.dec());
-        elem.inc();
-        elem.dec_unsafe();
-        CHECK(elem.dec());
-    }
 }
 
 TEST_CASE("basic refcount") { test_refcount<immer::refcount_policy>(); }
