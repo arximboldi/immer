@@ -94,21 +94,26 @@ struct champ_debug_stats
             100. * (value_count * value_size + child_count * child_size) /
             (capacity * value_size + capacity * child_size);
 
-        auto value_capacity          = m * inner_node_w_value_count;
-        auto child_capacity          = m * inner_node_w_child_count;
-        auto dense_child_utilization = 100. * child_count / child_capacity;
-        auto dense_value_utilization = 100. * value_count / value_capacity;
+        auto value_capacity = m * inner_node_w_value_count;
+        auto child_capacity = m * inner_node_w_child_count;
+        auto dense_child_utilization =
+            child_capacity == 0 ? 100. : 100. * child_count / child_capacity;
+        auto dense_value_utilization =
+            value_capacity == 0 ? 100. : 100. * value_count / value_capacity;
         auto dense_utilization =
-            100. * (value_count * value_size + child_count * child_size) /
-            (value_capacity * value_size + child_capacity * child_size);
+            value_capacity + child_capacity == 0
+                ? 100.
+                : 100. * (value_count * value_size + child_count * child_size) /
+                      (value_capacity * value_size +
+                       child_capacity * child_size);
 
         return {collision_ratio,
                 utilization,
                 child_utilization,
                 value_utilization,
                 dense_utilization,
-                dense_child_utilization,
-                dense_value_utilization};
+                dense_value_utilization,
+                dense_child_utilization};
     }
 };
 #endif

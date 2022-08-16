@@ -179,6 +179,23 @@ TEST_CASE("equals and setting")
 #endif
 }
 
+#if IMMER_DEBUG_STATS
+TEST_CASE("debug stats")
+{
+    {
+        std::cout
+            << immer::map<int, int>{}.impl().get_debug_stats().get_summary();
+    }
+    {
+        immer::map<int, int> map;
+        for (int i = 0; i <= 10; i++) {
+            map = std::move(map).set(i, i);
+        }
+        std::cout << map.impl().get_debug_stats().get_summary();
+    }
+}
+#endif
+
 TEST_CASE("iterator")
 {
     const auto N = 666u;
