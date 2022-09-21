@@ -363,7 +363,7 @@ public:
     }
 
     /*!
-     * Returns whether the sets are equal.
+     * Returns whether the maps are equal.
      */
     IMMER_NODISCARD bool operator==(const map& other) const
     {
