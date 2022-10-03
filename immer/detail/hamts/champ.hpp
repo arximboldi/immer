@@ -190,6 +190,63 @@ struct champ
             node_t::delete_deep(root, 0);
     }
 
+    std::size_t do_check_champ(node_t* node,
+                               count_t depth,
+                               size_t path_hash,
+                               size_t hash_mask) const
+    {
+        auto result = std::size_t{};
+        if (depth < max_depth<B>) {
+            auto nodemap = node->nodemap();
+            if (nodemap) {
+                auto fst = node->children();
+                for (auto idx = std::size_t{}; idx < branches<B>; ++idx) {
+                    if (nodemap & (1 << idx)) {
+                        auto child = *fst++;
+                        result +=
+                            do_check_champ(child,
+                                           depth + 1,
+                                           path_hash | (idx << (B * depth)),
+                                           (hash_mask << B) | mask<B>);
+                    }
+                }
+            }
+            auto datamap = node->datamap();
+            if (datamap) {
+                auto fst = node->values();
+                for (auto idx = std::size_t{}; idx < branches<B>; ++idx) {
+                    if (datamap & (1 << idx)) {
+                        auto hash  = Hash{}(*fst++);
+                        auto check = (hash & hash_mask) ==
+                                     (path_hash | (idx << (B * depth)));
+                        // assert(check);
+                        result += !!check;
+                    }
+                }
+            }
+        } else {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst) {
+                auto hash  = Hash{}(*fst);
+                auto check = hash == path_hash;
+                // assert(check);
+                result += !!check;
+            }
+        }
+        return result;
+    }
+
+    // Checks that the hashes of the values correspond with what has actually
+    // been inserted.  If it doesn't it can mean that corruption has happened
+    // due some value being moved out of the champ when it should have not.
+    bool check_champ() const
+    {
+        auto r = do_check_champ(root, 0, 0, mask<B>);
+        // assert(r == size);
+        return r == size;
+    }
+
 #if IMMER_DEBUG_STATS
     void do_get_debug_stats(champ_debug_stats& stats,
                             node_t* node,
