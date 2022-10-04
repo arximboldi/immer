@@ -8,6 +8,7 @@
 
 #include "fuzzer_input.hpp"
 
+#include <immer/box.hpp>
 #include <immer/map.hpp>
 
 #include <immer/algorithm.hpp>
@@ -34,7 +35,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
     constexpr auto var_count = 4;
 
     using map_t = immer::map<std::string,
-                             std::string,
+                             immer::box<std::string>,
                              colliding_hash_t,
                              std::equal_to<>,
                              st_memory>;

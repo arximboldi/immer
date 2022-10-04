@@ -8,6 +8,7 @@
 
 #include "fuzzer_input.hpp"
 
+#include <immer/box.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/set.hpp>
