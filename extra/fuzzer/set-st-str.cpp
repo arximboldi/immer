@@ -8,6 +8,7 @@
 
 #include "fuzzer_input.hpp"
 
+#include <immer/box.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/set.hpp>
@@ -24,7 +25,10 @@ using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
 
 struct colliding_hash_t
 {
-    std::size_t operator()(std::size_t x) const { return x & ~15; }
+    std::size_t operator()(const std::string& x) const
+    {
+        return std::hash<std::string>{}(x) & ~15;
+    }
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
@@ -33,7 +37,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
     constexpr auto var_count = 4;
 
     using set_t =
-        immer::set<size_t, colliding_hash_t, std::equal_to<>, st_memory>;
+        immer::set<std::string, colliding_hash_t, std::equal_to<>, st_memory>;
 
     auto vars = std::array<set_t, var_count>{};
 
@@ -51,24 +55,25 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
+        assert(vars[src].impl().check_champ());
         switch (read<char>(in)) {
         case op_insert: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = vars[src].insert(value);
             break;
         }
         case op_erase: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = vars[src].erase(value);
             break;
         }
         case op_insert_move: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = std::move(vars[src]).insert(value);
             break;
         }
         case op_erase_move: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = std::move(vars[src]).erase(value);
             break;
         }

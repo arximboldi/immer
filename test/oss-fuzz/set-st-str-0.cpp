@@ -6,7 +6,7 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include "input.hpp"
 
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
@@ -16,6 +16,10 @@
 
 #include <array>
 
+#include <catch.hpp>
+
+namespace {
+
 using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
                                        immer::unsafe_refcount_policy,
                                        immer::no_lock_policy,
@@ -24,16 +28,18 @@ using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
 
 struct colliding_hash_t
 {
-    std::size_t operator()(std::size_t x) const { return x & ~15; }
+    std::size_t operator()(const std::string& x) const
+    {
+        return std::hash<std::string>{}(x) & ~15;
+    }
 };
 
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
-                                      std::size_t size)
+int run_input(const std::uint8_t* data, std::size_t size)
 {
     constexpr auto var_count = 4;
 
     using set_t =
-        immer::set<size_t, colliding_hash_t, std::equal_to<>, st_memory>;
+        immer::set<std::string, colliding_hash_t, std::equal_to<>, st_memory>;
 
     auto vars = std::array<set_t, var_count>{};
 
@@ -51,24 +57,25 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         auto src = read<char>(in, is_valid_var);
         auto dst = read<char>(in, is_valid_var);
+        assert(vars[src].impl().check_champ());
         switch (read<char>(in)) {
         case op_insert: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = vars[src].insert(value);
             break;
         }
         case op_erase: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = vars[src].erase(value);
             break;
         }
         case op_insert_move: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = std::move(vars[src]).insert(value);
             break;
         }
         case op_erase_move: {
-            auto value = read<size_t>(in);
+            auto value = std::to_string(read<size_t>(in));
             vars[dst]  = std::move(vars[src]).erase(value);
             break;
         }
@@ -100,4 +107,16 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         };
         return true;
     });
+}
+
+} // namespace
+
+TEST_CASE("local test runs")
+{
+    SECTION("fuzzer")
+    {
+        auto input =
+            load_input("crash-2838943da19b47c02dcff313e523eead0e2e8635");
+        CHECK(run_input(input.data(), input.size()) == 0);
+    }
 }

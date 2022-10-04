@@ -190,6 +190,63 @@ struct champ
             node_t::delete_deep(root, 0);
     }
 
+    std::size_t do_check_champ(node_t* node,
+                               count_t depth,
+                               size_t path_hash,
+                               size_t hash_mask) const
+    {
+        auto result = std::size_t{};
+        if (depth < max_depth<B>) {
+            auto nodemap = node->nodemap();
+            if (nodemap) {
+                auto fst = node->children();
+                for (auto idx = std::size_t{}; idx < branches<B>; ++idx) {
+                    if (nodemap & (1 << idx)) {
+                        auto child = *fst++;
+                        result +=
+                            do_check_champ(child,
+                                           depth + 1,
+                                           path_hash | (idx << (B * depth)),
+                                           (hash_mask << B) | mask<B>);
+                    }
+                }
+            }
+            auto datamap = node->datamap();
+            if (datamap) {
+                auto fst = node->values();
+                for (auto idx = std::size_t{}; idx < branches<B>; ++idx) {
+                    if (datamap & (1 << idx)) {
+                        auto hash  = Hash{}(*fst++);
+                        auto check = (hash & hash_mask) ==
+                                     (path_hash | (idx << (B * depth)));
+                        // assert(check);
+                        result += !!check;
+                    }
+                }
+            }
+        } else {
+            auto fst = node->collisions();
+            auto lst = fst + node->collision_count();
+            for (; fst != lst; ++fst) {
+                auto hash  = Hash{}(*fst);
+                auto check = hash == path_hash;
+                // assert(check);
+                result += !!check;
+            }
+        }
+        return result;
+    }
+
+    // Checks that the hashes of the values correspond with what has actually
+    // been inserted.  If it doesn't it can mean that corruption has happened
+    // due some value being moved out of the champ when it should have not.
+    bool check_champ() const
+    {
+        auto r = do_check_champ(root, 0, 0, mask<B>);
+        // assert(r == size);
+        return r == size;
+    }
+
 #if IMMER_DEBUG_STATS
     void do_get_debug_stats(champ_debug_stats& stats,
                             node_t* node,
@@ -1231,29 +1288,41 @@ struct champ
 
         kind_t kind;
         data_t data;
+        bool owned;
         bool mutated;
 
         sub_result_mut(sub_result a)
             : kind{a.kind}
             , data{a.data}
+            , owned{false}
             , mutated{false}
         {}
         sub_result_mut(sub_result a, bool m)
             : kind{a.kind}
             , data{a.data}
+            , owned{false}
             , mutated{m}
         {}
-        sub_result_mut(bool m)
+        sub_result_mut()
             : kind{kind_t::nothing}
-            , mutated{m} {};
+            , mutated{false} {};
         sub_result_mut(T* x, bool m)
             : kind{kind_t::singleton}
+            , owned{m}
+            , mutated{m}
+        {
+            data.singleton = x;
+        };
+        sub_result_mut(T* x, bool o, bool m)
+            : kind{kind_t::singleton}
+            , owned{o}
             , mutated{m}
         {
             data.singleton = x;
         };
         sub_result_mut(node_t* x, bool m)
             : kind{kind_t::tree}
+            , owned{false}
             , mutated{m}
         {
             data.tree = x;
@@ -1291,7 +1360,7 @@ struct champ
                     }
                 }
             }
-            return {mutate};
+            return {};
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
             auto bit = bitmap_t{1u} << idx;
@@ -1304,7 +1373,7 @@ struct champ
                            : do_sub(child, k, hash, shift + B);
                 switch (result.kind) {
                 case sub_result::nothing:
-                    return {mutate};
+                    return {};
                 case sub_result::singleton:
                     if (node->datamap() == 0 && node->children_count() == 1 &&
                         shift > 0) {
@@ -1313,7 +1382,7 @@ struct champ
                             if (!result.mutated && child->dec())
                                 node_t::delete_deep_shift(child, shift + B);
                         }
-                        return {result.data.singleton, mutate};
+                        return {result.data.singleton, result.owned, mutate};
                     } else {
                         auto r =
                             mutate ? node_t::move_inner_replace_inline(
@@ -1321,7 +1390,7 @@ struct champ
                                          node,
                                          bit,
                                          offset,
-                                         result.mutated
+                                         result.owned
                                              ? std::move(*result.data.singleton)
                                              : *result.data.singleton)
                                    : node_t::copy_inner_replace_inline(
@@ -1329,9 +1398,9 @@ struct champ
                                          bit,
                                          offset,
                                          *result.data.singleton);
-                        if (result.mutated)
+                        if (result.owned)
                             detail::destroy_at(result.data.singleton);
-                        else if (mutate && child->dec())
+                        if (!result.mutated && mutate && child->dec())
                             node_t::delete_deep_shift(child, shift + B);
                         return {node_t::owned_values(r, e), mutate};
                     }
@@ -1355,8 +1424,9 @@ struct champ
                     }
                 }
             } else if (node->datamap() & bit) {
-                auto offset = node->data_count(bit);
-                auto val    = node->values() + offset;
+                auto offset        = node->data_count(bit);
+                auto val           = node->values() + offset;
+                auto mutate_values = mutate && node->can_mutate_values(e);
                 if (Equal{}(*val, k)) {
                     auto nv = node->data_count();
                     if (node->nodemap() || nv > 2) {
@@ -1367,20 +1437,20 @@ struct champ
                         return {node_t::owned_values_safe(r, e), mutate};
                     } else if (nv == 2) {
                         if (shift > 0) {
-                            if (mutate) {
+                            if (mutate_values) {
                                 auto r = new (store)
                                     T{std::move(node->values()[!offset])};
                                 node_t::delete_inner(node);
-                                return {r, mutate};
+                                return {r, true};
                             } else {
-                                return {node->values() + !offset, mutate};
+                                return {node->values() + !offset, false};
                             }
                         } else {
                             auto& v = node->values()[!offset];
-                            auto r =
-                                node_t::make_inner_n(0,
-                                                     node->datamap() & ~bit,
-                                                     mutate ? std::move(v) : v);
+                            auto r  = node_t::make_inner_n(
+                                0,
+                                node->datamap() & ~bit,
+                                mutate_values ? std::move(v) : v);
                             assert(!node->nodemap());
                             if (mutate)
                                 node_t::delete_inner(node);
@@ -1394,7 +1464,7 @@ struct champ
                     }
                 }
             }
-            return {mutate};
+            return {};
         }
     }
 
