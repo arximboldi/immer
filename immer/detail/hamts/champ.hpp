@@ -1207,14 +1207,18 @@ struct champ
                                ? node_t::copy_collision_remove(node, cur)
                                : sub_result{fst + (cur == fst)};
 #if !defined(_MSC_VER)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #endif
             // Apparently GCC is generating this warning sometimes when
             // compiling the benchmarks. It makes however no sense at all.
             return {};
 #if !defined(_MSC_VER)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 #endif
         } else {
             auto idx = (hash & (mask<B> << shift)) >> shift;
