@@ -88,6 +88,7 @@ TEST_CASE("instantiation")
     {
         auto v = MAP_T<int, int>{};
         CHECK(v.size() == 0u);
+        CHECK(v.identity() == MAP_T<int, int>{}.identity());
     }
 }
 
@@ -172,6 +173,11 @@ TEST_CASE("equals and setting")
     CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }) == v);
     CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }) ==
           v.set(42, 43));
+
+    CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }).identity() ==
+          v.identity());
+    CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }).identity() !=
+          v.set(42, 43).identity());
 
 #if IMMER_DEBUG_STATS
     std::cout << (v.impl().get_debug_stats() + v.impl().get_debug_stats())

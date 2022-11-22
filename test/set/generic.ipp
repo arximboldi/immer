@@ -171,12 +171,16 @@ TEST_CASE("basic insertion")
 {
     auto v1 = SET_T<unsigned>{};
     CHECK(v1.count(42) == 0);
+    CHECK(v1.identity() == SET_T<unsigned>{}.identity());
 
     auto v2 = v1.insert(42);
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
+    CHECK(v1.identity() != v2.identity());
 
     auto v3 = v2.insert(42);
+    // it would maybe be nice if this was not the case, but it is...
+    CHECK(v2.identity() != v3.identity());
     CHECK(v1.count(42) == 0);
     CHECK(v2.count(42) == 1);
     CHECK(v3.count(42) == 1);
