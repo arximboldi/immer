@@ -127,6 +127,12 @@ TEST_CASE("push back one element")
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
         CHECK(v2[0] == 42);
+
+        // basic identity rules
+        auto v3 = v2;
+        CHECK(v1.identity() != v2.identity());
+        CHECK(v3.identity() == v2.identity());
+        CHECK(v1.identity() == VECTOR_T<int>{}.identity());
     }
 
     SECTION("many elements")
