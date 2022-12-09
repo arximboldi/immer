@@ -47,16 +47,18 @@ struct rrbtree
                ipow((size_t{1} << B) - 2, (S - BL) / B);
     }
 
-    static node_t* empty_root()
+    static node_t*& empty_root()
     {
-        static const auto empty_ = node_t::make_inner_n(0u);
-        return empty_->inc();
+        static auto empty_ = node_t::make_inner_n(0u);
+        empty_->inc();
+        return empty_;
     }
 
-    static node_t* empty_tail()
+    static node_t*& empty_tail()
     {
-        static const auto empty_ = node_t::make_leaf_n(0u);
-        return empty_->inc();
+        static auto empty_ = node_t::make_leaf_n(0u);
+        empty_->inc();
+        return empty_;
     }
 
     template <typename U>
