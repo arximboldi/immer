@@ -99,7 +99,7 @@ struct generate_unsigned
 };
 
 namespace basic_params {
-constexpr auto N = 1 << 24;
+constexpr auto N = 1 << 20;
 
 void take_snapshot(std::size_t i)
 {
@@ -158,7 +158,7 @@ auto benchmark_memory_basic()
 }
 
 namespace exp_params {
-constexpr auto N = 1 << 22;
+constexpr auto N = 1 << 20;
 constexpr auto E = 2;
 
 void take_snapshot(std::size_t i)
@@ -229,7 +229,7 @@ auto benchmark_memory_exp()
 }
 
 namespace lin_params {
-constexpr auto N = 1 << 18;
+constexpr auto N = 1 << 14;
 constexpr auto M = 1 << 7;
 constexpr auto S = 1;
 
