@@ -58,6 +58,7 @@ tc.stdenv.mkDerivation rec {
     boost
     boehmgc
     fmt
+    valgrind
     benchmarks.c_rrb
     benchmarks.steady
     benchmarks.chunkedseq
