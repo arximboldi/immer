@@ -819,7 +819,7 @@ struct rrbtree
                     }
                 }
                 IMMER_CATCH (...) {
-                    detail::destroy_n(r.tail->leaf() + tail_size, remaining);
+                    // detail::destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
             }
@@ -1097,7 +1097,7 @@ struct rrbtree
                     }
                 }
                 IMMER_CATCH (...) {
-                    detail::destroy_n(r.tail->leaf() + tail_size, remaining);
+                    // detail::destroy_n(r.tail->leaf() + tail_size, remaining);
                     IMMER_RETHROW;
                 }
             }

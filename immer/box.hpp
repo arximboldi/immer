@@ -100,7 +100,8 @@ public:
     box(const box& other)
         : impl_(other.impl_)
     {
-        impl_->inc();
+        if (impl_)
+            impl_->inc();
     }
     box& operator=(box&& other)
     {

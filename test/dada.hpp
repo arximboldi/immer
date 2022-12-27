@@ -192,8 +192,20 @@ struct dadaist : tristan_tzara
     dadaist(T v)
         : value{std::move(v)}
     {}
-    operator T() const { return value; }
+
+    operator const T&() const& { return value; }
 };
+
+template <typename T>
+bool operator==(dadaist<T> const& a, dadaist<T> const& b)
+{
+    return a.value == b.value;
+}
+template <typename T>
+bool operator!=(dadaist<T> const& a, dadaist<T> const& b)
+{
+    return a.value != b.value;
+}
 
 template <typename T>
 struct dadaist_wrapper;
