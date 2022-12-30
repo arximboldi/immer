@@ -616,4 +616,7 @@ private:
     impl_t impl_ = {};
 };
 
+static_assert(std::is_nothrow_move_constructible<flex_vector<int>>::value);
+static_assert(std::is_nothrow_move_assignable<flex_vector<int>>::value);
+
 } // namespace immer

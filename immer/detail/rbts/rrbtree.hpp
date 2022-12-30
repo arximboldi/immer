@@ -49,13 +49,18 @@ struct rrbtree
 
     static node_t* empty_root()
     {
-        static const auto empty_ = node_t::make_inner_n(0u);
+        constexpr auto size = node_t::sizeof_inner_n(0);
+        static std::aligned_storage_t<size, alignof(std::max_align_t)> storage;
+        static const auto empty_ =
+            node_t::make_inner_n_into(&storage, size, 0u);
         return empty_->inc();
     }
 
     static node_t* empty_tail()
     {
-        static const auto empty_ = node_t::make_leaf_n(0u);
+        constexpr auto size = node_t::sizeof_leaf_n(0);
+        static std::aligned_storage_t<size, alignof(std::max_align_t)> storage;
+        static const auto empty_ = node_t::make_leaf_n_into(&storage, size, 0u);
         return empty_->inc();
     }
 
@@ -90,7 +95,7 @@ struct rrbtree
         return result;
     }
 
-    rrbtree()
+    rrbtree() noexcept
         : size{0}
         , shift{BL}
         , root{empty_root()}
@@ -99,7 +104,7 @@ struct rrbtree
         assert(check_tree());
     }
 
-    rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
+    rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t) noexcept
         : size{sz}
         , shift{sh}
         , root{r}
@@ -108,13 +113,13 @@ struct rrbtree
         assert(check_tree());
     }
 
-    rrbtree(const rrbtree& other)
+    rrbtree(const rrbtree& other) noexcept
         : rrbtree{other.size, other.shift, other.root, other.tail}
     {
         inc();
     }
 
-    rrbtree(rrbtree&& other)
+    rrbtree(rrbtree&& other) noexcept
         : rrbtree{}
     {
         swap(*this, other);
@@ -127,13 +132,13 @@ struct rrbtree
         return *this;
     }
 
-    rrbtree& operator=(rrbtree&& other)
+    rrbtree& operator=(rrbtree&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(rrbtree& x, rrbtree& y)
+    friend void swap(rrbtree& x, rrbtree& y) noexcept
     {
         using std::swap;
         swap(x.size, y.size);
