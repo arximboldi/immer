@@ -330,7 +330,7 @@ struct node
     static node_t* make_leaf_n(count_t n)
     {
         assert(n <= branches<BL>);
-        auto m  =heap::allocate(sizeof_leaf_n(n));
+        auto m = heap::allocate(sizeof_leaf_n(n));
         return make_leaf_n_into(m, sizeof_leaf_n(n), n);
     }
 
