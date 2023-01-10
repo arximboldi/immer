@@ -199,16 +199,22 @@ struct node
     }
     static ownee_t& ownee(node_t* x) { return get<ownee_t>(x->impl); }
 
-    static node_t* make_inner_n(count_t n)
+    static node_t* make_inner_n_into(void* buffer, std::size_t size, count_t n)
     {
         assert(n <= branches<B>);
-        auto m                       = heap::allocate(sizeof_inner_n(n));
-        auto p                       = new (m) node_t;
+        assert(size >= sizeof_inner_n(n));
+        auto p                       = new (buffer) node_t;
         p->impl.d.data.inner.relaxed = nullptr;
 #if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::inner;
 #endif
         return p;
+    }
+    static node_t* make_inner_n(count_t n)
+    {
+        assert(n <= branches<B>);
+        auto m = heap::allocate(sizeof_inner_n(n));
+        return make_inner_n_into(m, sizeof_inner_n(n), n);
     }
 
     static node_t* make_inner_e(edit_t e)
@@ -310,14 +316,22 @@ struct node
             });
     }
 
-    static node_t* make_leaf_n(count_t n)
+    static node_t* make_leaf_n_into(void* buffer, std::size_t size, count_t n)
     {
         assert(n <= branches<BL>);
-        auto p = new (heap::allocate(sizeof_leaf_n(n))) node_t;
+        assert(size >= sizeof_leaf_n(n));
+        auto p = new (buffer) node_t;
 #if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::leaf;
 #endif
         return p;
+    }
+
+    static node_t* make_leaf_n(count_t n)
+    {
+        assert(n <= branches<BL>);
+        auto m = heap::allocate(sizeof_leaf_n(n));
+        return make_leaf_n_into(m, sizeof_leaf_n(n), n);
     }
 
     static node_t* make_leaf_e(edit_t e)

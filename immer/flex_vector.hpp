@@ -616,4 +616,9 @@ private:
     impl_t impl_ = {};
 };
 
+static_assert(std::is_nothrow_move_constructible<flex_vector<int>>::value,
+              "flex_vector is not nothrow move constructible");
+static_assert(std::is_nothrow_move_assignable<flex_vector<int>>::value,
+              "flex_vector is not nothrow move assignable");
+
 } // namespace immer
