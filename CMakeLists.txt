@@ -99,6 +99,14 @@ install(TARGETS immer EXPORT ImmerConfig)
 install(EXPORT ImmerConfig DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer")
 install(DIRECTORY immer DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion )
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake" DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer" )
+
 # development target to be used in tests, examples, benchmarks...
 immer_canonicalize_cmake_booleans(
   DISABLE_FREE_LIST
