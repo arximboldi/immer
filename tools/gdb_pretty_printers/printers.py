@@ -9,6 +9,26 @@ import re
 MAX = 1 << 64 - 1
 
 
+class ArrayIter:
+    def __init__(self, val):
+        self.val_ptr = val.type.template_argument(0).pointer()
+        self.v = val['impl_']
+        self.size = self.v['size']
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.i == self.size:
+            raise StopIteration
+        ptr = self.v['ptr']
+        data = ptr.dereference()['impl']['d']['buffer'].address.reinterpret_cast(self.val_ptr)
+        result = ('[%d]' % self.i, data[self.i])
+        self.i += 1
+        return result
+
+
 class Relaxed:
     def __init__(self, node, shift, relaxed, it):
         self.node = node
@@ -365,6 +385,22 @@ def num_elements(num):
     return '1 element' if num == 1 else '%d elements' % num
 
 
+class ArrayPrinter:
+    "Prints an immer::array"
+
+    def __init__(self, val):
+        self.val = val
+
+    def to_string(self):
+        return 'immer::array with %s' % num_elements(self.val['impl_']['size'])
+
+    def children(self):
+        return ArrayIter(self.val)
+
+    def display_hint(self):
+        return 'array'
+
+
 class MapPrinter:
     "Print an immer::map"
 
@@ -434,7 +470,9 @@ def immer_lookup_function(val):
         return None
 
     basename = match.group(1)
-    if basename == "immer::map":
+    if basename == "immer::array":
+        return ArrayPrinter(val)
+    elif basename == "immer::map":
         return MapPrinter(val)
     elif basename == "immer::set":
         return SetPrinter(val)
