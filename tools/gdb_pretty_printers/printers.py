@@ -394,6 +394,19 @@ class SetPrinter:
         return SetIter(self.val)
 
 
+class TablePrinter:
+    "Prints an immer::table"
+
+    def __init__(self, val):
+        self.val = val
+
+    def to_string(self):
+        return 'immer::table with %s' % num_elements(self.val['impl_']['size'])
+
+    def children(self):
+        return SetIter(self.val)
+
+
 class ListPrinter:
     "Prints an immer::vector or immer::flex_vector"
 
@@ -425,6 +438,8 @@ def immer_lookup_function(val):
         return MapPrinter(val)
     elif basename == "immer::set":
         return SetPrinter(val)
+    elif basename == "immer::table":
+        return TablePrinter(val)
     elif basename == "immer::vector":
         return ListPrinter(val, "immer::vector")
     elif basename == "immer::flex_vector":
