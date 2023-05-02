@@ -6,6 +6,8 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
+#include "test/util.hpp"
+
 #include <catch.hpp>
 
 #ifndef MAP_T
@@ -15,6 +17,10 @@
 #ifndef MAP_TRANSIENT_T
 #error "define the map template to use in MAP_TRANSIENT_T"
 #endif
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<MAP_T<std::string, std::string>>);
+IMMER_RANGES_CHECK(
+    std::ranges::forward_range<MAP_TRANSIENT_T<std::string, std::string>>);
 
 TEST_CASE("instantiate")
 {

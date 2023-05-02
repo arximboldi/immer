@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+IMMER_RANGES_CHECK(std::ranges::forward_range<MAP_T<std::string, std::string>>);
+
 using memory_policy_t = MAP_T<unsigned, unsigned>::memory_policy_type;
 
 template <typename T = unsigned>

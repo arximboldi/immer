@@ -25,6 +25,8 @@ using namespace std::string_literals;
 #error "define the vector template to use in VECTOR_T"
 #endif
 
+IMMER_RANGES_CHECK(std::ranges::random_access_range<VECTOR_T<int>>);
+
 template <typename V = VECTOR_T<unsigned>>
 auto make_test_vector(unsigned min, unsigned max)
 {
