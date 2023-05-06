@@ -101,7 +101,7 @@ public:
     ReferenceT operator[](DifferenceTypeT n) const
     {
         static_assert(is_random_access, "");
-        return derived() + n;
+        return *(derived() + n);
     }
 
     friend bool operator==(const DerivedT& a, const DerivedT& b)

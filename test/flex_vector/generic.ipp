@@ -29,7 +29,8 @@
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-IMMER_RANGES_CHECK(std::ranges::random_access_range<FLEX_VECTOR_T<std::string>>);
+IMMER_RANGES_CHECK(
+    std::ranges::random_access_range<FLEX_VECTOR_T<std::string>>);
 
 template <typename V = FLEX_VECTOR_T<unsigned>>
 auto make_test_flex_vector(unsigned min, unsigned max)
@@ -106,6 +107,18 @@ TEST_CASE("push_front")
         for (decltype(v.size()) j = 0; j < v.size(); ++j)
             CHECK(v[v.size() - j - 1] == j);
     }
+}
+
+TEST_CASE("random_access iteration")
+{
+    auto v    = make_test_flex_vector(0, 10);
+    auto iter = v.begin();
+    CHECK(*iter == 0);
+    CHECK(iter[0] == 0);
+    CHECK(iter[3] == 3);
+    CHECK(iter[9] == 9);
+    iter += 4;
+    CHECK(iter[-4] == 0);
 }
 
 TEST_CASE("concat")

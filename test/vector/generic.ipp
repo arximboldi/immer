@@ -120,6 +120,18 @@ TEST_CASE("at")
 #endif
 }
 
+TEST_CASE("random_access iteration")
+{
+    auto v    = VECTOR_T<int>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto iter = v.begin();
+    CHECK(*iter == 0);
+    CHECK(iter[0] == 0);
+    CHECK(iter[3] == 3);
+    CHECK(iter[9] == 9);
+    iter += 4;
+    CHECK(iter[-4] == 0);
+}
+
 TEST_CASE("push back one element")
 {
     SECTION("one element")
