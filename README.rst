@@ -13,7 +13,10 @@
 
 .. raw:: html
 
-   <img width="100%" src="https://cdn.rawgit.com/arximboldi/immer/3888170d247359cc0905eed548cd46897caef0f4/doc/_static/logo-front.svg" alt="Logotype"/>
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://cdn.rawgit.com/arximboldi/immer/3888170d247359cc0905eed548cd46897caef0f4/doc/_static/logo-black.svg">
+     <img width="100%" src="https://cdn.rawgit.com/arximboldi/immer/3888170d247359cc0905eed548cd46897caef0f4/doc/_static/logo-front.svg" alt="Logotype">
+   </picture>
 
 .. include:introduction/start
 
