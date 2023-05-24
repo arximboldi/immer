@@ -297,7 +297,7 @@ struct node
                     new (vp + 1) T{std::move(x2)};
                 }
                 IMMER_CATCH (...) {
-                    vp->T::~T();
+                    std::destroy_at(vp);
                     IMMER_RETHROW;
                 }
             }
