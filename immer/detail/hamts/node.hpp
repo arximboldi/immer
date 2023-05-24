@@ -15,6 +15,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 
 namespace immer {
 namespace detail {
