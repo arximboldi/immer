@@ -302,7 +302,7 @@ struct node
                     new (vp + 1) T{std::move(x2)};
                 }
                 IMMER_CATCH (...) {
-                    destroy_at(vp);
+                    immer::detail::hamts::destroy_at(vp);
                     IMMER_RETHROW;
                 }
             }
