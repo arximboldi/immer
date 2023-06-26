@@ -25,6 +25,9 @@
 
 using memory_policy_t = SET_T<unsigned>::memory_policy_type;
 
+IMMER_RANGES_CHECK(std::input_iterator<SET_T<std::string>::iterator>);
+IMMER_RANGES_CHECK(std::ranges::forward_range<SET_T<std::string>>);
+
 template <typename T = unsigned>
 auto make_generator()
 {

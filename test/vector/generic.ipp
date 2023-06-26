@@ -25,6 +25,8 @@ using namespace std::string_literals;
 #error "define the vector template to use in VECTOR_T"
 #endif
 
+IMMER_RANGES_CHECK(std::ranges::random_access_range<VECTOR_T<int>>);
+
 template <typename V = VECTOR_T<unsigned>>
 auto make_test_vector(unsigned min, unsigned max)
 {
@@ -116,6 +118,18 @@ TEST_CASE("at")
     CHECK_THROWS_AS(v.at(10), std::out_of_range);
     CHECK_THROWS_AS(v.at(11), std::out_of_range);
 #endif
+}
+
+TEST_CASE("random_access iteration")
+{
+    auto v    = VECTOR_T<int>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto iter = v.begin();
+    CHECK(*iter == 0);
+    CHECK(iter[0] == 0);
+    CHECK(iter[3] == 3);
+    CHECK(iter[9] == 9);
+    iter += 4;
+    CHECK(iter[-4] == 0);
 }
 
 TEST_CASE("push back one element")

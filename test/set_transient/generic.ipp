@@ -6,6 +6,8 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
+#include "test/util.hpp"
+
 #include <catch.hpp>
 
 #ifndef SET_T
@@ -15,6 +17,9 @@
 #ifndef SET_TRANSIENT_T
 #error "define the set template to use in SET_TRANSIENT_T"
 #endif
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<SET_T<std::string>>);
+IMMER_RANGES_CHECK(std::ranges::forward_range<SET_TRANSIENT_T<std::string>>);
 
 TEST_CASE("instantiate")
 {

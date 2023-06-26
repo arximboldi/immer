@@ -6,6 +6,8 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
+#include "test/util.hpp"
+
 #include <catch.hpp>
 
 #ifndef SETUP_T
@@ -24,6 +26,9 @@ struct Item
         return value == other.value && id == other.id;
     }
 };
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<SETUP_T::table<Item>>);
+IMMER_RANGES_CHECK(std::ranges::forward_range<SETUP_T::table_transient<Item>>);
 
 TEST_CASE("instantiate")
 {

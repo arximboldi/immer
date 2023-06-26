@@ -20,6 +20,8 @@
 #error "define the vector template to use in VECTOR_TRANSIENT_T"
 #endif
 
+IMMER_RANGES_CHECK(std::ranges::random_access_range<VECTOR_TRANSIENT_T<int>>);
+
 template <typename V = VECTOR_T<unsigned>>
 auto make_test_vector(unsigned min, unsigned max)
 {

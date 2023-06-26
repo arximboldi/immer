@@ -63,6 +63,8 @@ using table_map = immer::table<std::pair<K, V>,
                                SETUP_T::memory_policy,
                                SETUP_T::bits>;
 
+IMMER_RANGES_CHECK(std::ranges::forward_range<table_map<std::string, std::string>>);
+
 template <typename T = uint32_t>
 auto make_generator()
 {
