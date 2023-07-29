@@ -14,7 +14,7 @@
 #include <immer/heap/gc_heap.hpp>
 #include <immer/map.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
                                        immer::unsafe_refcount_policy,

@@ -12,7 +12,7 @@
 #include <immer/algorithm.hpp>
 
 #include <boost/range/adaptors.hpp>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <algorithm>
 #include <numeric>

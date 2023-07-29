@@ -139,6 +139,8 @@ endif()
 if (immer_BUILD_TESTS)
   enable_testing()
 
+  find_package(Catch2 REQUIRED)
+
   add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

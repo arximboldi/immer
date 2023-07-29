@@ -10,7 +10,7 @@
 #include <immer/refcount/refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 TEST_CASE("no refcount has no data")
 {

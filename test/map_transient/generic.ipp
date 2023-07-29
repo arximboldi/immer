@@ -8,7 +8,7 @@
 
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #ifndef MAP_T
 #error "define the map template to use in MAP_T"

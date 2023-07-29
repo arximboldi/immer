@@ -8,7 +8,7 @@
 
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #ifndef SET_T
 #error "define the set template to use in SET_T"

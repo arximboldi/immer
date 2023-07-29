@@ -49,6 +49,7 @@ tc.stdenv.mkDerivation rec {
   buildInputs = [
     tc.cc
     git
+    catch2
     cmake
     pkgconfig
     ninja

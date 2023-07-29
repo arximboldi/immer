@@ -7,7 +7,7 @@
 
 #include <immer/algorithm.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 struct thing
 {
