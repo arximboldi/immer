@@ -17,7 +17,7 @@
 #include "test/dada.hpp"
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <random>
 #include <unordered_map>

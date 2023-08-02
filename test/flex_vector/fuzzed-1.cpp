@@ -8,7 +8,7 @@
 
 #include "extra/fuzzer/fuzzer_input.hpp"
 #include <array>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 #include <immer/flex_vector.hpp>
 #include <iostream>
 

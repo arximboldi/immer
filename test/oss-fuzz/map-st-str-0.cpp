@@ -16,7 +16,7 @@
 
 #include <array>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #define IMMER_FUZZED_TRACE_ENABLE 1
 

@@ -12,7 +12,7 @@
 #include <immer/flex_vector.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #define IMMER_FUZZED_TRACE_ENABLE 0
 

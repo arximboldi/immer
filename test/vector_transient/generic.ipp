@@ -10,7 +10,7 @@
 #include "test/transient_tester.hpp"
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"

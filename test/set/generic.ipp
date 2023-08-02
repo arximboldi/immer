@@ -18,7 +18,7 @@
 #include <immer/algorithm.hpp>
 #include <immer/box.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <random>
 #include <unordered_set>

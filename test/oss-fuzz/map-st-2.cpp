@@ -14,7 +14,7 @@
 #include <immer/heap/gc_heap.hpp>
 #include <immer/map.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #define IMMER_FUZZED_TRACE_ENABLE 0
 

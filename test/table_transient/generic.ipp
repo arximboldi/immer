@@ -8,7 +8,7 @@
 
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #ifndef SETUP_T
 #error "define the table types via SETUP_T macro"
