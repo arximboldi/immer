@@ -150,6 +150,23 @@ TEST_CASE("update maps")
     do_check(immer::table<thing>{});
 }
 
+TEST_CASE("try update maps")
+{
+    auto do_check = [](auto v) {
+        (void) v.try_update(0, [](auto&& x) {
+            using type_t = std::decay_t<decltype(x)>;
+            // for maps, we actually do not make a copy at all but pase the
+            // original instance directly, as const..
+            static_assert(std::is_same<const type_t&, decltype(x)>::value, "");
+            return x;
+        });
+    };
+
+    do_check(immer::map<int, int>{});
+    // -- tables not supported yet with try_update
+    // do_check(immer::table<thing>{});
+}
+
 TEST_CASE("update_if_exists maps")
 {
     auto do_check = [](auto v) {

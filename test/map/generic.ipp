@@ -171,6 +171,9 @@ TEST_CASE("equals and setting")
     CHECK(v.set(1234, 42) == v.insert({1234, 42}));
     CHECK(v.update(1234, [](auto&& x) { return x + 1; }) == v.set(1234, 1));
     CHECK(v.update(42, [](auto&& x) { return x + 1; }) == v.set(42, 43));
+    CHECK(v.try_update(42, [](auto&& x) { return x + 1; }) == v.set(42, 43));
+    CHECK(v.try_update(42, [](auto&& x) { return x; }).identity() ==
+          v.identity());
 
     CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }) == v);
     CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }) ==
@@ -278,6 +281,22 @@ TEST_CASE("update a lot")
     {
         for (decltype(v.size()) i = 0; i < v.size(); ++i) {
             v = std::move(v).update(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+
+    SECTION("try_update immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.try_update(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+
+    SECTION("try_update move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).try_update(i, [](auto&& x) { return x + 1; });
             CHECK(v[i] == i + 1);
         }
     }
@@ -439,7 +458,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.update(i, [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(i) == i + 1);
             for (auto i : test_irange(i, n))
@@ -460,7 +480,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.update_if_exists(i, [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(i) == i + 1);
             for (auto i : test_irange(i, n))
@@ -482,7 +503,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.update(vals[i].first, [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -505,7 +527,8 @@ TEST_CASE("exception safety")
                 v      = v.update_if_exists(vals[i].first,
                                        [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -528,7 +551,8 @@ TEST_CASE("exception safety")
                 auto x = vals[i].second;
                 v      = v.set(vals[i].first, x + 1);
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -551,7 +575,8 @@ TEST_CASE("exception safety")
                 auto x = vals[i].second;
                 v      = std::move(v).set(vals[i].first, x + 1);
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -574,7 +599,8 @@ TEST_CASE("exception safety")
                 v      = std::move(v).update(vals[i].first,
                                         [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -597,7 +623,8 @@ TEST_CASE("exception safety")
                 v      = std::move(v).update_if_exists(vals[i].first,
                                                   [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -619,7 +646,8 @@ TEST_CASE("exception safety")
                 // auto s = d.next();
                 v = std::move(v).erase(vals[i].first);
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.count(vals[i].first) == 0);
             for (auto i : test_irange(i, n))
@@ -635,7 +663,8 @@ struct KeyType
 {
     explicit KeyType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
@@ -643,7 +672,8 @@ struct LookupType
 {
     explicit LookupType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
