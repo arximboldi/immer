@@ -12,6 +12,8 @@
 #include <immer/detail/hamts/node.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 
 namespace immer {
 namespace detail {
@@ -146,7 +148,8 @@ struct champ
     champ(node_t* r, size_t sz = 0)
         : root{r}
         , size{sz}
-    {}
+    {
+    }
 
     champ(const champ& other)
         : champ{other.root, other.size}
@@ -326,6 +329,61 @@ struct champ
             fn(node->collisions(),
                node->collisions() + node->collision_count());
         }
+    }
+
+    template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        struct State
+        {
+            const node_t* const* fst{};
+            const node_t* const* lst{};
+        };
+
+        std::array<State, max_depth<B> + 1> stack{};
+        stack[0]     = {&root, &root + 1};
+        size_t depth = 0;
+
+        while (true) {
+            auto fst = stack[depth].fst;
+            auto lst = stack[depth].lst;
+
+            if (fst == lst) {
+                if (!depth)
+                    return true;
+
+                depth--;
+                continue;
+            }
+
+            const node_t* node = *fst;
+
+            if (depth < max_depth<B>) {
+                auto datamap = node->datamap();
+                if (datamap &&
+                    !fn(node->values(), node->values() + node->data_count())) {
+                    return false;
+                }
+
+                auto nodemap = node->nodemap();
+                stack[depth].fst++;
+
+                if (nodemap) {
+                    auto childFst = node->children();
+                    depth++;
+                    stack[depth].fst = childFst;
+                    stack[depth].lst = childFst + node->children_count();
+                }
+                continue;
+            }
+
+            if (!fn(node->collisions(),
+                    node->collisions() + node->collision_count())) {
+                return false;
+            }
+            --depth;
+        }
+        return true;
     }
 
     template <typename EqualValue, typename Differ>
@@ -1300,13 +1358,15 @@ struct champ
             , data{a.data}
             , owned{false}
             , mutated{false}
-        {}
+        {
+        }
         sub_result_mut(sub_result a, bool m)
             : kind{a.kind}
             , data{a.data}
             , owned{false}
             , mutated{m}
-        {}
+        {
+        }
         sub_result_mut()
             : kind{kind_t::nothing}
             , mutated{false} {};
