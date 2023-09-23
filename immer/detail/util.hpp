@@ -317,7 +317,9 @@ static constexpr bool can_efficiently_pass_by_value =
 
 template <typename T, typename OrElse = const T&>
 using byval_if_possible =
-    std::conditional_t<can_efficiently_pass_by_value<T>, T, OrElse>;
+    std::conditional_t<can_efficiently_pass_by_value<std::decay_t<T>>,
+                       std::decay_t<T>,
+                       OrElse>;
 
 } // namespace detail
 } // namespace immer

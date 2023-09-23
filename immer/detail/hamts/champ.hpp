@@ -836,11 +836,11 @@ struct champ
               typename Combine,
               typename K,
               typename Fn>
-    champ update(const K& k, Fn&& fn) const
+    champ update(K&& k, Fn&& fn) const
     {
         auto hash = Hash{}(k);
         auto res  = do_update<Project, Default, Combine>(
-            root, k, std::forward<Fn>(fn), hash, 0);
+            root, std::forward<K>(k), std::forward<Fn>(fn), hash, 0);
         auto new_size = size + (res.added ? 1 : 0);
         return {res.node, new_size};
     }
@@ -857,8 +857,8 @@ struct champ
     {
         static update_result
         do_try_update(node_t* node,
-                      byval_if_possible<K> k,
-                      byval_if_possible<std::decay_t<Fn>, Fn&&> fn,
+                      byval_if_possible<K, K&&> k,
+                      byval_if_possible<Fn, Fn&&> fn,
                       byval_if_possible<ValueEquals> valueEquals,
                       hash_t hash,
                       shift_t shift)
@@ -893,7 +893,7 @@ struct champ
                 if (node->nodemap() & bit) {
                     auto offset = node->children_count(bit);
                     auto result = do_try_update(node->children()[offset],
-                                                k,
+                                                std::forward<K>(k),
                                                 std::forward<Fn>(fn),
                                                 valueEquals,
                                                 hash,
@@ -959,7 +959,7 @@ struct champ
         static update_mut_result
         do_try_update_mut(edit_t e,
                           node_t* node,
-                          byval_if_possible<K> k,
+                          byval_if_possible<K, K&&> k,
                           byval_if_possible<Fn, Fn&&> fn,
                           byval_if_possible<ValueEquals> valueEquals,
                           hash_t hash,
@@ -1008,7 +1008,7 @@ struct champ
                     if (node->can_mutate(e)) {
                         auto result = do_try_update_mut(e,
                                                         child,
-                                                        k,
+                                                        std::forward<K>(k),
                                                         std::forward<Fn>(fn),
                                                         valueEquals,
                                                         hash,
@@ -1022,7 +1022,7 @@ struct champ
                         return {node, result.added, true};
                     } else {
                         auto result = do_try_update(child,
-                                                    k,
+                                                    std::forward<K>(k),
                                                     std::forward<Fn>(fn),
                                                     valueEquals,
                                                     hash,
@@ -1119,12 +1119,16 @@ struct champ
               typename K,
               typename Fn,
               typename ValueEquals = std::equal_to<T>>
-    champ try_update(const K& k, Fn&& fn, ValueEquals valueEquals = {}) const
+    champ try_update(K&& k, Fn&& fn, ValueEquals valueEquals = {}) const
     {
         auto hash = Hash{}(k);
         auto res  = TryUpdater<Project, Default, Combine, K, Fn, ValueEquals>::
-            do_try_update(
-                root, k, std::forward<Fn>(fn), std::move(valueEquals), hash, 0);
+            do_try_update(root,
+                          std::forward<K>(k),
+                          std::forward<Fn>(fn),
+                          std::move(valueEquals),
+                          hash,
+                          0);
         if (!res.node)
             return {root->inc(), size};
 
@@ -1326,11 +1330,11 @@ struct champ
               typename Combine,
               typename K,
               typename Fn>
-    void update_mut(edit_t e, const K& k, Fn&& fn)
+    void update_mut(edit_t e, K&& k, Fn&& fn)
     {
         auto hash = Hash{}(k);
         auto res  = do_update_mut<Project, Default, Combine>(
-            e, root, k, std::forward<Fn>(fn), hash, 0);
+            e, root, std::forward<K>(k), std::forward<Fn>(fn), hash, 0);
         if (!res.mutated && root->dec())
             node_t::delete_deep(root, 0);
         root = res.node;
@@ -1343,12 +1347,17 @@ struct champ
               typename K,
               typename Fn,
               typename ValueEquals>
-    void try_update_mut(edit_t e, const K& k, Fn&& fn, ValueEquals valueEquals)
+    void try_update_mut(edit_t e, K&& k, Fn&& fn, ValueEquals valueEquals)
     {
         auto hash = Hash{}(k);
         auto res  = TryUpdater<Project, Default, Combine, K, Fn, ValueEquals>::
-            do_try_update_mut(
-                e, root, k, std::forward<Fn>(fn), valueEquals, hash, 0);
+            do_try_update_mut(e,
+                              root,
+                              std::forward<K>(k),
+                              std::forward<Fn>(fn),
+                              valueEquals,
+                              hash,
+                              0);
         if (!res.node)
             return;
 
