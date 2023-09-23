@@ -110,10 +110,9 @@ TEST_CASE("all_of")
     do_check(immer::vector<int>{});
     do_check(immer::flex_vector<int>{});
     do_check(immer::array<int>{});
-    // not supported
-    // do_check(immer::map<int, int>{});
-    // do_check(immer::set<int>{});
-    // do_check(immer::table<thing>{});
+    do_check(immer::map<int, int>{});
+    do_check(immer::set<int>{});
+    do_check(immer::table<thing>{});
 }
 
 TEST_CASE("update vectors")
