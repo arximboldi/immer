@@ -271,6 +271,9 @@ TEST_CASE("all_of")
     static const auto all_identity = [](const auto& keyval) {
         return keyval.first == keyval.second;
     };
+    static const auto all_less_n = [](const auto& keyval) {
+        return keyval.second < n;
+    };
     static const auto all_less_n2 = [](const auto& keyval) {
         return keyval.second < n / 2;
     };
@@ -289,6 +292,21 @@ TEST_CASE("all_of")
 
     SECTION("All less n/2 (false)")
     {
+        bool result = immer::all_of(v, all_less_n2);
+        CHECK(!result);
+    }
+
+    SECTION("All less n w/ collisions (true)")
+    {
+        auto vals   = make_values_with_collisions(n);
+        auto s      = make_test_map(vals);
+        bool result = immer::all_of(v, all_less_n);
+        CHECK(result);
+    }
+    SECTION("All less n/2 w/ collisions (false)")
+    {
+        auto vals   = make_values_with_collisions(n);
+        auto s      = make_test_map(vals);
         bool result = immer::all_of(v, all_less_n2);
         CHECK(!result);
     }
