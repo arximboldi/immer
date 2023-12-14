@@ -177,8 +177,7 @@ public:
      */
     map(std::initializer_list<value_type> values)
         : impl_{impl_t::from_initializer_list(values)}
-    {
-    }
+    {}
 
     /*!
      * Constructs a map containing the elements in the range
@@ -190,8 +189,7 @@ public:
                                bool> = true>
     map(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
-    {
-    }
+    {}
 
     /*!
      * Default constructor.  It creates a map of `size() == 0`.  It
@@ -598,8 +596,7 @@ private:
 
     map(impl_t impl)
         : impl_(std::move(impl))
-    {
-    }
+    {}
 
     impl_t impl_ = impl_t::empty();
 };
