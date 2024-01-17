@@ -33,7 +33,7 @@
 #define IMMER_CATCH(expr) else
 #define IMMER_THROW(expr)                                                      \
     do {                                                                       \
-        assert(!#expr);                                                        \
+        assert((#expr, false));                                                \
         std::terminate();                                                      \
     } while (false)
 #define IMMER_RETHROW
