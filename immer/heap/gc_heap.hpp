@@ -26,7 +26,7 @@ namespace immer {
 
 #ifdef IMMER_GC_REQUIRE_INIT
 #define IMMER_GC_REQUIRE_INIT_ IMMER_GC_REQUIRE_INIT
-#elifdef __APPLE__
+#elif defined __APPLE__
 #define IMMER_GC_REQUIRE_INIT_ 1
 #else
 #define IMMER_GC_REQUIRE_INIT_ 0

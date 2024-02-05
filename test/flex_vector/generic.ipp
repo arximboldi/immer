@@ -482,7 +482,8 @@ TEST_CASE("iterator relaxed")
     {
         auto s = std::vector<unsigned>(n);
         std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
+        [[maybe_unused]] const bool unused =
+            std::equal(v.begin(), v.end(), s.begin(), s.end());
     }
 
     SECTION("can go back from end")

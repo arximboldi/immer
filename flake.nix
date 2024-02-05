@@ -8,6 +8,19 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+    gitignore = {
+      url = "github:hercules-ci/gitignore.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs = {
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+        gitignore.follows = "gitignore";
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
   };
 
   outputs = {
@@ -15,50 +28,78 @@
     nixpkgs,
     flake-utils,
     flake-compat,
+    pre-commit-hooks,
+    gitignore,
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      clang-format = pkgs.runCommand "clang-format" {} ''
-        mkdir -p $out/bin
-        ln -s ${pkgs.llvmPackages_16.clang-unwrapped}/bin/clang-format $out/bin/
-      '';
-      our_llvm = pkgs.llvmPackages_14;
-
-      immer-derivation = {
-        stdenv,
-        cmake,
-        lib,
-        catch2,
-      }:
-        stdenv.mkDerivation rec {
-          pname = "immer";
-          version = "v0.0";
+    in {
+      checks = {
+        pre-commit-check = pre-commit-hooks.lib.${system}.run {
           src = ./.;
-          nativeBuildInputs = [cmake];
-          buildInputs = [catch2];
-          dontUseCmakeBuildDir = true;
-          meta = {
-            homepage = "https://sinusoid.al/immer";
-            description = "Immutable data structures";
-            license = lib.licenses.boost;
+          hooks = {
+            alejandra.enable = true;
           };
         };
 
-      immer = pkgs.callPackage immer-derivation {stdenv = our_llvm.stdenv;};
-    in rec {
-      devShell = pkgs.mkShell.override {stdenv = our_llvm.stdenv;} {
-        packages = with pkgs; [
-          clang-format
-          cmake-format
-          cmake
-          ninja
-          catch2_3
-
-          # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
-          our_llvm.bintools-unwrapped
-        ];
+        unit-tests = self.packages.${system}.immer.overrideAttrs (prev: {
+          buildInputs = with pkgs; [catch2 boehmgc boost fmt];
+          nativeBuildInputs = with pkgs; [cmake ninja];
+          dontBuild = false;
+          doCheck = true;
+          checkPhase = ''
+            ninja tests
+            ninja test
+          '';
+          cmakeFlags = [
+            "-DCMAKE_BUILD_TYPE=Debug"
+            "-Dimmer_BUILD_TESTS=ON"
+            "-Dimmer_BUILD_EXAMPLES=OFF"
+          ];
+        });
       };
 
-      defaultPackage = immer;
+      devShells.default = pkgs.mkShell {
+        NIX_HARDENING_ENABLE = "";
+        inputsFrom = [
+          (import ./shell.nix {
+            inherit system nixpkgs;
+          })
+        ];
+
+        shellHook =
+          self.checks.${system}.pre-commit-check.shellHook;
+      };
+
+      packages = {
+        immer = with pkgs; let
+          inherit (gitignore.lib) gitignoreSource;
+          nixFilter = name: type: !(lib.hasSuffix ".nix" name);
+          srcFilter = src:
+            lib.cleanSourceWith {
+              filter = nixFilter;
+              src = gitignoreSource src;
+            };
+        in
+          stdenv.mkDerivation {
+            name = "immer-git";
+            version = "git";
+            src = srcFilter ./.;
+            nativeBuildInputs = [cmake];
+            dontBuild = true;
+            dontUseCmakeBuildDir = true;
+            cmakeFlags = [
+              "-Dimmer_BUILD_TESTS=OFF"
+              "-Dimmer_BUILD_EXAMPLES=OFF"
+            ];
+            meta = {
+              homepage = "https://github.com/arximboldi/immer";
+              description = "Postmodern immutable data structures for C++";
+              license = lib.licenses.boost;
+            };
+          };
+
+        default = self.packages.${system}.immer;
+      };
     });
 }

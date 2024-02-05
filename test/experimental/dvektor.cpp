@@ -11,9 +11,9 @@
 #include <boost/range/adaptors.hpp>
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <vector>
-#include <iostream>
 
 #include <catch2/catch.hpp>
 
@@ -158,7 +158,8 @@ TEST_CASE("iterator")
     {
         auto s = std::vector<unsigned>(n);
         std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
+        [[maybe_unused]] const auto unused =
+            std::equal(v.begin(), v.end(), s.begin(), s.end());
     }
 
     SECTION("can go back from end") { CHECK(n - 1 == *--v.end()); }

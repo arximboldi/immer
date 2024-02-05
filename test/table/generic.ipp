@@ -63,7 +63,8 @@ using table_map = immer::table<std::pair<K, V>,
                                SETUP_T::memory_policy,
                                SETUP_T::bits>;
 
-IMMER_RANGES_CHECK(std::ranges::forward_range<table_map<std::string, std::string>>);
+IMMER_RANGES_CHECK(
+    std::ranges::forward_range<table_map<std::string, std::string>>);
 
 template <typename T = uint32_t>
 auto make_generator()
@@ -508,7 +509,9 @@ void test_diff(uint32_t old_num,
 
     // remove
     auto shuffle = old_keys;
-    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::random_device rd{};
+    auto g = std::mt19937{rd()};
+    std::shuffle(shuffle.begin(), shuffle.end(), g);
     std::vector<conflictor> remove_keys(shuffle.begin(),
                                         shuffle.begin() + remove_num);
     std::vector<conflictor> rest_keys(shuffle.begin() + remove_num,

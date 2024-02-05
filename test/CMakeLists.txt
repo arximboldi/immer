@@ -18,5 +18,6 @@ foreach(_file IN LISTS immer_unit_tests)
     -DIMMER_OSS_FUZZ_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/oss-fuzz/data"
     CATCH_CONFIG_MAIN)
   target_link_libraries(${_target} PUBLIC immer-dev Catch2::Catch2)
+  set_target_properties(${_target} PROPERTIES CXX_VISIBILITY_PRESET hidden)
   add_test("test/${_output}" ${_output})
 endforeach()
