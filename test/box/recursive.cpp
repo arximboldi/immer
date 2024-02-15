@@ -13,7 +13,7 @@
 #include <immer/set.hpp>
 #include <immer/vector.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 struct rec_vec
 {

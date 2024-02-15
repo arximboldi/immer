@@ -1,8 +1,10 @@
-{ nixpkgs ? <nixpkgs>}:
-
-with import nixpkgs {};
-
-rec {
+{
+  stdenv,
+  lib,
+  autoreconfHook,
+  boehmgc,
+  fetchFromGitHub,
+}: {
   c_rrb = stdenv.mkDerivation rec {
     name = "c-rrb-${version}";
     version = "git-${commit}";
@@ -13,12 +15,12 @@ rec {
       rev = commit;
       sha256 = "0zmha3xi80vgdcwzb4vwdllf97dvggjpjfgahrpsb5f5qi3yshxa";
     };
-    nativeBuildInputs = [ autoreconfHook ];
-    propagatedBuildInputs = [ boehmgc ];
-    meta = with lib; {
+    nativeBuildInputs = [autoreconfHook];
+    propagatedBuildInputs = [boehmgc];
+    meta = {
       homepage = "http://hypirion.com/thesis";
       description = "RRB-tree implemented as a library in C. ";
-      license = licenses.mit;
+      license = lib.licenses.mit;
     };
   };
 
@@ -34,10 +36,10 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/steady $out/include/";
-    meta = with lib; {
+    meta = {
       homepage = "https://github.com/marcusz/steady";
       description = "This is a fast and reliable persistent (immutable) vector class for C++";
-      license = licenses.asl20;
+      license = lib.licenses.asl20;
     };
   };
 
@@ -53,10 +55,10 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include/chunkedseq; cp -vr $src/include/* $out/include/chunkedseq/";
-    meta = with lib; {
+    meta = {
       homepage = "http://deepsea.inria.fr/chunkedseq";
       description = "Container data structure for representing sequences by many fixed-capacity heap-allocated buffers--chunks";
-      license = licenses.mit;
+      license = lib.licenses.mit;
     };
   };
 
@@ -72,10 +74,10 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/immutable $out/include/";
-    meta = with lib; {
+    meta = {
       homepage = "https://github.com/rsms/immutable-cpp";
       description = "Persistent immutable data structures for C++";
-      license = licenses.mit;
+      license = lib.licenses.mit;
     };
   };
 
@@ -91,10 +93,10 @@ rec {
     };
     dontBuild = true;
     installPhase = "mkdir -vp $out/include; cp -vr $src/hash_trie.hpp $out/include/";
-    meta = with lib; {
+    meta = {
       homepage = "https://github.com/rsms/immutable-cpp";
       description = "Persistent immutable data structures for C++";
-      license = licenses.mit;
+      license = lib.licenses.mit;
     };
   };
 }

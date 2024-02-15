@@ -13,7 +13,7 @@
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #define IMMER_FUZZED_TRACE_ENABLE 0
 
