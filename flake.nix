@@ -49,7 +49,7 @@
             };
           };
 
-          inherit (self.packages.${system}) unit-tests;
+          inherit (self.packages.${system}) unit-tests fuzzers-debug;
         }
         // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           unit-tests-valgrind = self.packages.${system}.unit-tests.overrideAttrs (prev: {
@@ -94,18 +94,19 @@
         default = self.packages.${system}.immer;
 
         fuzzers-debug = (withLLVM self.packages.${system}.immer).overrideAttrs (prev: {
-          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt];
+          name = "immer-fuzzers";
+          # Fuzzers should be built with minimal dependencies to use them easily with OSS-Fuzz
+          buildInputs = with pkgs; [boehmgc];
           nativeBuildInputs = with pkgs; [cmake ninja];
           dontBuild = false;
           dontStrip = true;
           # fuzzers target is not built by default
           ninjaFlags = ["fuzzers"];
+          cmakeBuildType = "Debug";
           cmakeFlags = [
-            "-DCMAKE_BUILD_TYPE=Debug"
-            "-Dimmer_BUILD_TESTS=OFF"
-            "-Dimmer_BUILD_EXAMPLES=OFF"
-            "-Dimmer_INSTALL_FUZZERS=ON"
             "-DENABLE_ASAN=ON"
+            "-Dimmer_BUILD_TESTS=OFF"
+            "-Dimmer_INSTALL_FUZZERS=ON"
           ];
         });
 

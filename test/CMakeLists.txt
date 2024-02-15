@@ -6,6 +6,7 @@ add_custom_target(tests
   COMMENT "Build all the unit tests.")
 add_dependencies(check tests)
 
+find_package(Catch2 REQUIRED)
 include(CTest)
 
 file(GLOB_RECURSE immer_unit_tests "*.cpp")

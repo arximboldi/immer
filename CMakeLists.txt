@@ -39,6 +39,7 @@ option(immer_BUILD_TESTS "Build tests" ON)
 option(immer_BUILD_EXAMPLES "Build examples" ON)
 option(immer_BUILD_DOCS "Build docs" ON)
 option(immer_BUILD_EXTRAS "Build extras" ON)
+option(immer_INSTALL_FUZZERS "Install fuzzers" off)
 
 set(CXX_STANDARD 14 CACHE STRING "c++ standard number")
 
@@ -136,15 +137,15 @@ endif()
 #  Testing
 #  =======
 
+if (immer_BUILD_TESTS OR immer_BUILD_EXAMPLES OR immer_BUILD_EXTRAS)
+  add_custom_target(check
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Build and run all the tests and examples.")
+endif()
+
 if (immer_BUILD_TESTS)
   enable_testing()
-
-  find_package(Catch2 REQUIRED)
-
-  add_custom_target(check
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Build and run all the tests and examples.")
 
   add_subdirectory(test)
   add_subdirectory(benchmark)
