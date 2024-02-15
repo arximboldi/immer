@@ -10,7 +10,7 @@
 #include "test/transient_tester.hpp"
 #include "test/util.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"
@@ -185,7 +185,8 @@ TEST_CASE("exception safety")
                 ++i;
                 if (t.step())
                     li = i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
@@ -217,7 +218,8 @@ TEST_CASE("exception safety")
                 ++i;
                 if (t.step())
                     li = i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt,
                                     join(irange(1u, 1u + i), irange(i, n)));
@@ -254,7 +256,8 @@ TEST_CASE("exception safety")
                 if (i < delta)
                     break;
                 i -= delta;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i + delta));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));

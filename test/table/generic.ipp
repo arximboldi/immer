@@ -17,7 +17,7 @@
 #include "test/dada.hpp"
 #include "test/util.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <random>
 #include <unordered_map>
@@ -63,7 +63,8 @@ using table_map = immer::table<std::pair<K, V>,
                                SETUP_T::memory_policy,
                                SETUP_T::bits>;
 
-IMMER_RANGES_CHECK(std::ranges::forward_range<table_map<std::string, std::string>>);
+IMMER_RANGES_CHECK(
+    std::ranges::forward_range<table_map<std::string, std::string>>);
 
 template <typename T = uint32_t>
 auto make_generator()
@@ -330,7 +331,8 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(i).value.second == i + 1);
             for (auto i : test_irange(i, n))
@@ -362,7 +364,8 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first).value.second == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -386,7 +389,8 @@ TEST_CASE("exception safety")
                     return make_pair(x.value.first, x.value.second + 1);
                 });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first).value.second == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -403,7 +407,8 @@ struct KeyType
 {
     explicit KeyType(uint32_t v)
         : value(v)
-    {}
+    {
+    }
     uint32_t value;
 };
 
@@ -411,7 +416,8 @@ struct LookupType
 {
     explicit LookupType(uint32_t v)
         : value(v)
-    {}
+    {
+    }
     uint32_t value;
 };
 
@@ -508,7 +514,9 @@ void test_diff(uint32_t old_num,
 
     // remove
     auto shuffle = old_keys;
-    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::random_device rd{};
+    auto g = std::mt19937{rd()};
+    std::shuffle(shuffle.begin(), shuffle.end(), g);
     std::vector<conflictor> remove_keys(shuffle.begin(),
                                         shuffle.begin() + remove_num);
     std::vector<conflictor> rest_keys(shuffle.begin() + remove_num,

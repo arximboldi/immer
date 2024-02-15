@@ -8,7 +8,9 @@
 
 #include "test/util.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+
+#include <numeric>
 
 #ifndef MAP_T
 #error "define the map template to use in MAP_T"

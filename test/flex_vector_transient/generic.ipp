@@ -14,7 +14,7 @@
 
 #include <boost/range/adaptors.hpp>
 #include <boost/range/irange.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <array>
@@ -127,7 +127,8 @@ TEST_CASE("exception safety relaxed")
                 else
                     t.vp = t.vp.push_back({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.step())
                 li = i;
             if (t.transient) {
@@ -161,7 +162,8 @@ TEST_CASE("exception safety relaxed")
                     t.vp = t.vp.update(i, [](auto x) { return dada(), x + 1; });
                 }
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.step())
                 li = i;
             if (t.transient) {
@@ -201,7 +203,8 @@ TEST_CASE("exception safety relaxed")
                 if (i < delta)
                     break;
                 i -= delta;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i + delta));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
@@ -234,7 +237,8 @@ TEST_CASE("exception safety relaxed")
                 }
                 delta = deltas.next();
                 i += delta;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(i - delta, n));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(li, n));
@@ -272,7 +276,8 @@ TEST_CASE("exception safety relaxed")
                     li = i;
                 }
                 delta = deltas.next() * 3;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
@@ -310,7 +315,8 @@ TEST_CASE("exception safety relaxed")
                     li = i;
                 }
                 delta = deltas.next() * 3;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(0u, i));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(0u, li));
@@ -349,7 +355,8 @@ TEST_CASE("exception safety relaxed")
                     li = i;
                 }
                 delta = deltas.next() * 3;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(i, n));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(li, n));
@@ -388,7 +395,8 @@ TEST_CASE("exception safety relaxed")
                     li = i;
                 }
                 delta = deltas.next() * 3;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             if (t.transient) {
                 CHECK_VECTOR_EQUALS(t.vt, boost::irange(i, n));
                 CHECK_VECTOR_EQUALS(t.vp, boost::irange(li, n));

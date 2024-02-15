@@ -18,7 +18,7 @@
 #include <immer/algorithm.hpp>
 #include <immer/box.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <random>
 #include <unordered_set>
@@ -105,7 +105,8 @@ struct unaligned_str
     }
     unaligned_str(const char* in)
         : unaligned_str{std::string{in}}
-    {}
+    {
+    }
 
     std::string str() const { return m_data.data(); }
 
@@ -475,7 +476,8 @@ TEST_CASE("iterator")
     {
         auto s = std::vector<unsigned>(N);
         std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
+        const auto unused = std::equal(v.begin(), v.end(), s.begin(), s.end());
+        (void) unused;
     }
 
     SECTION("iterator and collisions")
@@ -494,7 +496,8 @@ struct non_default
     unsigned value;
     non_default(unsigned v)
         : value{v}
-    {}
+    {
+    }
     non_default() = delete;
     operator unsigned() const { return value; }
 
@@ -576,7 +579,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.insert({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.count({i}) == 1);
         }
@@ -594,7 +598,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.insert({vals[i]});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.count({vals[i]}) == 1);
         }
@@ -613,7 +618,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.erase({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.count({i}) == 0);
             for (auto i : test_irange(i, n))
@@ -635,7 +641,8 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.erase({vals[i]});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.count({vals[i]}) == 0);
             for (auto i : test_irange(i, n))
@@ -651,7 +658,8 @@ struct KeyType
 {
     explicit KeyType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
@@ -659,7 +667,8 @@ struct LookupType
 {
     explicit LookupType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
@@ -710,7 +719,9 @@ void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
 
     // remove
     auto shuffle = initial_values;
-    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::random_device rd{};
+    auto g = std::mt19937{rd()};
+    std::shuffle(shuffle.begin(), shuffle.end(), g);
     std::vector<conflictor> remove_keys(shuffle.begin(),
                                         shuffle.begin() + remove_num);
 

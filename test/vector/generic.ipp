@@ -12,7 +12,7 @@
 #include <immer/algorithm.hpp>
 
 #include <boost/range/adaptors.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <numeric>
@@ -245,7 +245,8 @@ TEST_CASE("iterator")
     {
         auto s = std::vector<unsigned>(n);
         std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
+        const auto unused = std::equal(v.begin(), v.end(), s.begin(), s.end());
+        (void) unused;
     }
 
     SECTION("can go back from end")
@@ -406,7 +407,8 @@ struct non_default
     unsigned value;
     non_default(unsigned value_)
         : value{value_}
-    {}
+    {
+    }
     non_default() = delete;
     operator unsigned() const { return value; }
 
@@ -469,7 +471,8 @@ TEST_CASE("exception safety")
             try {
                 v = v.push_back({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
         }
         CHECK(d.happenings > 0);
@@ -485,7 +488,8 @@ TEST_CASE("exception safety")
             try {
                 v = std::move(v).push_back({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
         }
         CHECK(d.happenings > 0);
@@ -501,7 +505,8 @@ TEST_CASE("exception safety")
             try {
                 v = v.update(i, [](auto x) { return dada(), x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(
                 v, boost::join(boost::irange(1u, 1u + i), boost::irange(i, n)));
         }
@@ -519,7 +524,8 @@ TEST_CASE("exception safety")
                 v = std::move(v).update(i,
                                         [](auto x) { return dada(), x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(
                 v, boost::join(boost::irange(1u, 1u + i), boost::irange(i, n)));
         }

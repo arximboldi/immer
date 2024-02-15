@@ -8,7 +8,9 @@
 
 #include "test/util.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+
+#include <numeric>
 
 #ifndef SET_T
 #error "define the set template to use in SET_T"
