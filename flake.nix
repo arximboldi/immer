@@ -94,11 +94,19 @@
             llvmPackages_latest.bintools-unwrapped
             cmake-format
             alejandra
+            just
+            fzf
+            starship
           ]
           ++ immer-archive-inputs;
 
         shellHook =
-          self.checks.${system}.pre-commit-check.shellHook;
+          self.checks.${system}.pre-commit-check.shellHook
+          + "\n"
+          + ''
+            alias j=just
+            eval "$(starship init bash)"
+          '';
       };
 
       packages = {

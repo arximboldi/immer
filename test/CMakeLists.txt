@@ -10,6 +10,9 @@ add_dependencies(check tests)
 set(MEMORYCHECK_SUPPRESSIONS_FILE
     "${PROJECT_SOURCE_DIR}/test/valgrind_suppress.txt"
     CACHE FILEPATH "")
+set(VALGRIND_COMMAND_OPTIONS
+    "--suppressions=${PROJECT_SOURCE_DIR}/test/experimental/immer-archive/valgrind.supp"
+)
 find_package(Catch2 REQUIRED)
 include(CTest)
 
