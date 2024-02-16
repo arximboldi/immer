@@ -36,6 +36,7 @@ option(ENABLE_GUILE "enable building guile module" off)
 option(ENABLE_BOOST_COROUTINE "run benchmarks with boost coroutine" off)
 
 option(immer_BUILD_TESTS "Build tests" ON)
+option(immer_BUILD_ARCHIVE_TESTS "Build experimental archive tests" off)
 option(immer_BUILD_EXAMPLES "Build examples" ON)
 option(immer_BUILD_DOCS "Build docs" ON)
 option(immer_BUILD_EXTRAS "Build extras" ON)

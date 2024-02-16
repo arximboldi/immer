@@ -365,6 +365,8 @@ private:
     friend flex_t;
     friend transient_type;
 
+// for immer-archive
+public:
     vector(impl_t impl)
         : impl_(std::move(impl))
     {
@@ -375,6 +377,7 @@ private:
 #endif
     }
 
+private:
     vector&& push_back_move(std::true_type, value_type value)
     {
         impl_.push_back_mut({}, std::move(value));

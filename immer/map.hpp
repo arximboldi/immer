@@ -540,10 +540,13 @@ private:
         return impl_.sub(value);
     }
 
+// for immer-archive
+public:
     map(impl_t impl)
         : impl_(std::move(impl))
     {}
 
+private:
     impl_t impl_ = impl_t::empty();
 };
 

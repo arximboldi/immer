@@ -1,32 +1,41 @@
+add_custom_target(fuzzers COMMENT "Build all fuzzers.")
 
-add_custom_target(fuzzers
-  COMMENT "Build all fuzzers.")
-
-if (CHECK_FUZZERS)
+if(CHECK_FUZZERS)
   add_dependencies(tests fuzzers)
 endif()
 
-# LIB_FUZZING_ENGINE is set by the Google OSS-Fuzz
-# infrastructure. Otherwise we use Clang's LibFuzzer
-if (DEFINED ENV{LIB_FUZZING_ENGINE})
+# LIB_FUZZING_ENGINE is set by the Google OSS-Fuzz infrastructure. Otherwise we
+# use Clang's LibFuzzer
+if(DEFINED ENV{LIB_FUZZING_ENGINE})
   set(immer_fuzzing_engine $ENV{LIB_FUZZING_ENGINE})
 else()
   set(immer_fuzzing_engine "-fsanitize=fuzzer")
 endif()
 
 file(GLOB_RECURSE immer_fuzzers "*.cpp")
+foreach(TMP_PATH ${immer_fuzzers})
+  string(FIND ${TMP_PATH} immer-archive EXCLUDE_DIR_FOUND)
+  if(NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+    list(REMOVE_ITEM immer_fuzzers ${TMP_PATH})
+  endif()
+endforeach(TMP_PATH)
+
 foreach(_file IN LISTS immer_fuzzers)
   immer_target_name_for(_target _output "${_file}")
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
   target_compile_options(${_target} PUBLIC ${immer_fuzzing_engine})
-  target_link_libraries(${_target} PUBLIC ${immer_fuzzing_engine}
-    immer-dev)
+  target_compile_definitions(${_target} PUBLIC IMMER_THROW_ON_INVALID_STATE=1)
+  target_link_libraries(${_target} PUBLIC ${immer_fuzzing_engine} immer-dev)
   add_dependencies(fuzzers ${_target})
-  if (CHECK_FUZZERS)
+  if(CHECK_FUZZERS)
     add_test("fuzzer/${_output}" ${_output} -max_total_time=1)
   endif()
-  if (immer_INSTALL_FUZZERS)
+  if(immer_INSTALL_FUZZERS)
     install(TARGETS ${_target} DESTINATION bin)
   endif()
 endforeach()
+
+if(immer_BUILD_ARCHIVE_TESTS)
+  add_subdirectory(immer-archive)
+endif()

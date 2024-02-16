@@ -6,27 +6,47 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_input.hpp"
+#include <fuzzer/fuzzer_input.hpp>
 
 #include <immer/box.hpp>
 #include <immer/flex_vector.hpp>
 
+#include <fmt/ranges.h>
+#include <immer/experimental/immer-archive/rbts/load.hpp>
+#include <immer/experimental/immer-archive/rbts/save.hpp>
+
 #include <array>
 
-using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
-                                       immer::unsafe_refcount_policy,
-                                       immer::no_lock_policy,
-                                       immer::no_transience_policy,
-                                       false>;
+namespace {
+void require_eq(const auto& a, const auto& b)
+{
+    if (a != b) {
+        throw std::runtime_error{
+            fmt::format("{} != {}", fmt::join(a, ", "), fmt::join(b, ", "))};
+    }
+}
+} // namespace
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
     constexpr auto var_count = 8;
-    constexpr auto bits      = 3;
+    constexpr auto bits      = 2;
 
-    using vector_t = immer::flex_vector<int, st_memory, bits, bits>;
-    using size_t   = std::uint8_t;
+    using vector_t =
+        immer::flex_vector<int, immer::default_memory_policy, bits, bits>;
+    using size_t = std::uint8_t;
+
+    const auto check_save_and_load = [&](const auto& vec) {
+        auto ar        = immer_archive::rbts::make_save_archive_for(vec);
+        auto vector_id = immer_archive::container_id{};
+        std::tie(ar, vector_id) = immer_archive::rbts::save_to_archive(vec, ar);
+
+        auto loader =
+            immer_archive::rbts::make_loader_for(vec, fix_leaf_nodes(ar));
+        auto loaded = loader.load(vector_id);
+        require_eq(vec, loaded);
+    };
 
     auto vars = std::array<vector_t, var_count>{};
 
@@ -42,25 +62,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
     auto is_valid_size = [](auto& v) {
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
     };
-    auto can_concat = [](const auto& v1, const auto& v2) {
-        // First, check max_size
-        if (v1.size() + v2.size() > vector_t::max_size()) {
-            return false;
-        }
-
-        // But just checking max_size is not sufficient, because there are other
-        // conditions for the validity of the tree, like shift constraints, for
-        // example.
-        try {
-            // Try to concat and catch an exception if it fails
-            const auto v3 = v1 + v2;
-            if (v3.size()) {
-                return true;
-            }
-        } catch (const immer::detail::rbts::invalid_tree&) {
-            return false;
-        }
-        return true;
+    auto can_concat = [](auto&& v1, auto&& v2) {
+        return v1.size() + v2.size() < vector_t::max_size() / 4;
     };
     auto can_compare = [](auto&& v) {
         // avoid comparing vectors that are too big, and hence, slow to compare
@@ -85,9 +88,11 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
             op_erase,
             op_compare,
         };
-        auto src = read<char>(in, is_valid_var);
-        auto dst = read<char>(in, is_valid_var);
-        switch (read<char>(in)) {
+        auto src      = read<char>(in, is_valid_var);
+        auto dst      = read<char>(in, is_valid_var);
+        const auto op = read<char>(in);
+        SPDLOG_DEBUG("op = {}", static_cast<int>(op));
+        switch (op) {
         case op_push_back: {
             vars[dst] = vars[src].push_back(42);
             break;
@@ -170,6 +175,10 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         default:
             break;
         };
+
+        check_save_and_load(vars[src]);
+        check_save_and_load(vars[dst]);
+
         return true;
     });
 }
