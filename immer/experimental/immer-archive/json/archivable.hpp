@@ -9,6 +9,28 @@
 
 namespace immer_archive {
 
+namespace detail {
+template <typename, typename = void>
+constexpr bool is_iterable{};
+
+template <typename T>
+constexpr bool is_iterable<T,
+                           std::void_t<decltype(std::declval<T>().begin()),
+                                       decltype(std::declval<T>().end())>> =
+    true;
+
+template <class T>
+auto get_iterator_type()
+{
+    if constexpr (is_iterable<T>) {
+        return T{}.begin();
+    } else {
+        return;
+    }
+}
+
+} // namespace detail
+
 template <class Container>
 struct archivable
 {
@@ -31,12 +53,18 @@ struct archivable
         return left.container == right.container;
     }
 
-    friend auto begin(const archivable& value)
-    {
-        return value.container.begin();
-    }
+    // template <std::enable_if_t<detail::is_iterable<Container>, bool> = true>
+    // friend auto begin(const archivable& value)
+    // {
+    //     return value.container.begin();
+    // }
 
-    friend auto end(const archivable& value) { return value.container.end(); }
+    // friend std::enable_if_t<detail::is_iterable<Container>,
+    //                         decltype(std::declval<Container>().end())>
+    // end(const archivable& value)
+    // {
+    //     return value.container.end();
+    // }
 };
 
 template <class Storage, class Names, class Container>

@@ -12,6 +12,7 @@ include(CTest)
 add_executable(
   immer-archive-tests EXCLUDE_FROM_ALL
   test_vectors.cpp test_special_archive.cpp test_champ.cpp test_xxhash.cpp
+  test_box.cpp
   ${PROJECT_SOURCE_DIR}/immer/experimental/immer-archive/xxhash/xxhash_64.cpp)
 add_dependencies(tests immer-archive-tests)
 add_test("test/immer-archive-tests" immer-archive-tests)

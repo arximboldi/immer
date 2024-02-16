@@ -4,10 +4,13 @@
 #include "utils.hpp"
 
 #include <boost/hana.hpp>
+#include <immer/experimental/immer-archive/box/archive.hpp>
 #include <immer/experimental/immer-archive/champ/traits.hpp>
 #include <immer/experimental/immer-archive/json/archivable.hpp>
 #include <immer/experimental/immer-archive/json/json_with_archive.hpp>
 #include <immer/experimental/immer-archive/rbts/traits.hpp>
+
+#include <immer/box.hpp>
 
 // to save std::pair
 #include <cereal/types/utility.hpp>
@@ -108,6 +111,8 @@ struct test_data
     // Also test having meta directly, not inside an archivable type
     meta single_meta;
 
+    immer_archive::archivable<immer::box<std::string>> box;
+
     auto tie() const
     {
         return std::tie(ints,
@@ -117,7 +122,8 @@ struct test_data
                         metas,
                         metas_map,
                         vectors_map,
-                        single_meta);
+                        single_meta,
+                        box);
     }
 
     friend bool operator==(const test_data& left, const test_data& right)
@@ -138,7 +144,8 @@ struct test_data
            CEREAL_NVP(metas),
            CEREAL_NVP(metas_map),
            CEREAL_NVP(vectors_map),
-           CEREAL_NVP(single_meta));
+           CEREAL_NVP(single_meta),
+           CEREAL_NVP(box));
     }
 };
 
@@ -168,7 +175,9 @@ inline auto get_archives_types(const test_data&)
         hana::make_pair(
             hana::type_c<
                 immer::map<int, immer_archive::archivable<vector_one<int>>>>,
-            BOOST_HANA_STRING("int_vector_map"))
+            BOOST_HANA_STRING("int_vector_map")),
+        hana::make_pair(hana::type_c<immer::box<std::string>>,
+                        BOOST_HANA_STRING("string_box"))
 
     );
     return names;
@@ -458,7 +467,8 @@ TEST_CASE("Special archive loads empty test_data")
     "metas": 0,
     "metas_map": 0,
     "vectors_map": 0,
-    "single_meta": {"ints": 0, "metas": 0}
+    "single_meta": {"ints": 0, "metas": 0},
+    "box": 0
   },
   "archives": {
     "ints": {
@@ -495,7 +505,8 @@ TEST_CASE("Special archive loads empty test_data")
     ],
     "int_vector_map": [
         {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
-    ]
+    ],
+    "string_box": [""]
   }
 })";
 
@@ -554,7 +565,8 @@ TEST_CASE("Special archive throws cereal::Exception")
     },
     "table_test_value": [],
     "int_meta_map": [],
-    "int_vector_map": []
+    "int_vector_map": [],
+    "string_box": []
   }
 })";
 
@@ -564,3 +576,47 @@ TEST_CASE("Special archive throws cereal::Exception")
         Catch::Matchers::Message("Failed to load a container ID 99 from the "
                                  "archive: Container ID 99 is not found"));
 }
+
+// namespace {
+// struct recursive_type
+// {
+//     int data;
+//     immer_archive::archivable<
+//         vector_one<immer_archive::archivable<immer::box<recursive_type>>>>
+//         children;
+
+//     template <class Archive>
+//     void serialize(Archive& ar)
+//     {
+//         ar(CEREAL_NVP(data), CEREAL_NVP(children));
+//     }
+// };
+// } // namespace
+
+// TEST_CASE("Test recursive type")
+// {
+//     auto v1 = recursive_type{
+//         .data = 123,
+//     };
+//     auto v2 = recursive_type{
+//         .data = 234,
+//     };
+//     auto v3 = recursive_type{
+//         .data     = 345,
+//         .children = {v1, v2},
+//     };
+
+//     const auto [json_str, archives] =
+//     immer_archive::to_json_with_archive(v3);
+
+//     // REQUIRE(json_str == "");
+
+//     {
+//         auto full_load =
+//             immer_archive::from_json_with_archive<recursive_type>(json_str);
+//         (void) full_load;
+//         // REQUIRE(full_load == test1);
+//         // REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
+//         // "");
+//     }
+// }
