@@ -188,6 +188,7 @@ auto to_json_with_archive(const T& serializable)
                 immer_archive::json_immer_output_archive<decltype(archives)>{
                     archives, os2};
             ar2(archives);
+            ar2.finalize();
             archives = ar2.get_output_archives();
         }
 

@@ -9,13 +9,18 @@ _mk-dir name:
 build-valgrind-path := "build-valgrind-" + os() + "-" + arch()
 
 # Create a build directory for a Debug build without ASAN, so that valgrind can work
-[linux]
 mk-build-valgrind: (_mk-dir build-valgrind-path)
     cd {{ build-valgrind-path }} ; cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -Dimmer_BUILD_TESTS=ON -Dimmer_BUILD_ARCHIVE_TESTS=ON -Dimmer_BUILD_EXAMPLES=OFF -DCXX_STANDARD=20
 
 [linux]
 run-valgrind:
     cd {{ build-valgrind-path }} ; ninja tests && ctest -D ExperimentalMemCheck
+
+[linux]
+run-valgrind-archive:
+    cd {{ build-valgrind-path }} ; ninja immer-archive-tests && valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
+                --suppressions=../test/experimental/immer-archive/valgrind.supp \
+                ./test/experimental/immer-archive/immer-archive-tests
 
 build-asan-path := "build-asan-" + os() + "-" + arch()
 

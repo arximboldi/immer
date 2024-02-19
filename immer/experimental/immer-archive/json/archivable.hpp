@@ -48,6 +48,20 @@ struct archivable
     {
     }
 
+    archivable(const archivable& other)
+        : container{other.container}
+    {
+    }
+
+    archivable& operator=(const archivable&) = default;
+
+    archivable(archivable&& other)
+        : container{std::move(other.container)}
+    {
+    }
+
+    archivable& operator=(archivable&&) = default;
+
     friend bool operator==(const archivable& left, const archivable& right)
     {
         return left.container == right.container;

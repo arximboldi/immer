@@ -249,7 +249,8 @@ private:
                                                node_t::delete_inner_r(ptr, n);
                                                delete_children();
                                            }}
-                                : node_ptr{node_t::make_inner_n(n),
+                                : node_ptr{n ? node_t::make_inner_n(n)
+                                             : rbtree::empty_root(),
                                            [n, delete_children](auto* ptr) {
                                                node_t::delete_inner(ptr, n);
                                                delete_children();

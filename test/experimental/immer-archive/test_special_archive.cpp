@@ -577,46 +577,100 @@ TEST_CASE("Special archive throws cereal::Exception")
                                  "archive: Container ID 99 is not found"));
 }
 
-// namespace {
-// struct recursive_type
-// {
-//     int data;
-//     immer_archive::archivable<
-//         vector_one<immer_archive::archivable<immer::box<recursive_type>>>>
-//         children;
+namespace {
+struct recursive_type
+{
+    int data;
+    immer_archive::archivable<
+        vector_one<immer_archive::archivable<immer::box<recursive_type>>>>
+        children;
 
-//     template <class Archive>
-//     void serialize(Archive& ar)
-//     {
-//         ar(CEREAL_NVP(data), CEREAL_NVP(children));
-//     }
-// };
-// } // namespace
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data), CEREAL_NVP(children));
+    }
 
-// TEST_CASE("Test recursive type")
-// {
-//     auto v1 = recursive_type{
-//         .data = 123,
-//     };
-//     auto v2 = recursive_type{
-//         .data = 234,
-//     };
-//     auto v3 = recursive_type{
-//         .data     = 345,
-//         .children = {v1, v2},
-//     };
+    auto tie() const { return std::tie(data, children); }
 
-//     const auto [json_str, archives] =
-//     immer_archive::to_json_with_archive(v3);
+    friend bool operator==(const recursive_type& left,
+                           const recursive_type& right)
+    {
+        return left.tie() == right.tie();
+    }
+};
 
-//     // REQUIRE(json_str == "");
+auto get_archives_types(const recursive_type&)
+{
+    auto names = hana::make_map(
+        hana::make_pair(hana::type_c<immer::box<recursive_type>>,
+                        BOOST_HANA_STRING("boxes")),
+        hana::make_pair(
+            hana::type_c<vector_one<
+                immer_archive::archivable<immer::box<recursive_type>>>>,
+            BOOST_HANA_STRING("vectors"))
 
-//     {
-//         auto full_load =
-//             immer_archive::from_json_with_archive<recursive_type>(json_str);
-//         (void) full_load;
-//         // REQUIRE(full_load == test1);
-//         // REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
-//         // "");
-//     }
-// }
+    );
+    return names;
+}
+} // namespace
+
+TEST_CASE("Test recursive type")
+{
+    const auto v1 = recursive_type{
+        .data = 123,
+    };
+    const auto v2 = recursive_type{
+        .data = 234,
+    };
+    const auto v3 = recursive_type{
+        .data     = 345,
+        .children = {immer::box<recursive_type>{v1},
+                     immer::box<recursive_type>{v2}},
+    };
+
+    const auto [json_str, archives] = immer_archive::to_json_with_archive(v3);
+    // REQUIRE(json_str == "");
+
+    {
+        auto full_load =
+            immer_archive::from_json_with_archive<recursive_type>(json_str);
+        REQUIRE(full_load == v3);
+        REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
+                json_str);
+    }
+}
+
+TEST_CASE("Test recursive type, saving the box triggers saving the box of the "
+          "same type")
+{
+    const auto v1 = recursive_type{
+        .data = 123,
+    };
+    const auto v2 = recursive_type{
+        .data = 234,
+    };
+    const auto v3 = recursive_type{
+        .data     = 345,
+        .children = {immer::box<recursive_type>{v1},
+                     immer::box<recursive_type>{v2}},
+    };
+    // NOTE: v3 is boxed and inside of it, it contains more boxed values.
+    const auto v4 = recursive_type{
+        .data     = 456,
+        .children = {immer::box<recursive_type>{v1},
+                     immer::box<recursive_type>{v3}},
+    };
+
+    const auto [json_str, archives] = immer_archive::to_json_with_archive(v4);
+    // REQUIRE(json_str == "");
+
+    {
+        auto full_load =
+            immer_archive::from_json_with_archive<recursive_type>(json_str);
+        REQUIRE(full_load == v4);
+        // XXX This must pass:
+        // REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
+        //         json_str);
+    }
+}
