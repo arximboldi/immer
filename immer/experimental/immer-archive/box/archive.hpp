@@ -19,6 +19,11 @@ struct archive_save
 
     immer::map<const void*, container_id> ids;
 
+    friend bool operator==(const archive_save& left, const archive_save& right)
+    {
+        return left.boxes == right.boxes;
+    }
+
     template <class Archive>
     void save(Archive& ar) const
     {

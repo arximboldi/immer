@@ -70,6 +70,13 @@ struct archive_save
     immer::vector<immer::flex_vector<T, MemoryPolicy, B, BL>>
         saved_flex_vectors;
 
+    auto tie() const { return std::tie(leaves, inners, vectors); }
+
+    friend bool operator==(const archive_save& left, const archive_save& right)
+    {
+        return left.tie() == right.tie();
+    }
+
     template <class Archive>
     void save(Archive& ar) const
     {

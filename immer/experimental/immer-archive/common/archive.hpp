@@ -19,6 +19,13 @@ struct values_save
 {
     const T* begin = nullptr;
     const T* end   = nullptr;
+
+    auto tie() const { return std::tie(begin, end); }
+
+    friend bool operator==(const values_save& left, const values_save& right)
+    {
+        return left.tie() == right.tie();
+    }
 };
 
 template <class T>

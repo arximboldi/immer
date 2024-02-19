@@ -26,6 +26,17 @@ struct inner_node_save
     bitmap_t datamap;
     bool collisions{false};
 
+    auto tie() const
+    {
+        return std::tie(values, children, nodemap, datamap, collisions);
+    }
+
+    friend bool operator==(const inner_node_save& left,
+                           const inner_node_save& right)
+    {
+        return left.tie() == right.tie();
+    }
+
     template <class Archive>
     void save(Archive& ar) const
     {
@@ -79,6 +90,11 @@ struct nodes_save
     immer::map<node_id, inner_node_save<T, B>> inners;
 
     immer::map<const void*, node_id> node_ptr_to_id;
+
+    friend bool operator==(const nodes_save& left, const nodes_save& right)
+    {
+        return left.inners == right.inners;
+    }
 };
 
 template <typename T,
@@ -140,6 +156,12 @@ struct container_archive_save
     // Saving the archived container, so that no mutations are allowed to
     // happen.
     immer::vector<Container> containers;
+
+    friend bool operator==(const container_archive_save& left,
+                           const container_archive_save& right)
+    {
+        return left.nodes == right.nodes;
+    }
 
     template <class Archive>
     void save(Archive& ar) const

@@ -57,6 +57,12 @@ struct archives_save
         }
         return storage[hana::type_c<T>];
     }
+
+    friend bool operator==(const archives_save& left,
+                           const archives_save& right)
+    {
+        return left.storage == right.storage;
+    }
 };
 
 template <class Container>
@@ -175,21 +181,31 @@ auto to_json_with_archive(const T& serializable)
 {
     auto archives =
         detail::generate_archives_save(get_archives_types(serializable));
+    using Archives = std::decay_t<decltype(archives)>;
+
+    const auto save_archive = [&archives] {
+        auto os2 = std::ostringstream{};
+        auto ar2 =
+            immer_archive::json_immer_output_archive<Archives>{archives, os2};
+        ar2(archives);
+        archives = ar2.get_output_archives();
+    };
+
     auto os = std::ostringstream{};
+
     {
-        auto ar =
-            immer_archive::json_immer_output_archive<decltype(archives)>{os};
+        auto ar = immer_archive::json_immer_output_archive<Archives>{os};
         ar(serializable);
         archives = ar.get_output_archives();
 
-        {
-            auto os2 = std::ostringstream{};
-            auto ar2 =
-                immer_archive::json_immer_output_archive<decltype(archives)>{
-                    archives, os2};
-            ar2(archives);
-            ar2.finalize();
-            archives = ar2.get_output_archives();
+        auto prev = archives;
+        while (true) {
+            // Keep saving archives until everything is saved.
+            save_archive();
+            if (prev == archives) {
+                break;
+            }
+            prev = archives;
         }
 
         ar.get_output_archives() = archives;

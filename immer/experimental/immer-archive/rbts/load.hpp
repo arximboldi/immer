@@ -167,7 +167,7 @@ private:
             throw invalid_children_count{id};
         }
 
-        auto leaf = node_ptr{node_t::make_leaf_n(n),
+        auto leaf = node_ptr{n ? node_t::make_leaf_n(n) : rbtree::empty_tail(),
                              [n](auto* ptr) { node_t::delete_leaf(ptr, n); }};
         immer::detail::uninitialized_copy(
             node_info->data.begin(), node_info->data.end(), leaf.get()->leaf());

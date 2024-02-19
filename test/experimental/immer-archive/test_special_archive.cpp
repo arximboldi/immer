@@ -661,16 +661,22 @@ TEST_CASE("Test recursive type, saving the box triggers saving the box of the "
         .children = {immer::box<recursive_type>{v1},
                      immer::box<recursive_type>{v3}},
     };
+    const auto v5 = recursive_type{
+        .data = 567,
+        .children =
+            {
+                immer::box<recursive_type>{v4},
+            },
+    };
 
-    const auto [json_str, archives] = immer_archive::to_json_with_archive(v4);
+    const auto [json_str, archives] = immer_archive::to_json_with_archive(v5);
     // REQUIRE(json_str == "");
 
     {
-        auto full_load =
+        const auto full_load =
             immer_archive::from_json_with_archive<recursive_type>(json_str);
-        REQUIRE(full_load == v4);
-        // XXX This must pass:
-        // REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
-        //         json_str);
+        REQUIRE(full_load == v5);
+        REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
+                json_str);
     }
 }
