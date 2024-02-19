@@ -31,6 +31,9 @@ using test::test_value;
 using test::vector_one;
 
 template <class T>
+using arch = immer_archive::archivable<T>;
+
+template <class T>
 std::string string_via_tie(const T& value)
 {
     std::string result;
@@ -44,8 +47,8 @@ std::string string_via_tie(const T& value)
 
 struct meta_meta
 {
-    immer_archive::archivable<vector_one<int>> ints;
-    immer_archive::archivable<immer::table<test_value>> table;
+    arch<vector_one<int>> ints;
+    arch<immer::table<test_value>> table;
 
     auto tie() const { return std::tie(ints, table); }
 
@@ -68,8 +71,8 @@ struct meta_meta
 
 struct meta
 {
-    immer_archive::archivable<vector_one<int>> ints;
-    immer_archive::archivable<vector_one<meta_meta>> metas;
+    arch<vector_one<int>> ints;
+    arch<vector_one<meta_meta>> metas;
 
     auto tie() const { return std::tie(ints, metas); }
 
@@ -92,26 +95,24 @@ struct meta
 
 struct test_data
 {
-    immer_archive::archivable<vector_one<int>> ints;
-    immer_archive::archivable<vector_one<std::string>> strings;
+    arch<vector_one<int>> ints;
+    arch<vector_one<std::string>> strings;
 
-    immer_archive::archivable<flex_vector_one<int>> flex_ints;
-    immer_archive::archivable<immer::map<int, std::string>> map;
+    arch<flex_vector_one<int>> flex_ints;
+    arch<immer::map<int, std::string>> map;
 
-    immer_archive::archivable<vector_one<meta>> metas;
+    arch<vector_one<meta>> metas;
 
     // Map value is indirectly archivable
-    immer_archive::archivable<immer::map<int, meta>> metas_map;
+    arch<immer::map<int, meta>> metas_map;
 
     // Map value is directly archivable
-    immer_archive::archivable<
-        immer::map<int, immer_archive::archivable<vector_one<int>>>>
-        vectors_map;
+    arch<immer::map<int, arch<vector_one<int>>>> vectors_map;
 
     // Also test having meta directly, not inside an archivable type
     meta single_meta;
 
-    immer_archive::archivable<immer::box<std::string>> box;
+    arch<immer::box<std::string>> box;
 
     auto tie() const
     {
@@ -172,10 +173,8 @@ inline auto get_archives_types(const test_data&)
                         BOOST_HANA_STRING("table_test_value")),
         hana::make_pair(hana::type_c<immer::map<int, meta>>,
                         BOOST_HANA_STRING("int_meta_map")),
-        hana::make_pair(
-            hana::type_c<
-                immer::map<int, immer_archive::archivable<vector_one<int>>>>,
-            BOOST_HANA_STRING("int_vector_map")),
+        hana::make_pair(hana::type_c<immer::map<int, arch<vector_one<int>>>>,
+                        BOOST_HANA_STRING("int_vector_map")),
         hana::make_pair(hana::type_c<immer::box<std::string>>,
                         BOOST_HANA_STRING("string_box"))
 
@@ -581,9 +580,7 @@ namespace {
 struct recursive_type
 {
     int data;
-    immer_archive::archivable<
-        vector_one<immer_archive::archivable<immer::box<recursive_type>>>>
-        children;
+    arch<vector_one<arch<immer::box<recursive_type>>>> children;
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -606,8 +603,7 @@ auto get_archives_types(const recursive_type&)
         hana::make_pair(hana::type_c<immer::box<recursive_type>>,
                         BOOST_HANA_STRING("boxes")),
         hana::make_pair(
-            hana::type_c<vector_one<
-                immer_archive::archivable<immer::box<recursive_type>>>>,
+            hana::type_c<vector_one<arch<immer::box<recursive_type>>>>,
             BOOST_HANA_STRING("vectors"))
 
     );
@@ -676,6 +672,73 @@ TEST_CASE("Test recursive type, saving the box triggers saving the box of the "
         const auto full_load =
             immer_archive::from_json_with_archive<recursive_type>(json_str);
         REQUIRE(full_load == v5);
+        REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
+                json_str);
+    }
+}
+
+namespace {
+struct rec_map
+{
+    int data;
+    arch<immer::map<int, arch<immer::box<rec_map>>>> map;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data), CEREAL_NVP(map));
+    }
+
+    auto tie() const { return std::tie(data, map); }
+
+    friend bool operator==(const rec_map& left, const rec_map& right)
+    {
+        return left.tie() == right.tie();
+    }
+};
+
+auto get_archives_types(const rec_map&)
+{
+    auto names = hana::make_map(
+        hana::make_pair(hana::type_c<immer::box<rec_map>>,
+                        BOOST_HANA_STRING("boxes")),
+        hana::make_pair(
+            hana::type_c<immer::map<int, arch<immer::box<rec_map>>>>,
+            BOOST_HANA_STRING("maps"))
+
+    );
+    return names;
+}
+} // namespace
+
+TEST_CASE("Test saving a map that contains the same map")
+{
+    const auto v1    = immer::box<rec_map>{rec_map{
+           .data = 123,
+    }};
+    const auto v2    = immer::box<rec_map>{rec_map{
+           .data = 234,
+           .map =
+               {
+                {1, v1},
+            },
+    }};
+    const auto value = rec_map{
+        .data = 345,
+        .map =
+            {
+                {2, v2},
+            },
+    };
+
+    const auto [json_str, archives] =
+        immer_archive::to_json_with_archive(value);
+    // REQUIRE(json_str == "");
+
+    {
+        const auto full_load =
+            immer_archive::from_json_with_archive<rec_map>(json_str);
+        REQUIRE(full_load == value);
         REQUIRE(immer_archive::to_json_with_archive(full_load).first ==
                 json_str);
     }
