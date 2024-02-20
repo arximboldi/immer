@@ -743,3 +743,34 @@ TEST_CASE("Test saving a map that contains the same map")
                 json_str);
     }
 }
+
+TEST_CASE("Test non-unique names in the map")
+{
+    {
+        const auto names = hana::make_map(
+            hana::make_pair(hana::type_c<immer::box<int>>,
+                            BOOST_HANA_STRING("box")),
+            hana::make_pair(hana::type_c<immer::box<std::string>>,
+                            BOOST_HANA_STRING("box"))
+
+        );
+
+        using IsUnique =
+            decltype(immer_archive::detail::are_type_names_unique(names));
+        static_assert(boost::hana::value<IsUnique>() == false,
+                      "Detect non-unique names");
+    }
+    {
+        const auto names = hana::make_map(
+            hana::make_pair(hana::type_c<immer::box<int>>,
+                            BOOST_HANA_STRING("box_1")),
+            hana::make_pair(hana::type_c<immer::box<std::string>>,
+                            BOOST_HANA_STRING("box_2"))
+
+        );
+
+        using IsUnique =
+            decltype(immer_archive::detail::are_type_names_unique(names));
+        static_assert(boost::hana::value<IsUnique>(), "Names are unique");
+    }
+}

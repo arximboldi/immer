@@ -142,6 +142,15 @@ inline auto generate_archives_save(auto type_names)
     return archives_save<Storage, Names>{storage};
 }
 
+inline auto are_type_names_unique(auto type_names)
+{
+    auto names_set =
+        hana::fold_left(type_names, hana::make_set(), [](auto set, auto pair) {
+            return hana::insert(set, hana::second(pair));
+        });
+    return hana::length(type_names) == hana::length(names_set);
+}
+
 inline auto generate_archives_load(auto type_names)
 {
     auto storage =
@@ -179,6 +188,10 @@ constexpr bool is_archive_empty(const Archives& archives)
 template <typename T>
 auto to_json_with_archive(const T& serializable)
 {
+    using IsUnique = decltype(detail::are_type_names_unique(
+        get_archives_types(serializable)));
+    static_assert(boost::hana::value<IsUnique>(),
+                  "Archive names for each type must be unique");
     auto archives =
         detail::generate_archives_save(get_archives_types(serializable));
     using Archives = std::decay_t<decltype(archives)>;
