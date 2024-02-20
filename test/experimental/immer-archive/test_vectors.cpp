@@ -1543,3 +1543,202 @@ TEST_CASE("Can't load saved flex vector with relaxed nodes as strict")
             immer_archive::rbts::relaxed_node_not_allowed_exception);
     }
 }
+
+namespace {
+struct old_type
+{
+    int data;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data));
+    }
+};
+
+struct new_type
+{
+    int data;
+    std::string data2;
+
+    auto tie() const { return std::tie(data, data2); }
+
+    friend bool operator==(const new_type& left, const new_type& right)
+    {
+        return left.tie() == right.tie();
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data), CEREAL_NVP(data2));
+    }
+};
+} // namespace
+
+TEST_CASE("Test archive conversion")
+{
+    const auto vec1 = test::vector_one<old_type>{
+        old_type{123},
+        old_type{234},
+    };
+    const auto vec2 = vec1.push_back(old_type{345});
+
+    auto ar               = immer_archive::rbts::make_save_archive_for(vec1);
+    auto vec1_id          = immer_archive::container_id{};
+    std::tie(ar, vec1_id) = save_to_archive(vec1, ar);
+    auto vec2_id          = immer_archive::container_id{};
+    std::tie(ar, vec2_id) = save_to_archive(vec2, ar);
+
+    // Confirm that vec1 and vec2 have structural sharing in the beginning.
+    const auto expected_ar = json_t::parse(R"(
+{
+    "value0": {
+        "leaves": [
+            {
+                "key": 1,
+                "value": [
+                    {
+                        "data": 123
+                    },
+                    {
+                        "data": 234
+                    }
+                ]
+            },
+            {
+                "key": 3,
+                "value": [
+                    {
+                        "data": 345
+                    }
+                ]
+            }
+        ],
+        "inners": [
+            {
+                "key": 0,
+                "value": {
+                    "children": [],
+                    "relaxed": false
+                }
+            },
+            {
+                "key": 2,
+                "value": {
+                    "children": [
+                        1
+                    ],
+                    "relaxed": false
+                }
+            }
+        ],
+        "vectors": [
+            {
+                "root": 0,
+                "tail": 1
+            },
+            {
+                "root": 2,
+                "tail": 3
+            }
+        ]
+    }
+}
+    )");
+
+    REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+
+    const auto f = [](const old_type& val) {
+        return new_type{
+            .data  = val.data,
+            .data2 = fmt::format("_{}_", val.data),
+        };
+    };
+    const auto transform_vec = [&](const auto& vec) {
+        auto result = test::vector_one<new_type>{};
+        for (const auto& item : vec) {
+            result = std::move(result).push_back(f(item));
+        }
+        return result;
+    };
+
+    const auto load_archive = fix_leaf_nodes(ar);
+    const auto load_archive_new_type =
+        transform_archive<new_type>(load_archive, f);
+    auto loader =
+        make_loader_for(test::vector_one<new_type>{}, load_archive_new_type);
+
+    const auto loaded_1 = loader.load(vec1_id);
+    const auto loaded_2 = loader.load(vec2_id);
+    REQUIRE(loaded_1 == transform_vec(vec1));
+    REQUIRE(loaded_2 == transform_vec(vec2));
+
+    SECTION("Loaded vectors still share the structure")
+    {
+        auto ar          = immer_archive::rbts::make_save_archive_for(loaded_1);
+        auto id          = immer_archive::container_id{};
+        std::tie(ar, id) = save_to_archive(loaded_1, ar);
+        std::tie(ar, id) = save_to_archive(loaded_2, ar);
+
+        const auto expected_ar = json_t::parse(R"(
+{
+  "value0": {
+    "inners": [
+      {
+        "key": 0,
+        "value": {
+          "children": [],
+          "relaxed": false
+        }
+      },
+      {
+        "key": 2,
+        "value": {
+          "children": [
+            1
+          ],
+          "relaxed": false
+        }
+      }
+    ],
+    "leaves": [
+      {
+        "key": 1,
+        "value": [
+          {
+            "data": 123,
+            "data2": "_123_"
+          },
+          {
+            "data": 234,
+            "data2": "_234_"
+          }
+        ]
+      },
+      {
+        "key": 3,
+        "value": [
+          {
+            "data": 345,
+            "data2": "_345_"
+          }
+        ]
+      }
+    ],
+    "vectors": [
+      {
+        "root": 0,
+        "tail": 1
+      },
+      {
+        "root": 2,
+        "tail": 3
+      }
+    ]
+  }
+}
+        )");
+        REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+    }
+}

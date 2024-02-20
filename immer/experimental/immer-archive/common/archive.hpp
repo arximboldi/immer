@@ -3,6 +3,7 @@
 #include <immer/experimental/immer-archive/alias.hpp>
 
 #include <immer/array.hpp>
+#include <immer/map.hpp>
 
 #include <cereal/types/utility.hpp>
 
@@ -72,6 +73,27 @@ void load(Archive& ar, values_load<T>& m)
         ar(x);
         m.data = std::move(m.data).push_back(std::move(x));
     }
+}
+
+template <class U, class T, class F>
+values_load<U> transform(const values_load<T>& values, F&& func)
+{
+    auto data = std::vector<U>{};
+    for (const auto& item : values.data) {
+        data.push_back(func(item));
+    }
+    return values_load<U>{immer::array<U>{data.begin(), data.end()}};
+}
+
+template <class U, class T, class F>
+immer::map<node_id, values_load<U>>
+transform(const immer::map<node_id, values_load<T>>& map, F&& func)
+{
+    auto result = immer::map<node_id, values_load<U>>{};
+    for (const auto& [key, value] : map) {
+        result = std::move(result).set(key, transform<U>(value, func));
+    }
+    return result;
 }
 
 } // namespace immer_archive
