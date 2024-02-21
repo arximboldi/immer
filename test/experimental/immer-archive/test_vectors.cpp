@@ -1544,40 +1544,11 @@ TEST_CASE("Can't load saved flex vector with relaxed nodes as strict")
     }
 }
 
-namespace {
-struct old_type
+TEST_CASE("Test vector archive conversion")
 {
-    int data;
+    using test::new_type;
+    using test::old_type;
 
-    template <class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(CEREAL_NVP(data));
-    }
-};
-
-struct new_type
-{
-    int data;
-    std::string data2;
-
-    auto tie() const { return std::tie(data, data2); }
-
-    friend bool operator==(const new_type& left, const new_type& right)
-    {
-        return left.tie() == right.tie();
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(CEREAL_NVP(data), CEREAL_NVP(data2));
-    }
-};
-} // namespace
-
-TEST_CASE("Test archive conversion")
-{
     const auto vec1 = test::vector_one<old_type>{
         old_type{123},
         old_type{234},
@@ -1649,23 +1620,17 @@ TEST_CASE("Test archive conversion")
 
     REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
 
-    const auto f = [](const old_type& val) {
-        return new_type{
-            .data  = val.data,
-            .data2 = fmt::format("_{}_", val.data),
-        };
-    };
     const auto transform_vec = [&](const auto& vec) {
         auto result = test::vector_one<new_type>{};
         for (const auto& item : vec) {
-            result = std::move(result).push_back(f(item));
+            result = std::move(result).push_back(convert_old_type(item));
         }
         return result;
     };
 
     const auto load_archive = fix_leaf_nodes(ar);
     const auto load_archive_new_type =
-        transform_archive<new_type>(load_archive, f);
+        transform_archive(load_archive, convert_old_type);
     auto loader =
         make_loader_for(test::vector_one<new_type>{}, load_archive_new_type);
 

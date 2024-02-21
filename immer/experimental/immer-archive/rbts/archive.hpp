@@ -148,11 +148,12 @@ archive_load<T> fix_leaf_nodes(archive_save<T, MemoryPolicy, B, BL> ar)
  * Given a transformation function from T to U, transform an archive<T> into
  * archive<U>. This allows to preserve structural sharing while loading.
  */
-template <class U, class T, class F>
-archive_load<U> transform_archive(const archive_load<T>& ar, F&& func)
+template <class T, class F>
+auto transform_archive(const archive_load<T>& ar, F&& func)
 {
+    using U = std::decay_t<decltype(func(std::declval<T>()))>;
     return archive_load<U>{
-        .leaves  = transform<U>(ar.leaves, func),
+        .leaves  = transform(ar.leaves, func),
         .inners  = ar.inners,
         .vectors = ar.vectors,
     };

@@ -83,6 +83,44 @@ struct test_value
     }
 };
 
+struct old_type
+{
+    int data;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data));
+    }
+};
+
+struct new_type
+{
+    int data;
+    std::string data2;
+
+    auto tie() const { return std::tie(data, data2); }
+
+    friend bool operator==(const new_type& left, const new_type& right)
+    {
+        return left.tie() == right.tie();
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data), CEREAL_NVP(data2));
+    }
+};
+
+inline auto convert_old_type(const old_type& val)
+{
+    return new_type{
+        .data  = val.data,
+        .data2 = fmt::format("_{}_", val.data),
+    };
+}
+
 } // namespace test
 
 template <>

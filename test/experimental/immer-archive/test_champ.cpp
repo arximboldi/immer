@@ -770,3 +770,834 @@ TEST_CASE("Test modifying nodes with collisions")
         REQUIRE(load_set(set_id) == expected_set.erase("18"));
     }
 }
+
+TEST_CASE("Test champ archive conversion")
+{
+    using test::new_type;
+    using test::old_type;
+
+    using old_map_t =
+        immer::map<std::string, old_type, immer_archive::xx_hash<std::string>>;
+    using new_map_t =
+        immer::map<std::string, new_type, immer_archive::xx_hash<std::string>>;
+
+    const auto map1 = [] {
+        auto map = old_map_t{};
+        for (auto i = 0; i < 30; ++i) {
+            map = std::move(map).set(fmt::format("x{}x", i), old_type{i});
+        }
+        return map;
+    }();
+    const auto map2 = map1.set("345", old_type{345});
+
+    auto [ar, map1_id]    = immer_archive::champ::save_to_archive(map1, {});
+    auto map2_id          = immer_archive::node_id{};
+    std::tie(ar, map2_id) = save_to_archive(map2, ar);
+
+    // Confirm that map1 and map2 have structural sharing in the beginning.
+    // For example, "x21x" is stored only once, it's shared.
+    const auto expected_ar = json_t::parse(R"(
+{
+  "value0": [
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "collisions": false,
+      "datamap": 2013603464,
+      "nodemap": 2188935188,
+      "values": [
+        {
+          "first": "x13x",
+          "second": {
+            "data": 13
+          }
+        },
+        {
+          "first": "x4x",
+          "second": {
+            "data": 4
+          }
+        },
+        {
+          "first": "x22x",
+          "second": {
+            "data": 22
+          }
+        },
+        {
+          "first": "x28x",
+          "second": {
+            "data": 28
+          }
+        },
+        {
+          "first": "x10x",
+          "second": {
+            "data": 10
+          }
+        },
+        {
+          "first": "x12x",
+          "second": {
+            "data": 12
+          }
+        },
+        {
+          "first": "x9x",
+          "second": {
+            "data": 9
+          }
+        },
+        {
+          "first": "x29x",
+          "second": {
+            "data": 29
+          }
+        },
+        {
+          "first": "x6x",
+          "second": {
+            "data": 6
+          }
+        },
+        {
+          "first": "x17x",
+          "second": {
+            "data": 17
+          }
+        },
+        {
+          "first": "x11x",
+          "second": {
+            "data": 11
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 67125248,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x21x",
+          "second": {
+            "data": 21
+          }
+        },
+        {
+          "first": "x5x",
+          "second": {
+            "data": 5
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 32770,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x25x",
+          "second": {
+            "data": 25
+          }
+        },
+        {
+          "first": "x26x",
+          "second": {
+            "data": 26
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 65539,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x8x",
+          "second": {
+            "data": 8
+          }
+        },
+        {
+          "first": "x16x",
+          "second": {
+            "data": 16
+          }
+        },
+        {
+          "first": "x3x",
+          "second": {
+            "data": 3
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 139264,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x14x",
+          "second": {
+            "data": 14
+          }
+        },
+        {
+          "first": "x18x",
+          "second": {
+            "data": 18
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 1073742080,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x23x",
+          "second": {
+            "data": 23
+          }
+        },
+        {
+          "first": "x0x",
+          "second": {
+            "data": 0
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 2621440,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x15x",
+          "second": {
+            "data": 15
+          }
+        },
+        {
+          "first": "x24x",
+          "second": {
+            "data": 24
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 8224,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x27x",
+          "second": {
+            "data": 27
+          }
+        },
+        {
+          "first": "x1x",
+          "second": {
+            "data": 1
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 8421376,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x7x",
+          "second": {
+            "data": 7
+          }
+        },
+        {
+          "first": "x20x",
+          "second": {
+            "data": 20
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 134234112,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x19x",
+          "second": {
+            "data": 19
+          }
+        },
+        {
+          "first": "x2x",
+          "second": {
+            "data": 2
+          }
+        }
+      ]
+    },
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "collisions": false,
+      "datamap": 2013619848,
+      "nodemap": 2188935188,
+      "values": [
+        {
+          "first": "x13x",
+          "second": {
+            "data": 13
+          }
+        },
+        {
+          "first": "x4x",
+          "second": {
+            "data": 4
+          }
+        },
+        {
+          "first": "x22x",
+          "second": {
+            "data": 22
+          }
+        },
+        {
+          "first": "x28x",
+          "second": {
+            "data": 28
+          }
+        },
+        {
+          "first": "x10x",
+          "second": {
+            "data": 10
+          }
+        },
+        {
+          "first": "x12x",
+          "second": {
+            "data": 12
+          }
+        },
+        {
+          "first": "x9x",
+          "second": {
+            "data": 9
+          }
+        },
+        {
+          "first": "x29x",
+          "second": {
+            "data": 29
+          }
+        },
+        {
+          "first": "x6x",
+          "second": {
+            "data": 6
+          }
+        },
+        {
+          "first": "345",
+          "second": {
+            "data": 345
+          }
+        },
+        {
+          "first": "x17x",
+          "second": {
+            "data": 17
+          }
+        },
+        {
+          "first": "x11x",
+          "second": {
+            "data": 11
+          }
+        }
+      ]
+    }
+  ]
+}
+    )");
+
+    REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+
+    const auto transform_map = [&](const auto& map) {
+        auto result = new_map_t{};
+        for (const auto& [key, value] : map) {
+            result = std::move(result).set(key, convert_old_type(value));
+        }
+        return result;
+    };
+
+    const auto load_archive = to_load_archive(ar);
+    const auto load_archive_new_type =
+        transform_archive(load_archive, convert_old_type);
+    auto loader = immer_archive::champ::container_loader{load_archive_new_type};
+
+    const auto loaded_1 = loader.load(map1_id);
+    const auto loaded_2 = loader.load(map2_id);
+    REQUIRE(loaded_1 == transform_map(map1));
+    REQUIRE(loaded_2 == transform_map(map2));
+
+    SECTION("Loaded maps still share the structure")
+    {
+        auto [ar, id]    = immer_archive::champ::save_to_archive(loaded_1, {});
+        std::tie(ar, id) = save_to_archive(loaded_1, ar);
+        std::tie(ar, id) = save_to_archive(loaded_2, ar);
+
+        // "_21_" is stored only once
+        const auto expected_ar = json_t::parse(R"(
+{
+  "value0": [
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "collisions": false,
+      "datamap": 2013603464,
+      "nodemap": 2188935188,
+      "values": [
+        {
+          "first": "x13x",
+          "second": {
+            "data": 13,
+            "data2": "_13_"
+          }
+        },
+        {
+          "first": "x4x",
+          "second": {
+            "data": 4,
+            "data2": "_4_"
+          }
+        },
+        {
+          "first": "x22x",
+          "second": {
+            "data": 22,
+            "data2": "_22_"
+          }
+        },
+        {
+          "first": "x28x",
+          "second": {
+            "data": 28,
+            "data2": "_28_"
+          }
+        },
+        {
+          "first": "x10x",
+          "second": {
+            "data": 10,
+            "data2": "_10_"
+          }
+        },
+        {
+          "first": "x12x",
+          "second": {
+            "data": 12,
+            "data2": "_12_"
+          }
+        },
+        {
+          "first": "x9x",
+          "second": {
+            "data": 9,
+            "data2": "_9_"
+          }
+        },
+        {
+          "first": "x29x",
+          "second": {
+            "data": 29,
+            "data2": "_29_"
+          }
+        },
+        {
+          "first": "x6x",
+          "second": {
+            "data": 6,
+            "data2": "_6_"
+          }
+        },
+        {
+          "first": "x17x",
+          "second": {
+            "data": 17,
+            "data2": "_17_"
+          }
+        },
+        {
+          "first": "x11x",
+          "second": {
+            "data": 11,
+            "data2": "_11_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 67125248,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x21x",
+          "second": {
+            "data": 21,
+            "data2": "_21_"
+          }
+        },
+        {
+          "first": "x5x",
+          "second": {
+            "data": 5,
+            "data2": "_5_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 32770,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x25x",
+          "second": {
+            "data": 25,
+            "data2": "_25_"
+          }
+        },
+        {
+          "first": "x26x",
+          "second": {
+            "data": 26,
+            "data2": "_26_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 65539,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x8x",
+          "second": {
+            "data": 8,
+            "data2": "_8_"
+          }
+        },
+        {
+          "first": "x16x",
+          "second": {
+            "data": 16,
+            "data2": "_16_"
+          }
+        },
+        {
+          "first": "x3x",
+          "second": {
+            "data": 3,
+            "data2": "_3_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 139264,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x14x",
+          "second": {
+            "data": 14,
+            "data2": "_14_"
+          }
+        },
+        {
+          "first": "x18x",
+          "second": {
+            "data": 18,
+            "data2": "_18_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 1073742080,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x23x",
+          "second": {
+            "data": 23,
+            "data2": "_23_"
+          }
+        },
+        {
+          "first": "x0x",
+          "second": {
+            "data": 0,
+            "data2": "_0_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 2621440,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x15x",
+          "second": {
+            "data": 15,
+            "data2": "_15_"
+          }
+        },
+        {
+          "first": "x24x",
+          "second": {
+            "data": 24,
+            "data2": "_24_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 8224,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x27x",
+          "second": {
+            "data": 27,
+            "data2": "_27_"
+          }
+        },
+        {
+          "first": "x1x",
+          "second": {
+            "data": 1,
+            "data2": "_1_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 8421376,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x7x",
+          "second": {
+            "data": 7,
+            "data2": "_7_"
+          }
+        },
+        {
+          "first": "x20x",
+          "second": {
+            "data": 20,
+            "data2": "_20_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 134234112,
+      "nodemap": 0,
+      "values": [
+        {
+          "first": "x19x",
+          "second": {
+            "data": 19,
+            "data2": "_19_"
+          }
+        },
+        {
+          "first": "x2x",
+          "second": {
+            "data": 2,
+            "data2": "_2_"
+          }
+        }
+      ]
+    },
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "collisions": false,
+      "datamap": 2013619848,
+      "nodemap": 2188935188,
+      "values": [
+        {
+          "first": "x13x",
+          "second": {
+            "data": 13,
+            "data2": "_13_"
+          }
+        },
+        {
+          "first": "x4x",
+          "second": {
+            "data": 4,
+            "data2": "_4_"
+          }
+        },
+        {
+          "first": "x22x",
+          "second": {
+            "data": 22,
+            "data2": "_22_"
+          }
+        },
+        {
+          "first": "x28x",
+          "second": {
+            "data": 28,
+            "data2": "_28_"
+          }
+        },
+        {
+          "first": "x10x",
+          "second": {
+            "data": 10,
+            "data2": "_10_"
+          }
+        },
+        {
+          "first": "x12x",
+          "second": {
+            "data": 12,
+            "data2": "_12_"
+          }
+        },
+        {
+          "first": "x9x",
+          "second": {
+            "data": 9,
+            "data2": "_9_"
+          }
+        },
+        {
+          "first": "x29x",
+          "second": {
+            "data": 29,
+            "data2": "_29_"
+          }
+        },
+        {
+          "first": "x6x",
+          "second": {
+            "data": 6,
+            "data2": "_6_"
+          }
+        },
+        {
+          "first": "345",
+          "second": {
+            "data": 345,
+            "data2": "_345_"
+          }
+        },
+        {
+          "first": "x17x",
+          "second": {
+            "data": 17,
+            "data2": "_17_"
+          }
+        },
+        {
+          "first": "x11x",
+          "second": {
+            "data": 11,
+            "data2": "_11_"
+          }
+        }
+      ]
+    }
+  ]
+}
+        )");
+        REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+    }
+}
