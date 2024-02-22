@@ -1551,10 +1551,10 @@ TEST_CASE("Test vector archive conversion")
     using test::old_type;
 
     const auto vec1 = test::vector_one<old_type>{
-        old_type{123},
-        old_type{234},
+        old_type{.data = 123},
+        old_type{.data = 234},
     };
-    const auto vec2 = vec1.push_back(old_type{345});
+    const auto vec2 = vec1.push_back(old_type{.data = 345});
 
     auto ar               = immer::archive::rbts::make_save_archive_for(vec1);
     auto vec1_id          = immer::archive::container_id{};
@@ -1565,57 +1565,60 @@ TEST_CASE("Test vector archive conversion")
     // Confirm that vec1 and vec2 have structural sharing in the beginning.
     const auto expected_ar = json_t::parse(R"(
 {
-    "value0": {
-        "leaves": [
-            {
-                "key": 1,
-                "value": [
-                    {
-                        "data": 123
-                    },
-                    {
-                        "data": 234
-                    }
-                ]
-            },
-            {
-                "key": 3,
-                "value": [
-                    {
-                        "data": 345
-                    }
-                ]
-            }
-        ],
-        "inners": [
-            {
-                "key": 0,
-                "value": {
-                    "children": [],
-                    "relaxed": false
-                }
-            },
-            {
-                "key": 2,
-                "value": {
-                    "children": [
-                        1
-                    ],
-                    "relaxed": false
-                }
-            }
-        ],
-        "vectors": [
-            {
-                "root": 0,
-                "tail": 1
-            },
-            {
-                "root": 2,
-                "tail": 3
-            }
+  "value0": {
+    "inners": [
+      {
+        "key": 0,
+        "value": {
+          "children": [],
+          "relaxed": false
+        }
+      },
+      {
+        "key": 2,
+        "value": {
+          "children": [
+            1
+          ],
+          "relaxed": false
+        }
+      }
+    ],
+    "leaves": [
+      {
+        "key": 1,
+        "value": [
+          {
+            "data": 123,
+            "id": ""
+          },
+          {
+            "data": 234,
+            "id": ""
+          }
         ]
-    }
+      },
+      {
+        "key": 3,
+        "value": [
+          {
+            "data": 345,
+            "id": ""
+          }
+        ]
+      }
+    ],
+    "vectors": [
+      {
+        "root": 0,
+        "tail": 1
+      },
+      {
+        "root": 2,
+        "tail": 3
+      }
+    ]
+  }
 }
     )");
 
@@ -1674,11 +1677,13 @@ TEST_CASE("Test vector archive conversion")
         "value": [
           {
             "data": 123,
-            "data2": "_123_"
+            "data2": "_123_",
+            "id": ""
           },
           {
             "data": 234,
-            "data2": "_234_"
+            "data2": "_234_",
+            "id": ""
           }
         ]
       },
@@ -1687,7 +1692,8 @@ TEST_CASE("Test vector archive conversion")
         "value": [
           {
             "data": 345,
-            "data2": "_345_"
+            "data2": "_345_",
+            "id": ""
           }
         ]
       }

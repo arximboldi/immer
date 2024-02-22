@@ -249,5 +249,24 @@ auto transform_archive(const container_archive_load<
     };
 }
 
+template <typename T,
+          typename KeyFn,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          immer::detail::hamts::bits_t B,
+          class F>
+auto transform_archive(
+    const container_archive_load<
+        immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>& ar,
+    F&& func)
+{
+    using U           = std::decay_t<decltype(func(std::declval<T>()))>;
+    using new_table_t = immer::table<U, KeyFn, Hash, Equal, MemoryPolicy, B>;
+    return container_archive_load<new_table_t>{
+        .nodes = transform(ar.nodes, func),
+    };
+}
+
 } // namespace champ
 } // namespace immer::archive

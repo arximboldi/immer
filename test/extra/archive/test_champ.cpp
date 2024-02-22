@@ -776,7 +776,7 @@ TEST_CASE("Test modifying nodes with collisions")
     }
 }
 
-TEST_CASE("Test champ archive conversion")
+TEST_CASE("Test champ archive conversion, map")
 {
     using test::new_type;
     using test::old_type;
@@ -789,11 +789,12 @@ TEST_CASE("Test champ archive conversion")
     const auto map1 = [] {
         auto map = old_map_t{};
         for (auto i = 0; i < 30; ++i) {
-            map = std::move(map).set(fmt::format("x{}x", i), old_type{i});
+            map =
+                std::move(map).set(fmt::format("x{}x", i), old_type{.data = i});
         }
         return map;
     }();
-    const auto map2 = map1.set("345", old_type{345});
+    const auto map2 = map1.set("345", old_type{.data = 345});
 
     auto [ar, map1_id]    = immer::archive::champ::save_to_archive(map1, {});
     auto map2_id          = immer::archive::node_id{};
@@ -823,67 +824,78 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x13x",
           "second": {
-            "data": 13
+            "data": 13,
+            "id": ""
           }
         },
         {
           "first": "x4x",
           "second": {
-            "data": 4
+            "data": 4,
+            "id": ""
           }
         },
         {
           "first": "x22x",
           "second": {
-            "data": 22
+            "data": 22,
+            "id": ""
           }
         },
         {
           "first": "x28x",
           "second": {
-            "data": 28
+            "data": 28,
+            "id": ""
           }
         },
         {
           "first": "x10x",
           "second": {
-            "data": 10
+            "data": 10,
+            "id": ""
           }
         },
         {
           "first": "x12x",
           "second": {
-            "data": 12
+            "data": 12,
+            "id": ""
           }
         },
         {
           "first": "x9x",
           "second": {
-            "data": 9
+            "data": 9,
+            "id": ""
           }
         },
         {
           "first": "x29x",
           "second": {
-            "data": 29
+            "data": 29,
+            "id": ""
           }
         },
         {
           "first": "x6x",
           "second": {
-            "data": 6
+            "data": 6,
+            "id": ""
           }
         },
         {
           "first": "x17x",
           "second": {
-            "data": 17
+            "data": 17,
+            "id": ""
           }
         },
         {
           "first": "x11x",
           "second": {
-            "data": 11
+            "data": 11,
+            "id": ""
           }
         }
       ]
@@ -897,13 +909,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x21x",
           "second": {
-            "data": 21
+            "data": 21,
+            "id": ""
           }
         },
         {
           "first": "x5x",
           "second": {
-            "data": 5
+            "data": 5,
+            "id": ""
           }
         }
       ]
@@ -917,13 +931,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x25x",
           "second": {
-            "data": 25
+            "data": 25,
+            "id": ""
           }
         },
         {
           "first": "x26x",
           "second": {
-            "data": 26
+            "data": 26,
+            "id": ""
           }
         }
       ]
@@ -937,19 +953,22 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x8x",
           "second": {
-            "data": 8
+            "data": 8,
+            "id": ""
           }
         },
         {
           "first": "x16x",
           "second": {
-            "data": 16
+            "data": 16,
+            "id": ""
           }
         },
         {
           "first": "x3x",
           "second": {
-            "data": 3
+            "data": 3,
+            "id": ""
           }
         }
       ]
@@ -963,13 +982,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x14x",
           "second": {
-            "data": 14
+            "data": 14,
+            "id": ""
           }
         },
         {
           "first": "x18x",
           "second": {
-            "data": 18
+            "data": 18,
+            "id": ""
           }
         }
       ]
@@ -983,13 +1004,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x23x",
           "second": {
-            "data": 23
+            "data": 23,
+            "id": ""
           }
         },
         {
           "first": "x0x",
           "second": {
-            "data": 0
+            "data": 0,
+            "id": ""
           }
         }
       ]
@@ -1003,13 +1026,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x15x",
           "second": {
-            "data": 15
+            "data": 15,
+            "id": ""
           }
         },
         {
           "first": "x24x",
           "second": {
-            "data": 24
+            "data": 24,
+            "id": ""
           }
         }
       ]
@@ -1023,13 +1048,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x27x",
           "second": {
-            "data": 27
+            "data": 27,
+            "id": ""
           }
         },
         {
           "first": "x1x",
           "second": {
-            "data": 1
+            "data": 1,
+            "id": ""
           }
         }
       ]
@@ -1043,13 +1070,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x7x",
           "second": {
-            "data": 7
+            "data": 7,
+            "id": ""
           }
         },
         {
           "first": "x20x",
           "second": {
-            "data": 20
+            "data": 20,
+            "id": ""
           }
         }
       ]
@@ -1063,13 +1092,15 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x19x",
           "second": {
-            "data": 19
+            "data": 19,
+            "id": ""
           }
         },
         {
           "first": "x2x",
           "second": {
-            "data": 2
+            "data": 2,
+            "id": ""
           }
         }
       ]
@@ -1093,73 +1124,85 @@ TEST_CASE("Test champ archive conversion")
         {
           "first": "x13x",
           "second": {
-            "data": 13
+            "data": 13,
+            "id": ""
           }
         },
         {
           "first": "x4x",
           "second": {
-            "data": 4
+            "data": 4,
+            "id": ""
           }
         },
         {
           "first": "x22x",
           "second": {
-            "data": 22
+            "data": 22,
+            "id": ""
           }
         },
         {
           "first": "x28x",
           "second": {
-            "data": 28
+            "data": 28,
+            "id": ""
           }
         },
         {
           "first": "x10x",
           "second": {
-            "data": 10
+            "data": 10,
+            "id": ""
           }
         },
         {
           "first": "x12x",
           "second": {
-            "data": 12
+            "data": 12,
+            "id": ""
           }
         },
         {
           "first": "x9x",
           "second": {
-            "data": 9
+            "data": 9,
+            "id": ""
           }
         },
         {
           "first": "x29x",
           "second": {
-            "data": 29
+            "data": 29,
+            "id": ""
           }
         },
         {
           "first": "x6x",
           "second": {
-            "data": 6
+            "data": 6,
+            "id": ""
           }
         },
         {
           "first": "345",
           "second": {
-            "data": 345
+            "data": 345,
+            "id": ""
           }
         },
         {
           "first": "x17x",
           "second": {
-            "data": 17
+            "data": 17,
+            "id": ""
           }
         },
         {
           "first": "x11x",
           "second": {
-            "data": 11
+            "data": 11,
+            "id": ""
           }
         }
       ]
@@ -1219,77 +1262,88 @@ TEST_CASE("Test champ archive conversion")
           "first": "x13x",
           "second": {
             "data": 13,
-            "data2": "_13_"
+            "data2": "_13_",
+            "id": ""
           }
         },
         {
           "first": "x4x",
           "second": {
             "data": 4,
-            "data2": "_4_"
+            "data2": "_4_",
+            "id": ""
           }
         },
         {
           "first": "x22x",
           "second": {
             "data": 22,
-            "data2": "_22_"
+            "data2": "_22_",
+            "id": ""
           }
         },
         {
           "first": "x28x",
           "second": {
             "data": 28,
-            "data2": "_28_"
+            "data2": "_28_",
+            "id": ""
           }
         },
         {
           "first": "x10x",
           "second": {
             "data": 10,
-            "data2": "_10_"
+            "data2": "_10_",
+            "id": ""
           }
         },
         {
           "first": "x12x",
           "second": {
             "data": 12,
-            "data2": "_12_"
+            "data2": "_12_",
+            "id": ""
           }
         },
         {
           "first": "x9x",
           "second": {
             "data": 9,
-            "data2": "_9_"
+            "data2": "_9_",
+            "id": ""
           }
         },
         {
           "first": "x29x",
           "second": {
             "data": 29,
-            "data2": "_29_"
+            "data2": "_29_",
+            "id": ""
           }
         },
         {
           "first": "x6x",
           "second": {
             "data": 6,
-            "data2": "_6_"
+            "data2": "_6_",
+            "id": ""
           }
         },
         {
           "first": "x17x",
           "second": {
             "data": 17,
-            "data2": "_17_"
+            "data2": "_17_",
+            "id": ""
           }
         },
         {
           "first": "x11x",
           "second": {
             "data": 11,
-            "data2": "_11_"
+            "data2": "_11_",
+            "id": ""
           }
         }
       ]
@@ -1304,14 +1358,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x21x",
           "second": {
             "data": 21,
-            "data2": "_21_"
+            "data2": "_21_",
+            "id": ""
           }
         },
         {
           "first": "x5x",
           "second": {
             "data": 5,
-            "data2": "_5_"
+            "data2": "_5_",
+            "id": ""
           }
         }
       ]
@@ -1326,14 +1382,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x25x",
           "second": {
             "data": 25,
-            "data2": "_25_"
+            "data2": "_25_",
+            "id": ""
           }
         },
         {
           "first": "x26x",
           "second": {
             "data": 26,
-            "data2": "_26_"
+            "data2": "_26_",
+            "id": ""
           }
         }
       ]
@@ -1348,21 +1406,24 @@ TEST_CASE("Test champ archive conversion")
           "first": "x8x",
           "second": {
             "data": 8,
-            "data2": "_8_"
+            "data2": "_8_",
+            "id": ""
           }
         },
         {
           "first": "x16x",
           "second": {
             "data": 16,
-            "data2": "_16_"
+            "data2": "_16_",
+            "id": ""
           }
         },
         {
           "first": "x3x",
           "second": {
             "data": 3,
-            "data2": "_3_"
+            "data2": "_3_",
+            "id": ""
           }
         }
       ]
@@ -1377,14 +1438,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x14x",
           "second": {
             "data": 14,
-            "data2": "_14_"
+            "data2": "_14_",
+            "id": ""
           }
         },
         {
           "first": "x18x",
           "second": {
             "data": 18,
-            "data2": "_18_"
+            "data2": "_18_",
+            "id": ""
           }
         }
       ]
@@ -1399,14 +1462,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x23x",
           "second": {
             "data": 23,
-            "data2": "_23_"
+            "data2": "_23_",
+            "id": ""
           }
         },
         {
           "first": "x0x",
           "second": {
             "data": 0,
-            "data2": "_0_"
+            "data2": "_0_",
+            "id": ""
           }
         }
       ]
@@ -1421,14 +1486,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x15x",
           "second": {
             "data": 15,
-            "data2": "_15_"
+            "data2": "_15_",
+            "id": ""
           }
         },
         {
           "first": "x24x",
           "second": {
             "data": 24,
-            "data2": "_24_"
+            "data2": "_24_",
+            "id": ""
           }
         }
       ]
@@ -1443,14 +1510,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x27x",
           "second": {
             "data": 27,
-            "data2": "_27_"
+            "data2": "_27_",
+            "id": ""
           }
         },
         {
           "first": "x1x",
           "second": {
             "data": 1,
-            "data2": "_1_"
+            "data2": "_1_",
+            "id": ""
           }
         }
       ]
@@ -1465,14 +1534,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x7x",
           "second": {
             "data": 7,
-            "data2": "_7_"
+            "data2": "_7_",
+            "id": ""
           }
         },
         {
           "first": "x20x",
           "second": {
             "data": 20,
-            "data2": "_20_"
+            "data2": "_20_",
+            "id": ""
           }
         }
       ]
@@ -1487,14 +1558,16 @@ TEST_CASE("Test champ archive conversion")
           "first": "x19x",
           "second": {
             "data": 19,
-            "data2": "_19_"
+            "data2": "_19_",
+            "id": ""
           }
         },
         {
           "first": "x2x",
           "second": {
             "data": 2,
-            "data2": "_2_"
+            "data2": "_2_",
+            "id": ""
           }
         }
       ]
@@ -1519,84 +1592,96 @@ TEST_CASE("Test champ archive conversion")
           "first": "x13x",
           "second": {
             "data": 13,
-            "data2": "_13_"
+            "data2": "_13_",
+            "id": ""
           }
         },
         {
           "first": "x4x",
           "second": {
             "data": 4,
-            "data2": "_4_"
+            "data2": "_4_",
+            "id": ""
           }
         },
         {
           "first": "x22x",
           "second": {
             "data": 22,
-            "data2": "_22_"
+            "data2": "_22_",
+            "id": ""
           }
         },
         {
           "first": "x28x",
           "second": {
             "data": 28,
-            "data2": "_28_"
+            "data2": "_28_",
+            "id": ""
           }
         },
         {
           "first": "x10x",
           "second": {
             "data": 10,
-            "data2": "_10_"
+            "data2": "_10_",
+            "id": ""
           }
         },
         {
           "first": "x12x",
           "second": {
             "data": 12,
-            "data2": "_12_"
+            "data2": "_12_",
+            "id": ""
           }
         },
         {
           "first": "x9x",
           "second": {
             "data": 9,
-            "data2": "_9_"
+            "data2": "_9_",
+            "id": ""
           }
         },
         {
           "first": "x29x",
           "second": {
             "data": 29,
-            "data2": "_29_"
+            "data2": "_29_",
+            "id": ""
           }
         },
         {
           "first": "x6x",
           "second": {
             "data": 6,
-            "data2": "_6_"
+            "data2": "_6_",
+            "id": ""
           }
         },
         {
           "first": "345",
           "second": {
             "data": 345,
-            "data2": "_345_"
+            "data2": "_345_",
+            "id": ""
           }
         },
         {
           "first": "x17x",
           "second": {
             "data": 17,
-            "data2": "_17_"
+            "data2": "_17_",
+            "id": ""
           }
         },
         {
           "first": "x11x",
           "second": {
             "data": 11,
-            "data2": "_11_"
+            "data2": "_11_",
+            "id": ""
           }
         }
       ]
@@ -1605,5 +1690,739 @@ TEST_CASE("Test champ archive conversion")
 }
         )");
         REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+    }
+}
+
+TEST_CASE("Test champ archive conversion, table")
+{
+    using test::new_type;
+    using test::old_type;
+
+    using old_table_t = immer::table<old_type,
+                                     immer::table_key_fn,
+                                     immer::archive::xx_hash<std::string>>;
+    using new_table_t = immer::table<new_type,
+                                     immer::table_key_fn,
+                                     immer::archive::xx_hash<std::string>>;
+
+    const auto table1 = [] {
+        auto table = old_table_t{};
+        for (auto i = 0; i < 30; ++i) {
+            table = std::move(table).insert(old_type{
+                .id   = fmt::format("q{}q", i),
+                .data = i,
+            });
+        }
+        return table;
+    }();
+    const auto table2 = table1.insert(old_type{
+        .id   = "345",
+        .data = 345,
+    });
+
+    auto [ar, table1_id] = immer::archive::champ::save_to_archive(table1, {});
+    auto table2_id       = immer::archive::node_id{};
+    std::tie(ar, table2_id) = save_to_archive(table2, ar);
+
+    // Confirm that table1 and table2 have structural sharing in the beginning.
+    // "q2q" is stored only once.
+    const auto expected_ar = json_t::parse(R"(
+  {
+    "value0": [
+      {
+        "children": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "collisions": false,
+        "datamap": 3225456713,
+        "nodemap": 889282612,
+        "values": [
+          {
+            "data": 25,
+            "id": "q25q"
+          },
+          {
+            "data": 26,
+            "id": "q26q"
+          },
+          {
+            "data": 16,
+            "id": "q16q"
+          },
+          {
+            "data": 3,
+            "id": "q3q"
+          },
+          {
+            "data": 12,
+            "id": "q12q"
+          },
+          {
+            "data": 7,
+            "id": "q7q"
+          },
+          {
+            "data": 10,
+            "id": "q10q"
+          },
+          {
+            "data": 24,
+            "id": "q24q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 539492352,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 2,
+            "id": "q2q"
+          },
+          {
+            "data": 19,
+            "id": "q19q"
+          },
+          {
+            "data": 15,
+            "id": "q15q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 4325376,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 9,
+            "id": "q9q"
+          },
+          {
+            "data": 13,
+            "id": "q13q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 262272,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 6,
+            "id": "q6q"
+          },
+          {
+            "data": 27,
+            "id": "q27q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 136,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 28,
+            "id": "q28q"
+          },
+          {
+            "data": 29,
+            "id": "q29q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 8194,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 1,
+            "id": "q1q"
+          },
+          {
+            "data": 4,
+            "id": "q4q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 2147745792,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 20,
+            "id": "q20q"
+          },
+          {
+            "data": 17,
+            "id": "q17q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 537395712,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 0,
+            "id": "q0q"
+          },
+          {
+            "data": 14,
+            "id": "q14q"
+          },
+          {
+            "data": 21,
+            "id": "q21q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 536870920,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 8,
+            "id": "q8q"
+          },
+          {
+            "data": 11,
+            "id": "q11q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 32800,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 5,
+            "id": "q5q"
+          },
+          {
+            "data": 18,
+            "id": "q18q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 12582912,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 22,
+            "id": "q22q"
+          },
+          {
+            "data": 23,
+            "id": "q23q"
+          }
+        ]
+      },
+      {
+        "children": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          12,
+          8,
+          9,
+          10
+        ],
+        "collisions": false,
+        "datamap": 3225456713,
+        "nodemap": 889282612,
+        "values": [
+          {
+            "data": 25,
+            "id": "q25q"
+          },
+          {
+            "data": 26,
+            "id": "q26q"
+          },
+          {
+            "data": 16,
+            "id": "q16q"
+          },
+          {
+            "data": 3,
+            "id": "q3q"
+          },
+          {
+            "data": 12,
+            "id": "q12q"
+          },
+          {
+            "data": 7,
+            "id": "q7q"
+          },
+          {
+            "data": 10,
+            "id": "q10q"
+          },
+          {
+            "data": 24,
+            "id": "q24q"
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 570950144,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 345,
+            "id": "345"
+          },
+          {
+            "data": 0,
+            "id": "q0q"
+          },
+          {
+            "data": 14,
+            "id": "q14q"
+          },
+          {
+            "data": 21,
+            "id": "q21q"
+          }
+        ]
+      }
+    ]
+  }
+    )");
+
+    REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+
+    const auto transform_table = [&](const auto& table) {
+        auto result = new_table_t{};
+        for (const auto& item : table) {
+            result = std::move(result).insert(convert_old_type(item));
+        }
+        return result;
+    };
+
+    const auto load_archive = to_load_archive(ar);
+
+    SECTION("Invalid conversion, ID is corrupted")
+    {
+        const auto badly_convert_old_type = [](const old_type& val) {
+            return new_type{
+                .id    = val.id + "OOPS",
+                .data  = val.data,
+                .data2 = fmt::format("_{}_", val.data),
+            };
+        };
+        const auto load_archive_new_type =
+            transform_archive(load_archive, badly_convert_old_type);
+        auto loader =
+            immer::archive::champ::container_loader{load_archive_new_type};
+        REQUIRE_THROWS_AS(
+            loader.load(table1_id),
+            immer::archive::champ::hash_validation_failed_exception);
+        REQUIRE_THROWS_AS(
+            loader.load(table2_id),
+            immer::archive::champ::hash_validation_failed_exception);
+    }
+
+    SECTION("Valid conversion, ID is not changed")
+    {
+        const auto load_archive_new_type =
+            transform_archive(load_archive, convert_old_type);
+        auto loader =
+            immer::archive::champ::container_loader{load_archive_new_type};
+
+        const auto loaded_1 = loader.load(table1_id);
+        const auto loaded_2 = loader.load(table2_id);
+        REQUIRE(loaded_1 == transform_table(table1));
+        REQUIRE(loaded_2 == transform_table(table2));
+
+        SECTION("Loaded tables still share the structure")
+        {
+            auto [ar, id] =
+                immer::archive::champ::save_to_archive(loaded_1, {});
+            std::tie(ar, id) = save_to_archive(loaded_1, ar);
+            std::tie(ar, id) = save_to_archive(loaded_2, ar);
+
+            // For example, "q17q" is stored only once
+            const auto expected_ar = json_t::parse(R"(
+{
+  "value0": [
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "collisions": false,
+      "datamap": 3225456713,
+      "nodemap": 889282612,
+      "values": [
+        {
+          "data": 25,
+          "data2": "_25_",
+          "id": "q25q"
+        },
+        {
+          "data": 26,
+          "data2": "_26_",
+          "id": "q26q"
+        },
+        {
+          "data": 16,
+          "data2": "_16_",
+          "id": "q16q"
+        },
+        {
+          "data": 3,
+          "data2": "_3_",
+          "id": "q3q"
+        },
+        {
+          "data": 12,
+          "data2": "_12_",
+          "id": "q12q"
+        },
+        {
+          "data": 7,
+          "data2": "_7_",
+          "id": "q7q"
+        },
+        {
+          "data": 10,
+          "data2": "_10_",
+          "id": "q10q"
+        },
+        {
+          "data": 24,
+          "data2": "_24_",
+          "id": "q24q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 539492352,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 2,
+          "data2": "_2_",
+          "id": "q2q"
+        },
+        {
+          "data": 19,
+          "data2": "_19_",
+          "id": "q19q"
+        },
+        {
+          "data": 15,
+          "data2": "_15_",
+          "id": "q15q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 4325376,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 9,
+          "data2": "_9_",
+          "id": "q9q"
+        },
+        {
+          "data": 13,
+          "data2": "_13_",
+          "id": "q13q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 262272,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 6,
+          "data2": "_6_",
+          "id": "q6q"
+        },
+        {
+          "data": 27,
+          "data2": "_27_",
+          "id": "q27q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 136,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 28,
+          "data2": "_28_",
+          "id": "q28q"
+        },
+        {
+          "data": 29,
+          "data2": "_29_",
+          "id": "q29q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 8194,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 1,
+          "data2": "_1_",
+          "id": "q1q"
+        },
+        {
+          "data": 4,
+          "data2": "_4_",
+          "id": "q4q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 2147745792,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 20,
+          "data2": "_20_",
+          "id": "q20q"
+        },
+        {
+          "data": 17,
+          "data2": "_17_",
+          "id": "q17q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 537395712,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 0,
+          "data2": "_0_",
+          "id": "q0q"
+        },
+        {
+          "data": 14,
+          "data2": "_14_",
+          "id": "q14q"
+        },
+        {
+          "data": 21,
+          "data2": "_21_",
+          "id": "q21q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 536870920,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 8,
+          "data2": "_8_",
+          "id": "q8q"
+        },
+        {
+          "data": 11,
+          "data2": "_11_",
+          "id": "q11q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 32800,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 5,
+          "data2": "_5_",
+          "id": "q5q"
+        },
+        {
+          "data": 18,
+          "data2": "_18_",
+          "id": "q18q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 12582912,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 22,
+          "data2": "_22_",
+          "id": "q22q"
+        },
+        {
+          "data": 23,
+          "data2": "_23_",
+          "id": "q23q"
+        }
+      ]
+    },
+    {
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        12,
+        8,
+        9,
+        10
+      ],
+      "collisions": false,
+      "datamap": 3225456713,
+      "nodemap": 889282612,
+      "values": [
+        {
+          "data": 25,
+          "data2": "_25_",
+          "id": "q25q"
+        },
+        {
+          "data": 26,
+          "data2": "_26_",
+          "id": "q26q"
+        },
+        {
+          "data": 16,
+          "data2": "_16_",
+          "id": "q16q"
+        },
+        {
+          "data": 3,
+          "data2": "_3_",
+          "id": "q3q"
+        },
+        {
+          "data": 12,
+          "data2": "_12_",
+          "id": "q12q"
+        },
+        {
+          "data": 7,
+          "data2": "_7_",
+          "id": "q7q"
+        },
+        {
+          "data": 10,
+          "data2": "_10_",
+          "id": "q10q"
+        },
+        {
+          "data": 24,
+          "data2": "_24_",
+          "id": "q24q"
+        }
+      ]
+    },
+    {
+      "children": [],
+      "collisions": false,
+      "datamap": 570950144,
+      "nodemap": 0,
+      "values": [
+        {
+          "data": 345,
+          "data2": "_345_",
+          "id": "345"
+        },
+        {
+          "data": 0,
+          "data2": "_0_",
+          "id": "q0q"
+        },
+        {
+          "data": 14,
+          "data2": "_14_",
+          "id": "q14q"
+        },
+        {
+          "data": 21,
+          "data2": "_21_",
+          "id": "q21q"
+        }
+      ]
+    }
+  ]
+}
+        )");
+            REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+        }
     }
 }
