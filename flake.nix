@@ -48,7 +48,7 @@
 
       arximboldi-cereal = pkgs.callPackage ./nix/cereal.nix {inherit arximboldi-cereal-src;};
 
-      immer-archive-inputs = with pkgs; [
+      archive-inputs = with pkgs; [
         spdlog
         arximboldi-cereal
         xxHash
@@ -74,8 +74,8 @@
             checkPhase = ''
               ctest -D ExperimentalMemCheck
               valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
-                --suppressions=./test/experimental/immer-archive/valgrind.supp \
-                ./test/experimental/immer-archive/immer-archive-tests
+                --suppressions=./test/extra/archive/valgrind.supp \
+                ./test/extra/archive/archive-tests
             '';
           });
         };
@@ -98,7 +98,7 @@
             fzf
             starship
           ]
-          ++ immer-archive-inputs;
+          ++ archive-inputs;
 
         shellHook =
           self.checks.${system}.pre-commit-check.shellHook
@@ -142,7 +142,7 @@
 
         unit-tests = (withLLVM self.packages.${system}.immer).overrideAttrs (prev: {
           name = "immer-unit-tests";
-          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt] ++ immer-archive-inputs;
+          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt] ++ archive-inputs;
           nativeBuildInputs = with pkgs; [cmake ninja];
           dontBuild = false;
           doCheck = true;

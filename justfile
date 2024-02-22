@@ -18,9 +18,9 @@ run-valgrind:
 
 [linux]
 run-valgrind-archive:
-    cd {{ build-valgrind-path }} ; ninja immer-archive-tests && valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
-                --suppressions=../test/experimental/immer-archive/valgrind.supp \
-                ./test/experimental/immer-archive/immer-archive-tests
+    cd {{ build-valgrind-path }} ; ninja archive-tests && valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
+                --suppressions=../test/extra/archive/valgrind.supp \
+                ./test/extra/archive/archive-tests
 
 build-asan-path := "build-asan-" + os() + "-" + arch()
 

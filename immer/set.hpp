@@ -285,7 +285,7 @@ private:
         return impl_.sub(value);
     }
 
-// for immer-archive
+// for archive
 public:
     set(impl_t impl)
         : impl_(std::move(impl))

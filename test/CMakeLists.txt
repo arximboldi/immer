@@ -11,14 +11,14 @@ set(MEMORYCHECK_SUPPRESSIONS_FILE
     "${PROJECT_SOURCE_DIR}/test/valgrind_suppress.txt"
     CACHE FILEPATH "")
 set(VALGRIND_COMMAND_OPTIONS
-    "--suppressions=${PROJECT_SOURCE_DIR}/test/experimental/immer-archive/valgrind.supp"
+    "--suppressions=${PROJECT_SOURCE_DIR}/test/extra/archive/valgrind.supp"
 )
 find_package(Catch2 REQUIRED)
 include(CTest)
 
 file(GLOB_RECURSE immer_unit_tests "*.cpp")
 foreach(TMP_PATH ${immer_unit_tests})
-  string(FIND ${TMP_PATH} immer-archive EXCLUDE_DIR_FOUND)
+  string(FIND ${TMP_PATH} archive EXCLUDE_DIR_FOUND)
   if(NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
     list(REMOVE_ITEM immer_unit_tests ${TMP_PATH})
   endif()
@@ -39,5 +39,5 @@ foreach(_file IN LISTS immer_unit_tests)
 endforeach()
 
 if(immer_BUILD_ARCHIVE_TESTS)
-  add_subdirectory(experimental/immer-archive)
+  add_subdirectory(extra/archive)
 endif()
