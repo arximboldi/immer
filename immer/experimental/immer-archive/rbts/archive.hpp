@@ -130,7 +130,7 @@ template <typename T,
           typename MemoryPolicy,
           immer::detail::rbts::bits_t B,
           immer::detail::rbts::bits_t BL>
-archive_load<T> fix_leaf_nodes(archive_save<T, MemoryPolicy, B, BL> ar)
+archive_load<T> to_load_archive(archive_save<T, MemoryPolicy, B, BL> ar)
 {
     auto leaves = immer::map<node_id, values_load<T>>{};
     for (const auto& item : ar.leaves) {
