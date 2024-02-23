@@ -1624,14 +1624,6 @@ TEST_CASE("Test vector archive conversion")
 
     REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
 
-    const auto transform_vec = [&](const auto& vec) {
-        auto result = test::vector_one<new_type>{};
-        for (const auto& item : vec) {
-            result = std::move(result).push_back(convert_old_type(item));
-        }
-        return result;
-    };
-
     const auto load_archive = to_load_archive(ar);
     const auto load_archive_new_type =
         transform_archive(load_archive, convert_old_type);

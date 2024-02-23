@@ -2,6 +2,7 @@
 
 #include <immer/extra/archive/rbts/archive.hpp>
 #include <immer/extra/archive/rbts/load.hpp>
+#include <immer/extra/archive/xxhash/xxhash.hpp>
 
 #include <sstream>
 
@@ -93,6 +94,13 @@ struct old_type
     {
         ar(CEREAL_NVP(id), CEREAL_NVP(data));
     }
+
+    auto tie() const { return std::tie(id, data); }
+
+    friend bool operator==(const old_type& left, const old_type& right)
+    {
+        return left.tie() == right.tie();
+    }
 };
 
 struct new_type
@@ -122,6 +130,25 @@ inline auto convert_old_type(const old_type& val)
         .data  = val.data,
         .data2 = fmt::format("_{}_", val.data),
     };
+}
+
+inline auto transform_vec(const auto& vec)
+{
+    auto result = vector_one<new_type>{};
+    for (const auto& item : vec) {
+        result = std::move(result).push_back(convert_old_type(item));
+    }
+    return result;
+}
+
+inline auto transform_map(const auto& map)
+{
+    auto result = immer::
+        map<std::string, new_type, immer::archive::xx_hash<std::string>>{};
+    for (const auto& [key, value] : map) {
+        result = std::move(result).set(key, convert_old_type(value));
+    }
+    return result;
 }
 
 } // namespace test

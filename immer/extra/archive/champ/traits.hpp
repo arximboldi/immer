@@ -25,7 +25,14 @@ template <typename K,
           immer::detail::hamts::bits_t B>
 struct container_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
     : champ_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
-{};
+{
+    template <class F>
+    static auto transform(F&& func)
+    {
+        using U = std::decay_t<decltype(func(std::declval<T>()))>;
+        return immer::map<K, U, Hash, Equal, MemoryPolicy, B>{};
+    }
+};
 
 template <typename T,
           typename KeyFn,

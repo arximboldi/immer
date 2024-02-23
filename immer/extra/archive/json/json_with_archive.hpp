@@ -68,10 +68,17 @@ struct archives_save
 template <class Container>
 struct archive_type_load
 {
-    typename container_traits<Container>::load_archive_t archive = {};
+    using archive_t = typename container_traits<Container>::load_archive_t;
+
+    archive_t archive = {};
     std::optional<typename container_traits<Container>::loader_t> loader;
 
     archive_type_load() = default;
+
+    explicit archive_type_load(archive_t archive_)
+        : archive{std::move(archive_)}
+    {
+    }
 
     archive_type_load(const archive_type_load& other)
         : archive{other.archive}
@@ -122,6 +129,47 @@ struct archives_load
                            const archives_load& right)
     {
         return left.storage == right.storage;
+    }
+
+    /**
+     * Return a new archives_load after applying the described transformations
+     * to each archive type.
+     */
+    template <class ConversionMap>
+    auto transform(const ConversionMap& map) const
+    {
+        const auto transform_pair = [&map](const auto& pair) {
+            // If the conversion map doesn't mention the current type, we leave
+            // it as is.
+            using Contains = decltype(hana::contains(map, hana::first(pair)));
+            constexpr bool contains = hana::value<Contains>();
+            if constexpr (contains) {
+                // Look up the conversion function by the type from the original
+                // archive.
+                const auto& func    = map[hana::first(pair)];
+                const auto& archive = hana::second(pair).archive;
+
+                // Each archive defines the transform_archive function that
+                // transforms its leaves with the given function.
+                auto new_archive = transform_archive(archive, func);
+
+                using Container = typename decltype(+hana::first(pair))::type;
+                using NewContainer = std::decay_t<
+                    decltype(container_traits<Container>::transform(func))>;
+                return hana::make_pair(
+                    hana::type_c<NewContainer>,
+                    archive_type_load<NewContainer>{std::move(new_archive)});
+            } else {
+                return pair;
+            }
+        };
+
+        auto new_storage = hana::fold_left(
+            storage, hana::make_map(), [&transform_pair](auto map, auto pair) {
+                return hana::insert(map, transform_pair(pair));
+            });
+        using NewStorage = decltype(new_storage);
+        return archives_load<NewStorage, Names>{std::move(new_storage)};
     }
 };
 
@@ -230,7 +278,7 @@ auto to_json_with_archive(const T& serializable)
 }
 
 template <typename T>
-T from_json_with_archive(const std::string& input)
+auto load_archives(const std::string& input)
 {
     using Archives = std::decay_t<decltype(detail::generate_archives_load(
         get_archives_types(std::declval<T>())))>;
@@ -266,6 +314,32 @@ T from_json_with_archive(const std::string& input)
             prev = archives;
         }
     }
+    return archives;
+}
+
+template <typename T>
+T from_json_with_archive(const std::string& input)
+{
+    using Archives = std::decay_t<decltype(detail::generate_archives_load(
+        get_archives_types(std::declval<T>())))>;
+    auto archives  = load_archives<T>(input);
+
+    auto is = std::istringstream{input};
+    auto ar = immer::archive::json_immer_input_archive<Archives>{
+        std::move(archives), is};
+    auto r = T{};
+    ar(r);
+    return r;
+}
+
+template <typename T, typename OldType, typename ConversionsMap>
+T from_json_with_archive_with_conversion(const std::string& input,
+                                         const ConversionsMap& map)
+{
+    // Load the archives part for the old type
+    auto archives_old = load_archives<OldType>(input);
+    auto archives     = archives_old.transform(map);
+    using Archives    = decltype(archives);
 
     auto is = std::istringstream{input};
     auto ar = immer::archive::json_immer_input_archive<Archives>{

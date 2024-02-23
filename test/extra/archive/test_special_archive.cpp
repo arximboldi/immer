@@ -9,13 +9,14 @@
 #include <immer/extra/archive/json/archivable.hpp>
 #include <immer/extra/archive/json/json_with_archive.hpp>
 #include <immer/extra/archive/rbts/traits.hpp>
-
-#include <immer/box.hpp>
+#include <immer/extra/archive/xxhash/xxhash.hpp>
 
 // to save std::pair
 #include <cereal/types/utility.hpp>
 
 #include <boost/hana/ext/std/tuple.hpp>
+
+#include <nlohmann/json.hpp>
 
 namespace {
 
@@ -29,6 +30,7 @@ namespace hana = boost::hana;
 using test::flex_vector_one;
 using test::test_value;
 using test::vector_one;
+using json_t = nlohmann::json;
 
 template <class T>
 using arch = immer::archive::archivable<T>;
@@ -772,5 +774,713 @@ TEST_CASE("Test non-unique names in the map")
         using IsUnique =
             decltype(immer::archive::detail::are_type_names_unique(names));
         static_assert(boost::hana::value<IsUnique>(), "Names are unique");
+    }
+}
+
+namespace {
+using test::new_type;
+using test::old_type;
+
+template <class V>
+using map_t = immer::map<std::string, V, immer::archive::xx_hash<std::string>>;
+
+template <class T>
+using table_t =
+    immer::table<T, immer::table_key_fn, immer::archive::xx_hash<std::string>>;
+
+// Some type that an application would serialize. Contains multiple vectors and
+// maps to demonstrate structural sharing.
+struct old_app_type
+{
+    arch<test::vector_one<old_type>> vec;
+    arch<test::vector_one<old_type>> vec2;
+    arch<map_t<old_type>> map;
+    arch<map_t<old_type>> map2;
+    arch<table_t<old_type>> table;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(vec),
+           CEREAL_NVP(vec2),
+           CEREAL_NVP(map),
+           CEREAL_NVP(map2),
+           CEREAL_NVP(table));
+    }
+};
+
+auto get_archives_types(const old_app_type&)
+{
+    return hana::make_map(
+        hana::make_pair(hana::type_c<test::vector_one<old_type>>,
+                        BOOST_HANA_STRING("vec")),
+        hana::make_pair(hana::type_c<map_t<old_type>>,
+                        BOOST_HANA_STRING("map")),
+        hana::make_pair(hana::type_c<table_t<old_type>>,
+                        BOOST_HANA_STRING("table"))
+
+    );
+}
+
+/**
+ * We want to load and transform the old type into the new type.
+ *
+ * An approach to first load the old type and then apply some transformation
+ * would not preserve the structural sharing within the type. (Converting 2
+ * vectors that initially use structural sharing would result in 2 independent
+ * vectors without SS).
+ *
+ * Therefore, we have to apply the transformation to the archives that are later
+ * used to materialize these new vectors that would preserve SS.
+ *
+ * The new type can't differ much from the old type. The type's JSON layout must
+ * be the same as the old type. Each archivable member gets serialized into an
+ * integer (container ID within the archive), so that works. But we can't add
+ * new members.
+ */
+struct new_app_type
+{
+    arch<test::vector_one<new_type>> vec;
+    arch<test::vector_one<new_type>> vec2;
+    arch<map_t<new_type>> map;
+    arch<map_t<new_type>> map2;
+
+    // Demonstrate the member that we do not upgrade.
+    arch<table_t<old_type>> table;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(vec),
+           CEREAL_NVP(vec2),
+           CEREAL_NVP(map),
+           CEREAL_NVP(map2),
+           CEREAL_NVP(table));
+    }
+};
+
+auto get_archives_types(const new_app_type&)
+{
+    return hana::make_map(
+        hana::make_pair(hana::type_c<test::vector_one<new_type>>,
+                        BOOST_HANA_STRING("vec")),
+        hana::make_pair(hana::type_c<map_t<new_type>>,
+                        BOOST_HANA_STRING("map")),
+        hana::make_pair(hana::type_c<table_t<old_type>>,
+                        BOOST_HANA_STRING("table"))
+
+    );
+}
+} // namespace
+
+TEST_CASE("Test conversion with a special archive")
+{
+    const auto vec1 = test::vector_one<old_type>{
+        old_type{.data = 123},
+        old_type{.data = 234},
+    };
+    const auto vec2 = vec1.push_back(old_type{.data = 345});
+
+    const auto map1 = [] {
+        auto map = map_t<old_type>{};
+        for (auto i = 0; i < 30; ++i) {
+            map =
+                std::move(map).set(fmt::format("x{}x", i), old_type{.data = i});
+        }
+        return map;
+    }();
+    const auto map2 = map1.set("345", old_type{.data = 345});
+
+    // Prepare a value of the old type that uses some structural sharing
+    // internally.
+    const auto value = old_app_type{
+        .vec  = vec1,
+        .vec2 = vec2,
+        .map  = map1,
+        .map2 = map2,
+        .table =
+            {
+                old_type{"_51_", 51},
+                old_type{"_52_", 52},
+                old_type{"_53_", 53},
+            },
+    };
+    const auto [json_str, archives] =
+        immer::archive::to_json_with_archive(value);
+    // REQUIRE(json_str == "");
+
+    // Describe how to go from the old archive to the desired new archive.
+    const auto archives_conversions = hana::make_map(
+        hana::make_pair(
+            // Take this archive
+            hana::type_c<test::vector_one<old_type>>,
+            // And apply this conversion function to it
+            test::convert_old_type),
+        hana::make_pair(hana::type_c<map_t<old_type>>, test::convert_old_type)
+
+    );
+
+    // Having a JSON from serializing old_app_type and a conversion function,
+    // we need to somehow load new_app_type.
+    const new_app_type full_load =
+        immer::archive::from_json_with_archive_with_conversion<new_app_type,
+                                                               old_app_type>(
+            json_str, archives_conversions);
+
+    {
+        REQUIRE(full_load.vec.container == transform_vec(value.vec.container));
+        REQUIRE(full_load.vec2.container ==
+                transform_vec(value.vec2.container));
+        REQUIRE(full_load.map.container == transform_map(value.map.container));
+        REQUIRE(full_load.map2.container ==
+                transform_map(value.map2.container));
+        REQUIRE(full_load.table.container == value.table.container);
+    }
+
+    SECTION(
+        "Demonstrate that the loaded vectors and maps still share structure")
+    {
+        const auto [json_str, archives] =
+            immer::archive::to_json_with_archive(full_load);
+        // For example, "x21x" is stored only once.
+        const auto expected = json_t::parse(R"(
+{
+  "archives": {
+    "map": [
+      {
+        "children": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "collisions": false,
+        "datamap": 2013603464,
+        "nodemap": 2188935188,
+        "values": [
+          {
+            "first": "x13x",
+            "second": {
+              "data": 13,
+              "data2": "_13_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x4x",
+            "second": {
+              "data": 4,
+              "data2": "_4_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x22x",
+            "second": {
+              "data": 22,
+              "data2": "_22_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x28x",
+            "second": {
+              "data": 28,
+              "data2": "_28_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x10x",
+            "second": {
+              "data": 10,
+              "data2": "_10_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x12x",
+            "second": {
+              "data": 12,
+              "data2": "_12_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x9x",
+            "second": {
+              "data": 9,
+              "data2": "_9_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x29x",
+            "second": {
+              "data": 29,
+              "data2": "_29_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x6x",
+            "second": {
+              "data": 6,
+              "data2": "_6_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x17x",
+            "second": {
+              "data": 17,
+              "data2": "_17_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x11x",
+            "second": {
+              "data": 11,
+              "data2": "_11_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 67125248,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x21x",
+            "second": {
+              "data": 21,
+              "data2": "_21_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x5x",
+            "second": {
+              "data": 5,
+              "data2": "_5_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 32770,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x25x",
+            "second": {
+              "data": 25,
+              "data2": "_25_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x26x",
+            "second": {
+              "data": 26,
+              "data2": "_26_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 65539,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x8x",
+            "second": {
+              "data": 8,
+              "data2": "_8_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x16x",
+            "second": {
+              "data": 16,
+              "data2": "_16_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x3x",
+            "second": {
+              "data": 3,
+              "data2": "_3_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 139264,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x14x",
+            "second": {
+              "data": 14,
+              "data2": "_14_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x18x",
+            "second": {
+              "data": 18,
+              "data2": "_18_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 1073742080,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x23x",
+            "second": {
+              "data": 23,
+              "data2": "_23_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x0x",
+            "second": {
+              "data": 0,
+              "data2": "_0_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 2621440,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x15x",
+            "second": {
+              "data": 15,
+              "data2": "_15_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x24x",
+            "second": {
+              "data": 24,
+              "data2": "_24_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 8224,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x27x",
+            "second": {
+              "data": 27,
+              "data2": "_27_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x1x",
+            "second": {
+              "data": 1,
+              "data2": "_1_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 8421376,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x7x",
+            "second": {
+              "data": 7,
+              "data2": "_7_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x20x",
+            "second": {
+              "data": 20,
+              "data2": "_20_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 134234112,
+        "nodemap": 0,
+        "values": [
+          {
+            "first": "x19x",
+            "second": {
+              "data": 19,
+              "data2": "_19_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x2x",
+            "second": {
+              "data": 2,
+              "data2": "_2_",
+              "id": ""
+            }
+          }
+        ]
+      },
+      {
+        "children": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "collisions": false,
+        "datamap": 2013619848,
+        "nodemap": 2188935188,
+        "values": [
+          {
+            "first": "x13x",
+            "second": {
+              "data": 13,
+              "data2": "_13_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x4x",
+            "second": {
+              "data": 4,
+              "data2": "_4_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x22x",
+            "second": {
+              "data": 22,
+              "data2": "_22_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x28x",
+            "second": {
+              "data": 28,
+              "data2": "_28_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x10x",
+            "second": {
+              "data": 10,
+              "data2": "_10_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x12x",
+            "second": {
+              "data": 12,
+              "data2": "_12_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x9x",
+            "second": {
+              "data": 9,
+              "data2": "_9_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x29x",
+            "second": {
+              "data": 29,
+              "data2": "_29_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x6x",
+            "second": {
+              "data": 6,
+              "data2": "_6_",
+              "id": ""
+            }
+          },
+          {
+            "first": "345",
+            "second": {
+              "data": 345,
+              "data2": "_345_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x17x",
+            "second": {
+              "data": 17,
+              "data2": "_17_",
+              "id": ""
+            }
+          },
+          {
+            "first": "x11x",
+            "second": {
+              "data": 11,
+              "data2": "_11_",
+              "id": ""
+            }
+          }
+        ]
+      }
+    ],
+    "table": [
+      {
+        "children": [],
+        "collisions": false,
+        "datamap": 1544,
+        "nodemap": 0,
+        "values": [
+          {
+            "data": 53,
+            "id": "_53_"
+          },
+          {
+            "data": 52,
+            "id": "_52_"
+          },
+          {
+            "data": 51,
+            "id": "_51_"
+          }
+        ]
+      }
+    ],
+    "vec": {
+      "inners": [
+        {
+          "key": 0,
+          "value": {
+            "children": [],
+            "relaxed": false
+          }
+        },
+        {
+          "key": 2,
+          "value": {
+            "children": [
+              1
+            ],
+            "relaxed": false
+          }
+        }
+      ],
+      "leaves": [
+        {
+          "key": 1,
+          "value": [
+            {
+              "data": 123,
+              "data2": "_123_",
+              "id": ""
+            },
+            {
+              "data": 234,
+              "data2": "_234_",
+              "id": ""
+            }
+          ]
+        },
+        {
+          "key": 3,
+          "value": [
+            {
+              "data": 345,
+              "data2": "_345_",
+              "id": ""
+            }
+          ]
+        }
+      ],
+      "vectors": [
+        {
+          "root": 0,
+          "tail": 1
+        },
+        {
+          "root": 2,
+          "tail": 3
+        }
+      ]
+    }
+  },
+  "value0": {
+    "map": 0,
+    "map2": 10,
+    "table": 0,
+    "vec": 0,
+    "vec2": 1
+  }
+}
+        )");
+        REQUIRE(json_t::parse(json_str) == expected);
     }
 }

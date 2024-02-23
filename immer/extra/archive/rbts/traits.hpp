@@ -16,6 +16,15 @@ struct container_traits<immer::vector<T, MemoryPolicy, B, BL>>
     using load_archive_t = rbts::archive_load<T>;
     using loader_t       = rbts::vector_loader<T, MemoryPolicy, B, BL>;
     using container_id   = immer::archive::container_id;
+
+    // This function is used to determine the type of the container after
+    // applying some transformation.
+    template <class F>
+    static auto transform(F&& func)
+    {
+        using U = std::decay_t<decltype(func(std::declval<T>()))>;
+        return immer::vector<U, MemoryPolicy, B, BL>{};
+    }
 };
 
 template <typename T,
