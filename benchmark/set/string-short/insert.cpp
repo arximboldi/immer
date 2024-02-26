@@ -7,4 +7,5 @@
 //
 
 #include "generator.ipp"
+
 #include "../insert.ipp"
