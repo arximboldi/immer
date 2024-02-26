@@ -1,9 +1,7 @@
+# Targets
+# =======
 
-#  Targets
-#  =======
-
-add_custom_target(examples
-  COMMENT "Build all examples.")
+add_custom_target(examples COMMENT "Build all examples.")
 add_dependencies(check examples)
 
 file(GLOB_RECURSE immer_examples "*.cpp")
