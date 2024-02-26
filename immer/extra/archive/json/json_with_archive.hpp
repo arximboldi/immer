@@ -223,26 +223,25 @@ auto get_archives_types(const T&)
 }
 
 template <class Archives>
-constexpr bool is_archive_empty(const Archives& archives)
+constexpr bool is_archive_empty()
 {
     using Result =
-        decltype(boost::hana::is_empty(boost::hana::keys(archives.storage)));
+        decltype(boost::hana::is_empty(boost::hana::keys(Archives{}.storage)));
     return boost::hana::value<Result>();
 }
 
-/**
- * Type T must provide a callable free function get_archives_types(const T&).
- */
-template <typename T>
-auto to_json_with_archive(const T& serializable)
+template <class Archives>
+void save_archives(json_immer_output_archive<Archives>& ar)
 {
-    using IsUnique = decltype(detail::are_type_names_unique(
-        get_archives_types(serializable)));
+    using Names    = typename Archives::names_t;
+    using IsUnique = decltype(detail::are_type_names_unique(Names{}));
     static_assert(boost::hana::value<IsUnique>(),
                   "Archive names for each type must be unique");
-    auto archives =
-        detail::generate_archives_save(get_archives_types(serializable));
-    using Archives = std::decay_t<decltype(archives)>;
+
+    auto& archives = ar.get_output_archives();
+    if constexpr (is_archive_empty<Archives>()) {
+        return;
+    }
 
     const auto save_archive = [&archives] {
         auto os2 = std::ostringstream{};
@@ -252,27 +251,36 @@ auto to_json_with_archive(const T& serializable)
         archives = ar2.get_output_archives();
     };
 
+    auto prev = archives;
+    while (true) {
+        // Keep saving archives until everything is saved.
+        save_archive();
+        if (prev == archives) {
+            break;
+        }
+        prev = archives;
+    }
+
+    ar.finalize();
+}
+
+/**
+ * Type T must provide a callable free function get_archives_types(const T&).
+ */
+template <typename T>
+auto to_json_with_archive(const T& serializable)
+{
+    auto archives =
+        detail::generate_archives_save(get_archives_types(serializable));
+    using Archives = std::decay_t<decltype(archives)>;
+
     auto os = std::ostringstream{};
 
     {
         auto ar = immer::archive::json_immer_output_archive<Archives>{os};
         ar(serializable);
+        save_archives(ar);
         archives = ar.get_output_archives();
-
-        auto prev = archives;
-        while (true) {
-            // Keep saving archives until everything is saved.
-            save_archive();
-            if (prev == archives) {
-                break;
-            }
-            prev = archives;
-        }
-
-        ar.get_output_archives() = archives;
-        if constexpr (!is_archive_empty(archives)) {
-            ar.finalize();
-        }
     }
     return std::make_pair(os.str(), std::move(archives));
 }
@@ -283,37 +291,39 @@ auto load_archives(const std::string& input)
     using Archives = std::decay_t<decltype(detail::generate_archives_load(
         get_archives_types(std::declval<T>())))>;
     auto archives  = Archives{};
-
-    if constexpr (!is_archive_empty(archives)) {
-        {
-            auto is = std::istringstream{input};
-            auto ar = cereal::JSONInputArchive{is};
-            ar(CEREAL_NVP(archives));
-        }
-
-        const auto reload_archive = [&] {
-            auto is = std::istringstream{input};
-            auto ar = immer::archive::json_immer_input_archive<Archives>{
-                archives, is};
-            /**
-             * NOTE: Critical to clear the archives before loading into it
-             * again. I hit a bug when archives contained a vector and every
-             * load would append to it, instead of replacing the contents.
-             */
-            archives = {};
-            ar(CEREAL_NVP(archives));
-        };
-
-        auto prev = archives;
-        while (true) {
-            // Keep reloading until everything is loaded.
-            reload_archive();
-            if (prev == archives) {
-                break;
-            }
-            prev = archives;
-        }
+    if constexpr (is_archive_empty<Archives>()) {
+        return archives;
     }
+
+    {
+        auto is = std::istringstream{input};
+        auto ar = cereal::JSONInputArchive{is};
+        ar(CEREAL_NVP(archives));
+    }
+
+    const auto reload_archive = [&] {
+        auto is = std::istringstream{input};
+        auto ar =
+            immer::archive::json_immer_input_archive<Archives>{archives, is};
+        /**
+         * NOTE: Critical to clear the archives before loading into it
+         * again. I hit a bug when archives contained a vector and every
+         * load would append to it, instead of replacing the contents.
+         */
+        archives = {};
+        ar(CEREAL_NVP(archives));
+    };
+
+    auto prev = archives;
+    while (true) {
+        // Keep reloading until everything is loaded.
+        reload_archive();
+        if (prev == archives) {
+            break;
+        }
+        prev = archives;
+    }
+
     return archives;
 }
 
