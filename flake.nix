@@ -61,6 +61,11 @@
             src = ./.;
             hooks = {
               alejandra.enable = true;
+              cmake-format.enable = true;
+              clang-format = {
+                enable = true;
+                types_or = pkgs.lib.mkForce ["c" "c++"];
+              };
             };
           };
 
