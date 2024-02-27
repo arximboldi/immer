@@ -2,6 +2,7 @@
 
 #include <immer/extra/archive/json/json_immer.hpp>
 #include <immer/extra/archive/traits.hpp>
+#include <immer/extra/io.hpp>
 
 #include <boost/hana.hpp>
 
@@ -286,7 +287,7 @@ auto to_json_with_archive(const T& serializable)
 }
 
 template <typename T>
-auto load_archives(const std::string& input)
+auto load_archives(std::istream& is)
 {
     using Archives = std::decay_t<decltype(detail::generate_archives_load(
         get_archives_types(std::declval<T>())))>;
@@ -296,13 +297,13 @@ auto load_archives(const std::string& input)
     }
 
     {
-        auto is = std::istringstream{input};
-        auto ar = cereal::JSONInputArchive{is};
+        auto restore = util::istream_snapshot{is};
+        auto ar      = cereal::JSONInputArchive{is};
         ar(CEREAL_NVP(archives));
     }
 
     const auto reload_archive = [&] {
-        auto is = std::istringstream{input};
+        auto restore = util::istream_snapshot{is};
         auto ar =
             immer::archive::json_immer_input_archive<Archives>{archives, is};
         /**
@@ -328,13 +329,35 @@ auto load_archives(const std::string& input)
 }
 
 template <typename T>
-T from_json_with_archive(const std::string& input)
+T from_json_with_archive(std::istream& is)
 {
     using Archives = std::decay_t<decltype(detail::generate_archives_load(
         get_archives_types(std::declval<T>())))>;
-    auto archives  = load_archives<T>(input);
+    auto archives  = load_archives<T>(is);
 
+    auto ar = immer::archive::json_immer_input_archive<Archives>{
+        std::move(archives), is};
+    auto r = T{};
+    ar(r);
+    return r;
+}
+
+template <typename T>
+T from_json_with_archive(const std::string& input)
+{
     auto is = std::istringstream{input};
+    return from_json_with_archive<T>(is);
+}
+
+template <typename T, typename OldType, typename ConversionsMap>
+T from_json_with_archive_with_conversion(std::istream& is,
+                                         const ConversionsMap& map)
+{
+    // Load the archives part for the old type
+    auto archives_old = load_archives<OldType>(is);
+    auto archives     = archives_old.transform(map);
+    using Archives    = decltype(archives);
+
     auto ar = immer::archive::json_immer_input_archive<Archives>{
         std::move(archives), is};
     auto r = T{};
@@ -346,17 +369,8 @@ template <typename T, typename OldType, typename ConversionsMap>
 T from_json_with_archive_with_conversion(const std::string& input,
                                          const ConversionsMap& map)
 {
-    // Load the archives part for the old type
-    auto archives_old = load_archives<OldType>(input);
-    auto archives     = archives_old.transform(map);
-    using Archives    = decltype(archives);
-
     auto is = std::istringstream{input};
-    auto ar = immer::archive::json_immer_input_archive<Archives>{
-        std::move(archives), is};
-    auto r = T{};
-    ar(r);
-    return r;
+    return from_json_with_archive_with_conversion<T, OldType>(is, map);
 }
 
 } // namespace immer::archive
