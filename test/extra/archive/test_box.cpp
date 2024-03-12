@@ -88,3 +88,21 @@ TEST_CASE("Test saving and mutating a box")
     const auto loaded2 = loader.load(id2);
     REQUIRE(loaded2.get() == "hello world");
 }
+
+namespace {
+struct fwd_type;
+struct test_type
+{
+    immer::box<fwd_type> data;
+};
+struct fwd_type
+{
+    int data = 123;
+};
+} // namespace
+
+TEST_CASE("Test box with a fwd declared type")
+{
+    auto val = test_type{};
+    REQUIRE(val.data.get().data == 123);
+}
