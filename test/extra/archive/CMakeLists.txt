@@ -11,7 +11,11 @@ include(CTest)
 
 add_executable(
   archive-tests EXCLUDE_FROM_ALL
-  test_vectors.cpp test_special_archive.cpp test_champ.cpp test_xxhash.cpp
+  test_vectors.cpp
+  test_special_archive.cpp
+  test_special_archive_auto.cpp
+  test_champ.cpp
+  test_xxhash.cpp
   test_box.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/archive/xxhash/xxhash_64.cpp)
 add_dependencies(tests archive-tests)

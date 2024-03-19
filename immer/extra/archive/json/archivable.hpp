@@ -2,6 +2,7 @@
 
 #include <immer/extra/archive/errors.hpp>
 #include <immer/extra/archive/json/json_immer.hpp>
+#include <immer/extra/archive/json/json_immer_auto.hpp>
 #include <immer/extra/archive/json/json_with_archive.hpp>
 #include <immer/extra/archive/traits.hpp>
 
@@ -98,6 +99,13 @@ auto save_minimal(
     return id.value;
 }
 
+template <class Archive, class WrapF, class Container>
+auto save_minimal(const json_immer_auto_output_archive<Archive, WrapF>& ar,
+                  const archivable<Container>& value)
+{
+    return save_minimal(ar.previous, value);
+}
+
 // This function must exist because cereal does some checks and it's not
 // possible to have only load_minimal for a type without having save_minimal.
 template <class Storage, class Names, class Container>
@@ -140,7 +148,8 @@ template <class Archive, class Container>
 auto save_minimal(const Archive& ar, const archivable<Container>& value) ->
     typename container_traits<Container>::container_id::rep_t
 {
-    throw std::logic_error{"Should never be called"};
+    throw std::logic_error{
+        "Should never be called. save_minimal(const Archive& ar..."};
 }
 
 template <class Archive, class Container>

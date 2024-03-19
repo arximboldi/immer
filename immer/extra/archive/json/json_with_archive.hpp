@@ -25,6 +25,9 @@ namespace hana = boost::hana;
 template <class T>
 class error_no_archive_for_the_given_type_check_get_archives_types_function;
 
+template <class T>
+class error_duplicate_archive_name_found;
+
 /**
  * Archives and functions to serialize types that contain archivable data
  * structures.
@@ -195,7 +198,15 @@ inline auto are_type_names_unique(auto type_names)
 {
     auto names_set =
         hana::fold_left(type_names, hana::make_set(), [](auto set, auto pair) {
-            return hana::insert(set, hana::second(pair));
+            return hana::if_(
+                hana::contains(set, hana::second(pair)),
+                [](auto pair) {
+                    return error_duplicate_archive_name_found<
+                        decltype(hana::second(pair))>{};
+                },
+                [&set](auto pair) {
+                    return hana::insert(set, hana::second(pair));
+                })(pair);
         });
     return hana::length(type_names) == hana::length(names_set);
 }
@@ -231,8 +242,10 @@ constexpr bool is_archive_empty()
     return boost::hana::value<Result>();
 }
 
-template <class Archives>
-void save_archives(json_immer_output_archive<Archives>& ar)
+// Recursively serializes the archives but not calling finalize
+template <class Archives, class SaveArchiveF>
+void save_archives_impl(json_immer_output_archive<Archives>& ar,
+                        const SaveArchiveF& save_archive)
 {
     using Names    = typename Archives::names_t;
     using IsUnique = decltype(detail::are_type_names_unique(Names{}));
@@ -240,29 +253,16 @@ void save_archives(json_immer_output_archive<Archives>& ar)
                   "Archive names for each type must be unique");
 
     auto& archives = ar.get_output_archives();
-    if constexpr (is_archive_empty<Archives>()) {
-        return;
-    }
-
-    const auto save_archive = [&archives] {
-        auto os2 = std::ostringstream{};
-        auto ar2 =
-            immer::archive::json_immer_output_archive<Archives>{archives, os2};
-        ar2(archives);
-        archives = ar2.get_output_archives();
-    };
 
     auto prev = archives;
     while (true) {
         // Keep saving archives until everything is saved.
-        save_archive();
+        archives = save_archive(std::move(archives));
         if (prev == archives) {
             break;
         }
         prev = archives;
     }
-
-    ar.finalize();
 }
 
 /**
@@ -277,48 +277,52 @@ auto to_json_with_archive(const T& serializable)
 
     auto os = std::ostringstream{};
 
+    const auto save_archive = [](auto archives) {
+        auto os2 = std::ostringstream{};
+        auto ar2 = json_immer_output_archive<Archives>{archives, os2};
+        ar2(archives);
+        return std::move(ar2).get_output_archives();
+    };
+
     {
         auto ar = immer::archive::json_immer_output_archive<Archives>{os};
         ar(serializable);
-        save_archives(ar);
-        archives = ar.get_output_archives();
+        if constexpr (!is_archive_empty<Archives>()) {
+            save_archives_impl(ar, save_archive);
+            ar.finalize();
+        }
+        archives = std::move(ar).get_output_archives();
     }
     return std::make_pair(os.str(), std::move(archives));
 }
 
-template <typename T>
-auto load_archives(std::istream& is)
+template <typename Archives>
+auto load_initial_archives(std::istream& is)
 {
-    using Archives = std::decay_t<decltype(detail::generate_archives_load(
-        get_archives_types(std::declval<T>())))>;
-    auto archives  = Archives{};
+    auto archives = Archives{};
     if constexpr (is_archive_empty<Archives>()) {
         return archives;
     }
 
-    {
-        auto restore = util::istream_snapshot{is};
-        auto ar      = cereal::JSONInputArchive{is};
-        ar(CEREAL_NVP(archives));
-    }
+    auto restore = util::istream_snapshot{is};
+    auto ar      = cereal::JSONInputArchive{is};
+    ar(CEREAL_NVP(archives));
+    return archives;
+}
 
-    const auto reload_archive = [&] {
-        auto restore = util::istream_snapshot{is};
-        auto ar =
-            immer::archive::json_immer_input_archive<Archives>{archives, is};
-        /**
-         * NOTE: Critical to clear the archives before loading into it
-         * again. I hit a bug when archives contained a vector and every
-         * load would append to it, instead of replacing the contents.
-         */
-        archives = {};
-        ar(CEREAL_NVP(archives));
-    };
+template <typename Archives, class ReloadArchiveF>
+auto load_archives(std::istream& is,
+                   Archives archives,
+                   const ReloadArchiveF& reload_archive)
+{
+    if constexpr (is_archive_empty<Archives>()) {
+        return archives;
+    }
 
     auto prev = archives;
     while (true) {
         // Keep reloading until everything is loaded.
-        reload_archive();
+        archives = reload_archive(is, std::move(archives));
         if (prev == archives) {
             break;
         }
@@ -328,12 +332,27 @@ auto load_archives(std::istream& is)
     return archives;
 }
 
+constexpr auto reload_archive = [](std::istream& is, auto archives) {
+    using Archives = std::decay_t<decltype(archives)>;
+    auto restore   = util::istream_snapshot{is};
+    auto ar = json_immer_input_archive<Archives>{std::move(archives), is};
+    /**
+     * NOTE: Critical to clear the archives before loading into it
+     * again. I hit a bug when archives contained a vector and every
+     * load would append to it, instead of replacing the contents.
+     */
+    archives = {};
+    ar(CEREAL_NVP(archives));
+    return archives;
+};
+
 template <typename T>
 T from_json_with_archive(std::istream& is)
 {
     using Archives = std::decay_t<decltype(detail::generate_archives_load(
         get_archives_types(std::declval<T>())))>;
-    auto archives  = load_archives<T>(is);
+    auto archives =
+        load_archives(is, load_initial_archives<Archives>(is), reload_archive);
 
     auto ar = immer::archive::json_immer_input_archive<Archives>{
         std::move(archives), is};
@@ -354,9 +373,12 @@ T from_json_with_archive_with_conversion(std::istream& is,
                                          const ConversionsMap& map)
 {
     // Load the archives part for the old type
-    auto archives_old = load_archives<OldType>(is);
-    auto archives     = archives_old.transform(map);
-    using Archives    = decltype(archives);
+    using OldArchives = std::decay_t<decltype(detail::generate_archives_load(
+        get_archives_types(std::declval<OldType>())))>;
+    auto archives_old = load_archives(
+        is, load_initial_archives<OldArchives>(is), reload_archive);
+    auto archives  = archives_old.transform(map);
+    using Archives = decltype(archives);
 
     auto ar = immer::archive::json_immer_input_archive<Archives>{
         std::move(archives), is};
