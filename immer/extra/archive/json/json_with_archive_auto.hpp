@@ -226,22 +226,13 @@ auto load_initial_auto_archives(std::istream& is, WrapF wrap)
     return archives;
 }
 
-template <typename T, class ArchivesTypes>
-T from_json_with_auto_archive(std::istream& is,
-                              const ArchivesTypes& archives_types)
-{
-    namespace hana      = boost::hana;
-    constexpr auto wrap = wrap_for_loading;
-    using WrapF         = std::decay_t<decltype(wrap)>;
-
-    using Archives =
-        std::decay_t<decltype(detail::generate_archives_load(archives_types))>;
-
-    constexpr auto reload_archive_auto = [wrap](std::istream& is,
-                                                auto archives) {
-        auto restore  = util::istream_snapshot{is};
-        auto previous = immer::archive::json_immer_input_archive<Archives>{
-            std::move(archives), is};
+constexpr auto reload_archive_auto = [](auto wrap) {
+    return [wrap](std::istream& is, auto archives) {
+        using Archives = std::decay_t<decltype(archives)>;
+        using WrapF    = std::decay_t<decltype(wrap)>;
+        auto restore   = util::istream_snapshot{is};
+        auto previous =
+            json_immer_input_archive<Archives>{std::move(archives), is};
         auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{
             previous, wrap};
         /**
@@ -253,14 +244,25 @@ T from_json_with_auto_archive(std::istream& is,
         ar(CEREAL_NVP(archives));
         return archives;
     };
+};
+
+template <typename T, class ArchivesTypes>
+T from_json_with_auto_archive(std::istream& is,
+                              const ArchivesTypes& archives_types)
+{
+    namespace hana      = boost::hana;
+    constexpr auto wrap = wrap_for_loading;
+    using WrapF         = std::decay_t<decltype(wrap)>;
+
+    using Archives =
+        std::decay_t<decltype(detail::generate_archives_load(archives_types))>;
 
     auto archives =
         load_archives(is,
                       load_initial_auto_archives<Archives>(is, wrap),
-                      reload_archive_auto);
+                      reload_archive_auto(wrap));
 
-    auto previous = immer::archive::json_immer_input_archive<Archives>{
-        std::move(archives), is};
+    auto previous = json_immer_input_archive<Archives>{std::move(archives), is};
     auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
                                                                        wrap};
     auto r  = T{};
@@ -274,6 +276,51 @@ T from_json_with_auto_archive(const std::string& input,
 {
     auto is = std::istringstream{input};
     return from_json_with_auto_archive<T>(is, archives_types);
+}
+
+template <typename T,
+          typename OldType,
+          typename ConversionsMap,
+          class ArchivesTypes>
+T from_json_with_auto_archive_with_conversion(
+    std::istream& is,
+    const ConversionsMap& map,
+    const ArchivesTypes& archives_types)
+{
+    constexpr auto wrap = wrap_for_loading;
+    using WrapF         = std::decay_t<decltype(wrap)>;
+
+    // Load the archives part for the old type
+    using OldArchives =
+        std::decay_t<decltype(detail::generate_archives_load(archives_types))>;
+    auto archives_old =
+        load_archives(is,
+                      load_initial_auto_archives<OldArchives>(is, wrap),
+                      reload_archive_auto(wrap));
+
+    auto archives  = archives_old.transform(map);
+    using Archives = decltype(archives);
+
+    auto previous = json_immer_input_archive<Archives>{std::move(archives), is};
+    auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
+                                                                       wrap};
+    auto r  = T{};
+    ar(r);
+    return r;
+}
+
+template <typename T,
+          typename OldType,
+          typename ConversionsMap,
+          class ArchivesTypes>
+T from_json_with_auto_archive_with_conversion(
+    const std::string& input,
+    const ConversionsMap& map,
+    const ArchivesTypes& archives_types)
+{
+    auto is = std::istringstream{input};
+    return from_json_with_auto_archive_with_conversion<T, OldType>(
+        is, map, archives_types);
 }
 
 } // namespace immer::archive

@@ -4,6 +4,8 @@
 #include <immer/extra/archive/rbts/load.hpp>
 #include <immer/extra/archive/xxhash/xxhash.hpp>
 
+#include <immer/table.hpp>
+
 #include <sstream>
 
 #include <cereal/archives/json.hpp>
@@ -147,6 +149,17 @@ inline auto transform_map(const auto& map)
         map<std::string, new_type, immer::archive::xx_hash<std::string>>{};
     for (const auto& [key, value] : map) {
         result = std::move(result).set(key, convert_old_type(value));
+    }
+    return result;
+}
+
+inline auto transform_table(const auto& table)
+{
+    auto result = immer::table<new_type,
+                               immer::table_key_fn,
+                               immer::archive::xx_hash<std::string>>{};
+    for (const auto& item : table) {
+        result = std::move(result).insert(convert_old_type(item));
     }
     return result;
 }

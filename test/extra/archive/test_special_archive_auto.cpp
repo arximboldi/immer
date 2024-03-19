@@ -250,3 +250,123 @@ TEST_CASE("Test save and load small type")
         REQUIRE(loaded == value);
     }
 }
+
+namespace {
+
+using test::new_type;
+using test::old_type;
+
+template <class V>
+using map_t = immer::map<std::string, V, immer::archive::xx_hash<std::string>>;
+
+template <class T>
+using table_t =
+    immer::table<T, immer::table_key_fn, immer::archive::xx_hash<std::string>>;
+
+// Some type that an application would serialize. Contains multiple vectors and
+// maps to demonstrate structural sharing.
+struct old_app_type
+{
+    BOOST_HANA_DEFINE_STRUCT(old_app_type,
+                             (test::vector_one<old_type>, vec),
+                             (test::vector_one<old_type>, vec2),
+                             (map_t<old_type>, map),
+                             (map_t<old_type>, map2),
+                             (table_t<old_type>, table)
+
+    );
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        serialize_members(ar, *this);
+    }
+};
+
+struct new_app_type
+{
+    BOOST_HANA_DEFINE_STRUCT(new_app_type,
+                             (test::vector_one<new_type>, vec),
+                             (test::vector_one<new_type>, vec2),
+                             (map_t<new_type>, map),
+                             (map_t<new_type>, map2),
+                             (table_t<new_type>, table)
+
+    );
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        serialize_members(ar, *this);
+    }
+};
+
+} // namespace
+
+TEST_CASE("Test conversion with auto-archive")
+{
+    const auto vec1 = test::vector_one<old_type>{
+        old_type{.data = 123},
+        old_type{.data = 234},
+    };
+    const auto vec2 = vec1.push_back(old_type{.data = 345});
+
+    const auto map1 = [] {
+        auto map = map_t<old_type>{};
+        for (auto i = 0; i < 30; ++i) {
+            map =
+                std::move(map).set(fmt::format("x{}x", i), old_type{.data = i});
+        }
+        return map;
+    }();
+    const auto map2 = map1.set("345", old_type{.data = 345});
+
+    // Prepare a value of the old type that uses some structural sharing
+    // internally.
+    const auto value = old_app_type{
+        .vec  = vec1,
+        .vec2 = vec2,
+        .map  = map1,
+        .map2 = map2,
+        .table =
+            {
+                old_type{"_51_", 51},
+                old_type{"_52_", 52},
+                old_type{"_53_", 53},
+            },
+    };
+
+    constexpr auto old_names = [] {
+        return immer::archive::get_archives_for_types(
+            hana::tuple_t<old_app_type>, hana::make_map());
+    };
+
+    using OldArchiveTypes            = decltype(old_names());
+    constexpr auto old_archive_types = OldArchiveTypes{};
+    const auto [json_str, archives] =
+        immer::archive::to_json_with_auto_archive(value, old_archive_types);
+    // REQUIRE(json_str == "");
+
+    // Describe how to go from the old archive to the desired new archive.
+    // Convert all old archives with convert_old_type.
+    const auto archives_conversions = hana::unpack(
+        hana::transform(hana::keys(old_archive_types),
+                        [&](auto key) {
+                            return hana::make_pair(key, test::convert_old_type);
+                        }),
+        hana::make_map);
+
+    // Having a JSON from serializing old_app_type and a conversion function,
+    // we need to somehow load new_app_type.
+    const new_app_type full_load = immer::archive::
+        from_json_with_auto_archive_with_conversion<new_app_type, old_app_type>(
+            json_str, archives_conversions, old_archive_types);
+
+    {
+        REQUIRE(full_load.vec == transform_vec(value.vec));
+        REQUIRE(full_load.vec2 == transform_vec(value.vec2));
+        REQUIRE(full_load.map == transform_map(value.map));
+        REQUIRE(full_load.map2 == transform_map(value.map2));
+        REQUIRE(full_load.table == transform_table(value.table));
+    }
+}

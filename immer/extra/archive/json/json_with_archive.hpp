@@ -28,6 +28,9 @@ class error_no_archive_for_the_given_type_check_get_archives_types_function;
 template <class T>
 class error_duplicate_archive_name_found;
 
+template <class T>
+class error_missing_archive_for_type;
+
 /**
  * Archives and functions to serialize types that contain archivable data
  * structures.
@@ -112,6 +115,13 @@ struct archives_load
     template <class Container>
     auto& get_loader()
     {
+        using Contains =
+            decltype(hana::contains(storage, hana::type_c<Container>));
+        constexpr bool contains = hana::value<Contains>();
+        if constexpr (!contains) {
+            auto err = error_missing_archive_for_type<Container>{};
+        }
+
         auto& load = storage[hana::type_c<Container>];
         if (!load.loader) {
             load.loader.emplace(load.archive);
