@@ -527,6 +527,7 @@ public:
 private:
     friend transient_type;
 
+public:
     flex_vector(impl_t impl)
         : impl_(std::move(impl))
     {
@@ -537,6 +538,7 @@ private:
 #endif
     }
 
+private:
     flex_vector&& push_back_move(std::true_type, value_type value)
     {
         impl_.push_back_mut({}, std::move(value));

@@ -25,6 +25,16 @@ namespace immer {
 namespace detail {
 namespace rbts {
 
+#if IMMER_THROW_ON_INVALID_STATE
+struct invalid_tree : std::exception
+{};
+#define IMMER_INVALID_STATE_ASSERT(expr)                                       \
+    if (!(expr))                                                               \
+    IMMER_THROW(invalid_tree{})
+#else
+#define IMMER_INVALID_STATE_ASSERT(expr) assert(expr)
+#endif
+
 template <typename T, typename MemoryPolicy, bits_t B, bits_t BL>
 struct rrbtree_iterator;
 
@@ -107,13 +117,32 @@ struct rrbtree
         assert(check_tree());
     }
 
-    rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t) noexcept
+    rrbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
+#if IMMER_THROW_ON_INVALID_STATE
+#else
+        noexcept
+#endif
         : size{sz}
         , shift{sh}
         , root{r}
         , tail{t}
     {
+#if IMMER_THROW_ON_INVALID_STATE
+        // assert only happens in the Debug build, but when
+        // IMMER_THROW_ON_INVALID_STATE is activated, we want to just check_tree
+        // even in Release.
+        try {
+            check_tree();
+        } catch (...) {
+            // This not fully constructed rrbtree owns the nodes already, have
+            // to dec them.
+            if (r && t)
+                dec();
+            throw;
+        }
+#else
         assert(check_tree());
+#endif
     }
 
     rrbtree(const rrbtree& other) noexcept
@@ -1339,13 +1368,13 @@ struct rrbtree
 
     bool check_tree() const
     {
-        assert(shift <= sizeof(size_t) * 8 - BL);
-        assert(shift >= BL);
-        assert(tail_offset() <= size);
-        assert(tail_size() <= branches<BL>);
+        IMMER_INVALID_STATE_ASSERT(shift <= sizeof(size_t) * 8 - BL);
+        IMMER_INVALID_STATE_ASSERT(shift >= BL);
+        IMMER_INVALID_STATE_ASSERT(tail_offset() <= size);
+        IMMER_INVALID_STATE_ASSERT(tail_size() <= branches<BL>);
 #if IMMER_DEBUG_DEEP_CHECK
-        assert(check_root());
-        assert(check_tail());
+        IMMER_INVALID_STATE_ASSERT(check_root());
+        IMMER_INVALID_STATE_ASSERT(check_tail());
 #endif
         return true;
     }

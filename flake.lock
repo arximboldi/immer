@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "arximboldi-cereal-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1650443560,
+        "narHash": "sha256-G8V5g0POddpukPmiWAX/MhnIhi+EEVE/P+MQGCGH/J0=",
+        "owner": "arximboldi",
+        "repo": "cereal",
+        "rev": "4bfaf5fee1cbc69db4614169092368a29c7607c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "arximboldi",
+        "repo": "cereal",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -118,6 +134,7 @@
     },
     "root": {
       "inputs": {
+        "arximboldi-cereal-src": "arximboldi-cereal-src",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "gitignore": "gitignore",
