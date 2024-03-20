@@ -67,8 +67,8 @@ struct archivable_loader_wrapper
 };
 
 constexpr auto is_archivable = boost::hana::is_valid(
-    [](auto&& obj)
-        -> container_traits<std::decay_t<decltype(obj)>>::save_archive_t {});
+    [](auto&& obj) ->
+    typename container_traits<std::decay_t<decltype(obj)>>::save_archive_t {});
 
 constexpr auto is_auto_ignored = [](const auto& value) {
     return is_auto_ignored_type<std::decay_t<decltype(value)>>{};
@@ -154,7 +154,8 @@ auto get_archives_for_types(auto types,
     const auto names =
         hana::fold_left(hana::transform(types,
                                         [](auto t) {
-                                            using T = decltype(t)::type;
+                                            using T =
+                                                typename decltype(t)::type;
                                             return get_auto_archives_types(T{});
                                         }),
                         hana::make_map(),
