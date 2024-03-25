@@ -141,3 +141,21 @@ TEST_CASE("update move")
         CHECK(&y.get() == addr);
     }
 }
+
+namespace {
+struct fwd_type;
+struct test_type
+{
+    immer::box<fwd_type> data;
+};
+struct fwd_type
+{
+    int data = 123;
+};
+} // namespace
+
+TEST_CASE("Test box with a fwd declared type")
+{
+    auto val = test_type{};
+    REQUIRE(val.data.get().data == 123);
+}
