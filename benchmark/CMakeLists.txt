@@ -112,14 +112,13 @@ foreach(_file IN LISTS immer_benchmarks)
 endforeach()
 
 set(immer_ssh_method
-  ssh -p 5488
-      -o StrictHostKeyChecking=no)
+  ssh -o StrictHostKeyChecking=no)
 
 add_custom_target(upload-benchmark-reports
   COMMAND
   rsync -av -e \"${immer_ssh_method}\"
         ${immer_benchmark_report_base_dir}
-        raskolnikov@sinusoid.es:public/misc/immer/)
+        root@sinusoid.es:/var/lib/syncthing/public/misc/immer/)
 
 add_custom_target(copy-benchmark-reports
   COMMAND
