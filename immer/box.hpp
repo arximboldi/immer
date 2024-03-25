@@ -74,8 +74,7 @@ public:
      */
     template <typename Arg,
               typename Enable = std::enable_if_t<
-                  !std::is_same<box, std::decay_t<Arg>>::value &&
-                  std::is_constructible<T, Arg>::value>>
+                  !std::is_same<box, std::decay_t<Arg>>::value>>
     box(Arg&& arg)
         : impl_{detail::make<heap, holder>(std::forward<Arg>(arg))}
     {}
