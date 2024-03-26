@@ -22,8 +22,8 @@
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
 
-#include <vector>
 #include <list>
+#include <vector>
 
 #if IMMER_BENCHMARK_STEADY
 #define QUARK_ASSERT_ON 0
@@ -31,12 +31,15 @@
 #endif
 
 #if IMMER_BENCHMARK_LIBRRB
-extern "C" {
+extern "C"
+{
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
 #endif
+
+// clang-format off
 
 NONIUS_BENCHMARK("std::vector", benchmark_assoc_std<std::vector<unsigned>>())
 NONIUS_BENCHMARK("std::vector/random", benchmark_assoc_random_std<std::vector<unsigned>>())
@@ -117,3 +120,5 @@ NONIUS_BENCHMARK("t/vector/GC/random",  benchmark_assoc_mut_random<immer::vector
 NONIUS_BENCHMARK("t/vector/NO/random",  benchmark_assoc_mut_random<immer::vector<unsigned,basic_memory,5>>())
 NONIUS_BENCHMARK("t/vector/UN/random",  benchmark_assoc_mut_random<immer::vector<unsigned,unsafe_memory,5>>())
 NONIUS_BENCHMARK("t/flex/F/5B/random",  benchmark_assoc_mut_random<immer::flex_vector<unsigned,def_memory,5>,push_front_fn>())
+
+// clang-format on
