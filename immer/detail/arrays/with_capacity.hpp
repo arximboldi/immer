@@ -42,7 +42,8 @@ struct with_capacity
         : ptr{p}
         , size{s}
         , capacity{c}
-    {}
+    {
+    }
 
     with_capacity(const with_capacity& other)
         : with_capacity{other.ptr, other.size, other.capacity}

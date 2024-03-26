@@ -10,30 +10,27 @@
 
 #include "benchmark/config.hpp"
 
-#include <immer/set.hpp>
-#include <immer/box.hpp>
-#include <immer/algorithm.hpp>
-#include <hash_trie.hpp> // Phil Nash
 #include <boost/container/flat_set.hpp>
+#include <hash_trie.hpp> // Phil Nash
+#include <immer/algorithm.hpp>
+#include <immer/box.hpp>
+#include <immer/set.hpp>
+#include <numeric>
 #include <set>
 #include <unordered_set>
-#include <numeric>
 
 namespace {
 
 template <typename T>
 struct iter_step
 {
-    unsigned operator() (unsigned x, const T& y) const
-    {
-        return x + y;
-    }
+    unsigned operator()(unsigned x, const T& y) const { return x + y; }
 };
 
 template <>
 struct iter_step<std::string>
 {
-    unsigned operator() (unsigned x, const std::string& y) const
+    unsigned operator()(unsigned x, const std::string& y) const
     {
         return x + (unsigned) y.size();
     }
@@ -42,7 +39,7 @@ struct iter_step<std::string>
 template <>
 struct iter_step<immer::box<std::string>>
 {
-    unsigned operator() (unsigned x, const immer::box<std::string>& y) const
+    unsigned operator()(unsigned x, const immer::box<std::string>& y) const
     {
         return x + (unsigned) y->size();
     }
@@ -51,8 +48,7 @@ struct iter_step<immer::box<std::string>>
 template <typename Generator, typename Set>
 auto benchmark_access_std_iter()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
 
@@ -71,9 +67,8 @@ auto benchmark_access_std_iter()
 template <typename Generator, typename Set>
 auto benchmark_access_reduce()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
 
         auto v = Set{};
@@ -91,9 +86,8 @@ auto benchmark_access_reduce()
 template <typename Generator, typename Set>
 auto benchmark_access_iter()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
 
         auto v = Set{};

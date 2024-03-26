@@ -10,21 +10,21 @@
 
 #include "benchmark/config.hpp"
 
-#include <immer/set.hpp>
-#include <hash_trie.hpp> // Phil Nash
 #include <boost/container/flat_set.hpp>
+#include <hash_trie.hpp> // Phil Nash
+#include <immer/set.hpp>
 #include <set>
 #include <unordered_set>
 
 namespace {
 
-template <typename T=unsigned>
+template <typename T = unsigned>
 auto make_generator_ranged(std::size_t runs)
 {
     assert(runs > 0);
     auto engine = std::default_random_engine{13};
-    auto dist = std::uniform_int_distribution<T>{0, (T)runs-1};
-    auto r = std::vector<T>(runs);
+    auto dist   = std::uniform_int_distribution<T>{0, (T) runs - 1};
+    auto r      = std::vector<T>(runs);
     std::generate_n(r.begin(), runs, std::bind(dist, engine));
     return r;
 }
@@ -32,8 +32,7 @@ auto make_generator_ranged(std::size_t runs)
 template <typename Generator, typename Set>
 auto benchmark_access_std()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
         auto g2 = make_generator_ranged(n);
@@ -55,9 +54,8 @@ auto benchmark_access_std()
 template <typename Generator, typename Set>
 auto benchmark_access_hamt()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
         auto g2 = make_generator_ranged(n);
 
@@ -68,7 +66,7 @@ auto benchmark_access_hamt()
         measure(meter, [&] {
             auto c = 0u;
             for (auto i = 0u; i < n; ++i) {
-                auto& x = g1[g2[i]];
+                auto& x   = g1[g2[i]];
                 auto leaf = v.find(x).leaf();
                 c += !!(leaf && leaf->find(x));
             }
@@ -78,13 +76,11 @@ auto benchmark_access_hamt()
     };
 }
 
-
 template <typename Generator, typename Set>
 auto benchmark_access()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
         auto g1 = Generator{}(n);
         auto g2 = make_generator_ranged(n);
 
@@ -105,10 +101,9 @@ auto benchmark_access()
 template <typename Generator, typename Set>
 auto benchmark_bad_access_std()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
-        auto g1 = Generator{}(n*2);
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
+        auto g1 = Generator{}(n * 2);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
@@ -117,7 +112,7 @@ auto benchmark_bad_access_std()
         measure(meter, [&] {
             auto c = 0u;
             for (auto i = 0u; i < n; ++i)
-                c += v.count(g1[n+i]);
+                c += v.count(g1[n + i]);
             volatile auto r = c;
             return r;
         });
@@ -127,10 +122,9 @@ auto benchmark_bad_access_std()
 template <typename Generator, typename Set>
 auto benchmark_bad_access_hamt()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
-        auto g1 = Generator{}(n*2);
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
+        auto g1 = Generator{}(n * 2);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
@@ -139,7 +133,7 @@ auto benchmark_bad_access_hamt()
         measure(meter, [&] {
             auto c = 0u;
             for (auto i = 0u; i < n; ++i) {
-                auto& x = g1[n+i];
+                auto& x   = g1[n + i];
                 auto leaf = v.find(x).leaf();
                 c += !!(leaf && leaf->find(x));
             }
@@ -149,14 +143,12 @@ auto benchmark_bad_access_hamt()
     };
 }
 
-
 template <typename Generator, typename Set>
 auto benchmark_bad_access()
 {
-    return [] (nonius::chronometer meter)
-    {
-        auto n = meter.param<N>();
-        auto g1 = Generator{}(n*2);
+    return [](nonius::chronometer meter) {
+        auto n  = meter.param<N>();
+        auto g1 = Generator{}(n * 2);
 
         auto v = Set{};
         for (auto i = 0u; i < n; ++i)
@@ -165,7 +157,7 @@ auto benchmark_bad_access()
         measure(meter, [&] {
             auto c = 0u;
             for (auto i = 0u; i < n; ++i)
-                c += v.count(g1[n+i]);
+                c += v.count(g1[n + i]);
             volatile auto r = c;
             return r;
         });

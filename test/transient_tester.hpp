@@ -23,7 +23,8 @@ struct transient_tester
     transient_tester(VP vp)
         : vp{vp}
         , vt{vp.transient()}
-    {}
+    {
+    }
 
     bool step()
     {

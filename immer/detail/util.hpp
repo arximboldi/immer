@@ -113,9 +113,9 @@ auto destroy_n(Iter first, Size n) noexcept
 template <typename Iter1, typename Iter2>
 constexpr bool can_trivially_copy =
     std::is_same<typename std::iterator_traits<Iter1>::value_type,
-                 typename std::iterator_traits<Iter2>::value_type>::value&&
-        std::is_trivially_copyable<
-            typename std::iterator_traits<Iter1>::value_type>::value;
+                 typename std::iterator_traits<Iter2>::value_type>::value &&
+    std::is_trivially_copyable<
+        typename std::iterator_traits<Iter1>::value_type>::value;
 
 template <typename Iter1, typename Iter2>
 auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out) noexcept
@@ -244,7 +244,8 @@ auto static_if(F&& f) -> std::enable_if_t<b>
 }
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<!b>
-{}
+{
+}
 
 template <bool b, typename R = void, typename F1, typename F2>
 auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<b, R>

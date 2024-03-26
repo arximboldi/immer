@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <scm/detail/invoke.hpp>
-#include <scm/detail/function_args.hpp>
 #include <scm/detail/convert.hpp>
+#include <scm/detail/function_args.hpp>
+#include <scm/detail/invoke.hpp>
 
 namespace scm {
 namespace detail {
@@ -30,23 +30,21 @@ auto finalizer_wrapper_impl(Fn fn, pack<T1>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1) { invoke(fn_, to_cpp<T1>(a1)); };
+    return [](SCM a1) { invoke(fn_, to_cpp<T1>(a1)); };
 }
 template <typename Tag, typename Fn, typename T1, typename T2>
 auto finalizer_wrapper_impl(Fn fn, pack<T1, T2>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2) {
-        invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2));
-    };
+    return [](SCM a1, SCM a2) { invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2)); };
 }
 template <typename Tag, typename Fn, typename T1, typename T2, typename T3>
 auto finalizer_wrapper_impl(Fn fn, pack<T1, T2, T3>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2, SCM a3) {
+    return [](SCM a1, SCM a2, SCM a3) {
         invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3));
     };
 }

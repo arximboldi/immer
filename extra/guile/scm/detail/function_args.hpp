@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <scm/detail/pack.hpp>
 #include <boost/callable_traits/args.hpp>
+#include <scm/detail/pack.hpp>
 
 namespace scm {
 namespace detail {

@@ -98,7 +98,8 @@ public:
      */
     set(std::initializer_list<value_type> values)
         : impl_{impl_t::from_initializer_list(values)}
-    {}
+    {
+    }
 
     /*!
      * Constructs a set containing the elements in the range
@@ -110,7 +111,8 @@ public:
                                bool> = true>
     set(Iter first, Sent last)
         : impl_{impl_t::from_range(first, last)}
-    {}
+    {
+    }
 
     /*!
      * Returns an iterator pointing at the first element of the
@@ -285,11 +287,12 @@ private:
         return impl_.sub(value);
     }
 
-// for archive
+    // for archive
 public:
     set(impl_t impl)
         : impl_(std::move(impl))
-    {}
+    {
+    }
 
 private:
     impl_t impl_ = impl_t::empty();

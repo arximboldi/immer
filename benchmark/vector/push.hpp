@@ -15,8 +15,7 @@ namespace {
 template <typename Vektor>
 auto benchmark_push_mut_std()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
@@ -33,8 +32,7 @@ auto benchmark_push_mut_std()
 template <typename Vektor>
 auto benchmark_push_mut()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
@@ -51,8 +49,7 @@ auto benchmark_push_mut()
 template <typename Vektor>
 auto benchmark_push_move()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
@@ -69,8 +66,7 @@ auto benchmark_push_move()
 template <typename Vektor>
 auto benchmark_push()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
         if (n > get_limit<Vektor>{})
             nonius::skip();
