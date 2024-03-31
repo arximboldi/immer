@@ -17,6 +17,7 @@ add_executable(
   test_champ.cpp
   test_xxhash.cpp
   test_box.cpp
+  test_conversion.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/archive/xxhash/xxhash_64.cpp)
 add_dependencies(tests archive-tests)
 add_test("test/archive-tests" archive-tests)

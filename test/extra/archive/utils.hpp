@@ -164,6 +164,24 @@ inline auto transform_table(const auto& table)
     return result;
 }
 
+namespace hana = boost::hana;
+
+/**
+ * Unexpected thing: we can't use `hana::equal` to implement the operator== for
+ * a struct. It ends up calling itself in an endless recursion.
+ */
+constexpr auto members = [](const auto& value) {
+    return hana::keys(value) | [&value](auto key) {
+        return hana::make_tuple(hana::at_key(value, key));
+    };
+};
+
+constexpr auto serialize_members = [](auto& ar, auto& value) {
+    hana::for_each(hana::keys(value), [&](auto key) {
+        ar(cereal::make_nvp(key.c_str(), hana::at_key(value, key)));
+    });
+};
+
 } // namespace test
 
 template <>
