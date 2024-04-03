@@ -65,6 +65,19 @@ struct archives_save
         return storage[hana::type_c<T>];
     }
 
+    template <class T>
+    auto get_save_archive() const
+    {
+        using Contains = decltype(hana::contains(storage, hana::type_c<T>));
+        constexpr bool contains = hana::value<Contains>();
+        if constexpr (!contains) {
+            auto err =
+                error_no_archive_for_the_given_type_check_get_archives_types_function<
+                    T>{};
+        }
+        return storage[hana::type_c<T>];
+    }
+
     friend bool operator==(const archives_save& left,
                            const archives_save& right)
     {
@@ -103,6 +116,21 @@ struct archive_type_load
     {
         return left.archive == right.archive;
     }
+};
+
+/**
+ * Transform (if needed) a given function that requires get_loader as the second
+ * argument into a function that always needs just one argument.
+ */
+constexpr auto inject_get_loader = [](auto get_loader, auto func) {
+    return [get_loader, func](auto&& old) {
+        const auto is_valid = hana::is_valid(func)(old);
+        if constexpr (hana::value<decltype(is_valid)>()) {
+            return func(old);
+        } else {
+            return func(old, get_loader);
+        }
+    };
 };
 
 template <class Storage, class Names>
@@ -181,6 +209,133 @@ struct archives_load
         auto new_storage = hana::fold_left(
             storage, hana::make_map(), [&transform_pair](auto map, auto pair) {
                 return hana::insert(map, transform_pair(pair));
+            });
+        using NewStorage = decltype(new_storage);
+        return archives_load<NewStorage, Names>{std::move(new_storage)};
+    }
+
+    /**
+     * ConversionMap is a map where keys are types of the original container
+     * (hana::type_c<vector_one<model::snapshot>>) and the values are converting
+     * functions that are used to convert the archives.
+     *
+     * The main feature is that the converting function can also take the second
+     * argument, a function get_loader, which can be called with a container
+     * type (`get_loader(hana::type_c<vector_one<format::track_id>>)`) and will
+     * return a reference to a loader that can be used to load other containers
+     * that have already been converted.
+     *
+     * @see test/extra/archive/test_conversion.cpp
+     */
+    template <class ConversionMap>
+    auto transform_recursive(const ConversionMap& conversion_map) const
+    {
+        // This lambda is only used to determine types and should never be
+        // called.
+        constexpr auto fake_get_loader = [](auto type) -> auto& {
+            using Container = typename decltype(type)::type;
+            using Loader    = typename container_traits<Container>::loader_t;
+            Loader* ptr     = nullptr;
+            throw std::runtime_error{"This should never be called"};
+            return *ptr;
+        };
+
+        // Return a pair where second is an optional. Optional is already
+        // populated if no transformation is required.
+        const auto transform_pair_initial = [fake_get_loader, &conversion_map](
+                                                const auto& pair) {
+            using Contains =
+                decltype(hana::contains(conversion_map, hana::first(pair)));
+            constexpr bool contains = hana::value<Contains>();
+            if constexpr (contains) {
+                // Look up the conversion function by the type from the original
+                // archive.
+                const auto& func = inject_get_loader(
+                    fake_get_loader, conversion_map[hana::first(pair)]);
+
+                using Container = typename decltype(+hana::first(pair))::type;
+                using NewContainer = std::decay_t<
+                    decltype(container_traits<Container>::transform(func))>;
+                const auto old_key = hana::first(pair);
+                return hana::make_pair(
+                    hana::type_c<NewContainer>,
+                    hana::make_tuple(
+                        old_key,
+                        std::optional<archive_type_load<NewContainer>>{}));
+            } else {
+                // If the conversion map doesn't mention the current type, we
+                // leave it as is.
+                return hana::make_pair(
+                    hana::first(pair),
+                    hana::make_tuple(hana::first(pair),
+                                     std::make_optional(hana::second(pair))));
+            }
+        };
+
+        // Each archive is wrapped in optional to know if it's already been
+        // converted or not, since the order is unknown and depends on the
+        // dependencies between the archives.
+
+        // This temporary storage is a map from type to
+        // (old_key, optional<archive_type_load>). Some optionals are already
+        // populated, if no transformation is required.
+        auto optional_storage = hana::fold_left(
+            storage,
+            hana::make_map(),
+            [transform_pair_initial](auto map, auto pair) {
+                return hana::insert(map, transform_pair_initial(pair));
+            });
+        const auto process =
+            [this](auto old_key, auto& optional_archive, const auto& func) {
+                if (optional_archive) {
+                    // The archive has already been processed, do nothing
+                    return;
+                }
+                const auto& archive = storage[old_key].archive;
+                // Each archive defines the transform_archive function that
+                // transforms its leaves with the given function.
+                optional_archive.emplace(transform_archive(archive, func));
+            };
+
+        // The get_loader function accepts a new container type as an argument
+        // (after transformation, if any) and returns a reference to a loader
+        // that is able to load such container types.
+        const auto get_loader =
+            hana::fix([&optional_storage, &conversion_map, process](
+                          auto self, auto new_container_type) -> auto& {
+                auto& s              = optional_storage[new_container_type];
+                auto& st             = hana::at_c<1>(s);
+                const auto old_key   = hana::at_c<0>(s);
+                const auto& old_func = conversion_map[old_key];
+                auto func            = inject_get_loader(self, old_func);
+                process(old_key, st, func);
+
+                auto& type_load = *st;
+                if (!type_load.loader) {
+                    type_load.loader.emplace(type_load.archive);
+                }
+                return *type_load.loader;
+            });
+
+        // Call `process` for each type
+        hana::for_each(hana::keys(optional_storage),
+                       [&](auto key) { //
+                           auto& s              = optional_storage[key];
+                           auto& st             = hana::at_c<1>(s);
+                           const auto old_key   = hana::at_c<0>(s);
+                           const auto& old_func = conversion_map[old_key];
+                           auto func = inject_get_loader(get_loader, old_func);
+                           process(old_key, st, func);
+                       });
+
+        // By now, all optionals have been emplaced.
+        auto new_storage = hana::fold_left(
+            optional_storage, hana::make_map(), [](auto map, auto pair) {
+                // Extract from std::optional
+                return hana::insert(
+                    map,
+                    hana::make_pair(hana::first(pair),
+                                    hana::at_c<1>(hana::second(pair)).value()));
             });
         using NewStorage = decltype(new_storage);
         return archives_load<NewStorage, Names>{std::move(new_storage)};
