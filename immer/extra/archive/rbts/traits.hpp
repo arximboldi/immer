@@ -37,6 +37,13 @@ struct container_traits<immer::flex_vector<T, MemoryPolicy, B, BL>>
     using load_archive_t = rbts::archive_load<T>;
     using loader_t       = rbts::flex_vector_loader<T, MemoryPolicy, B, BL>;
     using container_id   = immer::archive::container_id;
+
+    template <class F>
+    static auto transform(F&& func)
+    {
+        using U = std::decay_t<decltype(func(std::declval<T>()))>;
+        return immer::flex_vector<U, MemoryPolicy, B, BL>{};
+    }
 };
 
 } // namespace immer::archive
