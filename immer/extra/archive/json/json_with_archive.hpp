@@ -66,7 +66,7 @@ struct archives_save
     }
 
     template <class T>
-    auto get_save_archive() const
+    const auto& get_save_archive() const
     {
         using Contains = decltype(hana::contains(storage, hana::type_c<T>));
         constexpr bool contains = hana::value<Contains>();
@@ -119,16 +119,21 @@ struct archive_type_load
 };
 
 /**
- * Transform (if needed) a given function that requires get_loader as the second
- * argument into a function that always needs just one argument.
+ * Transforms a given function into another function that:
+ *   - If the given function is a function of one argument, nothing changes.
+ *   - Otherwise, passes the given argument as the second argument for the
+ * function.
+ *
+ * In other words, takes a function of maybe two arguments and returns a
+ * function of just one argument.
  */
-constexpr auto inject_get_loader = [](auto get_loader, auto func) {
-    return [get_loader, func](auto&& old) {
+constexpr auto inject_argument = [](auto arg, auto func) {
+    return [arg, func](auto&& old) {
         const auto is_valid = hana::is_valid(func)(old);
         if constexpr (hana::value<decltype(is_valid)>()) {
             return func(old);
         } else {
-            return func(old, get_loader);
+            return func(old, arg);
         }
     };
 };
@@ -227,22 +232,23 @@ struct archives_load
      *
      * @see test/extra/archive/test_conversion.cpp
      */
-    template <class ConversionMap>
-    auto transform_recursive(const ConversionMap& conversion_map) const
+    template <class ConversionMap, class GetIdF>
+    auto transform_recursive(const ConversionMap& conversion_map,
+                             const GetIdF& get_id) const
     {
         // This lambda is only used to determine types and should never be
         // called.
-        constexpr auto fake_get_loader = [](auto type) -> auto& {
-            using Container = typename decltype(type)::type;
-            using Loader    = typename container_traits<Container>::loader_t;
-            Loader* ptr     = nullptr;
+        constexpr auto fake_convert_container = [](auto new_type,
+                                                   const auto& old_container) {
+            using NewContainerType = typename decltype(new_type)::type;
             throw std::runtime_error{"This should never be called"};
-            return *ptr;
+            return NewContainerType{};
         };
 
         // Return a pair where second is an optional. Optional is already
         // populated if no transformation is required.
-        const auto transform_pair_initial = [fake_get_loader, &conversion_map](
+        const auto transform_pair_initial = [fake_convert_container,
+                                             &conversion_map](
                                                 const auto& pair) {
             using Contains =
                 decltype(hana::contains(conversion_map, hana::first(pair)));
@@ -250,8 +256,8 @@ struct archives_load
             if constexpr (contains) {
                 // Look up the conversion function by the type from the original
                 // archive.
-                const auto& func = inject_get_loader(
-                    fake_get_loader, conversion_map[hana::first(pair)]);
+                const auto& func = inject_argument(
+                    fake_convert_container, conversion_map[hana::first(pair)]);
 
                 using Container = typename decltype(+hana::first(pair))::type;
                 using NewContainer = std::decay_t<
@@ -300,21 +306,29 @@ struct archives_load
         // The get_loader function accepts a new container type as an argument
         // (after transformation, if any) and returns a reference to a loader
         // that is able to load such container types.
-        const auto get_loader =
-            hana::fix([&optional_storage, &conversion_map, process](
-                          auto self, auto new_container_type) -> auto& {
-                auto& s              = optional_storage[new_container_type];
-                auto& st             = hana::at_c<1>(s);
-                const auto old_key   = hana::at_c<0>(s);
-                const auto& old_func = conversion_map[old_key];
-                auto func            = inject_get_loader(self, old_func);
-                process(old_key, st, func);
+        const auto get_loader = [&optional_storage, &conversion_map, process](
+                                    const auto& convert_container,
+                                    auto new_container_type) -> auto& {
+            auto& s              = optional_storage[new_container_type];
+            auto& st             = hana::at_c<1>(s);
+            const auto old_key   = hana::at_c<0>(s);
+            const auto& old_func = conversion_map[old_key];
+            auto func            = inject_argument(convert_container, old_func);
+            process(old_key, st, func);
 
-                auto& type_load = *st;
-                if (!type_load.loader) {
-                    type_load.loader.emplace(type_load.archive);
-                }
-                return *type_load.loader;
+            auto& type_load = *st;
+            if (!type_load.loader) {
+                type_load.loader.emplace(type_load.archive);
+            }
+            return *type_load.loader;
+        };
+
+        const auto convert_container =
+            hana::fix([&get_id, get_loader](
+                          auto self, auto new_type, const auto& old_container) {
+                const auto id = get_id(old_container);
+                auto& loader  = get_loader(self, new_type);
+                return loader.load(id);
             });
 
         // Call `process` for each type
@@ -324,7 +338,8 @@ struct archives_load
                            auto& st             = hana::at_c<1>(s);
                            const auto old_key   = hana::at_c<0>(s);
                            const auto& old_func = conversion_map[old_key];
-                           auto func = inject_get_loader(get_loader, old_func);
+                           auto func =
+                               inject_argument(convert_container, old_func);
                            process(old_key, st, func);
                        });
 
@@ -389,6 +404,17 @@ inline auto generate_archives_load(auto type_names)
     using Storage = decltype(storage);
     using Names   = decltype(type_names);
     return archives_load<Storage, Names>{storage};
+}
+
+template <class Storage, class Names>
+inline auto to_load_archives(const archives_save<Storage, Names>& save_archive)
+{
+    auto archives = generate_archives_load(Names{});
+    boost::hana::for_each(boost::hana::keys(archives.storage), [&](auto key) {
+        archives.storage[key].archive =
+            to_load_archive(save_archive.storage[key]);
+    });
+    return archives;
 }
 
 } // namespace detail
@@ -558,6 +584,31 @@ T from_json_with_archive_with_conversion(const std::string& input,
 {
     auto is = std::istringstream{input};
     return from_json_with_archive_with_conversion<T, OldType>(is, map);
+}
+
+/**
+ * Given an archives_save and a map of transformations, produce a new type of
+ * load archive with those transformations applied
+ */
+template <class Storage, class Names, class ConversionMap>
+inline auto transform_save_archive(
+    const detail::archives_save<Storage, Names>& old_archives,
+    const ConversionMap& conversion_map)
+{
+    const auto old_load_archives = to_load_archives(old_archives);
+    const auto get_id = [&old_archives](const auto& immer_container) {
+        using Container = std::decay_t<decltype(immer_container)>;
+        const auto& old_archive =
+            old_archives.template get_save_archive<Container>();
+        const auto [new_archive, id] =
+            save_to_archive(immer_container, old_archive);
+        if (!(new_archive == old_archive)) {
+            throw std::logic_error{
+                "Expecting that the container has already been archived"};
+        }
+        return id;
+    };
+    return old_load_archives.transform_recursive(conversion_map, get_id);
 }
 
 } // namespace immer::archive
