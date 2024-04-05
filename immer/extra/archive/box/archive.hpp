@@ -143,6 +143,20 @@ loader<T, MemoryPolicy> make_loader_for(const immer::box<T, MemoryPolicy>&,
     return loader<T, MemoryPolicy>{std::move(ar)};
 }
 
+template <typename T, typename MemoryPolicy, class F>
+auto transform_archive(const archive_load<T, MemoryPolicy>& ar, F&& func)
+{
+    using U    = std::decay_t<decltype(func(std::declval<T>()))>;
+    auto boxes = immer::vector<immer::box<U, MemoryPolicy>>{};
+    for (const auto& item : ar.boxes) {
+        boxes = std::move(boxes).push_back(func(item.get()));
+    }
+
+    return archive_load<U, MemoryPolicy>{
+        .boxes = std::move(boxes),
+    };
+}
+
 } // namespace immer::archive::box
 
 namespace immer::archive {
@@ -154,6 +168,13 @@ struct container_traits<immer::box<T, MemoryPolicy>>
     using load_archive_t = box::archive_load<T, MemoryPolicy>;
     using loader_t       = box::loader<T, MemoryPolicy>;
     using container_id   = immer::archive::container_id;
+
+    template <class F>
+    static auto transform(F&& func)
+    {
+        using U = std::decay_t<decltype(func(std::declval<T>()))>;
+        return immer::box<U, MemoryPolicy>{};
+    }
 };
 
 } // namespace immer::archive
