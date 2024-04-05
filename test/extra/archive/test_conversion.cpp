@@ -189,3 +189,33 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility")
     //     REQUIRE(json_str == json_str2);
     // }
 }
+
+namespace {
+struct two_vectors
+{
+    BOOST_HANA_DEFINE_STRUCT(two_vectors, //
+                             (vector_one<int>, ints),
+                             (vector_one<std::string>, strings));
+
+    DEFINE_OPERATIONS(two_vectors);
+};
+} // namespace
+
+TEST_CASE("Not every type is converted")
+{
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<two_vectors>, hana::make_map());
+    const auto [json_str, archives] =
+        immer::archive::to_json_with_auto_archive(two_vectors{}, names);
+
+    const auto map =
+        hana::make_map(hana::make_pair(hana::type_c<vector_one<int>>,
+                                       [](int old) { //
+                                           return double{};
+                                       })
+
+        );
+    const auto format_load_archives =
+        immer::archive::transform_save_archive(archives, map);
+    (void) format_load_archives;
+}

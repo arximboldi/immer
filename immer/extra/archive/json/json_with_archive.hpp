@@ -332,16 +332,19 @@ struct archives_load
             });
 
         // Call `process` for each type
-        hana::for_each(hana::keys(optional_storage),
-                       [&](auto key) { //
-                           auto& s              = optional_storage[key];
-                           auto& st             = hana::at_c<1>(s);
-                           const auto old_key   = hana::at_c<0>(s);
-                           const auto& old_func = conversion_map[old_key];
-                           auto func =
-                               inject_argument(convert_container, old_func);
-                           process(old_key, st, func);
-                       });
+        hana::for_each(hana::keys(optional_storage), [&](auto key) {
+            auto& s            = optional_storage[key];
+            auto& st           = hana::at_c<1>(s);
+            const auto old_key = hana::at_c<0>(s);
+            constexpr auto needs_conversion =
+                hana::value<decltype(hana::contains(conversion_map,
+                                                    old_key))>();
+            if constexpr (needs_conversion) {
+                const auto& old_func = conversion_map[old_key];
+                auto func = inject_argument(convert_container, old_func);
+                process(old_key, st, func);
+            }
+        });
 
         // By now, all optionals have been emplaced.
         auto new_storage = hana::fold_left(
