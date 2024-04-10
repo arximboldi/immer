@@ -147,48 +147,47 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
         hana::tuple_t<format::history, format::arrangement>, hana::make_map());
     (void) format_names;
 
+    const auto value = model::make_example_history();
+
     const auto [json_str, model_archives] =
-        immer::archive::to_json_with_auto_archive(model::make_example_history(),
-                                                  model_names);
+        immer::archive::to_json_with_auto_archive(value, model_names);
 
     const auto map = hana::make_map(
         hana::make_pair(hana::type_c<vector_one<model::snapshot>>,
                         [](model::snapshot old, const auto& convert_container) {
-                            SPDLOG_INFO("converting model::snapshot");
                             const auto format_tracks = convert_container(
                                 hana::type_c<vector_one<format::track_id>>,
                                 old.arr.tracks);
-                            for (auto x : format_tracks) {
-                                SPDLOG_INFO("x = {}", x.tid);
-                            }
-                            return format::snapshot{};
+                            return format::snapshot{.arr = format::arrangement{
+                                                        .tracks = format_tracks,
+                                                    }};
                         }),
         hana::make_pair(hana::type_c<vector_one<model::track_id>>,
                         [](model::track_id old) { //
-                            SPDLOG_INFO("converting model::track_id");
-                            return format::track_id{old.tid * 100};
+                            return format::track_id{old.tid};
                         })
 
     );
-    const auto format_load_archives =
+    auto format_load_archives =
         immer::archive::transform_save_archive(model_archives, map);
     (void) format_load_archives;
 
-    // Z<decltype(model_load_archives)> qwe;
-    // REQUIRE(json_str == "");
+    const auto format_snapshots = immer::archive::convert_container(
+        model_archives, format_load_archives, value.snapshots);
 
-    // const auto map
-
-    // const auto format_archives = model_archives.transform(map);
-
-    // {
-    //     const auto loaded =
-    //         immer::archive::from_json_with_auto_archive<format::history>(
-    //             json_str, format_names);
-    //     const auto [json_str2, archives] =
-    //         immer::archive::to_json_with_auto_archive(loaded, format_names);
-    //     REQUIRE(json_str == json_str2);
-    // }
+    {
+        const auto [json_str2, archives] =
+            immer::archive::to_json_with_auto_archive(format_snapshots,
+                                                      format_names);
+        (void) json_str2;
+        REQUIRE(test::to_json(format_snapshots) ==
+                test::to_json(value.snapshots));
+    }
+    {
+        const auto [json, ar] = immer::archive::to_json_with_auto_archive(
+            format::history{.snapshots = format_snapshots}, format_names);
+        REQUIRE(json == json_str);
+    }
 }
 
 namespace {
