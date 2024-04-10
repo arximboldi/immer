@@ -138,7 +138,8 @@ class Z;
 
 } // namespace
 
-TEST_CASE("Convert between two hierarchies via JSON compatibility")
+TEST_CASE("Convert between two hierarchies via JSON compatibility",
+          "[conversion]")
 {
     const auto model_names = immer::archive::get_archives_for_types(
         hana::tuple_t<model::history, model::arrangement>, hana::make_map());
@@ -201,7 +202,7 @@ struct two_vectors
 };
 } // namespace
 
-TEST_CASE("Not every type is converted")
+TEST_CASE("Not every type is converted", "[conversion]")
 {
     const auto names = immer::archive::get_archives_for_types(
         hana::tuple_t<two_vectors>, hana::make_map());

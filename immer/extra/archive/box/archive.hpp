@@ -10,6 +10,8 @@
 
 #include <cereal/cereal.hpp>
 
+#include <boost/hana/functional/id.hpp>
+
 namespace immer::archive::box {
 
 template <typename T, typename MemoryPolicy>
@@ -115,25 +117,48 @@ save_to_archive(immer::box<T, MemoryPolicy> box,
     return {std::move(archive), id};
 }
 
-template <typename T, typename MemoryPolicy>
+template <typename T,
+          typename MemoryPolicy,
+          typename Archive    = archive_load<T, MemoryPolicy>,
+          typename TransformF = boost::hana::id_t>
 class loader
 {
 public:
-    explicit loader(archive_load<T, MemoryPolicy> ar)
+    explicit loader(Archive ar)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : ar_{std::move(ar)}
     {
     }
 
-    immer::box<T, MemoryPolicy> load(container_id id) const
+    explicit loader(Archive ar, TransformF transform)
+        : ar_{std::move(ar)}
+        , transform_{std::move(transform)}
+    {
+    }
+
+    immer::box<T, MemoryPolicy> load(container_id id)
     {
         if (id.value >= ar_.boxes.size()) {
             throw invalid_container_id{id};
         }
-        return ar_.boxes[id.value];
+        if constexpr (std::is_same_v<TransformF, boost::hana::id_t>) {
+            return ar_.boxes[id.value];
+        } else {
+            if (auto* b = boxes.find(id)) {
+                return *b;
+            }
+            const auto& old_box = ar_.boxes[id.value];
+            auto new_box =
+                immer::box<T, MemoryPolicy>{transform_(old_box.get())};
+            boxes = std::move(boxes).set(id, new_box);
+            return new_box;
+        }
     }
 
 private:
-    const archive_load<T, MemoryPolicy> ar_;
+    const Archive ar_;
+    const TransformF transform_;
+    immer::map<container_id, immer::box<T, MemoryPolicy>> boxes;
 };
 
 template <typename T, typename MemoryPolicy>
@@ -166,8 +191,12 @@ struct container_traits<immer::box<T, MemoryPolicy>>
 {
     using save_archive_t = box::archive_save<T, MemoryPolicy>;
     using load_archive_t = box::archive_load<T, MemoryPolicy>;
-    using loader_t       = box::loader<T, MemoryPolicy>;
-    using container_id   = immer::archive::container_id;
+
+    template <typename Archive    = load_archive_t,
+              typename TransformF = boost::hana::id_t>
+    using loader_t = box::loader<T, MemoryPolicy, Archive, TransformF>;
+
+    using container_id = immer::archive::container_id;
 
     template <class F>
     static auto transform(F&& func)

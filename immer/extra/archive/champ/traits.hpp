@@ -4,6 +4,8 @@
 #include <immer/extra/archive/champ/champ.hpp>
 #include <immer/extra/archive/traits.hpp>
 
+#include <boost/hana/functional/id.hpp>
+
 namespace immer::archive {
 
 template <class Container>
@@ -13,8 +15,12 @@ struct champ_traits
         immer::archive::champ::container_archive_save<Container>;
     using load_archive_t =
         immer::archive::champ::container_archive_load<Container>;
-    using loader_t     = immer::archive::champ::container_loader<Container>;
     using container_id = immer::archive::node_id;
+
+    template <typename Archive    = load_archive_t,
+              typename TransformF = boost::hana::id_t>
+    using loader_t =
+        immer::archive::champ::container_loader<Container, Archive, TransformF>;
 };
 
 template <typename K,

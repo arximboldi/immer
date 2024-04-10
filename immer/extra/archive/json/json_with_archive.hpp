@@ -85,30 +85,69 @@ struct archives_save
     }
 };
 
-template <class Container>
+template <class Container,
+          class Archive = typename container_traits<Container>::load_archive_t,
+          class TransformF       = boost::hana::id_t,
+          class OldContainerType = boost::hana::id_t>
 struct archive_type_load
 {
-    using archive_t = typename container_traits<Container>::load_archive_t;
+    using container_t     = Container;
+    using old_container_t = OldContainerType;
 
-    archive_t archive = {};
-    std::optional<typename container_traits<Container>::loader_t> loader;
+    Archive archive = {};
+    TransformF transform;
+    std::optional<typename container_traits<
+        Container>::template loader_t<Archive, TransformF>>
+        loader;
 
     archive_type_load() = default;
 
-    explicit archive_type_load(archive_t archive_)
+    explicit archive_type_load(Archive archive_)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : archive{std::move(archive_)}
+    {
+    }
+
+    explicit archive_type_load(Archive archive_, TransformF transform_)
+        : archive{std::move(archive_)}
+        , transform{std::move(transform_)}
     {
     }
 
     archive_type_load(const archive_type_load& other)
         : archive{other.archive}
+        , transform{other.transform}
     {
     }
 
     archive_type_load& operator=(const archive_type_load& other)
     {
-        archive = other.archive;
+        archive   = other.archive;
+        transform = other.transform;
         return *this;
+    }
+
+    auto& get_loader()
+    {
+        if (!loader) {
+            loader.emplace(archive, transform);
+        }
+        return *loader;
+    }
+
+    template <class Func>
+    auto with_transform(Func&& func) const
+    {
+        using value_type = typename Container::value_type;
+        using new_value_type =
+            std::decay_t<decltype(func(std::declval<value_type>()))>;
+        using NewContainer =
+            std::decay_t<decltype(container_traits<Container>::transform(
+                func))>;
+        using TransF = std::function<new_value_type(const value_type&)>;
+        // the transform function must be filled in later
+        return archive_type_load<NewContainer, Archive, TransF, Container>{
+            archive, TransF{}};
     }
 
     friend bool operator==(const archive_type_load& left,
@@ -154,12 +193,25 @@ struct archives_load
         if constexpr (!contains) {
             auto err = error_missing_archive_for_type<Container>{};
         }
+        return storage[hana::type_c<Container>].get_loader();
+    }
 
-        auto& load = storage[hana::type_c<Container>];
-        if (!load.loader) {
-            load.loader.emplace(load.archive);
-        }
-        return *load.loader;
+    template <class OldContainer>
+    auto& get_loader_by_old_container()
+    {
+        constexpr auto find_key = [](const auto& storage) {
+            return hana::find_if(
+                       hana::keys(storage),
+                       [&](auto key) {
+                           using type1 = typename std::decay_t<
+                               decltype(storage[key])>::old_container_t;
+                           return hana::type_c<type1> ==
+                                  hana::type_c<OldContainer>;
+                       })
+                .value();
+        };
+        using Key = decltype(find_key(storage));
+        return storage[Key{}].get_loader();
     }
 
     template <class Archive>
@@ -247,115 +299,82 @@ struct archives_load
 
         // Return a pair where second is an optional. Optional is already
         // populated if no transformation is required.
-        const auto transform_pair_initial = [fake_convert_container,
-                                             &conversion_map](
-                                                const auto& pair) {
-            using Contains =
-                decltype(hana::contains(conversion_map, hana::first(pair)));
-            constexpr bool contains = hana::value<Contains>();
-            if constexpr (contains) {
-                // Look up the conversion function by the type from the original
-                // archive.
-                const auto& func = inject_argument(
-                    fake_convert_container, conversion_map[hana::first(pair)]);
+        const auto transform_pair_initial =
+            [fake_convert_container, &conversion_map, this](const auto& pair) {
+                using Contains =
+                    decltype(hana::contains(conversion_map, hana::first(pair)));
+                constexpr bool contains = hana::value<Contains>();
+                if constexpr (contains) {
+                    // Look up the conversion function by the type from the
+                    // original archive.
+                    const auto& func =
+                        inject_argument(fake_convert_container,
+                                        conversion_map[hana::first(pair)]);
+                    auto type_load =
+                        storage[hana::first(pair)].with_transform(func);
+                    using NewContainer = decltype(type_load)::container_t;
+                    return hana::make_pair(hana::type_c<NewContainer>,
+                                           std::move(type_load));
+                } else {
+                    // If the conversion map doesn't mention the current type,
+                    // we leave it as is.
+                    return pair;
+                }
+            };
 
-                using Container = typename decltype(+hana::first(pair))::type;
-                using NewContainer = std::decay_t<
-                    decltype(container_traits<Container>::transform(func))>;
-                const auto old_key = hana::first(pair);
-                return hana::make_pair(
-                    hana::type_c<NewContainer>,
-                    hana::make_tuple(
-                        old_key,
-                        std::optional<archive_type_load<NewContainer>>{}));
-            } else {
-                // If the conversion map doesn't mention the current type, we
-                // leave it as is.
-                return hana::make_pair(
-                    hana::first(pair),
-                    hana::make_tuple(hana::first(pair),
-                                     std::make_optional(hana::second(pair))));
-            }
-        };
-
-        // Each archive is wrapped in optional to know if it's already been
-        // converted or not, since the order is unknown and depends on the
-        // dependencies between the archives.
-
-        // This temporary storage is a map from type to
-        // (old_key, optional<archive_type_load>). Some optionals are already
-        // populated, if no transformation is required.
-        auto optional_storage = hana::fold_left(
+        auto new_storage = hana::fold_left(
             storage,
             hana::make_map(),
             [transform_pair_initial](auto map, auto pair) {
                 return hana::insert(map, transform_pair_initial(pair));
             });
-        const auto process =
-            [this](auto old_key, auto& optional_archive, const auto& func) {
-                if (optional_archive) {
-                    // The archive has already been processed, do nothing
-                    return;
-                }
-                const auto& archive = storage[old_key].archive;
-                // Each archive defines the transform_archive function that
-                // transforms its leaves with the given function.
-                optional_archive.emplace(transform_archive(archive, func));
-            };
+        using NewStorage = decltype(new_storage);
 
-        // The get_loader function accepts a new container type as an argument
-        // (after transformation, if any) and returns a reference to a loader
-        // that is able to load such container types.
-        const auto get_loader = [&optional_storage, &conversion_map, process](
-                                    const auto& convert_container,
-                                    auto new_container_type) -> auto& {
-            auto& s              = optional_storage[new_container_type];
-            auto& st             = hana::at_c<1>(s);
-            const auto old_key   = hana::at_c<0>(s);
-            const auto& old_func = conversion_map[old_key];
-            auto func            = inject_argument(convert_container, old_func);
-            process(old_key, st, func);
+        // I can't think of a better way yet to tie all the loaders/transforming
+        // functions together.
+        auto shared_storage = std::make_shared<NewStorage>(new_storage);
 
-            auto& type_load = *st;
-            if (!type_load.loader) {
-                type_load.loader.emplace(type_load.archive);
-            }
-            return *type_load.loader;
+        const auto convert_container = [get_id](auto get_data) {
+            return
+                [get_id, get_data](auto new_type, const auto& old_container) {
+                    const auto id = get_id(old_container);
+                    auto& loader  = get_data()[new_type].get_loader();
+                    return loader.load(id);
+                };
         };
 
-        const auto convert_container =
-            hana::fix([&get_id, get_loader](
-                          auto self, auto new_type, const auto& old_container) {
-                const auto id = get_id(old_container);
-                auto& loader  = get_loader(self, new_type);
-                return loader.load(id);
-            });
+        // Important not to create a recursive reference to itself inside of the
+        // shared_storage.
+        const auto weak          = std::weak_ptr<NewStorage>{shared_storage};
+        const auto get_data_weak = [weak]() -> auto& {
+            auto p = weak.lock();
+            if (!p) {
+                throw std::logic_error{"weak ptr has expired"};
+            }
+            return *p;
+        };
+        const auto get_data_strong = [shared_storage]() -> auto& {
+            return *shared_storage;
+        };
 
-        // Call `process` for each type
-        hana::for_each(hana::keys(optional_storage), [&](auto key) {
-            auto& s            = optional_storage[key];
-            auto& st           = hana::at_c<1>(s);
-            const auto old_key = hana::at_c<0>(s);
+        // Fill-in the transforming functions into both new_storage and
+        // shared_storage.
+        hana::for_each(hana::keys(new_storage), [&](auto key) {
+            using TypeLoad = std::decay_t<decltype(new_storage[key])>;
+            const auto old_key =
+                hana::type_c<typename TypeLoad::old_container_t>;
             constexpr auto needs_conversion =
                 hana::value<decltype(hana::contains(conversion_map,
                                                     old_key))>();
             if constexpr (needs_conversion) {
                 const auto& old_func = conversion_map[old_key];
-                auto func = inject_argument(convert_container, old_func);
-                process(old_key, st, func);
+                (*shared_storage)[key].transform =
+                    inject_argument(convert_container(get_data_weak), old_func);
+                new_storage[key].transform = inject_argument(
+                    convert_container(get_data_strong), old_func);
             }
         });
 
-        // By now, all optionals have been emplaced.
-        auto new_storage = hana::fold_left(
-            optional_storage, hana::make_map(), [](auto map, auto pair) {
-                // Extract from std::optional
-                return hana::insert(
-                    map,
-                    hana::make_pair(hana::first(pair),
-                                    hana::at_c<1>(hana::second(pair)).value()));
-            });
-        using NewStorage = decltype(new_storage);
         return archives_load<NewStorage, Names>{std::move(new_storage)};
     }
 };
@@ -589,6 +608,20 @@ T from_json_with_archive_with_conversion(const std::string& input,
     return from_json_with_archive_with_conversion<T, OldType>(is, map);
 }
 
+template <class Storage, class Names, class Container>
+auto get_container_id(const detail::archives_save<Storage, Names>& archives,
+                      const Container& container)
+{
+    const auto& old_archive =
+        archives.template get_save_archive<std::decay_t<Container>>();
+    const auto [new_archive, id] = save_to_archive(container, old_archive);
+    if (!(new_archive == old_archive)) {
+        throw std::logic_error{
+            "Expecting that the container has already been archived"};
+    }
+    return id;
+}
+
 /**
  * Given an archives_save and a map of transformations, produce a new type of
  * load archive with those transformations applied
@@ -599,19 +632,35 @@ inline auto transform_save_archive(
     const ConversionMap& conversion_map)
 {
     const auto old_load_archives = to_load_archives(old_archives);
-    const auto get_id = [&old_archives](const auto& immer_container) {
-        using Container = std::decay_t<decltype(immer_container)>;
-        const auto& old_archive =
-            old_archives.template get_save_archive<Container>();
-        const auto [new_archive, id] =
-            save_to_archive(immer_container, old_archive);
-        if (!(new_archive == old_archive)) {
-            throw std::logic_error{
-                "Expecting that the container has already been archived"};
-        }
-        return id;
+    // NOTE: We have to copy old_archives here because the get_id function will
+    // be called later, as the conversion process is lazy.
+    const auto get_id = [old_archives](const auto& immer_container) {
+        return get_container_id(old_archives, immer_container);
     };
     return old_load_archives.transform_recursive(conversion_map, get_id);
+}
+
+/**
+ * Given an old save archives and a new (transformed) load archives, effectively
+ * convert the given container.
+ */
+template <class SaveStorage,
+          class SaveNames,
+          class LoadStorage,
+          class LoadNames,
+          class Container>
+auto convert_container(
+    const detail::archives_save<SaveStorage, SaveNames>& old_save_archives,
+    detail::archives_load<LoadStorage, LoadNames>& new_load_archives,
+    const Container& container)
+{
+    const auto container_id = get_container_id(old_save_archives, container);
+    auto& loader =
+        new_load_archives
+            .template get_loader_by_old_container<std::decay_t<Container>>();
+    auto result = loader.load(container_id);
+    // return std::make_pair(std::move(result), std::move(new_load_archives));
+    return result;
 }
 
 } // namespace immer::archive

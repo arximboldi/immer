@@ -13,8 +13,6 @@
    ...
    fun:make_leaf_n
    fun:empty_tail
-   ...
-   fun:vector
 }
 {
    empty_vector_root
@@ -23,8 +21,6 @@
    ...
    fun:make_inner_n
    fun:empty_root
-   ...
-   fun:vector
 }
 {
    empty_tail_from_initializer_list

@@ -81,7 +81,9 @@ public:
 template <class T,
           typename MemoryPolicy,
           immer::detail::rbts::bits_t B,
-          immer::detail::rbts::bits_t BL>
+          immer::detail::rbts::bits_t BL,
+          class Archive    = archive_load<T>,
+          class TransformF = boost::hana::id_t>
 class loader
 {
 public:
@@ -91,8 +93,15 @@ public:
     using node_ptr    = node_ptr<node_t>;
     using nodes_set_t = immer::set<node_id>;
 
-    explicit loader(archive_load<T> ar)
+    explicit loader(Archive ar)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : ar_{std::move(ar)}
+    {
+    }
+
+    explicit loader(Archive ar, TransformF transform)
+        : ar_{std::move(ar)}
+        , transform_{std::move(transform)}
     {
     }
 
@@ -169,8 +178,19 @@ private:
 
         auto leaf = node_ptr{n ? node_t::make_leaf_n(n) : rbtree::empty_tail(),
                              [n](auto* ptr) { node_t::delete_leaf(ptr, n); }};
-        immer::detail::uninitialized_copy(
-            node_info->data.begin(), node_info->data.end(), leaf.get()->leaf());
+        if constexpr (std::is_same_v<TransformF, boost::hana::id_t>) {
+            immer::detail::uninitialized_copy(node_info->data.begin(),
+                                              node_info->data.end(),
+                                              leaf.get()->leaf());
+        } else {
+            auto values = std::vector<T>{};
+            for (const auto& item : node_info->data) {
+                values.push_back(transform_(item));
+            }
+            immer::detail::uninitialized_copy(
+                values.begin(), values.end(), leaf.get()->leaf());
+        }
+
         leaves_        = std::move(leaves_).set(id, leaf);
         loaded_leaves_ = std::move(loaded_leaves_).set(leaf.get(), id);
         return leaf;
@@ -462,7 +482,8 @@ private:
     }
 
 private:
-    const archive_load<T> ar_;
+    const Archive ar_;
+    const TransformF transform_;
     immer::map<node_id, node_ptr> leaves_;
     immer::map<node_id, node_ptr> inners_;
     immer::map<node_t*, node_id> loaded_leaves_;
@@ -474,19 +495,27 @@ private:
 template <typename T,
           typename MemoryPolicy,
           immer::detail::rbts::bits_t B,
-          immer::detail::rbts::bits_t BL>
+          immer::detail::rbts::bits_t BL,
+          class Archive    = archive_load<T>,
+          class TransformF = boost::hana::id_t>
 class vector_loader
 {
 public:
-    explicit vector_loader(archive_load<T> ar)
+    explicit vector_loader(Archive ar)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : loader{std::move(ar)}
+    {
+    }
+
+    explicit vector_loader(Archive ar, TransformF transform)
+        : loader{std::move(ar), std::move(transform)}
     {
     }
 
     auto load(container_id id) { return loader.load_vector(id); }
 
 private:
-    loader<T, MemoryPolicy, B, BL> loader;
+    loader<T, MemoryPolicy, B, BL, Archive, TransformF> loader;
 };
 
 template <typename T,
@@ -503,19 +532,21 @@ make_loader_for(const immer::vector<T, MemoryPolicy, B, BL>&,
 template <typename T,
           typename MemoryPolicy,
           immer::detail::rbts::bits_t B,
-          immer::detail::rbts::bits_t BL>
+          immer::detail::rbts::bits_t BL,
+          class Archive    = archive_load<T>,
+          class TransformF = boost::hana::id_t>
 class flex_vector_loader
 {
 public:
-    explicit flex_vector_loader(archive_load<T> ar)
-        : loader{std::move(ar)}
+    explicit flex_vector_loader(Archive ar, TransformF transform = {})
+        : loader{std::move(ar), std::move(transform)}
     {
     }
 
     auto load(container_id id) { return loader.load_flex_vector(id); }
 
 private:
-    loader<T, MemoryPolicy, B, BL> loader;
+    loader<T, MemoryPolicy, B, BL, Archive, TransformF> loader;
 };
 
 template <typename T,

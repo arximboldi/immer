@@ -6,7 +6,9 @@
 
 #include <immer/flex_vector.hpp>
 
+#include <boost/hana/functional/id.hpp>
 #include <boost/range/adaptor/indexed.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace immer::archive {
@@ -54,7 +56,8 @@ template <class T,
           typename Hash                  = std::hash<T>,
           typename Equal                 = std::equal_to<T>,
           typename MemoryPolicy          = immer::default_memory_policy,
-          immer::detail::hamts::bits_t B = immer::default_bits>
+          immer::detail::hamts::bits_t B = immer::default_bits,
+          typename TransformF            = boost::hana::id_t>
 class nodes_loader
 {
 public:
@@ -66,7 +69,14 @@ public:
     using values_t = immer::flex_vector<immer::array<T>>;
 
     explicit nodes_loader(nodes_load<T, B> archive)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : archive_{std::move(archive)}
+    {
+    }
+
+    explicit nodes_loader(nodes_load<T, B> archive, TransformF transform)
+        : archive_{std::move(archive)}
+        , transform_{std::move(transform)}
     {
     }
 
@@ -219,6 +229,7 @@ public:
 
 private:
     const nodes_load<T, B> archive_;
+    const TransformF transform_;
     immer::map<node_id, std::pair<node_ptr, values_t>> collisions_;
     immer::map<node_id, std::pair<node_ptr, values_t>> inners_;
 };

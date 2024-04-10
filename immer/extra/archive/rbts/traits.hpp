@@ -14,8 +14,12 @@ struct container_traits<immer::vector<T, MemoryPolicy, B, BL>>
 {
     using save_archive_t = rbts::archive_save<T, MemoryPolicy, B, BL>;
     using load_archive_t = rbts::archive_load<T>;
-    using loader_t       = rbts::vector_loader<T, MemoryPolicy, B, BL>;
     using container_id   = immer::archive::container_id;
+
+    template <typename Archive    = load_archive_t,
+              typename TransformF = boost::hana::id_t>
+    using loader_t =
+        rbts::vector_loader<T, MemoryPolicy, B, BL, Archive, TransformF>;
 
     // This function is used to determine the type of the container after
     // applying some transformation.
@@ -35,8 +39,11 @@ struct container_traits<immer::flex_vector<T, MemoryPolicy, B, BL>>
 {
     using save_archive_t = rbts::archive_save<T, MemoryPolicy, B, BL>;
     using load_archive_t = rbts::archive_load<T>;
-    using loader_t       = rbts::flex_vector_loader<T, MemoryPolicy, B, BL>;
     using container_id   = immer::archive::container_id;
+
+    template <typename Archive    = load_archive_t,
+              typename TransformF = boost::hana::id_t>
+    using loader_t = rbts::flex_vector_loader<T, MemoryPolicy, B, BL>;
 
     template <class F>
     static auto transform(F&& func)

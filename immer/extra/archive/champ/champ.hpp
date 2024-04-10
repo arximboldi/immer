@@ -44,7 +44,9 @@ public:
     }
 };
 
-template <class Container>
+template <class Container,
+          typename Archive    = container_archive_load<Container>,
+          typename TransformF = boost::hana::id_t>
 class container_loader
 {
     using champ_t = std::decay_t<decltype(std::declval<Container>().impl())>;
@@ -61,9 +63,16 @@ class container_loader
     };
 
 public:
-    explicit container_loader(container_archive_load<Container> archive)
+    explicit container_loader(Archive archive)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
         : archive_{std::move(archive)}
         , nodes_{archive_.nodes}
+    {
+    }
+
+    explicit container_loader(Archive archive, TransformF transform)
+        : archive_{std::move(archive)}
+        , nodes_{archive_.nodes, std::move(transform)}
     {
     }
 
@@ -106,14 +115,19 @@ public:
     }
 
 private:
-    const container_archive_load<Container> archive_;
+    const Archive archive_;
     nodes_loader<typename node_t::value_t,
                  typename traits::Hash,
                  typename traits::Equal,
                  typename traits::MemoryPolicy,
-                 traits::bits>
+                 traits::bits,
+                 TransformF>
         nodes_;
 };
+
+template <class Container>
+container_loader(container_archive_load<Container> archive)
+    -> container_loader<Container>;
 
 template <class Container>
 std::pair<container_archive_save<Container>, node_id>
