@@ -49,10 +49,11 @@ template <class Container,
           typename TransformF = boost::hana::id_t>
 class container_loader
 {
-    using champ_t = std::decay_t<decltype(std::declval<Container>().impl())>;
-    using node_t  = typename champ_t::node_t;
-    using value_t = typename node_t::value_t;
-    using traits  = node_traits<node_t>;
+    using champ_t    = std::decay_t<decltype(std::declval<Container>().impl())>;
+    using node_t     = typename champ_t::node_t;
+    using value_t    = typename node_t::value_t;
+    using traits     = node_traits<node_t>;
+    using nodes_load = std::decay_t<decltype(std::declval<Archive>().nodes)>;
 
     struct project_value_ptr
     {
@@ -121,6 +122,7 @@ private:
                  typename traits::Equal,
                  typename traits::MemoryPolicy,
                  traits::bits,
+                 nodes_load,
                  TransformF>
         nodes_;
 };

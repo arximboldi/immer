@@ -4,6 +4,8 @@
 #include <immer/extra/archive/rbts/load.hpp>
 #include <immer/extra/archive/xxhash/xxhash.hpp>
 
+#include <immer/extra/archive/champ/traits.hpp>
+
 #include <immer/table.hpp>
 
 #include <sstream>
@@ -125,7 +127,7 @@ struct new_type
     }
 };
 
-inline auto convert_old_type(const old_type& val)
+inline auto convert_old_type_impl(const old_type& val)
 {
     return new_type{
         .id    = val.id,
@@ -133,6 +135,22 @@ inline auto convert_old_type(const old_type& val)
         .data2 = fmt::format("_{}_", val.data),
     };
 }
+
+inline auto convert_old_type_impl(const std::pair<std::string, old_type>& val)
+{
+    return std::make_pair(val.first, convert_old_type_impl(val.second));
+}
+
+constexpr auto convert_old_type = [](auto&& arg) {
+    return convert_old_type_impl(std::forward<decltype(arg)>(arg));
+};
+
+constexpr auto convert_old_type_map = boost::hana::overload(
+    [](immer::archive::target_container_type_request) {
+        return immer::
+            map<std::string, new_type, immer::archive::xx_hash<std::string>>{};
+    },
+    convert_old_type);
 
 inline auto transform_vec(const auto& vec)
 {

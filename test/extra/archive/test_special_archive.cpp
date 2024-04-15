@@ -896,15 +896,16 @@ TEST_CASE("Test conversion with a special archive")
     // REQUIRE(json_str == "");
 
     // Describe how to go from the old archive to the desired new archive.
-    const auto archives_conversions = hana::make_map(
-        hana::make_pair(
-            // Take this archive
-            hana::type_c<test::vector_one<old_type>>,
-            // And apply this conversion function to it
-            test::convert_old_type),
-        hana::make_pair(hana::type_c<map_t<old_type>>, test::convert_old_type)
+    const auto archives_conversions =
+        hana::make_map(hana::make_pair(
+                           // Take this archive
+                           hana::type_c<test::vector_one<old_type>>,
+                           // And apply this conversion function to it
+                           test::convert_old_type),
+                       hana::make_pair(hana::type_c<map_t<old_type>>,
+                                       test::convert_old_type_map)
 
-    );
+        );
 
     // Having a JSON from serializing old_app_type and a conversion function,
     // we need to somehow load new_app_type.

@@ -57,6 +57,7 @@ template <class T,
           typename Equal                 = std::equal_to<T>,
           typename MemoryPolicy          = immer::default_memory_policy,
           immer::detail::hamts::bits_t B = immer::default_bits,
+          typename NodesLoad             = nodes_load<T, B>,
           typename TransformF            = boost::hana::id_t>
 class nodes_loader
 {
@@ -68,13 +69,13 @@ public:
 
     using values_t = immer::flex_vector<immer::array<T>>;
 
-    explicit nodes_loader(nodes_load<T, B> archive)
+    explicit nodes_loader(NodesLoad archive)
         requires std::is_same_v<TransformF, boost::hana::id_t>
         : archive_{std::move(archive)}
     {
     }
 
-    explicit nodes_loader(nodes_load<T, B> archive, TransformF transform)
+    explicit nodes_loader(NodesLoad archive, TransformF transform)
         : archive_{std::move(archive)}
         , transform_{std::move(transform)}
     {
@@ -95,11 +96,10 @@ public:
         const auto n = node_info.values.data.size();
         auto node    = node_ptr{node_t::make_collision_n(n),
                              [](auto* ptr) { node_t::delete_collision(ptr); }};
-        immer::detail::uninitialized_copy(node_info.values.data.begin(),
-                                          node_info.values.data.end(),
-                                          node.get()->collisions());
-        auto result =
-            std::make_pair(std::move(node), values_t{node_info.values.data});
+        auto vs      = get_values(node_info.values.data);
+        immer::detail::uninitialized_copy(
+            vs.begin(), vs.end(), node.get()->collisions());
+        auto result = std::make_pair(std::move(node), values_t{vs});
         collisions_ = std::move(collisions_).set(id, result);
         return result;
     }
@@ -177,10 +177,10 @@ public:
 
         // Values
         if (values_count) {
-            immer::detail::uninitialized_copy(node_info.values.data.begin(),
-                                              node_info.values.data.end(),
-                                              inner.get()->values());
-            values = std::move(values).push_back(node_info.values.data);
+            auto vs = get_values(node_info.values.data);
+            immer::detail::uninitialized_copy(
+                vs.begin(), vs.end(), inner.get()->values());
+            values = std::move(values).push_back(vs);
         }
 
         // Set children
@@ -228,7 +228,22 @@ public:
     }
 
 private:
-    const nodes_load<T, B> archive_;
+    immer::array<T> get_values(const auto& array) const
+    {
+        if constexpr (std::is_same_v<TransformF, boost::hana::id_t>) {
+            return array;
+        } else {
+            auto transformed_values = std::vector<T>{};
+            for (const auto& item : array) {
+                transformed_values.push_back(transform_(item));
+            }
+            return immer::array<T>{transformed_values.begin(),
+                                   transformed_values.end()};
+        }
+    }
+
+private:
+    const NodesLoad archive_;
     const TransformF transform_;
     immer::map<node_id, std::pair<node_ptr, values_t>> collisions_;
     immer::map<node_id, std::pair<node_ptr, values_t>> inners_;

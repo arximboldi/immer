@@ -538,7 +538,13 @@ template <typename T,
 class flex_vector_loader
 {
 public:
-    explicit flex_vector_loader(Archive ar, TransformF transform = {})
+    explicit flex_vector_loader(Archive ar)
+        requires std::is_same_v<TransformF, boost::hana::id_t>
+        : loader{std::move(ar)}
+    {
+    }
+
+    explicit flex_vector_loader(Archive ar, TransformF transform)
         : loader{std::move(ar), std::move(transform)}
     {
     }

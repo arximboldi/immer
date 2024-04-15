@@ -12,8 +12,7 @@
 
 #include <boost/endian/conversion.hpp>
 
-namespace immer::archive {
-namespace champ {
+namespace immer::archive::champ {
 
 template <class T, immer::detail::hamts::bits_t B>
 struct inner_node_save
@@ -228,45 +227,4 @@ to_load_archive(const container_archive_save<Container>& archive)
     };
 }
 
-template <typename K,
-          typename T,
-          typename Hash,
-          typename Equal,
-          typename MemoryPolicy,
-          immer::detail::hamts::bits_t B,
-          class F>
-auto transform_archive(const container_archive_load<
-                           immer::map<K, T, Hash, Equal, MemoryPolicy, B>>& ar,
-                       F&& func)
-{
-    using U                   = std::decay_t<decltype(func(std::declval<T>()))>;
-    using new_map_t           = immer::map<K, U, Hash, Equal, MemoryPolicy, B>;
-    const auto transform_pair = [&func](const auto& pair) {
-        return std::make_pair(pair.first, func(pair.second));
-    };
-    return container_archive_load<new_map_t>{
-        .nodes = transform(ar.nodes, transform_pair),
-    };
-}
-
-template <typename T,
-          typename KeyFn,
-          typename Hash,
-          typename Equal,
-          typename MemoryPolicy,
-          immer::detail::hamts::bits_t B,
-          class F>
-auto transform_archive(
-    const container_archive_load<
-        immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>& ar,
-    F&& func)
-{
-    using U           = std::decay_t<decltype(func(std::declval<T>()))>;
-    using new_table_t = immer::table<U, KeyFn, Hash, Equal, MemoryPolicy, B>;
-    return container_archive_load<new_table_t>{
-        .nodes = transform(ar.nodes, func),
-    };
-}
-
-} // namespace champ
-} // namespace immer::archive
+} // namespace immer::archive::champ

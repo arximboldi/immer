@@ -200,18 +200,18 @@ struct archives_load
     auto& get_loader_by_old_container()
     {
         constexpr auto find_key = [](const auto& storage) {
-            return hana::find_if(
-                       hana::keys(storage),
-                       [&](auto key) {
-                           using type1 = typename std::decay_t<
-                               decltype(storage[key])>::old_container_t;
-                           return hana::type_c<type1> ==
-                                  hana::type_c<OldContainer>;
-                       })
-                .value();
+            return hana::find_if(hana::keys(storage), [&](auto key) {
+                using type1 = typename std::decay_t<
+                    decltype(storage[key])>::old_container_t;
+                return hana::type_c<type1> == hana::type_c<OldContainer>;
+            });
         };
-        using Key = decltype(find_key(storage));
-        return storage[Key{}].get_loader();
+        using Key    = decltype(find_key(storage));
+        using IsJust = decltype(hana::is_just(Key{}));
+        if constexpr (!hana::value<IsJust>()) {
+            auto err = error_missing_archive_for_type<OldContainer>{};
+        }
+        return storage[Key{}.value()].get_loader();
     }
 
     template <class Archive>
@@ -335,12 +335,18 @@ struct archives_load
         auto shared_storage = std::make_shared<NewStorage>(new_storage);
 
         const auto convert_container = [get_id](auto get_data) {
-            return
-                [get_id, get_data](auto new_type, const auto& old_container) {
-                    const auto id = get_id(old_container);
-                    auto& loader  = get_data()[new_type].get_loader();
-                    return loader.load(id);
-                };
+            return [get_id, get_data](auto new_type,
+                                      const auto& old_container) {
+                const auto id  = get_id(old_container);
+                using Contains = decltype(hana::contains(get_data(), new_type));
+                constexpr bool contains = hana::value<Contains>();
+                if constexpr (!contains) {
+                    auto err = error_missing_archive_for_type<
+                        typename decltype(new_type)::type>{};
+                }
+                auto& loader = get_data()[new_type].get_loader();
+                return loader.load(id);
+            };
         };
 
         // Important not to create a recursive reference to itself inside of the

@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/archive/champ/champ.hpp>
+#include <immer/extra/archive/champ/traits.hpp>
 #include <immer/extra/archive/xxhash/xxhash.hpp>
 
 #include "utils.hpp"
@@ -1223,7 +1223,7 @@ TEST_CASE("Test champ archive conversion, map")
 
     const auto load_archive = to_load_archive(ar);
     const auto load_archive_new_type =
-        transform_archive(load_archive, convert_old_type);
+        transform_archive(load_archive, convert_old_type_map);
     auto loader =
         immer::archive::champ::container_loader{load_archive_new_type};
 

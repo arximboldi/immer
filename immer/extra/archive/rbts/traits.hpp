@@ -43,7 +43,8 @@ struct container_traits<immer::flex_vector<T, MemoryPolicy, B, BL>>
 
     template <typename Archive    = load_archive_t,
               typename TransformF = boost::hana::id_t>
-    using loader_t = rbts::flex_vector_loader<T, MemoryPolicy, B, BL>;
+    using loader_t =
+        rbts::flex_vector_loader<T, MemoryPolicy, B, BL, Archive, TransformF>;
 
     template <class F>
     static auto transform(F&& func)
