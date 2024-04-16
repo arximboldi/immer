@@ -336,12 +336,12 @@ TEST_CASE("Test conversion with auto-archive")
     // Describe how to go from the old archive to the desired new archive.
     // Convert all old archives with convert_old_type.
     const auto archives_conversions =
-        hana::unpack(hana::transform(hana::keys(old_archive_types),
-                                     [&](auto key) {
-                                         return hana::make_pair(
-                                             key, test::convert_old_type_map);
-                                     }),
-                     hana::make_map);
+        hana::make_map(hana::make_pair(hana::type_c<test::vector_one<old_type>>,
+                                       test::convert_old_type),
+                       hana::make_pair(hana::type_c<map_t<old_type>>,
+                                       test::convert_old_type_map),
+                       hana::make_pair(hana::type_c<table_t<old_type>>,
+                                       test::convert_old_type_table));
 
     // Having a JSON from serializing old_app_type and a conversion function,
     // we need to somehow load new_app_type.

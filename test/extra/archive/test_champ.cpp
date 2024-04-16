@@ -2041,13 +2041,17 @@ TEST_CASE("Test champ archive conversion, table")
 
     SECTION("Invalid conversion, ID is corrupted")
     {
-        const auto badly_convert_old_type = [](const old_type& val) {
-            return new_type{
-                .id    = val.id + "OOPS",
-                .data  = val.data,
-                .data2 = fmt::format("_{}_", val.data),
-            };
-        };
+        const auto badly_convert_old_type = hana::overload(
+            [](const old_type& val) {
+                return new_type{
+                    .id    = val.id + "OOPS",
+                    .data  = val.data,
+                    .data2 = fmt::format("_{}_", val.data),
+                };
+            },
+            [](immer::archive::target_container_type_request) {
+                return immer::table<new_type>{};
+            });
         const auto load_archive_new_type =
             transform_archive(load_archive, badly_convert_old_type);
         auto loader =
@@ -2063,7 +2067,7 @@ TEST_CASE("Test champ archive conversion, table")
     SECTION("Valid conversion, ID is not changed")
     {
         const auto load_archive_new_type =
-            transform_archive(load_archive, convert_old_type);
+            transform_archive(load_archive, convert_old_type_table);
         auto loader =
             immer::archive::champ::container_loader{load_archive_new_type};
 

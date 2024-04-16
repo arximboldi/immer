@@ -152,6 +152,14 @@ constexpr auto convert_old_type_map = boost::hana::overload(
     },
     convert_old_type);
 
+constexpr auto convert_old_type_table = boost::hana::overload(
+    [](immer::archive::target_container_type_request) {
+        return immer::table<new_type,
+                            immer::table_key_fn,
+                            immer::archive::xx_hash<std::string>>{};
+    },
+    convert_old_type);
+
 inline auto transform_vec(const auto& vec)
 {
     auto result = vector_one<new_type>{};

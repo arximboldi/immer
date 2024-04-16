@@ -43,6 +43,7 @@ struct container_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
 {
     template <class F>
     static auto transform(F&& func)
+        requires std::is_invocable_v<F, target_container_type_request>
     {
         // We need this special target_container_type_request because we can't
         // determine the hash and equality operators for the new key any other
@@ -64,46 +65,20 @@ struct container_traits<immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>
 {
     template <class F>
     static auto transform(F&& func)
+        requires std::is_invocable_v<F, target_container_type_request>
     {
-        using U = std::decay_t<decltype(func(std::declval<T>()))>;
-        return immer::table<U, KeyFn, Hash, Equal, MemoryPolicy, B>{};
+        using NewContainer =
+            std::decay_t<decltype(func(target_container_type_request{}))>;
+        return NewContainer{};
     }
 };
 
 namespace champ {
-template <typename K,
-          typename T,
-          typename Hash,
-          typename Equal,
-          typename MemoryPolicy,
-          immer::detail::hamts::bits_t B,
-          class F>
-auto transform_archive(const container_archive_load<
-                           immer::map<K, T, Hash, Equal, MemoryPolicy, B>>& ar,
-                       F&& func)
+template <class Container, class F>
+auto transform_archive(const container_archive_load<Container>& ar, F&& func)
 {
-    using old_map_t = immer::map<K, T, Hash, Equal, MemoryPolicy, B>;
-    using new_map_t = decltype(container_traits<old_map_t>::transform(func));
-    return container_archive_load<new_map_t>{
-        .nodes = transform(ar.nodes, func),
-    };
-}
-
-template <typename T,
-          typename KeyFn,
-          typename Hash,
-          typename Equal,
-          typename MemoryPolicy,
-          immer::detail::hamts::bits_t B,
-          class F>
-auto transform_archive(
-    const container_archive_load<
-        immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>& ar,
-    F&& func)
-{
-    using U           = std::decay_t<decltype(func(std::declval<T>()))>;
-    using new_table_t = immer::table<U, KeyFn, Hash, Equal, MemoryPolicy, B>;
-    return container_archive_load<new_table_t>{
+    using NewContainer = decltype(container_traits<Container>::transform(func));
+    return container_archive_load<NewContainer>{
         .nodes = transform(ar.nodes, func),
     };
 }

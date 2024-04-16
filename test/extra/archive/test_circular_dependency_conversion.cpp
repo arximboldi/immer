@@ -43,8 +43,6 @@ struct two_boxed
     explicit two_boxed(value_two val);
 };
 
-int get_table_key(const two_boxed& two);
-
 struct key
 {
     BOOST_HANA_DEFINE_STRUCT(key, (std::string, str));
@@ -55,6 +53,8 @@ struct key
     }
 };
 
+const key& get_table_key(const two_boxed& two);
+
 struct value_one
 {
     BOOST_HANA_DEFINE_STRUCT(
@@ -62,7 +62,10 @@ struct value_one
                    //  (immer::box<std::string>, box_test)
         (vector_one<two_boxed>, twos),
         (flex_vector_one<two_boxed>, twos_flex),
-        (immer::table<two_boxed>, twos_table),
+        (immer::table<two_boxed,
+                      immer::table_key_fn,
+                      immer::archive::xx_hash<key>>,
+         twos_table),
         (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map)
 
     );
@@ -72,9 +75,10 @@ struct value_two
 {
     int number = {};
     vector_one<value_one> ones;
+    key key;
 };
 
-int get_table_key(const two_boxed& two) { return two.two.get().number; }
+const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
 
 two_boxed::two_boxed(value_two val)
     : two{val}
@@ -83,7 +87,7 @@ two_boxed::two_boxed(value_two val)
 
 } // namespace model
 
-BOOST_HANA_ADAPT_STRUCT(model::value_two, number, ones);
+BOOST_HANA_ADAPT_STRUCT(model::value_two, number, ones, key);
 
 namespace model {
 DEFINE_OPERATIONS(two_boxed);
@@ -104,8 +108,6 @@ struct two_boxed
     explicit two_boxed(immer::box<value_two> two_);
 };
 
-int get_table_key(const two_boxed& two);
-
 struct key
 {
     BOOST_HANA_DEFINE_STRUCT(key, (std::string, str));
@@ -116,6 +118,8 @@ struct key
     }
 };
 
+const key& get_table_key(const two_boxed& two);
+
 struct value_one
 {
     BOOST_HANA_DEFINE_STRUCT(
@@ -123,7 +127,10 @@ struct value_one
                    //  (immer::box<std::string>, box_test)
         (vector_one<two_boxed>, twos),
         (flex_vector_one<two_boxed>, twos_flex),
-        (immer::table<two_boxed>, twos_table),
+        (immer::table<two_boxed,
+                      immer::table_key_fn,
+                      immer::archive::xx_hash<key>>,
+         twos_table),
         (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map)
 
     );
@@ -133,9 +140,10 @@ struct value_two
 {
     int number = {};
     vector_one<value_one> ones;
+    key key;
 };
 
-int get_table_key(const two_boxed& two) { return two.two.get().number; }
+const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
 
 two_boxed::two_boxed(immer::box<value_two> two_)
     : two{std::move(two_)}
@@ -144,7 +152,7 @@ two_boxed::two_boxed(immer::box<value_two> two_)
 
 } // namespace format
 
-BOOST_HANA_ADAPT_STRUCT(format::value_two, number, ones);
+BOOST_HANA_ADAPT_STRUCT(format::value_two, number, ones, key);
 
 namespace format {
 DEFINE_OPERATIONS(two_boxed);
@@ -199,8 +207,17 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                         convert_two_boxed),
         hana::make_pair(hana::type_c<flex_vector_one<model::two_boxed>>,
                         convert_two_boxed),
-        hana::make_pair(hana::type_c<immer::table<model::two_boxed>>,
-                        convert_two_boxed),
+        hana::make_pair(
+            hana::type_c<immer::table<model::two_boxed,
+                                      immer::table_key_fn,
+                                      immer::archive::xx_hash<model::key>>>,
+            hana::overload(
+                [](immer::archive::target_container_type_request) {
+                    return immer::table<format::two_boxed,
+                                        immer::table_key_fn,
+                                        immer::archive::xx_hash<format::key>>{};
+                },
+                convert_two_boxed)),
         hana::make_pair(
             hana::type_c<immer::map<model::key,
                                     model::two_boxed,
@@ -238,7 +255,10 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                         hana::type_c<flex_vector_one<format::two_boxed>>,
                         old.twos_flex),
                     .twos_table = convert_container(
-                        hana::type_c<immer::table<format::two_boxed>>,
+                        hana::type_c<
+                            immer::table<format::two_boxed,
+                                         immer::table_key_fn,
+                                         immer::archive::xx_hash<format::key>>>,
                         old.twos_table),
                     .twos_map = convert_container(
                         hana::type_c<
@@ -314,7 +334,6 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
 
     SECTION("table")
     {
-        // XXX XXX XXX XXX XXX Test a new key type, now it's the same, int.
         const auto format_twos = immer::archive::convert_container(
             model_archives, format_load_archives, value.twos_table);
 
