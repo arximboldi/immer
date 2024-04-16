@@ -8,6 +8,15 @@
 
 namespace immer::archive {
 
+/**
+ * A bit of a hack but currently this is the simplest way to request a type of
+ * the hash function to be used after the transformation. Maybe the whole thing
+ * would change later. Right now everything is driven by the single function,
+ * which seems to be convenient otherwise.
+ */
+struct target_container_type_request
+{};
+
 template <class Container>
 struct champ_traits
 {
@@ -21,26 +30,7 @@ struct champ_traits
               typename TransformF = boost::hana::id_t>
     using loader_t =
         immer::archive::champ::container_loader<Container, Archive, TransformF>;
-};
 
-/**
- * A bit of a hack but currently this is the simplest way to request a type of
- * the hash function to be used after the transformation. Maybe the whole thing
- * would change later. Right now everything is driven by the single function,
- * which seems to be convenient otherwise.
- */
-struct target_container_type_request
-{};
-
-template <typename K,
-          typename T,
-          typename Hash,
-          typename Equal,
-          typename MemoryPolicy,
-          immer::detail::hamts::bits_t B>
-struct container_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
-    : champ_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
-{
     template <class F>
     static auto transform(F&& func)
         requires std::is_invocable_v<F, target_container_type_request>
@@ -54,6 +44,16 @@ struct container_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
     }
 };
 
+template <typename K,
+          typename T,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          immer::detail::hamts::bits_t B>
+struct container_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
+    : champ_traits<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
+{};
+
 template <typename T,
           typename KeyFn,
           typename Hash,
@@ -62,16 +62,16 @@ template <typename T,
           immer::detail::hamts::bits_t B>
 struct container_traits<immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>
     : champ_traits<immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>
-{
-    template <class F>
-    static auto transform(F&& func)
-        requires std::is_invocable_v<F, target_container_type_request>
-    {
-        using NewContainer =
-            std::decay_t<decltype(func(target_container_type_request{}))>;
-        return NewContainer{};
-    }
-};
+{};
+
+template <typename T,
+          typename Hash,
+          typename Equal,
+          typename MemoryPolicy,
+          immer::detail::hamts::bits_t B>
+struct container_traits<immer::set<T, Hash, Equal, MemoryPolicy, B>>
+    : champ_traits<immer::set<T, Hash, Equal, MemoryPolicy, B>>
+{};
 
 namespace champ {
 template <class Container, class F>

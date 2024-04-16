@@ -5,6 +5,7 @@
 #include "utils.hpp"
 
 #include <test/extra/archive/cereal/immer_box.hpp>
+#include <test/extra/archive/cereal/immer_set.hpp>
 #include <test/extra/archive/cereal/immer_table.hpp>
 
 #define DEFINE_OPERATIONS(name)                                                \
@@ -66,19 +67,29 @@ struct value_one
                       immer::table_key_fn,
                       immer::archive::xx_hash<key>>,
          twos_table),
-        (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map)
+        (immer::table<two_boxed,
+                      immer::table_key_fn,
+                      immer::archive::xx_hash<key>>,
+         twos_table_2),
+        (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map),
+        (immer::set<two_boxed, immer::archive::xx_hash<two_boxed>>, twos_set)
 
     );
 };
 
 struct value_two
 {
-    int number = {};
-    vector_one<value_one> ones;
-    key key;
+    int number                 = {};
+    vector_one<value_one> ones = {};
+    key key                    = {};
 };
 
 const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
+
+std::size_t xx_hash_value(const two_boxed& value)
+{
+    return xx_hash_value(value.two.get().key);
+}
 
 two_boxed::two_boxed(value_two val)
     : two{val}
@@ -131,19 +142,29 @@ struct value_one
                       immer::table_key_fn,
                       immer::archive::xx_hash<key>>,
          twos_table),
-        (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map)
+        (immer::table<two_boxed,
+                      immer::table_key_fn,
+                      immer::archive::xx_hash<key>>,
+         twos_table_2),
+        (immer::map<key, two_boxed, immer::archive::xx_hash<key>>, twos_map),
+        (immer::set<two_boxed, immer::archive::xx_hash<two_boxed>>, twos_set)
 
     );
 };
 
 struct value_two
 {
-    int number = {};
-    vector_one<value_one> ones;
-    key key;
+    int number                 = {};
+    vector_one<value_one> ones = {};
+    key key                    = {};
 };
 
 const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
+
+std::size_t xx_hash_value(const two_boxed& value)
+{
+    return xx_hash_value(value.two.get().key);
+}
 
 two_boxed::two_boxed(immer::box<value_two> two_)
     : two{std::move(two_)}
@@ -165,6 +186,7 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
 {
     const auto two1  = model::two_boxed{model::value_two{
          .number = 456,
+        // .key    = model::key{"456"},
     }};
     const auto two2  = model::two_boxed{model::value_two{
          .number = 123,
@@ -175,15 +197,25 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                      .twos_flex  = {two1, two1},
                      .twos_table = {two1},
                      .twos_map   = {{model::key{"x_one"}, two1}},
+                     .twos_set   = {two1},
                 },
             },
+        // .key = model::key{"123"},
     }};
-    const auto value = model::value_one{
-        .twos       = {two1, two2},
-        .twos_flex  = {two2, two1, two2},
-        .twos_table = {two2, two1, two2},
-        .twos_map   = {{model::key{"one"}, two1}, {model::key{"two"}, two2}},
-    };
+    const auto value = [&] {
+        const auto t1 = immer::table<model::two_boxed,
+                                     immer::table_key_fn,
+                                     immer::archive::xx_hash<model::key>>{two1};
+        const auto t2 = t1.insert(two2);
+        return model::value_one{
+            .twos         = {two1, two2},
+            .twos_flex    = {two2, two1, two2},
+            .twos_table   = t1,
+            .twos_table_2 = t2,
+            .twos_map = {{model::key{"one"}, two1}, {model::key{"two"}, two2}},
+            .twos_set = {two2, two1},
+        };
+    }();
 
     const auto names = immer::archive::get_archives_for_types(
         hana::tuple_t<model::value_one, model::value_two, model::two_boxed>,
@@ -216,6 +248,16 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                     return immer::table<format::two_boxed,
                                         immer::table_key_fn,
                                         immer::archive::xx_hash<format::key>>{};
+                },
+                convert_two_boxed)),
+        hana::make_pair(
+            hana::type_c<immer::set<model::two_boxed,
+                                    immer::archive::xx_hash<model::two_boxed>>>,
+            hana::overload(
+                [](immer::archive::target_container_type_request) {
+                    return immer::set<
+                        format::two_boxed,
+                        immer::archive::xx_hash<format::two_boxed>>{};
                 },
                 convert_two_boxed)),
         hana::make_pair(
@@ -260,12 +302,23 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                                          immer::table_key_fn,
                                          immer::archive::xx_hash<format::key>>>,
                         old.twos_table),
+                    .twos_table_2 = convert_container(
+                        hana::type_c<
+                            immer::table<format::two_boxed,
+                                         immer::table_key_fn,
+                                         immer::archive::xx_hash<format::key>>>,
+                        old.twos_table_2),
                     .twos_map = convert_container(
                         hana::type_c<
                             immer::map<format::key,
                                        format::two_boxed,
                                        immer::archive::xx_hash<format::key>>>,
                         old.twos_map),
+                    .twos_set = convert_container(
+                        hana::type_c<immer::set<
+                            format::two_boxed,
+                            immer::archive::xx_hash<format::two_boxed>>>,
+                        old.twos_set),
                 };
             })
 
@@ -344,6 +397,16 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
             REQUIRE(format_twos.impl().root == format_twos_2.impl().root);
         }
         REQUIRE(test::to_json(value.twos_table) == test::to_json(format_twos));
+
+        // SECTION("Compare structure")
+        // {
+        //     const auto [format_twos_json, ar] =
+        //         immer::archive::to_json_with_auto_archive(format_twos,
+        //                                                   format_names);
+        //     const auto [model_twos_json, ar2] =
+        //         immer::archive::to_json_with_auto_archive(value, names);
+        //     REQUIRE(model_twos_json == format_twos_json);
+        // }
     }
 
     SECTION("map")
@@ -387,6 +450,30 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                                                           format_names);
             const auto [model_twos_json, ar2] =
                 immer::archive::to_json_with_auto_archive(value.twos_map,
+                                                          names);
+            REQUIRE(model_twos_json == format_twos_json);
+        }
+    }
+
+    SECTION("set")
+    {
+        const auto format_twos = immer::archive::convert_container(
+            model_archives, format_load_archives, value.twos_set);
+
+        SECTION("Same thing twice, same result")
+        {
+            const auto format_twos_2 = immer::archive::convert_container(
+                model_archives, format_load_archives, value.twos_set);
+            REQUIRE(format_twos.impl().root == format_twos_2.impl().root);
+        }
+
+        SECTION("Compare structure")
+        {
+            const auto [format_twos_json, ar] =
+                immer::archive::to_json_with_auto_archive(format_twos,
+                                                          format_names);
+            const auto [model_twos_json, ar2] =
+                immer::archive::to_json_with_auto_archive(value.twos_set,
                                                           names);
             REQUIRE(model_twos_json == format_twos_json);
         }
