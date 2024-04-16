@@ -2430,3 +2430,52 @@ TEST_CASE("Test champ archive conversion, table")
         }
     }
 }
+
+namespace {
+struct old_hash
+{
+    std::size_t operator()(const old_type& val) const
+    {
+        return std::hash<std::string>{}(val.id);
+    }
+};
+struct new_hash
+{
+    std::size_t operator()(const new_type& val) const
+    {
+        return std::hash<std::string>{}(val.id);
+    }
+};
+} // namespace
+
+TEST_CASE("Test set conversion breaks counts")
+{
+    const auto old_set =
+        immer::set<old_type, old_hash>{old_type{.id = "", .data = 91},
+                                       old_type{.id = "2", .data = 92},
+                                       old_type{.id = "3", .data = 93}};
+    REQUIRE(old_set.size() == 3);
+    const auto [old_save_archive, set_id] =
+        immer::archive::champ::save_to_archive(old_set, {});
+    const auto old_load_archive = to_load_archive(old_save_archive);
+
+    const auto transform = [](const old_type& val) {
+        // The id is messed up which would lead to the new set
+        // containing fewer elements (just one, actually)
+        return new_type{
+            .id   = "",
+            .data = val.data,
+        };
+    };
+
+    using old_archive_t = std::decay_t<decltype(old_load_archive)>;
+    using new_set_t     = immer::set<new_type, new_hash>;
+    using transform_t   = std::decay_t<decltype(transform)>;
+
+    auto loader = immer::archive::champ::
+        container_loader<new_set_t, old_archive_t, transform_t>{
+            old_load_archive, transform};
+
+    REQUIRE_THROWS_AS(loader.load(set_id),
+                      immer::archive::champ::hash_validation_failed_exception);
+}
