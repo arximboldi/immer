@@ -8,6 +8,7 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include <immer/extra/archive/rbts/load.hpp>
 #include <immer/extra/archive/rbts/save.hpp>
@@ -1704,5 +1705,61 @@ TEST_CASE("Test vector archive conversion")
 }
         )");
         REQUIRE(json_t::parse(to_json(ar)) == expected_ar);
+    }
+}
+
+TEST_CASE("Vector: converting loader can handle exceptions")
+{
+    const auto vec               = example_vector{1, 2, 3};
+    const auto [ar_save, vec_id] = save_to_archive(vec, {});
+    const auto ar_load           = to_load_archive(ar_save);
+
+    using Archive = std::decay_t<decltype(ar_load)>;
+
+    SECTION("Transformation works")
+    {
+        constexpr auto transform = [](int val) {
+            return fmt::format("_{}_", val);
+        };
+        const auto transform_vector = [transform](const auto& vec) {
+            auto result = test::vector_one<std::string>{};
+            for (const auto& item : vec) {
+                result = std::move(result).push_back(transform(item));
+            }
+            return result;
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader =
+            immer::archive::rbts::loader<std::string,
+                                         immer::default_memory_policy,
+                                         immer::default_bits,
+                                         1,
+                                         Archive,
+                                         TransformF>;
+        auto loader       = Loader{ar_load, transform};
+        const auto loaded = loader.load_vector(vec_id);
+        REQUIRE(loaded == transform_vector(vec));
+    }
+
+    SECTION("Exception is handled")
+    {
+        constexpr auto transform = [](int val) {
+            if (val == 2) {
+                throw std::runtime_error{"it's two much"};
+            }
+            return fmt::format("_{}_", val);
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader =
+            immer::archive::rbts::loader<std::string,
+                                         immer::default_memory_policy,
+                                         immer::default_bits,
+                                         1,
+                                         Archive,
+                                         TransformF>;
+        auto loader = Loader{ar_load, transform};
+        REQUIRE_THROWS_WITH(loader.load_vector(vec_id), "it's two much");
     }
 }

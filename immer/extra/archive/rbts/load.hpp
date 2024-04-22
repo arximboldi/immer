@@ -176,24 +176,30 @@ private:
             throw invalid_children_count{id};
         }
 
-        auto leaf = node_ptr{n ? node_t::make_leaf_n(n) : rbtree::empty_tail(),
-                             [n](auto* ptr) { node_t::delete_leaf(ptr, n); }};
         if constexpr (std::is_same_v<TransformF, boost::hana::id_t>) {
+            auto leaf =
+                node_ptr{n ? node_t::make_leaf_n(n) : rbtree::empty_tail(),
+                         [n](auto* ptr) { node_t::delete_leaf(ptr, n); }};
             immer::detail::uninitialized_copy(node_info->data.begin(),
                                               node_info->data.end(),
                                               leaf.get()->leaf());
+            leaves_        = std::move(leaves_).set(id, leaf);
+            loaded_leaves_ = std::move(loaded_leaves_).set(leaf.get(), id);
+            return leaf;
         } else {
             auto values = std::vector<T>{};
             for (const auto& item : node_info->data) {
                 values.push_back(transform_(item));
             }
+            auto leaf =
+                node_ptr{n ? node_t::make_leaf_n(n) : rbtree::empty_tail(),
+                         [n](auto* ptr) { node_t::delete_leaf(ptr, n); }};
             immer::detail::uninitialized_copy(
                 values.begin(), values.end(), leaf.get()->leaf());
+            leaves_        = std::move(leaves_).set(id, leaf);
+            loaded_leaves_ = std::move(loaded_leaves_).set(leaf.get(), id);
+            return leaf;
         }
-
-        leaves_        = std::move(leaves_).set(id, leaf);
-        loaded_leaves_ = std::move(loaded_leaves_).set(leaf.get(), id);
-        return leaf;
     }
 
     node_ptr

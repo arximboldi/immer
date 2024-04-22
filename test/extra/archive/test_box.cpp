@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include <immer/extra/archive/box/archive.hpp>
 
@@ -105,4 +106,46 @@ TEST_CASE("Test box with a fwd declared type")
 {
     auto val = test_type{};
     REQUIRE(val.data.get().data == 123);
+}
+
+TEST_CASE("Box: converting loader can handle exceptions")
+{
+    const auto box = immer::box<int>{123};
+    const auto [ar_save, box_id] =
+        immer::archive::box::save_to_archive(box, {});
+    const auto ar_load = to_load_archive(ar_save);
+
+    using Archive = std::decay_t<decltype(ar_load)>;
+
+    SECTION("Transformation works")
+    {
+        constexpr auto transform = [](const int& val) {
+            return fmt::format("_{}_", val);
+        };
+
+        using TransformF  = std::decay_t<decltype(transform)>;
+        using Loader      = immer::archive::box::loader<std::string,
+                                                   immer::default_memory_policy,
+                                                   Archive,
+                                                   TransformF>;
+        auto loader       = Loader{ar_load, transform};
+        const auto loaded = loader.load(box_id);
+        REQUIRE(loaded.get() == transform(box.get()));
+    }
+
+    SECTION("Exception is handled")
+    {
+        constexpr auto transform = [](const int& val) {
+            throw std::runtime_error{"exceptional!"};
+            return std::string{};
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader     = immer::archive::box::loader<std::string,
+                                                   immer::default_memory_policy,
+                                                   Archive,
+                                                   TransformF>;
+        auto loader      = Loader{ar_load, transform};
+        REQUIRE_THROWS_WITH(loader.load(box_id), "exceptional!");
+    }
 }

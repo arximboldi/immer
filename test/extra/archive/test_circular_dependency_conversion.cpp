@@ -182,11 +182,11 @@ DEFINE_OPERATIONS(value_one);
 DEFINE_OPERATIONS(value_two);
 } // namespace format
 
-TEST_CASE("Test circular dependency archives", "[conversion]")
+TEST_CASE("Test exception while circular converting")
 {
     const auto two1  = model::two_boxed{model::value_two{
          .number = 456,
-        // .key    = model::key{"456"},
+         .key    = model::key{"456"},
     }};
     const auto two2  = model::two_boxed{model::value_two{
          .number = 123,
@@ -200,7 +200,163 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                      .twos_set   = {two1},
                 },
             },
-        // .key = model::key{"123"},
+         .key = model::key{"123"},
+    }};
+    const auto value = [&] {
+        const auto t1 = immer::table<model::two_boxed,
+                                     immer::table_key_fn,
+                                     immer::archive::xx_hash<model::key>>{two1};
+        const auto t2 = t1.insert(two2);
+        return model::value_one{
+            .twos         = {two1, two2},
+            .twos_flex    = {two2, two1, two2},
+            .twos_table   = t1,
+            .twos_table_2 = t2,
+            .twos_map = {{model::key{"one"}, two1}, {model::key{"two"}, two2}},
+            .twos_set = {two2, two1},
+        };
+    }();
+
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<model::value_one, model::value_two, model::two_boxed>,
+        hana::make_map());
+    const auto [json_str, model_archives] =
+        immer::archive::to_json_with_auto_archive(value, names);
+    // REQUIRE(json_str == "");
+
+    /**
+     * NOTE: There is a circular dependency between archives: to convert
+     * value_one we need to convert value_two and vice versa.
+     */
+    const auto convert_two_boxed = [](model::two_boxed old,
+                                      const auto& convert_container) {
+        const auto new_box = convert_container(
+            hana::type_c<immer::box<format::value_two>>, old.two);
+        return format::two_boxed{new_box};
+    };
+    const auto map = hana::make_map(
+        hana::make_pair(hana::type_c<vector_one<model::two_boxed>>,
+                        convert_two_boxed),
+        hana::make_pair(hana::type_c<flex_vector_one<model::two_boxed>>,
+                        convert_two_boxed),
+        hana::make_pair(
+            hana::type_c<immer::table<model::two_boxed,
+                                      immer::table_key_fn,
+                                      immer::archive::xx_hash<model::key>>>,
+            hana::overload(
+                [](immer::archive::target_container_type_request) {
+                    return immer::table<format::two_boxed,
+                                        immer::table_key_fn,
+                                        immer::archive::xx_hash<format::key>>{};
+                },
+                convert_two_boxed)),
+        hana::make_pair(
+            hana::type_c<immer::set<model::two_boxed,
+                                    immer::archive::xx_hash<model::two_boxed>>>,
+            hana::overload(
+                [](immer::archive::target_container_type_request) {
+                    return immer::set<
+                        format::two_boxed,
+                        immer::archive::xx_hash<format::two_boxed>>{};
+                },
+                convert_two_boxed)),
+        hana::make_pair(
+            hana::type_c<immer::map<model::key,
+                                    model::two_boxed,
+                                    immer::archive::xx_hash<model::key>>>,
+            hana::overload(
+                [convert_two_boxed](std::pair<model::key, model::two_boxed> p,
+                                    const auto& convert_container) {
+                    return std::make_pair(
+                        format::key{p.first.str},
+                        convert_two_boxed(p.second, convert_container));
+                },
+                [](immer::archive::target_container_type_request) {
+                    return immer::map<format::key,
+                                      format::two_boxed,
+                                      immer::archive::xx_hash<format::key>>{};
+                })),
+        hana::make_pair(
+            hana::type_c<immer::box<model::value_two>>,
+            [](model::value_two old, const auto& convert_container) {
+                auto ones = convert_container(
+                    hana::type_c<vector_one<format::value_one>>, old.ones);
+                /**
+                 * NOTE: We make a deliberate corruption while converting
+                 * value_two: breaking the key. value_two is used as a key in
+                 * some sets and tables, so the conversion does not preserve the
+                 * structure.
+                 */
+                return format::value_two{
+                    .number = old.number,
+                    .ones   = ones,
+                    .key    = format::key{"qwe"},
+                };
+            }),
+        hana::make_pair(
+            hana::type_c<vector_one<model::value_one>>,
+            [](model::value_one old, const auto& convert_container) {
+                auto twos = convert_container(
+                    hana::type_c<vector_one<format::two_boxed>>, old.twos);
+                return format::value_one{
+                    .twos      = twos,
+                    .twos_flex = convert_container(
+                        hana::type_c<flex_vector_one<format::two_boxed>>,
+                        old.twos_flex),
+                    .twos_table = convert_container(
+                        hana::type_c<
+                            immer::table<format::two_boxed,
+                                         immer::table_key_fn,
+                                         immer::archive::xx_hash<format::key>>>,
+                        old.twos_table),
+                    .twos_table_2 = convert_container(
+                        hana::type_c<
+                            immer::table<format::two_boxed,
+                                         immer::table_key_fn,
+                                         immer::archive::xx_hash<format::key>>>,
+                        old.twos_table_2),
+                    .twos_map = convert_container(
+                        hana::type_c<
+                            immer::map<format::key,
+                                       format::two_boxed,
+                                       immer::archive::xx_hash<format::key>>>,
+                        old.twos_map),
+                    .twos_set = convert_container(
+                        hana::type_c<immer::set<
+                            format::two_boxed,
+                            immer::archive::xx_hash<format::two_boxed>>>,
+                        old.twos_set),
+                };
+            })
+
+    );
+    auto format_load_archives =
+        immer::archive::transform_save_archive(model_archives, map);
+
+    REQUIRE_THROWS_AS(immer::archive::convert_container(
+                          model_archives, format_load_archives, value.twos),
+                      immer::archive::champ::hash_validation_failed_exception);
+}
+
+TEST_CASE("Test circular dependency archives", "[conversion]")
+{
+    const auto two1  = model::two_boxed{model::value_two{
+         .number = 456,
+         .key    = model::key{"456"},
+    }};
+    const auto two2  = model::two_boxed{model::value_two{
+         .number = 123,
+         .ones =
+             {
+                model::value_one{
+                     .twos       = {two1},
+                     .twos_flex  = {two1, two1},
+                     .twos_table = {two1},
+                     .twos_map   = {{model::key{"x_one"}, two1}},
+                     .twos_set   = {two1},
+                },
+            },
+         .key = model::key{"123"},
     }};
     const auto value = [&] {
         const auto t1 = immer::table<model::two_boxed,
@@ -284,6 +440,7 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                 return format::value_two{
                     .number = old.number,
                     .ones   = ones,
+                    .key    = format::key{old.key.str},
                 };
             }),
         hana::make_pair(

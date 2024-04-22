@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include <immer/extra/archive/champ/traits.hpp>
 #include <immer/extra/archive/xxhash/xxhash.hpp>
@@ -2478,4 +2479,126 @@ TEST_CASE("Test set conversion breaks counts")
 
     REQUIRE_THROWS_AS(loader.load(set_id),
                       immer::archive::champ::hash_validation_failed_exception);
+}
+
+namespace {
+struct key1
+{
+    std::string data;
+
+    friend bool operator==(const key1& left, const key1& right)
+    {
+        return left.data == right.data;
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data));
+    }
+};
+struct key2
+{
+    std::string data;
+
+    friend bool operator==(const key2& left, const key2& right)
+    {
+        return left.data == right.data;
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(data));
+    }
+};
+struct key_hash
+{
+    std::size_t operator()(const key1& value) const
+    {
+        if (value.data.size() == 3) {
+            return 123;
+        }
+        return std::hash<std::string>{}(value.data);
+    }
+    std::size_t operator()(const key2& value) const
+    {
+        if (value.data.size() == 3) {
+            return 123;
+        }
+        return std::hash<std::string>{}(value.data);
+    }
+};
+} // namespace
+
+TEST_CASE("Champ: converting loader can handle exceptions")
+{
+    using Container = immer::set<key1, key_hash>;
+    const auto set  = [] {
+        auto result = Container{};
+        for (int i = 0; i < 200; ++i) {
+            result = std::move(result).insert(key1{fmt::format("_{}_", i)});
+        }
+        return result;
+    }();
+    const auto [ar_save, set_id] =
+        immer::archive::champ::save_to_archive(set, {});
+    const auto ar_load = to_load_archive(ar_save);
+
+    using Archive = std::decay_t<decltype(ar_load)>;
+
+    SECTION("Transformation works")
+    {
+        constexpr auto transform = [](const key1& val) {
+            return key2{val.data};
+        };
+        const auto transform_set = [transform](const auto& set) {
+            auto result = immer::set<key2, key_hash>{};
+            for (const auto& item : set) {
+                result = std::move(result).insert(transform(item));
+            }
+            return result;
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader     = immer::archive::champ::
+            container_loader<immer::set<key2, key_hash>, Archive, TransformF>;
+        auto loader       = Loader{ar_load, transform};
+        const auto loaded = loader.load(set_id);
+        REQUIRE(loaded == transform_set(set));
+    }
+
+    SECTION(
+        "Exception is handled when it's thrown while converting a normal node")
+    {
+        constexpr auto transform = [](const key1& val) {
+            if (val.data == "_111_") {
+                throw std::runtime_error{"it's 111"};
+            }
+            return key2{val.data};
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader     = immer::archive::champ::
+            container_loader<immer::set<key2, key_hash>, Archive, TransformF>;
+        auto loader = Loader{ar_load, transform};
+        REQUIRE_THROWS_WITH(loader.load(set_id), "it's 111");
+    }
+
+    SECTION("Exception is handled when it's thrown while converting a "
+            "collision node")
+    {
+        constexpr auto transform = [](const key1& val) {
+            if (val.data == "_3_") {
+                throw std::runtime_error{"it's 3"};
+            }
+            return key2{val.data};
+        };
+
+        using TransformF = std::decay_t<decltype(transform)>;
+        using Loader     = immer::archive::champ::
+            container_loader<immer::set<key2, key_hash>, Archive, TransformF>;
+        auto loader = Loader{ar_load, transform};
+        REQUIRE_THROWS_WITH(loader.load(set_id), "it's 3");
+    }
 }

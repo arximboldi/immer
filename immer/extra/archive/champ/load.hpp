@@ -92,14 +92,14 @@ public:
         }
 
         const auto& node_info = archive_[id.value];
+        const auto values     = get_values(node_info.values.data);
 
-        const auto n = node_info.values.data.size();
+        const auto n = values.size();
         auto node    = node_ptr{node_t::make_collision_n(n),
                              [](auto* ptr) { node_t::delete_collision(ptr); }};
-        auto vs      = get_values(node_info.values.data);
         immer::detail::uninitialized_copy(
-            vs.begin(), vs.end(), node.get()->collisions());
-        auto result = std::make_pair(std::move(node), values_t{vs});
+            values.begin(), values.end(), node.get()->collisions());
+        auto result = std::make_pair(std::move(node), values_t{values});
         collisions_ = std::move(collisions_).set(id, result);
         return result;
     }
@@ -137,6 +137,8 @@ public:
                     id, node_info.datamap, expected_count, values_count};
             }
         }
+
+        const auto node_values = get_values(node_info.values.data);
 
         auto values = values_t{};
 
@@ -177,10 +179,9 @@ public:
 
         // Values
         if (values_count) {
-            auto vs = get_values(node_info.values.data);
             immer::detail::uninitialized_copy(
-                vs.begin(), vs.end(), inner.get()->values());
-            values = std::move(values).push_back(vs);
+                node_values.begin(), node_values.end(), inner.get()->values());
+            values = std::move(values).push_back(node_values);
         }
 
         // Set children
