@@ -88,6 +88,7 @@ public:
     }
 
     ImmerArchives& get_input_archives() { return archives; }
+    const ImmerArchives& get_input_archives() const { return archives; }
 
 private:
     cereal::JSONInputArchive archive;

@@ -5,9 +5,21 @@
 
 #include <immer/extra/archive/json/json_with_archive_auto.hpp>
 
+#define DEFINE_OPERATIONS(name)                                                \
+    bool operator==(const name& left, const name& right)                       \
+    {                                                                          \
+        return members(left) == members(right);                                \
+    }                                                                          \
+    template <class Archive>                                                   \
+    void serialize(Archive& ar, name& m)                                       \
+    {                                                                          \
+        serialize_members(ar, m);                                              \
+    }
+
 namespace {
 
 namespace hana = boost::hana;
+using test::flex_vector_one;
 using test::members;
 using test::serialize_members;
 using test::test_value;
@@ -356,4 +368,308 @@ TEST_CASE("Test conversion with auto-archive")
         REQUIRE(full_load.map2 == transform_map(value.map2));
         REQUIRE(full_load.table == transform_table(value.table));
     }
+}
+
+namespace champ_test {
+
+struct value_two;
+
+struct two_boxed
+{
+    BOOST_HANA_DEFINE_STRUCT(two_boxed, (immer::box<value_two>, two));
+
+    two_boxed() = default;
+    explicit two_boxed(value_two val);
+};
+
+struct key
+{
+    BOOST_HANA_DEFINE_STRUCT(key, (std::string, str));
+
+    friend std::size_t xx_hash_value(const key& value)
+    {
+        return immer::archive::xx_hash_value_string(value.str);
+    }
+};
+
+const key& get_table_key(const two_boxed& two);
+
+struct table_key_fn
+{
+    const key& operator()(const two_boxed& two) const;
+
+    template <typename T, typename K>
+    auto operator()(T&& x, K&& k) const
+    {
+        return set_table_key(std::forward<T>(x), std::forward<K>(k));
+    }
+};
+
+struct value_one
+{
+    BOOST_HANA_DEFINE_STRUCT(
+        value_one, //
+        (vector_one<two_boxed>, twos),
+        (immer::table<two_boxed, table_key_fn, immer::archive::xx_hash<key>>,
+         twos_table));
+};
+
+struct value_two
+{
+    vector_one<value_one> ones = {};
+    key key                    = {};
+
+    friend std::ostream& operator<<(std::ostream& s, const value_two& value)
+    {
+        return s << fmt::format(
+                   "ones = {}, key = '{}'", value.ones.size(), value.key.str);
+    }
+};
+
+const key& table_key_fn::operator()(const two_boxed& two) const
+{
+    return two.two.get().key;
+}
+
+} // namespace champ_test
+
+template <>
+struct fmt::formatter<champ_test::value_two> : ostream_formatter
+{};
+
+namespace champ_test {
+
+std::ostream& operator<<(std::ostream& s, const two_boxed& value)
+{
+    return s << fmt::format("two_boxed[{}]", value.two.get());
+}
+
+const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
+
+std::size_t xx_hash_value(const two_boxed& value)
+{
+    return xx_hash_value(value.two.get().key);
+}
+
+two_boxed::two_boxed(value_two val)
+    : two{val}
+{
+}
+
+} // namespace champ_test
+
+template <>
+struct fmt::formatter<champ_test::two_boxed> : ostream_formatter
+{};
+
+BOOST_HANA_ADAPT_STRUCT(champ_test::value_two, ones, key);
+
+namespace champ_test {
+DEFINE_OPERATIONS(two_boxed);
+DEFINE_OPERATIONS(key);
+DEFINE_OPERATIONS(value_one);
+DEFINE_OPERATIONS(value_two);
+} // namespace champ_test
+
+namespace {
+struct project_value_ptr
+{
+    template <class T>
+    const T* operator()(const T& v) const noexcept
+    {
+        return std::addressof(v);
+    }
+};
+} // namespace
+
+TEST_CASE("Test table with a funny value")
+{
+    const auto two1 = champ_test::two_boxed{champ_test::value_two{
+        .key = champ_test::key{"456"},
+    }};
+    const auto t1 =
+        immer::table<champ_test::two_boxed,
+                     champ_test::table_key_fn,
+                     immer::archive::xx_hash<champ_test::key>>{two1};
+    const auto two2 = champ_test::two_boxed{champ_test::value_two{
+        .ones =
+            {
+                champ_test::value_one{
+                    .twos_table = t1,
+                },
+            },
+        .key = champ_test::key{"123"},
+    }};
+
+    const auto value = champ_test::value_one{
+        .twos_table = t1.insert(two2),
+    };
+
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<champ_test::value_one,
+                      champ_test::value_two,
+                      champ_test::two_boxed>,
+        hana::make_map());
+
+    const auto [json_str, ar] =
+        immer::archive::to_json_with_auto_archive(value, names);
+    // REQUIRE(json_str == "");
+
+    const auto loaded =
+        immer::archive::from_json_with_auto_archive<champ_test::value_one>(
+            json_str, names);
+    REQUIRE(loaded == value);
+}
+
+namespace test_no_auto {
+
+using immer::archive::archivable;
+
+struct value_two;
+
+struct two_boxed
+{
+    BOOST_HANA_DEFINE_STRUCT(two_boxed,
+                             (archivable<immer::box<value_two>>, two));
+
+    two_boxed() = default;
+    explicit two_boxed(value_two val);
+};
+
+struct key
+{
+    BOOST_HANA_DEFINE_STRUCT(key, (std::string, str));
+
+    friend std::size_t xx_hash_value(const key& value)
+    {
+        return immer::archive::xx_hash_value_string(value.str);
+    }
+};
+
+const key& get_table_key(const two_boxed& two);
+
+struct table_key_fn
+{
+    const key& operator()(const two_boxed& two) const;
+
+    template <typename T, typename K>
+    auto operator()(T&& x, K&& k) const
+    {
+        return set_table_key(std::forward<T>(x), std::forward<K>(k));
+    }
+};
+
+struct value_one
+{
+    BOOST_HANA_DEFINE_STRUCT(
+        value_one, //
+        (vector_one<two_boxed>, twos),
+        (archivable<immer::table<two_boxed,
+                                 table_key_fn,
+                                 immer::archive::xx_hash<key>>>,
+         twos_table));
+};
+
+struct value_two
+{
+    vector_one<value_one> ones = {};
+    key key                    = {};
+
+    friend std::ostream& operator<<(std::ostream& s, const value_two& value)
+    {
+        return s << fmt::format(
+                   "ones = {}, key = '{}'", value.ones.size(), value.key.str);
+    }
+};
+
+const key& table_key_fn::operator()(const two_boxed& two) const
+{
+    return two.two.container.get().key;
+}
+
+} // namespace test_no_auto
+
+template <>
+struct fmt::formatter<test_no_auto::value_two> : ostream_formatter
+{};
+
+namespace test_no_auto {
+
+std::ostream& operator<<(std::ostream& s, const two_boxed& value)
+{
+    return s << fmt::format("two_boxed[{}]", value.two.container.get());
+}
+
+const key& get_table_key(const two_boxed& two)
+{
+    return two.two.container.get().key;
+}
+
+std::size_t xx_hash_value(const two_boxed& value)
+{
+    return xx_hash_value(value.two.container.get().key);
+}
+
+two_boxed::two_boxed(value_two val)
+    : two(immer::box<value_two>{val})
+{
+}
+
+} // namespace test_no_auto
+
+template <>
+struct fmt::formatter<test_no_auto::two_boxed> : ostream_formatter
+{};
+
+BOOST_HANA_ADAPT_STRUCT(test_no_auto::value_two, ones, key);
+
+namespace test_no_auto {
+DEFINE_OPERATIONS(two_boxed);
+DEFINE_OPERATIONS(key);
+DEFINE_OPERATIONS(value_one);
+DEFINE_OPERATIONS(value_two);
+
+auto get_archives_types(const value_one&)
+{
+    return hana::make_map(
+        hana::make_pair(hana::type_c<immer::box<value_two>>,
+                        BOOST_HANA_STRING("box")),
+        hana::make_pair(
+            hana::type_c<immer::table<two_boxed,
+                                      table_key_fn,
+                                      immer::archive::xx_hash<key>>>,
+            BOOST_HANA_STRING("table")));
+}
+} // namespace test_no_auto
+
+TEST_CASE("Test table with a funny value no auto")
+{
+    const auto two1 = test_no_auto::two_boxed{test_no_auto::value_two{
+        .key = test_no_auto::key{"456"},
+    }};
+    const auto t1 =
+        immer::table<test_no_auto::two_boxed,
+                     test_no_auto::table_key_fn,
+                     immer::archive::xx_hash<test_no_auto::key>>{two1};
+    const auto two2 = test_no_auto::two_boxed{test_no_auto::value_two{
+        .ones =
+            {
+                test_no_auto::value_one{
+                    .twos_table = t1,
+                },
+            },
+        .key = test_no_auto::key{"123"},
+    }};
+
+    const auto value = test_no_auto::value_one{
+        .twos_table = t1.insert(two2),
+    };
+
+    const auto [json_str, ar] = immer::archive::to_json_with_archive(value);
+    // REQUIRE(json_str == "");
+
+    const auto loaded =
+        immer::archive::from_json_with_archive<test_no_auto::value_one>(
+            json_str);
+    REQUIRE(loaded == value);
 }

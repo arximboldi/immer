@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "utils.hpp"
 
@@ -574,8 +575,11 @@ TEST_CASE("Special archive throws cereal::Exception")
     REQUIRE_THROWS_MATCHES(
         immer::archive::from_json_with_archive<test_data>(json_archive_str),
         ::cereal::Exception,
-        Catch::Matchers::Message("Failed to load a container ID 99 from the "
-                                 "archive: Container ID 99 is not found"));
+        MessageMatches(Catch::Matchers::ContainsSubstring(
+                           "Failed to load a container ID 99 from the "
+                           "archive of immer::vector<int") &&
+                       Catch::Matchers::ContainsSubstring(
+                           "Container ID 99 is not found")));
 }
 
 namespace {

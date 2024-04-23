@@ -82,7 +82,20 @@ struct value_two
     int number                 = {};
     vector_one<value_one> ones = {};
     key key                    = {};
+
+    friend std::ostream& operator<<(std::ostream& s, const value_two& value)
+    {
+        return s << fmt::format("number = {}, ones = {}, key = '{}'",
+                                value.number,
+                                value.ones.size(),
+                                value.key.str);
+    }
 };
+
+std::ostream& operator<<(std::ostream& s, const two_boxed& value)
+{
+    return s << value.two.get();
+}
 
 const key& get_table_key(const two_boxed& two) { return two.two.get().key; }
 
@@ -97,6 +110,10 @@ two_boxed::two_boxed(value_two val)
 }
 
 } // namespace model
+
+template <>
+struct fmt::formatter<model::two_boxed> : ostream_formatter
+{};
 
 BOOST_HANA_ADAPT_STRUCT(model::value_two, number, ones, key);
 
@@ -223,6 +240,14 @@ TEST_CASE("Test exception while circular converting")
     const auto [json_str, model_archives] =
         immer::archive::to_json_with_auto_archive(value, names);
     // REQUIRE(json_str == "");
+
+    SECTION("Try to load")
+    {
+        const auto loaded =
+            immer::archive::from_json_with_auto_archive<model::value_one>(
+                json_str, names);
+        REQUIRE(loaded == value);
+    }
 
     /**
      * NOTE: There is a circular dependency between archives: to convert
@@ -554,16 +579,6 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
             REQUIRE(format_twos.impl().root == format_twos_2.impl().root);
         }
         REQUIRE(test::to_json(value.twos_table) == test::to_json(format_twos));
-
-        // SECTION("Compare structure")
-        // {
-        //     const auto [format_twos_json, ar] =
-        //         immer::archive::to_json_with_auto_archive(format_twos,
-        //                                                   format_names);
-        //     const auto [model_twos_json, ar2] =
-        //         immer::archive::to_json_with_auto_archive(value, names);
-        //     REQUIRE(model_twos_json == format_twos_json);
-        // }
     }
 
     SECTION("map")
@@ -634,5 +649,24 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
                                                           names);
             REQUIRE(model_twos_json == format_twos_json);
         }
+    }
+
+    SECTION("everything")
+    {
+        const auto convert = [&](const auto& value) {
+            return immer::archive::convert_container(
+                model_archives, format_load_archives, value);
+        };
+        const auto format_value = [&] {
+            auto result = format::value_one{};
+            hana::for_each(hana::keys(result), [&](auto key) {
+                hana::at_key(result, key) = convert(hana::at_key(value, key));
+            });
+            return result;
+        }();
+        const auto [format_json_str, model_archives] =
+            immer::archive::to_json_with_auto_archive(format_value,
+                                                      format_names);
+        REQUIRE(format_json_str == json_str);
     }
 }

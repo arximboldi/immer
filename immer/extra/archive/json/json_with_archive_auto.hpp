@@ -229,9 +229,10 @@ auto load_initial_auto_archives(std::istream& is, WrapF wrap)
 
 constexpr auto reload_archive_auto = [](auto wrap) {
     return [wrap](std::istream& is, auto archives) {
-        using Archives = std::decay_t<decltype(archives)>;
-        using WrapF    = std::decay_t<decltype(wrap)>;
-        auto restore   = util::istream_snapshot{is};
+        using Archives                     = std::decay_t<decltype(archives)>;
+        using WrapF                        = std::decay_t<decltype(wrap)>;
+        auto restore                       = util::istream_snapshot{is};
+        archives.ignore_archive_exceptions = true;
         auto previous =
             json_immer_input_archive<Archives>{std::move(archives), is};
         auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{

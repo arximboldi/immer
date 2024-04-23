@@ -183,6 +183,7 @@ struct archives_load
     using names_t = Names;
 
     Storage storage;
+    bool ignore_archive_exceptions = false;
 
     template <class Container>
     auto& get_loader()
@@ -541,6 +542,9 @@ auto load_archives(std::istream& is,
     auto prev = archives;
     while (true) {
         // Keep reloading until everything is loaded.
+        // Reloading of the archive might trigger validation of some containers
+        // (hash-based, for example) because the elements actually come from
+        // other archives that are not yet loaded.
         archives = reload_archive(is, std::move(archives));
         if (prev == archives) {
             break;
@@ -552,8 +556,9 @@ auto load_archives(std::istream& is,
 }
 
 constexpr auto reload_archive = [](std::istream& is, auto archives) {
-    using Archives = std::decay_t<decltype(archives)>;
-    auto restore   = util::istream_snapshot{is};
+    using Archives                     = std::decay_t<decltype(archives)>;
+    auto restore                       = util::istream_snapshot{is};
+    archives.ignore_archive_exceptions = true;
     auto ar = json_immer_input_archive<Archives>{std::move(archives), is};
     /**
      * NOTE: Critical to clear the archives before loading into it

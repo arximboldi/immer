@@ -8,6 +8,8 @@
 
 #include <fmt/format.h>
 
+#include <boost/core/demangle.hpp>
+
 namespace immer::archive {
 
 namespace detail {
@@ -135,10 +137,13 @@ void load_minimal(
     try {
         value.container = loader.load(container_id_{id});
     } catch (const archive_exception& ex) {
-        throw ::cereal::Exception{
-            fmt::format("Failed to load a container ID {} from the archive: {}",
-                        id,
-                        ex.what())};
+        if (!ar.get_input_archives().ignore_archive_exceptions) {
+            throw ::cereal::Exception{fmt::format(
+                "Failed to load a container ID {} from the archive of {}: {}",
+                id,
+                boost::core::demangle(typeid(Container).name()),
+                ex.what())};
+        }
     }
 }
 

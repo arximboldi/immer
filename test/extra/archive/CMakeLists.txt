@@ -20,6 +20,8 @@ add_executable(
   test_conversion.cpp
   test_circular_dependency_conversion.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/archive/xxhash/xxhash_64.cpp)
+target_precompile_headers(archive-tests PRIVATE
+                          <immer/extra/archive/json/json_with_archive_auto.hpp>)
 add_dependencies(tests archive-tests)
 add_test("test/archive-tests" archive-tests)
 target_include_directories(archive-tests PRIVATE ${CMAKE_SOURCE_DIR})

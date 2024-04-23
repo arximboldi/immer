@@ -37,9 +37,10 @@ struct node_traits
 class hash_validation_failed_exception : public archive_exception
 {
 public:
-    hash_validation_failed_exception()
+    explicit hash_validation_failed_exception(const std::string& msg)
         : archive_exception{"Hash validation failed, likely different hash "
-                            "algos are used for saving and loading"}
+                            "algos are used for saving and loading, " +
+                            msg}
     {
     }
 };
@@ -59,7 +60,7 @@ class container_loader
     {
         const value_t* operator()(const value_t& v) const noexcept
         {
-            return &v;
+            return std::addressof(v);
         }
     };
 
@@ -103,10 +104,13 @@ public:
                     project_value_ptr,
                     immer::detail::constantly<const value_t*, nullptr>>(item);
                 if (!p) {
-                    throw hash_validation_failed_exception{};
+                    throw hash_validation_failed_exception{
+                        "Couldn't find an element"};
                 }
                 if (!(*p == item)) {
-                    throw hash_validation_failed_exception{};
+                    throw hash_validation_failed_exception{
+                        "Found element is not equal to the one we were looking "
+                        "for"};
                 }
             }
         }
