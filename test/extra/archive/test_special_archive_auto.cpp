@@ -1,9 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "utils.hpp"
 
 #include <immer/extra/archive/json/json_with_archive_auto.hpp>
+#include <nlohmann/json.hpp>
 
 #define DEFINE_OPERATIONS(name)                                                \
     bool operator==(const name& left, const name& right)                       \
@@ -519,6 +521,150 @@ TEST_CASE("Test table with a funny value")
         immer::archive::from_json_with_auto_archive<champ_test::value_one>(
             json_str, names);
     REQUIRE(loaded == value);
+}
+
+TEST_CASE("Test loading broken table")
+{
+    const auto two1 = champ_test::two_boxed{champ_test::value_two{
+        .key = champ_test::key{"456"},
+    }};
+    const auto t1 =
+        immer::table<champ_test::two_boxed,
+                     champ_test::table_key_fn,
+                     immer::archive::xx_hash<champ_test::key>>{two1};
+    const auto two2 = champ_test::two_boxed{champ_test::value_two{
+        .ones =
+            {
+                champ_test::value_one{
+                    .twos_table = t1,
+                },
+            },
+        .key = champ_test::key{"123"},
+    }};
+
+    const auto value = champ_test::value_one{
+        .twos       = {champ_test::two_boxed{champ_test::value_two{
+                           .key = champ_test::key{"90"},
+                 }},
+                       champ_test::two_boxed{champ_test::value_two{
+                           .key = champ_test::key{"91"},
+                 }}},
+        .twos_table = t1.insert(two2),
+    };
+
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<champ_test::value_one,
+                      champ_test::value_two,
+                      champ_test::two_boxed>,
+        hana::make_map());
+
+    const auto [json_str, ar] =
+        immer::archive::to_json_with_auto_archive(value, names);
+    // REQUIRE(json_str == "");
+
+    constexpr auto expected_json_str = R"(
+{
+  "value0": {"twos": 0, "twos_table": 0},
+  "archives": {
+    "two": [
+      {"ones": 0, "key": {"str": "90"}},
+      {"ones": 0, "key": {"str": "91"}},
+      {"ones": 0, "key": {"str": "456"}},
+      {"ones": 1, "key": {"str": "123"}}
+    ],
+    "ones": {
+      "leaves": [
+        {"key": 1, "value": []},
+        {"key": 2, "value": [{"twos": 1, "twos_table": 1}]}
+      ],
+      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 0, "tail": 2}]
+    },
+    "twos": {
+      "leaves": [
+        {"key": 1, "value": [{"two": 0}, {"two": 1}]},
+        {"key": 2, "value": []}
+      ],
+      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 0, "tail": 2}]
+    },
+    "twos_table": [
+      {
+        "values": [{"two": 2}, {"two": 3}],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 4100,
+        "collisions": false
+      },
+      {
+        "values": [{"two": 2}],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 4096,
+        "collisions": false
+      }
+    ]
+  }
+})";
+    using json_t                     = nlohmann::json;
+    auto json                        = json_t::parse(expected_json_str);
+
+    // Serialized json should look like this
+    REQUIRE(json == json_t::parse(json_str));
+
+    SECTION("Loads correctly 1")
+    {
+        INFO(json_str);
+        const auto loaded =
+            immer::archive::from_json_with_auto_archive<champ_test::value_one>(
+                json_str, names);
+        REQUIRE(loaded == value);
+    }
+
+    SECTION("Loads correctly 2")
+    {
+        INFO(json.dump());
+        const auto loaded =
+            immer::archive::from_json_with_auto_archive<champ_test::value_one>(
+                json.dump(), names);
+        REQUIRE(loaded == value);
+    }
+
+    SECTION("Break the table that's part of the archive itself, not the loaded "
+            "value")
+    {
+        SECTION("box exists")
+        {
+            json["archives"]["twos_table"][1]["values"][0]["two"] = 0;
+            REQUIRE_THROWS_MATCHES(
+                immer::archive::from_json_with_auto_archive<
+                    champ_test::value_one>(json.dump(), names),
+                ::cereal::Exception,
+                MessageMatches(Catch::Matchers::ContainsSubstring(
+                    "Couldn't find an element")));
+        }
+        SECTION("box doesn't exist")
+        {
+            json["archives"]["twos_table"][1]["values"][0]["two"] = 99;
+            REQUIRE_THROWS_MATCHES(
+                immer::archive::from_json_with_auto_archive<
+                    champ_test::value_one>(json.dump(), names),
+                ::cereal::Exception,
+                MessageMatches(Catch::Matchers::ContainsSubstring(
+                    "Couldn't find an element")));
+        }
+    }
+
+    SECTION("Box that doesn't exist is referenced in the table for the value")
+    {
+        json["archives"]["twos_table"][0]["values"][0]["two"] = 99;
+        REQUIRE_THROWS_MATCHES(
+            immer::archive::from_json_with_auto_archive<champ_test::value_one>(
+                json.dump(), names),
+            ::cereal::Exception,
+            MessageMatches(Catch::Matchers::ContainsSubstring(
+                "Container ID 99 is not found")));
+    }
 }
 
 namespace test_no_auto {

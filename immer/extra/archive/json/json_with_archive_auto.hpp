@@ -201,7 +201,9 @@ auto to_json_with_auto_archive(const T& serializable,
         auto previous = json_immer_output_archive<Archives>{os};
         auto ar = json_immer_auto_output_archive<decltype(previous), WrapF>{
             previous, wrap};
-        ar(serializable);
+        // value0 because that's now cereal saves the unnamed object by default,
+        // maybe change later.
+        ar(cereal::make_nvp("value0", serializable));
         if constexpr (!is_archive_empty<Archives>()) {
             save_archives_impl(previous, save_archive);
             ar.finalize();
@@ -228,11 +230,13 @@ auto load_initial_auto_archives(std::istream& is, WrapF wrap)
 }
 
 constexpr auto reload_archive_auto = [](auto wrap) {
-    return [wrap](std::istream& is, auto archives) {
+    return [wrap](std::istream& is,
+                  auto archives,
+                  bool ignore_archive_exceptions) {
         using Archives                     = std::decay_t<decltype(archives)>;
         using WrapF                        = std::decay_t<decltype(wrap)>;
         auto restore                       = util::istream_snapshot{is};
-        archives.ignore_archive_exceptions = true;
+        archives.ignore_archive_exceptions = ignore_archive_exceptions;
         auto previous =
             json_immer_input_archive<Archives>{std::move(archives), is};
         auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{
@@ -267,9 +271,11 @@ T from_json_with_auto_archive(std::istream& is,
     auto previous = json_immer_input_archive<Archives>{std::move(archives), is};
     auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
                                                                        wrap};
-    auto r  = T{};
-    ar(r);
-    return r;
+    // value0 because that's now cereal saves the unnamed object by default,
+    // maybe change later.
+    auto value0 = T{};
+    ar(CEREAL_NVP(value0));
+    return value0;
 }
 
 template <typename T, class ArchivesTypes>

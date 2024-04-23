@@ -545,8 +545,13 @@ auto load_archives(std::istream& is,
         // Reloading of the archive might trigger validation of some containers
         // (hash-based, for example) because the elements actually come from
         // other archives that are not yet loaded.
-        archives = reload_archive(is, std::move(archives));
+        constexpr bool ignore_archive_exceptions = true;
+        archives =
+            reload_archive(is, std::move(archives), ignore_archive_exceptions);
         if (prev == archives) {
+            // Looks like we're done, reload one more time but do not ignore the
+            // exceptions, for the final validation.
+            archives = reload_archive(is, std::move(archives), false);
             break;
         }
         prev = archives;
@@ -555,20 +560,21 @@ auto load_archives(std::istream& is,
     return archives;
 }
 
-constexpr auto reload_archive = [](std::istream& is, auto archives) {
-    using Archives                     = std::decay_t<decltype(archives)>;
-    auto restore                       = util::istream_snapshot{is};
-    archives.ignore_archive_exceptions = true;
-    auto ar = json_immer_input_archive<Archives>{std::move(archives), is};
-    /**
-     * NOTE: Critical to clear the archives before loading into it
-     * again. I hit a bug when archives contained a vector and every
-     * load would append to it, instead of replacing the contents.
-     */
-    archives = {};
-    ar(CEREAL_NVP(archives));
-    return archives;
-};
+constexpr auto reload_archive =
+    [](std::istream& is, auto archives, bool ignore_archive_exceptions) {
+        using Archives                     = std::decay_t<decltype(archives)>;
+        auto restore                       = util::istream_snapshot{is};
+        archives.ignore_archive_exceptions = ignore_archive_exceptions;
+        auto ar = json_immer_input_archive<Archives>{std::move(archives), is};
+        /**
+         * NOTE: Critical to clear the archives before loading into it
+         * again. I hit a bug when archives contained a vector and every
+         * load would append to it, instead of replacing the contents.
+         */
+        archives = {};
+        ar(CEREAL_NVP(archives));
+        return archives;
+    };
 
 template <typename T>
 T from_json_with_archive(std::istream& is)
