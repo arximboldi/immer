@@ -300,28 +300,28 @@ struct archives_load
 
         // Return a pair where second is an optional. Optional is already
         // populated if no transformation is required.
-        const auto transform_pair_initial =
-            [fake_convert_container, &conversion_map, this](const auto& pair) {
-                using Contains =
-                    decltype(hana::contains(conversion_map, hana::first(pair)));
-                constexpr bool contains = hana::value<Contains>();
-                if constexpr (contains) {
-                    // Look up the conversion function by the type from the
-                    // original archive.
-                    const auto& func =
-                        inject_argument(fake_convert_container,
-                                        conversion_map[hana::first(pair)]);
-                    auto type_load =
-                        storage[hana::first(pair)].with_transform(func);
-                    using NewContainer = decltype(type_load)::container_t;
-                    return hana::make_pair(hana::type_c<NewContainer>,
-                                           std::move(type_load));
-                } else {
-                    // If the conversion map doesn't mention the current type,
-                    // we leave it as is.
-                    return pair;
-                }
-            };
+        const auto transform_pair_initial = [fake_convert_container,
+                                             &conversion_map,
+                                             this](const auto& pair) {
+            using Contains =
+                decltype(hana::contains(conversion_map, hana::first(pair)));
+            constexpr bool contains = hana::value<Contains>();
+            if constexpr (contains) {
+                // Look up the conversion function by the type from the
+                // original archive.
+                const auto& func = inject_argument(
+                    fake_convert_container, conversion_map[hana::first(pair)]);
+                auto type_load =
+                    storage[hana::first(pair)].with_transform(func);
+                using NewContainer = typename decltype(type_load)::container_t;
+                return hana::make_pair(hana::type_c<NewContainer>,
+                                       std::move(type_load));
+            } else {
+                // If the conversion map doesn't mention the current type,
+                // we leave it as is.
+                return pair;
+            }
+        };
 
         auto new_storage = hana::fold_left(
             storage,
