@@ -40,7 +40,7 @@ template<std::size_t Size, std::size_t Align>
 struct aligned_storage
 {
     struct type {
-        alignas(Align) unsigned char data[Size] = { };
+        alignas(Align) unsigned char data[Size];
     };
 };
 
