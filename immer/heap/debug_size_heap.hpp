@@ -10,6 +10,7 @@
 
 #include <immer/config.hpp>
 #include <immer/heap/identity_heap.hpp>
+#include <immer/detail/util.hpp>
 
 #include <cassert>
 #include <cstddef>
