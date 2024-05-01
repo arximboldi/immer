@@ -36,9 +36,20 @@ const T& as_const(T& x)
     return x;
 }
 
+template<std::size_t Size, std::size_t Align>
+struct aligned_storage
+{
+    struct type {
+        alignas(Align) unsigned char data[Size];
+    };
+};
+
+template<std::size_t Size, std::size_t Align>
+using aligned_storage_t = typename aligned_storage<Size, Align>::type;
+
 template <typename T>
 using aligned_storage_for =
-    typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+    typename aligned_storage<sizeof(T), alignof(T)>::type;
 
 template <typename T>
 T& auto_const_cast(const T& x)

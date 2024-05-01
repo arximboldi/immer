@@ -10,6 +10,7 @@
 
 #include <immer/config.hpp>
 #include <immer/heap/identity_heap.hpp>
+#include <immer/detail/util.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -39,7 +40,10 @@ struct debug_size_heap
     constexpr static auto extra_size = 8;
 #else
     constexpr static auto extra_size = sizeof(
-        std::aligned_storage_t<sizeof(std::size_t), alignof(std::max_align_t)>);
+        detail::aligned_storage_t<
+            sizeof(std::size_t), alignof(std::max_align_t)
+        >
+    );
 #endif
 
     template <typename... Tags>
