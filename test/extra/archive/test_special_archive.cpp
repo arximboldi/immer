@@ -763,7 +763,7 @@ TEST_CASE("Test non-unique names in the map")
 
         using IsUnique =
             decltype(immer::archive::detail::are_type_names_unique(names));
-        static_assert(boost::hana::value<IsUnique>(), "Names are unique");
+        static_assert(IsUnique::value, "Names are unique");
     }
 }
 

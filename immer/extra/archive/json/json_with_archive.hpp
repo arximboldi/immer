@@ -56,8 +56,7 @@ struct archives_save
     auto& get_save_archive()
     {
         using Contains = decltype(hana::contains(storage, hana::type_c<T>));
-        constexpr bool contains = hana::value<Contains>();
-        if constexpr (!contains) {
+        if constexpr (!Contains::value) {
             auto err =
                 error_no_archive_for_the_given_type_check_get_archives_types_function<
                     T>{};
@@ -69,8 +68,7 @@ struct archives_save
     const auto& get_save_archive() const
     {
         using Contains = decltype(hana::contains(storage, hana::type_c<T>));
-        constexpr bool contains = hana::value<Contains>();
-        if constexpr (!contains) {
+        if constexpr (!Contains::value) {
             auto err =
                 error_no_archive_for_the_given_type_check_get_archives_types_function<
                     T>{};
@@ -169,7 +167,7 @@ struct archive_type_load
 constexpr auto inject_argument = [](auto arg, auto func) {
     return [arg, func](auto&& old) {
         const auto is_valid = hana::is_valid(func)(old);
-        if constexpr (hana::value<decltype(is_valid)>()) {
+        if constexpr (std::decay_t<decltype(is_valid)>::value) {
             return func(old);
         } else {
             return func(old, arg);
@@ -190,8 +188,7 @@ struct archives_load
     {
         using Contains =
             decltype(hana::contains(storage, hana::type_c<Container>));
-        constexpr bool contains = hana::value<Contains>();
-        if constexpr (!contains) {
+        if constexpr (!Contains::value) {
             auto err = error_missing_archive_for_type<Container>{};
         }
         return storage[hana::type_c<Container>].get_loader();
@@ -209,7 +206,7 @@ struct archives_load
         };
         using Key    = decltype(find_key(storage));
         using IsJust = decltype(hana::is_just(Key{}));
-        if constexpr (!hana::value<IsJust>()) {
+        if constexpr (!IsJust::value) {
             auto err = error_missing_archive_for_type<OldContainer>{};
         }
         return storage[Key{}.value()].get_loader();
@@ -242,8 +239,7 @@ struct archives_load
             // If the conversion map doesn't mention the current type, we leave
             // it as is.
             using Contains = decltype(hana::contains(map, hana::first(pair)));
-            constexpr bool contains = hana::value<Contains>();
-            if constexpr (contains) {
+            if constexpr (Contains::value) {
                 // Look up the conversion function by the type from the original
                 // archive.
                 const auto& func    = map[hana::first(pair)];
@@ -305,8 +301,7 @@ struct archives_load
                                              this](const auto& pair) {
             using Contains =
                 decltype(hana::contains(conversion_map, hana::first(pair)));
-            constexpr bool contains = hana::value<Contains>();
-            if constexpr (contains) {
+            if constexpr (Contains::value) {
                 // Look up the conversion function by the type from the
                 // original archive.
                 const auto& func = inject_argument(
@@ -340,8 +335,7 @@ struct archives_load
                                       const auto& old_container) {
                 const auto id  = get_id(old_container);
                 using Contains = decltype(hana::contains(get_data(), new_type));
-                constexpr bool contains = hana::value<Contains>();
-                if constexpr (!contains) {
+                if constexpr (!Contains::value) {
                     auto err = error_missing_archive_for_type<
                         typename decltype(new_type)::type>{};
                 }
@@ -370,10 +364,9 @@ struct archives_load
             using TypeLoad = std::decay_t<decltype(new_storage[key])>;
             const auto old_key =
                 hana::type_c<typename TypeLoad::old_container_t>;
-            constexpr auto needs_conversion =
-                hana::value<decltype(hana::contains(conversion_map,
-                                                    old_key))>();
-            if constexpr (needs_conversion) {
+            using needs_conversion_t =
+                decltype(hana::contains(conversion_map, old_key));
+            if constexpr (needs_conversion_t::value) {
                 const auto& old_func = conversion_map[old_key];
                 (*shared_storage)[key].transform =
                     inject_argument(convert_container(get_data_weak), old_func);
@@ -459,7 +452,7 @@ constexpr bool is_archive_empty()
 {
     using Result =
         decltype(boost::hana::is_empty(boost::hana::keys(Archives{}.storage)));
-    return boost::hana::value<Result>();
+    return Result::value;
 }
 
 // Recursively serializes the archives but not calling finalize
@@ -469,7 +462,7 @@ void save_archives_impl(json_immer_output_archive<Archives>& ar,
 {
     using Names    = typename Archives::names_t;
     using IsUnique = decltype(detail::are_type_names_unique(Names{}));
-    static_assert(boost::hana::value<IsUnique>(),
+    static_assert(IsUnique::value,
                   "Archive names for each type must be unique");
 
     auto& archives = ar.get_output_archives();
