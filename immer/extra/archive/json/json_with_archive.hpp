@@ -165,8 +165,8 @@ struct archive_type_load
  * function of just one argument.
  */
 constexpr auto inject_argument = [](auto arg, auto func) {
-    return [arg, func](auto&& old) {
-        const auto is_valid = hana::is_valid(func)(old);
+    return [arg = std::move(arg), func = std::move(func)](auto&& old) {
+        const auto is_valid = hana::is_valid(func, old);
         if constexpr (std::decay_t<decltype(is_valid)>::value) {
             return func(old);
         } else {
