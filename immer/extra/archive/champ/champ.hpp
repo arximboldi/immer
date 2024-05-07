@@ -45,9 +45,19 @@ public:
     }
 };
 
+/**
+ * incompatible_hash_mode:
+ * When values are transformed in a way that changes how they are hashed, the
+ * structure of the champ can't be preserved. The only solution is to recreate
+ * the container from the values that it should contain.
+ *
+ * The mode can be enabled by returning incompatible_hash_wrapper from the
+ * function that handles the target_container_type_request.
+ */
 template <class Container,
           typename Archive    = container_archive_load<Container>,
-          typename TransformF = boost::hana::id_t>
+          typename TransformF = boost::hana::id_t,
+          bool enable_incompatible_hash_mode = false>
 class container_loader
 {
     using champ_t    = std::decay_t<decltype(std::declval<Container>().impl())>;
@@ -84,7 +94,23 @@ public:
             throw invalid_node_id{root_id};
         }
 
-        auto [root, values]    = nodes_.load_inner(root_id);
+        auto [root, values] = nodes_.load_inner(root_id);
+
+        if constexpr (enable_incompatible_hash_mode) {
+            if (auto* p = loaded_.find(root_id)) {
+                return *p;
+            }
+
+            auto result = Container{};
+            for (const auto& items : values) {
+                for (const auto& item : items) {
+                    result = std::move(result).insert(item);
+                }
+            }
+            loaded_ = std::move(loaded_).set(root_id, result);
+            return result;
+        }
+
         const auto items_count = [&values = values] {
             auto count = std::size_t{};
             for (const auto& items : values) {
@@ -129,6 +155,7 @@ private:
                  nodes_load,
                  TransformF>
         nodes_;
+    immer::map<node_id, Container> loaded_;
 };
 
 template <class Container>

@@ -819,3 +819,184 @@ TEST_CASE("Test table with a funny value no auto")
             json_str);
     REQUIRE(loaded == value);
 }
+
+namespace {
+
+struct int_key
+{
+    BOOST_HANA_DEFINE_STRUCT(int_key, (int, id));
+};
+DEFINE_OPERATIONS(int_key);
+
+struct string_key
+{
+    BOOST_HANA_DEFINE_STRUCT(string_key, (std::string, id));
+};
+DEFINE_OPERATIONS(string_key);
+
+struct test_champs
+{
+    BOOST_HANA_DEFINE_STRUCT(test_champs,
+                             (immer::map<int, std::string>, map),
+                             (immer::table<int_key>, table),
+                             (immer::set<int>, set)
+
+    );
+};
+DEFINE_OPERATIONS(test_champs);
+
+} // namespace
+
+TEST_CASE("Structure breaks when hash is changed")
+{
+    const auto value = test_champs{
+        .map = {{123, "123"}, {456, "456"}},
+    };
+
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<test_champs>, hana::make_map());
+
+    const auto [json_str, ar] =
+        immer::archive::to_json_with_auto_archive(value, names);
+    // REQUIRE(json_str == "");
+
+    constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
+        return std::make_pair(fmt::format("_{}_", old.first), old.second);
+    };
+
+    const auto map = hana::make_map(hana::make_pair(
+        hana::type_c<immer::map<int, std::string>>,
+        hana::overload(convert_pair,
+                       [](immer::archive::target_container_type_request) {
+                           // We just return the desired new type, but the hash
+                           // of int is not compatible with the hash of string.
+                           return immer::map<std::string, std::string>{};
+                       }))
+
+    );
+
+    auto load_ar = immer::archive::transform_save_archive(ar, map);
+
+    REQUIRE_THROWS_AS(immer::archive::convert_container(ar, load_ar, value.map),
+                      immer::archive::champ::hash_validation_failed_exception);
+}
+
+TEST_CASE("Converting between incompatible keys")
+{
+    const auto value = test_champs{
+        .map   = {{123, "123"}, {456, "456"}},
+        .table = {{901}, {902}},
+    };
+
+    const auto names = immer::archive::get_archives_for_types(
+        hana::tuple_t<test_champs>, hana::make_map());
+
+    const auto [json_str, ar] =
+        immer::archive::to_json_with_auto_archive(value, names);
+    // REQUIRE(json_str == "");
+
+    constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
+        return std::make_pair(fmt::format("_{}_", old.first), old.second);
+    };
+
+    constexpr auto convert_int_key = [](const int_key& old) {
+        return string_key{fmt::format("x{}x", old.id)};
+    };
+
+    /**
+     * The problem is that the new key of the map has a completely different
+     * hash from the old key, which makes the whole map structure unusable. We
+     * need to have some special mode that essentially rebuilds the map. We will
+     * lose all internal structural sharing but at least the same container_id
+     * must return the same container (root node sharing).
+     */
+    const auto map = hana::make_map(
+        hana::make_pair(
+            hana::type_c<immer::map<int, std::string>>,
+            hana::overload(
+                convert_pair,
+                [](immer::archive::target_container_type_request) {
+                    return immer::archive::champ::incompatible_hash_wrapper<
+                        immer::map<std::string, std::string>>{};
+                })),
+        hana::make_pair(
+            hana::type_c<immer::table<int_key>>,
+            hana::overload(
+                convert_int_key,
+                [](immer::archive::target_container_type_request) {
+                    return immer::archive::champ::incompatible_hash_wrapper<
+                        immer::table<string_key>>{};
+                })),
+        hana::make_pair(
+            hana::type_c<immer::set<int>>,
+            hana::overload(
+                [convert_int_key](int old) {
+                    return convert_int_key(int_key{old}).id;
+                },
+                [](immer::archive::target_container_type_request) {
+                    return immer::archive::champ::incompatible_hash_wrapper<
+                        immer::set<std::string>>{};
+                }))
+
+    );
+
+    auto load_ar = immer::archive::transform_save_archive(ar, map);
+    SECTION("maps")
+    {
+        constexpr auto convert_map = [convert_pair](const auto& map) {
+            auto result = immer::map<std::string, std::string>{};
+            for (const auto& item : map) {
+                result = std::move(result).insert(convert_pair(item));
+            }
+            return result;
+        };
+
+        const auto converted =
+            immer::archive::convert_container(ar, load_ar, value.map);
+        REQUIRE(converted == convert_map(value.map));
+
+        // Converting the same thing should return the same data
+        const auto converted_2 =
+            immer::archive::convert_container(ar, load_ar, value.map);
+        REQUIRE(converted.identity() == converted_2.identity());
+    }
+    SECTION("tables")
+    {
+        constexpr auto convert_table = [convert_int_key](const auto& table) {
+            auto result = immer::table<string_key>{};
+            for (const auto& item : table) {
+                result = std::move(result).insert(convert_int_key(item));
+            }
+            return result;
+        };
+
+        const auto converted =
+            immer::archive::convert_container(ar, load_ar, value.table);
+        REQUIRE(converted == convert_table(value.table));
+
+        // Converting the same thing should return the same data
+        const auto converted_2 =
+            immer::archive::convert_container(ar, load_ar, value.table);
+        REQUIRE(converted.impl().root == converted_2.impl().root);
+    }
+    SECTION("sets")
+    {
+        constexpr auto convert_set = [convert_int_key](const auto& set) {
+            auto result = immer::set<std::string>{};
+            for (const auto& item : set) {
+                result =
+                    std::move(result).insert(convert_int_key(int_key{item}).id);
+            }
+            return result;
+        };
+
+        const auto converted =
+            immer::archive::convert_container(ar, load_ar, value.set);
+        REQUIRE(converted == convert_set(value.set));
+
+        // Converting the same thing should return the same data
+        const auto converted_2 =
+            immer::archive::convert_container(ar, load_ar, value.set);
+        REQUIRE(converted.impl().root == converted_2.impl().root);
+    }
+}

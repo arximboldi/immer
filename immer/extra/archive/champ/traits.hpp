@@ -82,6 +82,34 @@ auto transform_archive(const container_archive_load<Container>& ar, F&& func)
         .nodes = transform(ar.nodes, func),
     };
 }
+
+/**
+ * The wrapper is used to enable the incompatible_hash_mode, which is required
+ * when the key of a hash-based container transformed in a way that changes its
+ * hash.
+ */
+template <class Container>
+struct incompatible_hash_wrapper
+{};
 } // namespace champ
+
+template <class Container>
+struct container_traits<champ::incompatible_hash_wrapper<Container>>
+    : champ_traits<Container>
+{
+    using base_t = champ_traits<Container>;
+
+    // Everything stays the same as for normal container, except that we tell
+    // the loader to do something special.
+    static constexpr bool enable_incompatible_hash_mode = true;
+
+    template <typename Archive    = typename base_t::load_archive_t,
+              typename TransformF = boost::hana::id_t>
+    using loader_t =
+        immer::archive::champ::container_loader<Container,
+                                                Archive,
+                                                TransformF,
+                                                enable_incompatible_hash_mode>;
+};
 
 } // namespace immer::archive
