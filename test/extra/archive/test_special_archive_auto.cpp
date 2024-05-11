@@ -891,9 +891,7 @@ TEST_CASE("Converting between incompatible keys")
     const auto names = immer::archive::get_archives_for_types(
         hana::tuple_t<test_champs>, hana::make_map());
 
-    const auto [json_str, ar] =
-        immer::archive::to_json_with_auto_archive(value, names);
-    // REQUIRE(json_str == "");
+    const auto ar = immer::archive::get_auto_archive(value, names);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);

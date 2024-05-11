@@ -401,10 +401,7 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
     const auto names = immer::archive::get_archives_for_types(
         hana::tuple_t<model::value_one, model::value_two, model::two_boxed>,
         hana::make_map());
-    const auto [json_str, model_archives_] =
-        immer::archive::to_json_with_auto_archive(value, names);
-    const auto& model_archives = model_archives_;
-    // REQUIRE(json_str == "");
+    const auto model_archives = immer::archive::get_auto_archive(value, names);
 
     /**
      * NOTE: There is a circular dependency between archives: to convert
@@ -668,6 +665,8 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
         const auto [format_json_str, model_archives] =
             immer::archive::to_json_with_auto_archive(format_value,
                                                       format_names);
+        const auto [json_str, model_archives_] =
+            immer::archive::to_json_with_auto_archive(value, names);
         REQUIRE(format_json_str == json_str);
     }
 }

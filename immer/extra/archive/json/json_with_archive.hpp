@@ -456,8 +456,8 @@ constexpr bool is_archive_empty()
 }
 
 // Recursively serializes the archives but not calling finalize
-template <class Archives, class SaveArchiveF>
-void save_archives_impl(json_immer_output_archive<Archives>& ar,
+template <class Previous, class Archives, class SaveArchiveF>
+void save_archives_impl(json_immer_output_archive<Previous, Archives>& ar,
                         const SaveArchiveF& save_archive)
 {
     using Names    = typename Archives::names_t;
@@ -488,17 +488,19 @@ auto to_json_with_archive(const T& serializable)
         detail::generate_archives_save(get_archives_types(serializable));
     using Archives = std::decay_t<decltype(archives)>;
 
-    auto os = std::ostringstream{};
-
     const auto save_archive = [](auto archives) {
-        auto os2 = std::ostringstream{};
-        auto ar2 = json_immer_output_archive<Archives>{archives, os2};
+        auto ar2 =
+            json_immer_output_archive<blackhole_output_archive, Archives>{
+                archives};
         ar2(archives);
         return std::move(ar2).get_output_archives();
     };
 
+    auto os = std::ostringstream{};
     {
-        auto ar = immer::archive::json_immer_output_archive<Archives>{os};
+        auto ar =
+            immer::archive::json_immer_output_archive<cereal::JSONOutputArchive,
+                                                      Archives>{os};
         ar(serializable);
         if constexpr (!is_archive_empty<Archives>()) {
             save_archives_impl(ar, save_archive);
@@ -558,7 +560,8 @@ constexpr auto reload_archive =
         using Archives                     = std::decay_t<decltype(archives)>;
         auto restore                       = util::istream_snapshot{is};
         archives.ignore_archive_exceptions = ignore_archive_exceptions;
-        auto ar = json_immer_input_archive<Archives>{std::move(archives), is};
+        auto ar = json_immer_input_archive<cereal::JSONInputArchive, Archives>{
+            std::move(archives), is};
         /**
          * NOTE: Critical to clear the archives before loading into it
          * again. I hit a bug when archives contained a vector and every
@@ -577,7 +580,8 @@ T from_json_with_archive(std::istream& is)
     auto archives =
         load_archives(is, load_initial_archives<Archives>(is), reload_archive);
 
-    auto ar = immer::archive::json_immer_input_archive<Archives>{
+    auto ar = immer::archive::json_immer_input_archive<cereal::JSONInputArchive,
+                                                       Archives>{
         std::move(archives), is};
     auto r = T{};
     ar(r);
@@ -603,7 +607,8 @@ T from_json_with_archive_with_conversion(std::istream& is,
     auto archives  = archives_old.transform(map);
     using Archives = decltype(archives);
 
-    auto ar = immer::archive::json_immer_input_archive<Archives>{
+    auto ar = immer::archive::json_immer_input_archive<cereal::JSONInputArchive,
+                                                       Archives>{
         std::move(archives), is};
     auto r = T{};
     ar(r);

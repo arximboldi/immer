@@ -320,6 +320,7 @@ TEST_CASE("Save with a special archive")
             auto os = std::ostringstream{};
             {
                 auto ar = immer::archive::json_immer_output_archive<
+                    cereal::JSONOutputArchive,
                     std::decay_t<decltype(archives)>>{os};
                 ar(123);
                 ar(CEREAL_NVP(archives));
@@ -341,8 +342,9 @@ TEST_CASE("Save with a special archive")
 
             {
                 auto is = std::istringstream{archives_json};
-                auto ar = immer::archive::json_immer_input_archive<Archives>{
-                    archives, is};
+                auto ar = immer::archive::json_immer_input_archive<
+                    cereal::JSONInputArchive,
+                    Archives>{archives, is};
                 ar(CEREAL_NVP(archives));
             }
 
