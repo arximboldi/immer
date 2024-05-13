@@ -164,24 +164,26 @@ auto get_archives_for_types(auto types,
     return hana::union_(names, manual_overrides);
 }
 
-template <typename T, class ArchivesTypes>
+template <typename T,
+          class ArchivesTypes,
+          class WrapF = std::decay_t<decltype(wrap_for_saving)>>
 auto to_json_with_auto_archive(const T& serializable,
-                               const ArchivesTypes& archives_types)
+                               const ArchivesTypes& archives_types,
+                               const WrapF& wrap = wrap_for_saving)
 {
     namespace hana = boost::hana;
 
     // In the future, wrap function may ignore certain user-provided types that
     // should not be archived.
-    constexpr auto wrap = wrap_for_saving;
     static_assert(
-        std::is_same_v<decltype(wrap(std::declval<const std::string&>())),
+        std::is_same_v<decltype(wrap_for_saving(
+                           std::declval<const std::string&>())),
                        const std::string&>,
         "wrap must return a reference when it's not wrapping the type");
-    static_assert(std::is_same_v<decltype(wrap(immer::vector<int>{})),
-                                 archivable<immer::vector<int>>>,
-                  "and a value when it's wrapping");
-
-    using WrapF = std::decay_t<decltype(wrap)>;
+    static_assert(
+        std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
+                       archivable<immer::vector<int>>>,
+        "and a value when it's wrapping");
 
     auto archives  = detail::generate_archives_save(archives_types);
     using Archives = std::decay_t<decltype(archives)>;
@@ -190,8 +192,7 @@ auto to_json_with_auto_archive(const T& serializable,
         auto previous =
             json_immer_output_archive<blackhole_output_archive, Archives>{
                 archives};
-        auto ar = json_immer_auto_output_archive<decltype(previous), WrapF>{
-            previous, wrap};
+        auto ar = json_immer_auto_output_archive{previous, wrap};
 
         ar(archives);
         return std::move(previous).get_output_archives();
@@ -201,8 +202,7 @@ auto to_json_with_auto_archive(const T& serializable,
     {
         auto previous =
             json_immer_output_archive<cereal::JSONOutputArchive, Archives>{os};
-        auto ar = json_immer_auto_output_archive<decltype(previous), WrapF>{
-            previous, wrap};
+        auto ar = json_immer_auto_output_archive{previous, wrap};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
@@ -216,24 +216,26 @@ auto to_json_with_auto_archive(const T& serializable,
 }
 
 // Same as to_json_with_auto_archive but we don't generate any JSON.
-template <typename T, class ArchivesTypes>
+template <typename T,
+          class ArchivesTypes,
+          class WrapF = std::decay_t<decltype(wrap_for_saving)>>
 auto get_auto_archive(const T& serializable,
-                      const ArchivesTypes& archives_types)
+                      const ArchivesTypes& archives_types,
+                      const WrapF& wrap = wrap_for_saving)
 {
     namespace hana = boost::hana;
 
     // In the future, wrap function may ignore certain user-provided types that
     // should not be archived.
-    constexpr auto wrap = wrap_for_saving;
     static_assert(
-        std::is_same_v<decltype(wrap(std::declval<const std::string&>())),
+        std::is_same_v<decltype(wrap_for_saving(
+                           std::declval<const std::string&>())),
                        const std::string&>,
         "wrap must return a reference when it's not wrapping the type");
-    static_assert(std::is_same_v<decltype(wrap(immer::vector<int>{})),
-                                 archivable<immer::vector<int>>>,
-                  "and a value when it's wrapping");
-
-    using WrapF = std::decay_t<decltype(wrap)>;
+    static_assert(
+        std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
+                       archivable<immer::vector<int>>>,
+        "and a value when it's wrapping");
 
     auto archives  = detail::generate_archives_save(archives_types);
     using Archives = std::decay_t<decltype(archives)>;
@@ -242,8 +244,7 @@ auto get_auto_archive(const T& serializable,
         auto previous =
             json_immer_output_archive<blackhole_output_archive, Archives>{
                 archives};
-        auto ar = json_immer_auto_output_archive<decltype(previous), WrapF>{
-            previous, wrap};
+        auto ar = json_immer_auto_output_archive{previous, wrap};
         ar(archives);
         return std::move(previous).get_output_archives();
     };
@@ -251,8 +252,7 @@ auto get_auto_archive(const T& serializable,
     {
         auto previous =
             json_immer_output_archive<blackhole_output_archive, Archives>{};
-        auto ar = json_immer_auto_output_archive<decltype(previous), WrapF>{
-            previous, wrap};
+        auto ar = json_immer_auto_output_archive{previous, wrap};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
@@ -275,8 +275,7 @@ auto load_initial_auto_archives(std::istream& is, WrapF wrap)
 
     auto restore  = util::istream_snapshot{is};
     auto previous = cereal::JSONInputArchive{is};
-    auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
-                                                                       wrap};
+    auto ar       = json_immer_auto_input_archive{previous, wrap};
     ar(CEREAL_NVP(archives));
     return archives;
 }
@@ -286,14 +285,12 @@ constexpr auto reload_archive_auto = [](auto wrap) {
                   auto archives,
                   bool ignore_archive_exceptions) {
         using Archives                     = std::decay_t<decltype(archives)>;
-        using WrapF                        = std::decay_t<decltype(wrap)>;
         auto restore                       = util::istream_snapshot{is};
         archives.ignore_archive_exceptions = ignore_archive_exceptions;
         auto previous =
             json_immer_input_archive<cereal::JSONInputArchive, Archives>{
                 std::move(archives), is};
-        auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{
-            previous, wrap};
+        auto ar = json_immer_auto_input_archive{previous, wrap};
         /**
          * NOTE: Critical to clear the archives before loading into it
          * again. I hit a bug when archives contained a vector and every
@@ -311,7 +308,6 @@ T from_json_with_auto_archive(std::istream& is,
 {
     namespace hana      = boost::hana;
     constexpr auto wrap = wrap_for_loading;
-    using WrapF         = std::decay_t<decltype(wrap)>;
 
     using Archives =
         std::decay_t<decltype(detail::generate_archives_load(archives_types))>;
@@ -324,8 +320,7 @@ T from_json_with_auto_archive(std::istream& is,
     auto previous =
         json_immer_input_archive<cereal::JSONInputArchive, Archives>{
             std::move(archives), is};
-    auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
-                                                                       wrap};
+    auto ar = json_immer_auto_input_archive{previous, wrap};
     // value0 because that's now cereal saves the unnamed object by default,
     // maybe change later.
     auto value0 = T{};
@@ -351,7 +346,6 @@ T from_json_with_auto_archive_with_conversion(
     const ArchivesTypes& archives_types)
 {
     constexpr auto wrap = wrap_for_loading;
-    using WrapF         = std::decay_t<decltype(wrap)>;
 
     // Load the archives part for the old type
     using OldArchives =
@@ -367,8 +361,7 @@ T from_json_with_auto_archive_with_conversion(
     auto previous =
         json_immer_input_archive<cereal::JSONInputArchive, Archives>{
             std::move(archives), is};
-    auto ar = json_immer_auto_input_archive<decltype(previous), WrapF>{previous,
-                                                                       wrap};
+    auto ar = json_immer_auto_input_archive{previous, wrap};
     auto r  = T{};
     ar(r);
     return r;
