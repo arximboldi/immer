@@ -25,16 +25,8 @@ struct inner_node_save
     bitmap_t datamap;
     bool collisions{false};
 
-    auto tie() const
-    {
-        return std::tie(values, children, nodemap, datamap, collisions);
-    }
-
     friend bool operator==(const inner_node_save& left,
-                           const inner_node_save& right)
-    {
-        return left.tie() == right.tie();
-    }
+                           const inner_node_save& right) = default;
 
     template <class Archive>
     void save(Archive& ar) const
@@ -58,16 +50,8 @@ struct inner_node_load
     bitmap_t datamap;
     bool collisions{false};
 
-    auto tie() const
-    {
-        return std::tie(values, children, nodemap, datamap, collisions);
-    }
-
     friend bool operator==(const inner_node_load& left,
-                           const inner_node_load& right)
-    {
-        return left.tie() == right.tie();
-    }
+                           const inner_node_load& right) = default;
 
     template <class Archive>
     void load(Archive& ar)

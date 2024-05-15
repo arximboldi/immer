@@ -19,12 +19,8 @@ struct inner_node
     immer::vector<node_id> children;
     bool relaxed = {};
 
-    auto tie() const { return std::tie(children, relaxed); }
-
-    friend bool operator==(const inner_node& left, const inner_node& right)
-    {
-        return left.tie() == right.tie();
-    }
+    friend bool operator==(const inner_node& left,
+                           const inner_node& right) = default;
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -38,12 +34,8 @@ struct rbts_info
     node_id root;
     node_id tail;
 
-    auto tie() const { return std::tie(root, tail); }
-
-    friend bool operator==(const rbts_info& left, const rbts_info& right)
-    {
-        return left.tie() == right.tie();
-    }
+    friend bool operator==(const rbts_info& left,
+                           const rbts_info& right) = default;
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -110,12 +102,8 @@ struct archive_load
     immer::map<node_id, inner_node> inners;
     immer::vector<rbts_info> vectors;
 
-    auto tie() const { return std::tie(leaves, inners, vectors); }
-
-    friend bool operator==(const archive_load& left, const archive_load& right)
-    {
-        return left.tie() == right.tie();
-    }
+    friend bool operator==(const archive_load& left,
+                           const archive_load& right) = default;
 
     template <class Archive>
     void load(Archive& ar)
