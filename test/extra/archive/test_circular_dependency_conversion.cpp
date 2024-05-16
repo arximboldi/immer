@@ -669,4 +669,25 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
             immer::archive::to_json_with_auto_archive(value, names);
         REQUIRE(format_json_str == json_str);
     }
+
+    SECTION("Test converting inside the archive vs outside")
+    {
+        const auto convert = [&](const auto& value) {
+            return immer::archive::convert_container(
+                model_archives, format_load_archives, value);
+        };
+
+        // Here we convert a box directly, aka "outside" the archive
+        const auto two1_manually_converted = convert(two1.two);
+
+        // While here we convert a vector which contains the box inside,
+        // therefore, the box is converted internally, "inside" the archive.
+        const auto two1_from_inside = convert(value.twos)[0].two;
+
+        // And while the values are the same
+        REQUIRE(two1_manually_converted == two1_from_inside);
+
+        // currently, there is an issue that the box is not shared.
+        REQUIRE(two1_manually_converted.impl() != two1_from_inside.impl());
+    }
 }
