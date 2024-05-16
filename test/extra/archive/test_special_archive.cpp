@@ -350,7 +350,7 @@ TEST_CASE("Save with a special archive")
 
             return archives;
         }();
-        REQUIRE(archives_loaded.storage[hana::type_c<vector_one<int>>]
+        REQUIRE(archives_loaded.storage()[hana::type_c<vector_one<int>>]
                     .archive.leaves.size() == 7);
     }
 

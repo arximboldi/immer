@@ -31,6 +31,36 @@ class error_duplicate_archive_name_found;
 template <class T>
 class error_missing_archive_for_type;
 
+template <class T>
+struct storage_holder
+{
+    T value;
+
+    auto& operator()() { return value; }
+    const auto& operator()() const { return value; }
+};
+
+template <class T>
+auto make_storage_holder(T&& value)
+{
+    return storage_holder<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+template <class T>
+struct shared_storage_holder
+{
+    std::shared_ptr<T> ptr;
+
+    auto& operator()() { return *ptr; }
+    const auto& operator()() const { return *ptr; }
+};
+
+template <class T>
+auto make_shared_storage_holder(std::shared_ptr<T> ptr)
+{
+    return shared_storage_holder<T>{std::move(ptr)};
+}
+
 /**
  * Archives and functions to serialize types that contain archivable data
  * structures.
@@ -40,7 +70,11 @@ struct archives_save
 {
     using names_t = Names;
 
-    Storage storage;
+    Storage storage_;
+
+    // To aling the interface with archives_load
+    Storage& storage() { return storage_; }
+    const Storage& storage() const { return storage_; }
 
     template <class Archive>
     void save(Archive& ar) const
@@ -48,38 +82,38 @@ struct archives_save
         constexpr auto keys = hana::keys(names_t{});
         hana::for_each(keys, [&](auto key) {
             constexpr auto name = names_t{}[key];
-            ar(cereal::make_nvp(name.c_str(), storage[key]));
+            ar(cereal::make_nvp(name.c_str(), storage()[key]));
         });
     }
 
     template <class T>
     auto& get_save_archive()
     {
-        using Contains = decltype(hana::contains(storage, hana::type_c<T>));
+        using Contains = decltype(hana::contains(storage(), hana::type_c<T>));
         if constexpr (!Contains::value) {
             auto err =
                 error_no_archive_for_the_given_type_check_get_archives_types_function<
                     T>{};
         }
-        return storage[hana::type_c<T>];
+        return storage()[hana::type_c<T>];
     }
 
     template <class T>
     const auto& get_save_archive() const
     {
-        using Contains = decltype(hana::contains(storage, hana::type_c<T>));
+        using Contains = decltype(hana::contains(storage(), hana::type_c<T>));
         if constexpr (!Contains::value) {
             auto err =
                 error_no_archive_for_the_given_type_check_get_archives_types_function<
                     T>{};
         }
-        return storage[hana::type_c<T>];
+        return storage()[hana::type_c<T>];
     }
 
     friend bool operator==(const archives_save& left,
                            const archives_save& right)
     {
-        return left.storage == right.storage;
+        return left.storage() == right.storage();
     }
 };
 
@@ -175,23 +209,41 @@ constexpr auto inject_argument = [](auto arg, auto func) {
     };
 };
 
-template <class Storage, class Names>
-struct archives_load
+template <class StorageF, class Names>
+class archives_load
 {
+private:
+    StorageF storage_;
+
+public:
     using names_t = Names;
 
-    Storage storage;
+    archives_load() = default;
+
+    explicit archives_load(StorageF storage)
+        : storage_{std::move(storage)}
+    {
+    }
+
+    archives_load(StorageF storage, Names)
+        : storage_{std::move(storage)}
+    {
+    }
+
     bool ignore_archive_exceptions = false;
+
+    auto& storage() { return storage_(); }
+    const auto& storage() const { return storage_(); }
 
     template <class Container>
     auto& get_loader()
     {
         using Contains =
-            decltype(hana::contains(storage, hana::type_c<Container>));
+            decltype(hana::contains(storage(), hana::type_c<Container>));
         if constexpr (!Contains::value) {
             auto err = error_missing_archive_for_type<Container>{};
         }
-        return storage[hana::type_c<Container>].get_loader();
+        return storage()[hana::type_c<Container>].get_loader();
     }
 
     template <class OldContainer>
@@ -204,12 +256,12 @@ struct archives_load
                 return hana::type_c<type1> == hana::type_c<OldContainer>;
             });
         };
-        using Key    = decltype(find_key(storage));
+        using Key    = decltype(find_key(storage()));
         using IsJust = decltype(hana::is_just(Key{}));
         if constexpr (!IsJust::value) {
             auto err = error_missing_archive_for_type<OldContainer>{};
         }
-        return storage[Key{}.value()].get_loader();
+        return storage()[Key{}.value()].get_loader();
     }
 
     template <class Archive>
@@ -218,14 +270,14 @@ struct archives_load
         constexpr auto keys = hana::keys(names_t{});
         hana::for_each(keys, [&](auto key) {
             constexpr auto name = names_t{}[key];
-            ar(cereal::make_nvp(name.c_str(), storage[key].archive));
+            ar(cereal::make_nvp(name.c_str(), storage()[key].archive));
         });
     }
 
     friend bool operator==(const archives_load& left,
                            const archives_load& right)
     {
-        return left.storage == right.storage;
+        return left.storage() == right.storage();
     }
 
     /**
@@ -260,12 +312,14 @@ struct archives_load
             }
         };
 
-        auto new_storage = hana::fold_left(
-            storage, hana::make_map(), [&transform_pair](auto map, auto pair) {
-                return hana::insert(map, transform_pair(pair));
-            });
-        using NewStorage = decltype(new_storage);
-        return archives_load<NewStorage, Names>{std::move(new_storage)};
+        auto new_storage =
+            hana::fold_left(storage(),
+                            hana::make_map(),
+                            [&transform_pair](auto map, auto pair) {
+                                return hana::insert(map, transform_pair(pair));
+                            });
+        auto holder = make_storage_holder(std::move(new_storage));
+        return archives_load<decltype(holder), Names>{std::move(holder)};
     }
 
     /**
@@ -307,7 +361,7 @@ struct archives_load
                 const auto& func = inject_argument(
                     fake_convert_container, conversion_map[hana::first(pair)]);
                 auto type_load =
-                    storage[hana::first(pair)].with_transform(func);
+                    storage()[hana::first(pair)].with_transform(func);
                 using NewContainer = typename decltype(type_load)::container_t;
                 return hana::make_pair(hana::type_c<NewContainer>,
                                        std::move(type_load));
@@ -318,17 +372,20 @@ struct archives_load
             }
         };
 
-        auto new_storage = hana::fold_left(
-            storage,
-            hana::make_map(),
-            [transform_pair_initial](auto map, auto pair) {
-                return hana::insert(map, transform_pair_initial(pair));
-            });
-        using NewStorage = decltype(new_storage);
-
         // I can't think of a better way yet to tie all the loaders/transforming
         // functions together.
-        auto shared_storage = std::make_shared<NewStorage>(new_storage);
+        auto shared_storage = [&] {
+            auto new_storage = hana::fold_left(
+                storage(),
+                hana::make_map(),
+                [transform_pair_initial](auto map, auto pair) {
+                    return hana::insert(map, transform_pair_initial(pair));
+                });
+            using NewStorage = decltype(new_storage);
+            return std::make_shared<NewStorage>(new_storage);
+        }();
+
+        using NewStorage = std::decay_t<decltype(*shared_storage)>;
 
         const auto convert_container = [get_id](auto get_data) {
             return [get_id, get_data](auto new_type,
@@ -354,14 +411,10 @@ struct archives_load
             }
             return *p;
         };
-        const auto get_data_strong = [shared_storage]() -> auto& {
-            return *shared_storage;
-        };
 
-        // Fill-in the transforming functions into both new_storage and
-        // shared_storage.
-        hana::for_each(hana::keys(new_storage), [&](auto key) {
-            using TypeLoad = std::decay_t<decltype(new_storage[key])>;
+        // Fill-in the transforming functions into shared_storage.
+        hana::for_each(hana::keys(*shared_storage), [&](auto key) {
+            using TypeLoad = std::decay_t<decltype((*shared_storage)[key])>;
             const auto old_key =
                 hana::type_c<typename TypeLoad::old_container_t>;
             using needs_conversion_t =
@@ -370,12 +423,11 @@ struct archives_load
                 const auto& old_func = conversion_map[old_key];
                 (*shared_storage)[key].transform =
                     inject_argument(convert_container(get_data_weak), old_func);
-                new_storage[key].transform = inject_argument(
-                    convert_container(get_data_strong), old_func);
             }
         });
 
-        return archives_load<NewStorage, Names>{std::move(new_storage)};
+        auto holder = make_shared_storage_holder(std::move(shared_storage));
+        return archives_load<decltype(holder), Names>{std::move(holder)};
     }
 };
 
@@ -423,18 +475,17 @@ inline auto generate_archives_load(auto type_names)
                 hana::make_pair(hana::first(pair), archive_type_load<Type>{}));
         });
 
-    using Storage = decltype(storage);
-    using Names   = decltype(type_names);
-    return archives_load<Storage, Names>{storage};
+    auto storage_f = detail::make_storage_holder(std::move(storage));
+    return archives_load{std::move(storage_f), type_names};
 }
 
 template <class Storage, class Names>
 inline auto to_load_archives(const archives_save<Storage, Names>& save_archive)
 {
     auto archives = generate_archives_load(Names{});
-    boost::hana::for_each(boost::hana::keys(archives.storage), [&](auto key) {
-        archives.storage[key].archive =
-            to_load_archive(save_archive.storage[key]);
+    boost::hana::for_each(boost::hana::keys(archives.storage()), [&](auto key) {
+        archives.storage()[key].archive =
+            to_load_archive(save_archive.storage()[key]);
     });
     return archives;
 }
@@ -450,8 +501,8 @@ auto get_archives_types(const T&)
 template <class Archives>
 constexpr bool is_archive_empty()
 {
-    using Result =
-        decltype(boost::hana::is_empty(boost::hana::keys(Archives{}.storage)));
+    using Result = decltype(boost::hana::is_empty(
+        boost::hana::keys(Archives{}.storage())));
     return Result::value;
 }
 

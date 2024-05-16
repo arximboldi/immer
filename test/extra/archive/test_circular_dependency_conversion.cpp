@@ -684,10 +684,7 @@ TEST_CASE("Test circular dependency archives", "[conversion]")
         // therefore, the box is converted internally, "inside" the archive.
         const auto two1_from_inside = convert(value.twos)[0].two;
 
-        // And while the values are the same
-        REQUIRE(two1_manually_converted == two1_from_inside);
-
-        // currently, there is an issue that the box is not shared.
-        REQUIRE(two1_manually_converted.impl() != two1_from_inside.impl());
+        // The box is actually the same
+        REQUIRE(two1_manually_converted.impl() == two1_from_inside.impl());
     }
 }
