@@ -368,7 +368,7 @@ private:
     friend flex_t;
     friend transient_type;
 
-    // for archive
+    // for immer::persist
 public:
     vector(impl_t impl)
         : impl_(std::move(impl))

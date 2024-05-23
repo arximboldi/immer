@@ -48,7 +48,7 @@
 
       arximboldi-cereal = pkgs.callPackage ./nix/cereal.nix {inherit arximboldi-cereal-src;};
 
-      archive-inputs = with pkgs; [
+      persist-inputs = with pkgs; [
         spdlog
         arximboldi-cereal
         xxHash
@@ -79,8 +79,8 @@
             checkPhase = ''
               ctest -D ExperimentalMemCheck
               valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
-                --suppressions=./test/extra/archive/valgrind.supp \
-                ./test/extra/archive/archive-tests
+                --suppressions=./test/extra/persist/valgrind.supp \
+                ./test/extra/persist/persist-tests
             '';
           });
         };
@@ -103,7 +103,7 @@
             fzf
             starship
           ]
-          ++ archive-inputs;
+          ++ persist-inputs;
 
         shellHook =
           self.checks.${system}.pre-commit-check.shellHook
@@ -147,7 +147,7 @@
 
         unit-tests = (withLLVM self.packages.${system}.immer).overrideAttrs (prev: {
           name = "immer-unit-tests";
-          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt] ++ archive-inputs;
+          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt] ++ persist-inputs;
           nativeBuildInputs = with pkgs; [cmake ninja];
           dontBuild = false;
           doCheck = true;
@@ -159,7 +159,7 @@
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Debug"
             "-Dimmer_BUILD_TESTS=ON"
-            "-Dimmer_BUILD_ARCHIVE_TESTS=ON"
+            "-Dimmer_BUILD_PERSIST_TESTS=ON"
             "-Dimmer_BUILD_EXAMPLES=OFF"
             "-DCXX_STANDARD=20"
           ];
