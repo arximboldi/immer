@@ -234,9 +234,8 @@ TEST_CASE("Test exception while circular converting")
         };
     }();
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<model::value_one, model::value_two, model::two_boxed>,
-        hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<model::value_one>);
     const auto [json_str, model_pool] =
         immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
@@ -398,9 +397,8 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         };
     }();
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<model::value_one, model::value_two, model::two_boxed>,
-        hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<model::value_one>);
     const auto model_pools = immer::persist::get_auto_pool(value, names);
 
     /**
@@ -508,9 +506,8 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
     (void) format_load_pools;
     // show_type<decltype(format_load_pools)> qwe;
 
-    const auto format_names = immer::persist::get_pools_for_types(
-        hana::tuple_t<format::value_one, format::value_two, format::two_boxed>,
-        hana::make_map());
+    const auto format_names =
+        immer::persist::get_pools_for_type(hana::type_c<format::value_one>);
 
     SECTION("vector")
     {

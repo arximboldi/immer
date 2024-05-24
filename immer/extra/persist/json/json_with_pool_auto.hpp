@@ -9,6 +9,8 @@
 #include <immer/extra/persist/champ/traits.hpp>
 #include <immer/extra/persist/rbts/traits.hpp>
 
+#include <immer/extra/persist/common/type_traverse.hpp>
+
 namespace immer::persist {
 
 template <class T>
@@ -114,54 +116,20 @@ constexpr auto wrap_for_loading = exclude_internal_pool_types(
     make_conditional_func(is_persistable, to_persistable_loader));
 
 /**
- * Generate a hana map of persistable members for a given type T.
- * Where key is a type (persistable immer container) and value is a name for
- * that pool (using the member name from the given struct). Example:
+ * Generate a hana map of persistable members for the given type, recursively.
+ * Example:
  * [(type_c<immer::map<K, V>>, "tracks")]
  */
-template <class T>
-auto get_auto_pools_types(const T& value)
+auto get_pools_for_type(auto type)
 {
-    namespace hana = boost::hana;
-    static_assert(hana::Struct<T>::value,
-                  "get_auto_pools_types works only with types that "
-                  "implement hana::Struct concept");
-
-    constexpr auto is_persistable_key = [](auto key) {
-        return is_persistable(hana::at_key(T{}, key));
-    };
-
-    // A list of pairs like (hana::type_c<Container>, "member_name")
-    auto pairs = hana::transform(
-        hana::filter(hana::keys(value), is_persistable_key), [&](auto key) {
-            const auto& member = hana::at_key(value, key);
-            return hana::make_pair(hana::typeid_(member), key);
+    namespace hana     = boost::hana;
+    auto all_types_map = util::get_inner_types(type);
+    auto persistable =
+        hana::filter(hana::to_tuple(all_types_map), [&](auto pair) {
+            using T = typename decltype(+hana::first(pair))::type;
+            return is_persistable(T{});
         });
-
-    return hana::unpack(pairs, hana::make_map);
-}
-
-/**
- * Generate a hana map of persistable members for the given types and apply
- * manual overrides for names.
- * manual_overrides is a map of manual overrides.
- */
-auto get_pools_for_types(auto types,
-                         auto manual_overrides = boost::hana::make_map())
-{
-    namespace hana = boost::hana;
-    // Automatically generate names and pools
-    const auto names =
-        hana::fold_left(hana::transform(types,
-                                        [](auto t) {
-                                            using T =
-                                                typename decltype(t)::type;
-                                            return get_auto_pools_types(T{});
-                                        }),
-                        hana::make_map(),
-                        hana::union_);
-    // Apply the overrides
-    return hana::union_(names, manual_overrides);
+    return hana::to_map(persistable);
 }
 
 template <typename T,
@@ -265,7 +233,7 @@ auto get_auto_pool(const T& serializable,
 constexpr auto reload_pool_auto = [](auto wrap) {
     return [wrap](std::istream& is, auto pools, bool ignore_pool_exceptions) {
         using Pools                  = std::decay_t<decltype(pools)>;
-        auto restore                 = util::istream_snapshot{is};
+        auto restore                 = immer::util::istream_snapshot{is};
         pools.ignore_pool_exceptions = ignore_pool_exceptions;
         auto previous =
             json_immer_input_archive<cereal::JSONInputArchive, Pools>{

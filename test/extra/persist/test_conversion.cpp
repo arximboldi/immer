@@ -2,6 +2,8 @@
 
 #include <immer/extra/persist/json/json_with_pool_auto.hpp>
 
+#include <immer/extra/persist/common/type_traverse.hpp>
+
 #include "utils.hpp"
 
 #define DEFINE_OPERATIONS(name)                                                \
@@ -141,10 +143,10 @@ class Z;
 TEST_CASE("Convert between two hierarchies via JSON compatibility",
           "[conversion]")
 {
-    const auto model_names = immer::persist::get_pools_for_types(
-        hana::tuple_t<model::history, model::arrangement>, hana::make_map());
-    const auto format_names = immer::persist::get_pools_for_types(
-        hana::tuple_t<format::history, format::arrangement>, hana::make_map());
+    const auto model_names =
+        immer::persist::get_pools_for_type(hana::type_c<model::history>);
+    const auto format_names =
+        immer::persist::get_pools_for_type(hana::type_c<format::history>);
     (void) format_names;
 
     const auto value = model::make_example_history();
@@ -202,8 +204,8 @@ struct two_vectors
 
 TEST_CASE("Not every type is converted", "[conversion]")
 {
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<two_vectors>, hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<two_vectors>);
     const auto [json_str, pools] =
         immer::persist::to_json_with_auto_pool(two_vectors{}, names);
 

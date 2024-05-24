@@ -111,8 +111,9 @@ struct test_data_with_immer
 TEST_CASE("Auto-persisting")
 {
     constexpr auto names = [] {
-        return immer::persist::get_pools_for_types(
-            hana::tuple_t<test_data_with_immer, meta, meta_meta>,
+        return hana::union_(
+            immer::persist::get_pools_for_type(
+                hana::type_c<test_data_with_immer>),
             hana::make_map(hana::make_pair(hana::type_c<vector_one<meta_meta>>,
                                            BOOST_HANA_STRING("meta_meta"))));
     };
@@ -236,7 +237,8 @@ TEST_CASE("Test save and load small type")
     const auto value = test_data_with_one_immer_member{
         .ints = ints1,
     };
-    const auto pool_types = immer::persist::get_auto_pools_types(value);
+    const auto pool_types =
+        immer::persist::get_pools_for_type(boost::hana::typeid_(value));
     const auto [json_str, pools] =
         immer::persist::to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
@@ -335,13 +337,9 @@ TEST_CASE("Test conversion with auto-pool")
             },
     };
 
-    constexpr auto old_names = [] {
-        return immer::persist::get_pools_for_types(hana::tuple_t<old_app_type>,
-                                                   hana::make_map());
-    };
+    const auto old_pool_types =
+        immer::persist::get_pools_for_type(hana::type_c<old_app_type>);
 
-    using OldPoolTypes            = decltype(old_names());
-    constexpr auto old_pool_types = OldPoolTypes{};
     const auto [json_str, pools] =
         immer::persist::to_json_with_auto_pool(value, old_pool_types);
     // REQUIRE(json_str == "");
@@ -507,11 +505,8 @@ TEST_CASE("Test table with a funny value")
         .twos_table = t1.insert(two2),
     };
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<champ_test::value_one,
-                      champ_test::value_two,
-                      champ_test::two_boxed>,
-        hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
 
     const auto [json_str, ar] =
         immer::persist::to_json_with_auto_pool(value, names);
@@ -552,11 +547,8 @@ TEST_CASE("Test loading broken table")
         .twos_table = t1.insert(two2),
     };
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<champ_test::value_one,
-                      champ_test::value_two,
-                      champ_test::two_boxed>,
-        hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
 
     const auto [json_str, ar] =
         immer::persist::to_json_with_auto_pool(value, names);
@@ -651,7 +643,7 @@ TEST_CASE("Test loading broken table")
                     json.dump(), names),
                 ::cereal::Exception,
                 MessageMatches(Catch::Matchers::ContainsSubstring(
-                    "Couldn't find an element")));
+                    "Container ID 99 is not found")));
         }
     }
 
@@ -852,8 +844,8 @@ TEST_CASE("Structure breaks when hash is changed")
         .map = {{123, "123"}, {456, "456"}},
     };
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<test_champs>, hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<test_champs>);
 
     const auto [json_str, ar] =
         immer::persist::to_json_with_auto_pool(value, names);
@@ -887,8 +879,8 @@ TEST_CASE("Converting between incompatible keys")
         .table = {{901}, {902}},
     };
 
-    const auto names = immer::persist::get_pools_for_types(
-        hana::tuple_t<test_champs>, hana::make_map());
+    const auto names =
+        immer::persist::get_pools_for_type(hana::type_c<test_champs>);
 
     const auto ar = immer::persist::get_auto_pool(value, names);
 
@@ -996,4 +988,26 @@ TEST_CASE("Converting between incompatible keys")
             immer::persist::convert_container(ar, load_ar, value.set);
         REQUIRE(converted.impl().root == converted_2.impl().root);
     }
+}
+
+namespace test_variant {
+struct foos
+{
+    BOOST_HANA_DEFINE_STRUCT(foos, (immer::vector<int>, ints));
+};
+
+struct with_variant
+{
+    BOOST_HANA_DEFINE_STRUCT(with_variant,
+                             (std::variant<double, foos>, something));
+};
+} // namespace test_variant
+
+TEST_CASE("It goes inside variant")
+{
+    auto names = immer::persist::get_pools_for_type(
+        hana::type_c<test_variant::with_variant>);
+    using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
+                                BOOST_HANA_STRING("ints"));
+    static_assert(contains_t::value);
 }
