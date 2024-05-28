@@ -2,7 +2,6 @@
 
 #include <immer/extra/persist/errors.hpp>
 #include <immer/extra/persist/json/json_immer.hpp>
-#include <immer/extra/persist/json/json_immer_auto.hpp>
 #include <immer/extra/persist/json/json_with_pool.hpp>
 #include <immer/extra/persist/traits.hpp>
 
@@ -84,17 +83,22 @@ struct persistable
     // }
 };
 
-template <class Previous, class Storage, class Names, class Container>
+template <class Previous,
+          class Storage,
+          class Names,
+          class WrapF,
+          class Container>
 auto save_minimal(
     const json_immer_output_archive<Previous,
-                                    detail::output_pools<Storage, Names>>& ar,
+                                    detail::output_pools<Storage, Names>,
+                                    WrapF>& ar,
     const persistable<Container>& value)
 {
     auto& pool =
         const_cast<
             json_immer_output_archive<Previous,
-                                      detail::output_pools<Storage, Names>>&>(
-            ar)
+                                      detail::output_pools<Storage, Names>,
+                                      WrapF>&>(ar)
             .get_output_pools()
             .template get_output_pool<Container>();
     auto [pool2, id] = add_to_pool(value.container, std::move(pool));
@@ -102,33 +106,31 @@ auto save_minimal(
     return id.value;
 }
 
-template <class Pool, class WrapF, class Container>
-auto save_minimal(const json_immer_auto_output_archive<Pool, WrapF>& ar,
-                  const persistable<Container>& value)
-{
-    return save_minimal(ar.previous, value);
-}
-
 // This function must exist because cereal does some checks and it's not
 // possible to have only load_minimal for a type without having save_minimal.
-template <class Previous, class Storage, class Names, class Container>
+template <class Previous,
+          class Storage,
+          class Names,
+          class WrapF,
+          class Container>
 auto save_minimal(
     const json_immer_output_archive<Previous,
-                                    detail::input_pools<Storage, Names>>& ar,
+                                    detail::input_pools<Storage, Names>,
+                                    WrapF>& ar,
     const persistable<Container>& value) ->
     typename container_traits<Container>::container_id::rep_t
 {
     throw std::logic_error{"Should never be called"};
 }
 
-template <class Previous, class ImmerArchives, class Container>
+template <class Previous, class Pools, class WrapF, class Container>
 void load_minimal(
-    const json_immer_input_archive<Previous, ImmerArchives>& ar,
+    const json_immer_input_archive<Previous, Pools, WrapF>& ar,
     persistable<Container>& value,
     const typename container_traits<Container>::container_id::rep_t& id)
 {
     auto& loader =
-        const_cast<json_immer_input_archive<Previous, ImmerArchives>&>(ar)
+        const_cast<json_immer_input_archive<Previous, Pools, WrapF>&>(ar)
             .get_input_pools()
             .template get_loader<Container>();
 

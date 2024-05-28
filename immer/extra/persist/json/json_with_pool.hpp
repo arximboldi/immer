@@ -502,8 +502,8 @@ constexpr bool is_pool_empty()
 }
 
 // Recursively serializes the pools but not calling finalize
-template <class Previous, class Pools, class SavePoolF>
-void save_pools_impl(json_immer_output_archive<Previous, Pools>& ar,
+template <class Previous, class Pools, class WrapF, class SavePoolF>
+void save_pools_impl(json_immer_output_archive<Previous, Pools, WrapF>& ar,
                      const SavePoolF& save_pool)
 {
     using Names    = typename Pools::names_t;

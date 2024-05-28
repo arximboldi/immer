@@ -1,7 +1,6 @@
 #pragma once
 
 #include <immer/extra/persist/json/json_immer.hpp>
-#include <immer/extra/persist/json/json_immer_auto.hpp>
 #include <immer/extra/persist/json/json_with_pool.hpp>
 #include <immer/extra/persist/json/persistable.hpp>
 
@@ -63,7 +62,7 @@ struct persistable_loader_wrapper
             container_id)
     {
         persistable<Container> arch;
-        immer::persist::load_minimal(ar.previous, arch, container_id);
+        immer::persist::load_minimal(ar, arch, container_id);
         value = std::move(arch).container;
     }
 };
@@ -157,26 +156,26 @@ auto to_json_with_auto_pool(const T& serializable,
     using Pools = std::decay_t<decltype(pools)>;
 
     const auto save_pool = [wrap](auto pools) {
-        auto previous =
-            json_immer_output_archive<blackhole_output_archive, Pools>{pools};
-        auto ar = json_immer_auto_output_archive{previous, wrap};
+        auto ar = json_immer_output_archive<blackhole_output_archive,
+                                            Pools,
+                                            decltype(wrap)>{pools, wrap};
         ar(pools);
-        return std::move(previous).get_output_pools();
+        return std::move(ar).get_output_pools();
     };
 
     auto os = std::ostringstream{};
     {
-        auto previous =
-            json_immer_output_archive<cereal::JSONOutputArchive, Pools>{os};
-        auto ar = json_immer_auto_output_archive{previous, wrap};
+        auto ar = json_immer_output_archive<cereal::JSONOutputArchive,
+                                            Pools,
+                                            decltype(wrap)>{pools, wrap, os};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
         if constexpr (!is_pool_empty<Pools>()) {
-            save_pools_impl(previous, save_pool);
+            save_pools_impl(ar, save_pool);
             ar.finalize();
         }
-        pools = std::move(previous).get_output_pools();
+        pools = std::move(ar).get_output_pools();
     }
     return std::make_pair(os.str(), std::move(pools));
 }
@@ -207,25 +206,25 @@ auto get_auto_pool(const T& serializable,
     using Pools = std::decay_t<decltype(pools)>;
 
     const auto save_pool = [wrap](auto pools) {
-        auto previous =
-            json_immer_output_archive<blackhole_output_archive, Pools>{pools};
-        auto ar = json_immer_auto_output_archive{previous, wrap};
+        auto ar = json_immer_output_archive<blackhole_output_archive,
+                                            Pools,
+                                            decltype(wrap)>{pools, wrap};
         ar(pools);
-        return std::move(previous).get_output_pools();
+        return std::move(ar).get_output_pools();
     };
 
     {
-        auto previous =
-            json_immer_output_archive<blackhole_output_archive, Pools>{};
-        auto ar = json_immer_auto_output_archive{previous, wrap};
+        auto ar = json_immer_output_archive<blackhole_output_archive,
+                                            Pools,
+                                            decltype(wrap)>{pools, wrap};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
         if constexpr (!is_pool_empty<Pools>()) {
-            save_pools_impl(previous, save_pool);
+            save_pools_impl(ar, save_pool);
             ar.finalize();
         }
-        pools = std::move(previous).get_output_pools();
+        pools = std::move(ar).get_output_pools();
     }
     return pools;
 }
@@ -235,10 +234,10 @@ constexpr auto reload_pool_auto = [](auto wrap) {
         using Pools                  = std::decay_t<decltype(pools)>;
         auto restore                 = immer::util::istream_snapshot{is};
         pools.ignore_pool_exceptions = ignore_pool_exceptions;
-        auto previous =
-            json_immer_input_archive<cereal::JSONInputArchive, Pools>{
-                std::move(pools), is};
-        auto ar = json_immer_auto_input_archive{previous, wrap};
+        auto ar = json_immer_input_archive<cereal::JSONInputArchive,
+                                           Pools,
+                                           decltype(wrap)>{
+            std::move(pools), wrap, is};
         /**
          * NOTE: Critical to clear the pools before loading into it
          * again. I hit a bug when pools contained a vector and every
@@ -261,9 +260,10 @@ T from_json_with_auto_pool(std::istream& is, const PoolsTypes& pools_types)
 
     auto pools = load_pools<Pools>(is, reload_pool_auto(wrap));
 
-    auto previous = json_immer_input_archive<cereal::JSONInputArchive, Pools>{
-        std::move(pools), is};
-    auto ar = json_immer_auto_input_archive{previous, wrap};
+    auto ar =
+        json_immer_input_archive<cereal::JSONInputArchive,
+                                 Pools,
+                                 decltype(wrap)>{std::move(pools), wrap, is};
     // value0 because that's now cereal saves the unnamed object by default,
     // maybe change later.
     auto value0 = T{};
@@ -297,10 +297,11 @@ T from_json_with_auto_pool_with_conversion(std::istream& is,
     auto pools  = pools_old.transform(map);
     using Pools = decltype(pools);
 
-    auto previous = json_immer_input_archive<cereal::JSONInputArchive, Pools>{
-        std::move(pools), is};
-    auto ar = json_immer_auto_input_archive{previous, wrap};
-    auto r  = T{};
+    auto ar =
+        json_immer_input_archive<cereal::JSONInputArchive,
+                                 Pools,
+                                 decltype(wrap)>{std::move(pools), wrap, is};
+    auto r = T{};
     ar(r);
     return r;
 }

@@ -2,6 +2,8 @@
 
 #include <cereal/archives/json.hpp>
 
+#include <boost/hana/functional/id.hpp>
+
 /**
  * Special types of archives, working with JSON, that support providing extra
  * context (Pools) to serialize immer data structures.
@@ -50,24 +52,34 @@ struct blackhole_output_archive
  * Adapted from cereal/archives/adapters.hpp
  */
 
-template <class Previous, class Pools>
+template <class Previous, class Pools, class WrapF = boost::hana::id_t>
 class json_immer_output_archive
-    : public cereal::OutputArchive<json_immer_output_archive<Previous, Pools>>
+    : public cereal::OutputArchive<
+          json_immer_output_archive<Previous, Pools, WrapF>>
     , public cereal::traits::TextArchive
 {
 public:
     template <class... Args>
     explicit json_immer_output_archive(Args&&... args)
-        : cereal::OutputArchive<
-              json_immer_output_archive<Previous, Pools>>{this}
+        requires std::is_same_v<WrapF, boost::hana::id_t>
+        : cereal::OutputArchive<json_immer_output_archive>{this}
         , previous{std::forward<Args>(args)...}
     {
     }
 
     template <class... Args>
     json_immer_output_archive(Pools pools_, Args&&... args)
-        : cereal::OutputArchive<
-              json_immer_output_archive<Previous, Pools>>{this}
+        requires std::is_same_v<WrapF, boost::hana::id_t>
+        : cereal::OutputArchive<json_immer_output_archive>{this}
+        , previous{std::forward<Args>(args)...}
+        , pools{std::move(pools_)}
+    {
+    }
+
+    template <class... Args>
+    json_immer_output_archive(Pools pools_, WrapF wrap_, Args&&... args)
+        : cereal::OutputArchive<json_immer_output_archive>{this}
+        , wrap{std::move(wrap_)}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
     {
@@ -103,7 +115,7 @@ public:
                                           cereal::NameValuePair<T> const& t)
     {
         ar.previous.setNextName(t.name);
-        ar(t.value);
+        ar(ar.wrap(t.value));
     }
 
     friend void CEREAL_SAVE_FUNCTION_NAME(json_immer_output_archive& ar,
@@ -141,19 +153,31 @@ public:
     }
 
 private:
+    WrapF wrap;
     Previous previous;
     Pools pools;
 };
 
-template <class Previous, class Pools>
+template <class Previous, class Pools, class WrapF = boost::hana::id_t>
 class json_immer_input_archive
-    : public cereal::InputArchive<json_immer_input_archive<Previous, Pools>>
+    : public cereal::InputArchive<
+          json_immer_input_archive<Previous, Pools, WrapF>>
     , public cereal::traits::TextArchive
 {
 public:
     template <class... Args>
     json_immer_input_archive(Pools pools_, Args&&... args)
-        : cereal::InputArchive<json_immer_input_archive<Previous, Pools>>{this}
+        requires std::is_same_v<WrapF, boost::hana::id_t>
+        : cereal::InputArchive<json_immer_input_archive>{this}
+        , previous{std::forward<Args>(args)...}
+        , pools{std::move(pools_)}
+    {
+    }
+
+    template <class... Args>
+    json_immer_input_archive(Pools pools_, WrapF wrap_, Args&&... args)
+        : cereal::InputArchive<json_immer_input_archive>{this}
+        , wrap{std::move(wrap_)}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
     {
@@ -183,7 +207,8 @@ public:
                                           cereal::NameValuePair<T>& t)
     {
         ar.previous.setNextName(t.name);
-        ar(t.value);
+        auto&& wrapped = ar.wrap(t.value);
+        ar(wrapped);
     }
 
     friend void CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar,
@@ -220,6 +245,7 @@ public:
     }
 
 private:
+    WrapF wrap;
     Previous previous;
     Pools pools;
 };
@@ -230,17 +256,19 @@ private:
 namespace cereal {
 namespace traits {
 namespace detail {
-template <class Previous, class Pools>
+template <class Previous, class Pools, class WrapF>
 struct get_output_from_input<
-    immer::persist::json_immer_input_archive<Previous, Pools>>
+    immer::persist::json_immer_input_archive<Previous, Pools, WrapF>>
 {
-    using type = immer::persist::json_immer_output_archive<Previous, Pools>;
+    using type =
+        immer::persist::json_immer_output_archive<Previous, Pools, WrapF>;
 };
-template <class Previous, class Pools>
+template <class Previous, class Pools, class WrapF>
 struct get_input_from_output<
-    immer::persist::json_immer_output_archive<Previous, Pools>>
+    immer::persist::json_immer_output_archive<Previous, Pools, WrapF>>
 {
-    using type = immer::persist::json_immer_input_archive<Previous, Pools>;
+    using type =
+        immer::persist::json_immer_input_archive<Previous, Pools, WrapF>;
 };
 } // namespace detail
 } // namespace traits
