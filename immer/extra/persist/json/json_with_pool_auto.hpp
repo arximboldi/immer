@@ -138,8 +138,6 @@ auto to_json_with_auto_pool(const T& serializable,
                             const PoolsTypes& pools_types,
                             const WrapF& wrap = wrap_for_saving)
 {
-    namespace hana = boost::hana;
-
     // In the future, wrap function may ignore certain user-provided types that
     // should not be persisted.
     static_assert(
@@ -152,32 +150,18 @@ auto to_json_with_auto_pool(const T& serializable,
                        persistable<immer::vector<int>>>,
         "and a value when it's wrapping");
 
-    auto pools  = detail::generate_output_pools(pools_types);
-    using Pools = std::decay_t<decltype(pools)>;
-
-    const auto save_pool = [wrap](auto pools) {
-        auto ar = json_immer_output_archive<blackhole_output_archive,
-                                            Pools,
-                                            decltype(wrap)>{pools, wrap};
-        ar(pools);
-        return std::move(ar).get_output_pools();
-    };
-
     auto os = std::ostringstream{};
     {
-        auto ar = json_immer_output_archive<cereal::JSONOutputArchive,
+        auto pools  = detail::generate_output_pools(pools_types);
+        using Pools = std::decay_t<decltype(pools)>;
+        auto ar     = json_immer_output_archive<cereal::JSONOutputArchive,
                                             Pools,
                                             decltype(wrap)>{pools, wrap, os};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
-        if constexpr (!is_pool_empty<Pools>()) {
-            save_pools_impl(ar, save_pool);
-            ar.finalize();
-        }
-        pools = std::move(ar).get_output_pools();
     }
-    return std::make_pair(os.str(), std::move(pools));
+    return os.str();
 }
 
 // Same as to_json_with_auto_pool but we don't generate any JSON.
@@ -188,8 +172,6 @@ auto get_auto_pool(const T& serializable,
                    const PoolsTypes& pools_types,
                    const WrapF& wrap = wrap_for_saving)
 {
-    namespace hana = boost::hana;
-
     // In the future, wrap function may ignore certain user-provided types that
     // should not be persisted.
     static_assert(
@@ -205,25 +187,14 @@ auto get_auto_pool(const T& serializable,
     auto pools  = detail::generate_output_pools(pools_types);
     using Pools = std::decay_t<decltype(pools)>;
 
-    const auto save_pool = [wrap](auto pools) {
-        auto ar = json_immer_output_archive<blackhole_output_archive,
-                                            Pools,
-                                            decltype(wrap)>{pools, wrap};
-        ar(pools);
-        return std::move(ar).get_output_pools();
-    };
-
     {
-        auto ar = json_immer_output_archive<blackhole_output_archive,
+        auto ar = json_immer_output_archive<detail::blackhole_output_archive,
                                             Pools,
                                             decltype(wrap)>{pools, wrap};
         // value0 because that's now cereal saves the unnamed object by default,
         // maybe change later.
         ar(cereal::make_nvp("value0", serializable));
-        if constexpr (!is_pool_empty<Pools>()) {
-            save_pools_impl(ar, save_pool);
-            ar.finalize();
-        }
+        ar.finalize();
         pools = std::move(ar).get_output_pools();
     }
     return pools;

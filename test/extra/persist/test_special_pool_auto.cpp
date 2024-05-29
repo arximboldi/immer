@@ -172,7 +172,7 @@ TEST_CASE("Auto-persisting")
         .std_vector_ints = {4, 5, 6, 7},
     };
 
-    const auto [json_str, pools] =
+    const auto json_str =
         immer::persist::to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
 
@@ -191,7 +191,7 @@ TEST_CASE("Auto-pool must load and save types that have no pool")
     const auto value = std::make_pair(val1, val2);
 
     const auto json_pool_str =
-        immer::persist::to_json_with_auto_pool(value, hana::make_map()).first;
+        immer::persist::to_json_with_auto_pool(value, hana::make_map());
     REQUIRE(json_pool_str == test::to_json(value));
 
     {
@@ -239,7 +239,7 @@ TEST_CASE("Test save and load small type")
     };
     const auto pool_types =
         immer::persist::get_pools_for_type(boost::hana::typeid_(value));
-    const auto [json_str, pools] =
+    const auto json_str =
         immer::persist::to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
 
@@ -340,7 +340,7 @@ TEST_CASE("Test conversion with auto-pool")
     const auto old_pool_types =
         immer::persist::get_pools_for_type(hana::type_c<old_app_type>);
 
-    const auto [json_str, pools] =
+    const auto json_str =
         immer::persist::to_json_with_auto_pool(value, old_pool_types);
     // REQUIRE(json_str == "");
 
@@ -508,8 +508,7 @@ TEST_CASE("Test table with a funny value")
     const auto names =
         immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
 
-    const auto [json_str, ar] =
-        immer::persist::to_json_with_auto_pool(value, names);
+    const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
     const auto loaded =
@@ -550,8 +549,7 @@ TEST_CASE("Test loading broken table")
     const auto names =
         immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
 
-    const auto [json_str, ar] =
-        immer::persist::to_json_with_auto_pool(value, names);
+    const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
     constexpr auto expected_json_str = R"(
@@ -620,6 +618,15 @@ TEST_CASE("Test loading broken table")
             immer::persist::from_json_with_auto_pool<champ_test::value_one>(
                 json.dump(), names);
         REQUIRE(loaded == value);
+
+        SECTION("Loaded value has the same structure as the original")
+        {
+            // XXX Currently there is a problem with the box, it gets created
+            // twice.
+            const auto json_from_loaded =
+                immer::persist::to_json_with_auto_pool(loaded, names);
+            REQUIRE(json_str != json_from_loaded);
+        }
     }
 
     SECTION("Break the table that's part of the pool itself, not the loaded "
@@ -803,7 +810,7 @@ TEST_CASE("Test table with a funny value no auto")
         .twos_table = t1.insert(two2),
     };
 
-    const auto [json_str, ar] = immer::persist::to_json_with_pool(value);
+    const auto json_str = immer::persist::to_json_with_pool(value);
     // REQUIRE(json_str == "");
 
     const auto loaded =
@@ -847,9 +854,7 @@ TEST_CASE("Structure breaks when hash is changed")
     const auto names =
         immer::persist::get_pools_for_type(hana::type_c<test_champs>);
 
-    const auto [json_str, ar] =
-        immer::persist::to_json_with_auto_pool(value, names);
-    // REQUIRE(json_str == "");
+    const auto out_pool = immer::persist::get_auto_pool(value, names);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);
@@ -866,10 +871,11 @@ TEST_CASE("Structure breaks when hash is changed")
 
     );
 
-    auto load_ar = immer::persist::transform_output_pool(ar, map);
+    auto in_pool = immer::persist::transform_output_pool(out_pool, map);
 
-    REQUIRE_THROWS_AS(immer::persist::convert_container(ar, load_ar, value.map),
-                      immer::persist::champ::hash_validation_failed_exception);
+    REQUIRE_THROWS_AS(
+        immer::persist::convert_container(out_pool, in_pool, value.map),
+        immer::persist::champ::hash_validation_failed_exception);
 }
 
 TEST_CASE("Converting between incompatible keys")

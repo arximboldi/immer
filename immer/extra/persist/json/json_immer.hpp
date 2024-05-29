@@ -2,7 +2,7 @@
 
 #include <cereal/archives/json.hpp>
 
-#include <boost/hana/functional/id.hpp>
+#include <boost/hana.hpp>
 
 /**
  * Special types of archives, working with JSON, that support providing extra
@@ -10,6 +10,8 @@
  */
 
 namespace immer::persist {
+
+namespace detail {
 
 struct blackhole_output_archive
 {
@@ -48,6 +50,37 @@ struct blackhole_output_archive
     }
 };
 
+template <class T>
+class error_duplicate_pool_name_found;
+
+inline auto are_type_names_unique(auto type_names)
+{
+    namespace hana = boost::hana;
+    auto names_set =
+        hana::fold_left(type_names, hana::make_set(), [](auto set, auto pair) {
+            return hana::if_(
+                hana::contains(set, hana::second(pair)),
+                [](auto pair) {
+                    return error_duplicate_pool_name_found<
+                        decltype(hana::second(pair))>{};
+                },
+                [&set](auto pair) {
+                    return hana::insert(set, hana::second(pair));
+                })(pair);
+        });
+    return hana::length(type_names) == hana::length(names_set);
+}
+
+template <class Pools>
+constexpr bool is_pool_empty()
+{
+    using Result =
+        decltype(boost::hana::is_empty(boost::hana::keys(Pools{}.storage())));
+    return Result::value;
+}
+
+} // namespace detail
+
 /**
  * Adapted from cereal/archives/adapters.hpp
  */
@@ -85,15 +118,26 @@ public:
     {
     }
 
-    void setNextName(const char* name) { previous.setNextName(name); }
+    ~json_immer_output_archive() { finalize(); }
 
     Pools& get_output_pools() & { return pools; }
     Pools&& get_output_pools() && { return std::move(pools); }
 
     void finalize()
     {
+        if constexpr (detail::is_pool_empty<Pools>()) {
+            return;
+        }
+
+        if (finalized) {
+            return;
+        }
+
+        save_pools_impl();
+
         auto& self = *this;
         self(CEREAL_NVP(pools));
+        finalized = true;
     }
 
     template <class T>
@@ -153,9 +197,45 @@ public:
     }
 
 private:
+    template <class Previous_, class Pools_, class WrapF_>
+    friend class json_immer_output_archive;
+
+    // Recursively serializes the pools but not calling finalize
+    void save_pools_impl()
+    {
+        const auto save_pool = [wrap = wrap](auto pools) {
+            auto ar =
+                json_immer_output_archive<detail::blackhole_output_archive,
+                                          Pools,
+                                          decltype(wrap)>{pools, wrap};
+            // Do not try to serialize pools again inside of this temporary
+            // archive
+            ar.finalized = true;
+            ar(pools);
+            return std::move(ar).get_output_pools();
+        };
+
+        using Names    = typename Pools::names_t;
+        using IsUnique = decltype(detail::are_type_names_unique(Names{}));
+        static_assert(IsUnique::value,
+                      "Pool names for each type must be unique");
+
+        auto prev = pools;
+        while (true) {
+            // Keep saving pools until everything is saved.
+            pools = save_pool(std::move(pools));
+            if (prev == pools) {
+                break;
+            }
+            prev = pools;
+        }
+    }
+
+private:
     WrapF wrap;
     Previous previous;
     Pools pools;
+    bool finalized{false};
 };
 
 template <class Previous, class Pools, class WrapF = boost::hana::id_t>
@@ -182,8 +262,6 @@ public:
         , pools{std::move(pools_)}
     {
     }
-
-    void setNextName(const char* name) { previous.setNextName(name); }
 
     Pools& get_input_pools() { return pools; }
     const Pools& get_input_pools() const { return pools; }

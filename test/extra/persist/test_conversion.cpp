@@ -151,8 +151,7 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
 
     const auto value = model::make_example_history();
 
-    const auto [json_str, model_pools] =
-        immer::persist::to_json_with_auto_pool(value, model_names);
+    const auto model_pools = immer::persist::get_auto_pool(value, model_names);
 
     const auto map = hana::make_map(
         hana::make_pair(hana::type_c<vector_one<model::snapshot>>,
@@ -177,17 +176,14 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
     const auto format_snapshots = immer::persist::convert_container(
         model_pools, format_load_pools, value.snapshots);
 
+    REQUIRE(test::to_json(format_snapshots) == test::to_json(value.snapshots));
+
     {
-        const auto [json_str2, pools] = immer::persist::to_json_with_auto_pool(
-            format_snapshots, format_names);
-        (void) json_str2;
-        REQUIRE(test::to_json(format_snapshots) ==
-                test::to_json(value.snapshots));
-    }
-    {
-        const auto [json, ar] = immer::persist::to_json_with_auto_pool(
+        const auto json_format = immer::persist::to_json_with_auto_pool(
             format::history{.snapshots = format_snapshots}, format_names);
-        REQUIRE(json == json_str);
+        const auto json_model =
+            immer::persist::to_json_with_auto_pool(value, model_names);
+        REQUIRE(json_format == json_model);
     }
 }
 
@@ -206,8 +202,7 @@ TEST_CASE("Not every type is converted", "[conversion]")
 {
     const auto names =
         immer::persist::get_pools_for_type(hana::type_c<two_vectors>);
-    const auto [json_str, pools] =
-        immer::persist::to_json_with_auto_pool(two_vectors{}, names);
+    const auto pools = immer::persist::get_auto_pool(two_vectors{}, names);
 
     const auto map =
         hana::make_map(hana::make_pair(hana::type_c<vector_one<int>>,

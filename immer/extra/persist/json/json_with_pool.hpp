@@ -26,9 +26,6 @@ template <class T>
 class error_no_pool_for_the_given_type_check_get_pools_types_function;
 
 template <class T>
-class error_duplicate_pool_name_found;
-
-template <class T>
 class error_missing_pool_for_type;
 
 template <class T>
@@ -445,23 +442,6 @@ inline auto generate_output_pools(auto type_names)
     return output_pools<Storage, Names>{storage};
 }
 
-inline auto are_type_names_unique(auto type_names)
-{
-    auto names_set =
-        hana::fold_left(type_names, hana::make_set(), [](auto set, auto pair) {
-            return hana::if_(
-                hana::contains(set, hana::second(pair)),
-                [](auto pair) {
-                    return error_duplicate_pool_name_found<
-                        decltype(hana::second(pair))>{};
-                },
-                [&set](auto pair) {
-                    return hana::insert(set, hana::second(pair));
-                })(pair);
-        });
-    return hana::length(type_names) == hana::length(names_set);
-}
-
 inline auto generate_input_pools(auto type_names)
 {
     auto storage =
@@ -493,72 +473,30 @@ auto get_pools_types(const T&)
     return boost::hana::make_map();
 }
 
-template <class Pools>
-constexpr bool is_pool_empty()
-{
-    using Result =
-        decltype(boost::hana::is_empty(boost::hana::keys(Pools{}.storage())));
-    return Result::value;
-}
-
-// Recursively serializes the pools but not calling finalize
-template <class Previous, class Pools, class WrapF, class SavePoolF>
-void save_pools_impl(json_immer_output_archive<Previous, Pools, WrapF>& ar,
-                     const SavePoolF& save_pool)
-{
-    using Names    = typename Pools::names_t;
-    using IsUnique = decltype(detail::are_type_names_unique(Names{}));
-    static_assert(IsUnique::value, "Pool names for each type must be unique");
-
-    auto& pools = ar.get_output_pools();
-
-    auto prev = pools;
-    while (true) {
-        // Keep saving pools until everything is saved.
-        pools = save_pool(std::move(pools));
-        if (prev == pools) {
-            break;
-        }
-        prev = pools;
-    }
-}
-
 /**
  * Type T must provide a callable free function get_pools_types(const T&).
  */
 template <typename T>
 auto to_json_with_pool(const T& serializable)
 {
-    auto pools  = detail::generate_output_pools(get_pools_types(serializable));
-    using Pools = std::decay_t<decltype(pools)>;
-
-    const auto save_pool = [](auto pools) {
-        auto ar2 =
-            json_immer_output_archive<blackhole_output_archive, Pools>{pools};
-        ar2(pools);
-        return std::move(ar2).get_output_pools();
-    };
-
     auto os = std::ostringstream{};
     {
+        auto pools =
+            detail::generate_output_pools(get_pools_types(serializable));
+        using Pools = std::decay_t<decltype(pools)>;
         auto ar =
             immer::persist::json_immer_output_archive<cereal::JSONOutputArchive,
                                                       Pools>{os};
         ar(serializable);
-        if constexpr (!is_pool_empty<Pools>()) {
-            save_pools_impl(ar, save_pool);
-            ar.finalize();
-        }
-        pools = std::move(ar).get_output_pools();
     }
-    return std::make_pair(os.str(), std::move(pools));
+    return os.str();
 }
 
 template <typename Pools, class ReloadPoolF>
 auto load_pools(std::istream& is, const ReloadPoolF& reload_pool)
 {
     auto pools = Pools{};
-    if constexpr (is_pool_empty<Pools>()) {
+    if constexpr (detail::is_pool_empty<Pools>()) {
         return pools;
     }
 

@@ -8,6 +8,8 @@
 #include <test/extra/persist/cereal/immer_set.hpp>
 #include <test/extra/persist/cereal/immer_table.hpp>
 
+#include <cereal/archives/xml.hpp>
+
 #define DEFINE_OPERATIONS(name)                                                \
     bool operator==(const name& left, const name& right)                       \
     {                                                                          \
@@ -236,16 +238,25 @@ TEST_CASE("Test exception while circular converting")
 
     const auto names =
         immer::persist::get_pools_for_type(hana::type_c<model::value_one>);
-    const auto [json_str, model_pool] =
-        immer::persist::to_json_with_auto_pool(value, names);
-    // REQUIRE(json_str == "");
+    const auto model_pool = immer::persist::get_auto_pool(value, names);
 
     SECTION("Try to load")
     {
+        const auto json_str =
+            immer::persist::to_json_with_auto_pool(value, names);
         const auto loaded =
             immer::persist::from_json_with_auto_pool<model::value_one>(json_str,
                                                                        names);
         REQUIRE(loaded == value);
+
+        SECTION("Loaded value has the same structure as the original")
+        {
+            // XXX Currently there is a problem with the box, it gets created
+            // twice, probably something about recursive type.
+            const auto json_from_loaded =
+                immer::persist::to_json_with_auto_pool(loaded, names);
+            REQUIRE(json_str != json_from_loaded);
+        }
     }
 
     /**
@@ -539,10 +550,10 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto [format_twos_json, ar] =
+            const auto format_twos_json =
                 immer::persist::to_json_with_auto_pool(format_twos,
                                                        format_names);
-            const auto [model_twos_json, ar2] =
+            const auto model_twos_json =
                 immer::persist::to_json_with_auto_pool(value.twos, names);
             REQUIRE(model_twos_json == format_twos_json);
         }
@@ -612,10 +623,10 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto [format_twos_json, ar] =
+            const auto format_twos_json =
                 immer::persist::to_json_with_auto_pool(format_twos,
                                                        format_names);
-            const auto [model_twos_json, ar2] =
+            const auto model_twos_json =
                 immer::persist::to_json_with_auto_pool(value.twos_map, names);
             REQUIRE(model_twos_json == format_twos_json);
         }
@@ -635,10 +646,10 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto [format_twos_json, ar] =
+            const auto format_twos_json =
                 immer::persist::to_json_with_auto_pool(format_twos,
                                                        format_names);
-            const auto [model_twos_json, ar2] =
+            const auto model_twos_json =
                 immer::persist::to_json_with_auto_pool(value.twos_set, names);
             REQUIRE(model_twos_json == format_twos_json);
         }
@@ -657,9 +668,9 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
             });
             return result;
         }();
-        const auto [format_json_str, model_pools] =
+        const auto format_json_str =
             immer::persist::to_json_with_auto_pool(format_value, format_names);
-        const auto [json_str, model_pools_] =
+        const auto json_str =
             immer::persist::to_json_with_auto_pool(value, names);
         REQUIRE(format_json_str == json_str);
     }
@@ -680,5 +691,67 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         // The box is actually the same
         REQUIRE(two1_manually_converted.impl() == two1_from_inside.impl());
+    }
+
+    SECTION("XML also works")
+    {
+        constexpr auto to_xml =
+            [](const auto& value0, const auto& names, const auto& wrap) {
+                auto os = std::ostringstream{};
+                {
+                    auto pools =
+                        immer::persist::detail::generate_output_pools(names);
+                    using Pools = std::decay_t<decltype(pools)>;
+                    auto ar     = immer::persist::json_immer_output_archive<
+                        cereal::XMLOutputArchive,
+                        Pools,
+                        decltype(wrap)>{pools, wrap, os};
+                    ar(CEREAL_NVP(value0));
+                }
+                return os.str();
+            };
+        constexpr auto reload_pool_xml = [](auto wrap) {
+            return [wrap](std::istream& is,
+                          auto pools,
+                          bool ignore_pool_exceptions) {
+                using Pools  = std::decay_t<decltype(pools)>;
+                auto restore = immer::util::istream_snapshot{is};
+                pools.ignore_pool_exceptions = ignore_pool_exceptions;
+                auto ar = immer::persist::json_immer_input_archive<
+                    cereal::XMLInputArchive,
+                    Pools,
+                    decltype(wrap)>{std::move(pools), wrap, is};
+                /**
+                 * NOTE: Critical to clear the pools before loading into it
+                 * again. I hit a bug when pools contained a vector and every
+                 * load would append to it, instead of replacing the contents.
+                 */
+                pools = {};
+                ar(CEREAL_NVP(pools));
+                return pools;
+            };
+        };
+        constexpr auto from_xml = [reload_pool_xml](const std::string& str,
+                                                    auto& value0,
+                                                    const auto& names,
+                                                    const auto& wrap) {
+            auto is     = std::istringstream{str};
+            using Pools = std::decay_t<
+                decltype(immer::persist::detail::generate_input_pools(names))>;
+            auto pools =
+                immer::persist::load_pools<Pools>(is, reload_pool_xml(wrap));
+
+            auto ar = immer::persist::json_immer_input_archive<
+                cereal::XMLInputArchive,
+                Pools,
+                decltype(wrap)>{std::move(pools), wrap, is};
+            ar(CEREAL_NVP(value0));
+        };
+        const auto xml_str =
+            to_xml(value, names, immer::persist::wrap_for_saving);
+        auto loaded_value = model::value_one{};
+        from_xml(
+            xml_str, loaded_value, names, immer::persist::wrap_for_loading);
+        REQUIRE(value == loaded_value);
     }
 }
