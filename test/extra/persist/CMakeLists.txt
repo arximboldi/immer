@@ -19,6 +19,7 @@ add_executable(
   test_box.cpp
   test_conversion.cpp
   test_circular_dependency_conversion.cpp
+  test_table_box_recursive.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/persist/xxhash/xxhash_64.cpp)
 target_precompile_headers(persist-tests PRIVATE
                           <immer/extra/persist/json/json_with_pool_auto.hpp>)
