@@ -200,6 +200,8 @@ struct container_input_pool
         using cereal::load;
         load(ar, nodes);
     }
+
+    void merge_previous(const container_input_pool& other) {}
 };
 
 template <class Container>

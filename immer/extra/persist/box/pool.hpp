@@ -87,6 +87,31 @@ struct input_pool
             boxes = std::move(boxes).push_back(std::move(x));
         }
     }
+
+    /**
+     * merge_previous is a function where some processing might be done while
+     * reloading the pools. In the case of boxes, while we reload the pool
+     * continuously (it might take several passes to fully load), we carry over
+     * the older boxes (when they're equal) in order to achieve better
+     * structural sharing.
+     */
+    void merge_previous(const input_pool& other)
+    {
+        if (boxes.size() != other.boxes.size()) {
+            return;
+        }
+
+        auto result = immer::vector<immer::box<T, MemoryPolicy>>{};
+        for (auto i = std::size_t{}; i < boxes.size(); ++i) {
+            if (boxes[i] == other.boxes[i]) {
+                // While it's the same, prefer the old one
+                result = std::move(result).push_back(other.boxes[i]);
+            } else {
+                result = std::move(result).push_back(boxes[i]);
+            }
+        }
+        boxes = std::move(result);
+    }
 };
 
 template <typename T, typename MemoryPolicy>

@@ -117,9 +117,17 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
                 .twos_table = t1,
             },
     }};
+    const auto t2   = t1.insert(two2);
+    const auto two3 = two_boxed{value_two{
+        .key = key{"789"},
+        .one =
+            value_one{
+                .twos_table = t2,
+            },
+    }};
 
     const auto value = value_one{
-        .twos_table = t1.insert(two2),
+        .twos_table = t2.insert(two3),
     };
 
     const auto names =
@@ -137,43 +145,49 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
 
     const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
-    SECTION("Saving works, boxes are saved properly")
-    {
-        constexpr auto expected_json_str = R"(
+    constexpr auto expected_json_str = R"(
 {
-  "value0": {"twos_table": 0},
   "pools": {
+    "two": [
+      {"key": {"str": "789"}, "one": {"twos_table": 1}},
+      {"key": {"str": "456"}, "one": {"twos_table": 2}},
+      {"key": {"str": "123"}, "one": {"twos_table": 3}}
+    ],
     "twos_table": [
       {
-        "values": [{"two": 0}, {"two": 1}],
         "children": [],
+        "collisions": false,
+        "datamap": 1073745924,
         "nodemap": 0,
+        "values": [{"two": 0}, {"two": 1}, {"two": 2}]
+      },
+      {
+        "children": [],
+        "collisions": false,
         "datamap": 4100,
-        "collisions": false
+        "nodemap": 0,
+        "values": [{"two": 1}, {"two": 2}]
       },
       {
-        "values": [],
         "children": [],
-        "nodemap": 0,
+        "collisions": false,
         "datamap": 0,
-        "collisions": false
+        "nodemap": 0,
+        "values": []
       },
       {
-        "values": [{"two": 0}],
         "children": [],
-        "nodemap": 0,
+        "collisions": false,
         "datamap": 4096,
-        "collisions": false
+        "nodemap": 0,
+        "values": [{"two": 1}]
       }
-    ],
-    "two": [
-      {"one": {"twos_table": 1}, "key": {"str": "456"}},
-      {"one": {"twos_table": 2}, "key": {"str": "123"}}
     ]
-  }
+  },
+  "value0": {"twos_table": 0}
 })";
-        REQUIRE(json_t::parse(expected_json_str) == json_t::parse(json_str));
-    }
+    // Saving works, boxes are saved properly
+    REQUIRE(json_t::parse(expected_json_str) == json_t::parse(json_str));
 
     const auto loaded =
         immer::persist::from_json_with_auto_pool<value_one>(json_str, names);
@@ -186,7 +200,7 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
         const auto nested_table =
             loaded.twos_table[key{"123"}].two.get().one.twos_table;
         const auto box2 = nested_table[key{"456"}].two;
-        REQUIRE(box1.impl() != box2.impl());
+        REQUIRE(box1.impl() == box2.impl());
     }
 
     SECTION("Saved loaded value shows the broken sharing")
@@ -194,48 +208,6 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
         const auto loaded_str =
             immer::persist::to_json_with_auto_pool(loaded, names);
         // REQUIRE(str == "");
-
-        constexpr auto expected_str = R"(
-{
-  "value0": {"twos_table": 0},
-  "pools": {
-    "twos_table": [
-      {
-        "values": [{"two": 0}, {"two": 1}],
-        "children": [],
-        "nodemap": 0,
-        "datamap": 4100,
-        "collisions": false
-      },
-      {
-        "values": [],
-        "children": [],
-        "nodemap": 0,
-        "datamap": 0,
-        "collisions": false
-      },
-      {
-        "values": [{"two": 2}],
-        "children": [],
-        "nodemap": 0,
-        "datamap": 4096,
-        "collisions": false
-      },
-      {
-        "values": [],
-        "children": [],
-        "nodemap": 0,
-        "datamap": 0,
-        "collisions": false
-      }
-    ],
-    "two": [
-      {"one": {"twos_table": 1}, "key": {"str": "456"}},
-      {"one": {"twos_table": 2}, "key": {"str": "123"}},
-      {"one": {"twos_table": 3}, "key": {"str": "456"}}
-    ]
-  }
-})";
-        REQUIRE(json_t::parse(loaded_str) == json_t::parse(expected_str));
+        REQUIRE(json_t::parse(loaded_str) == json_t::parse(expected_json_str));
     }
 }

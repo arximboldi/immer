@@ -251,11 +251,9 @@ TEST_CASE("Test exception while circular converting")
 
         SECTION("Loaded value has the same structure as the original")
         {
-            // XXX Currently there is a problem with the box, it gets created
-            // twice, probably something about recursive type.
             const auto json_from_loaded =
                 immer::persist::to_json_with_auto_pool(loaded, names);
-            REQUIRE(json_str != json_from_loaded);
+            REQUIRE(json_str == json_from_loaded);
         }
     }
 

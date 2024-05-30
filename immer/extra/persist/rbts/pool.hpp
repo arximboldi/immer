@@ -110,6 +110,8 @@ struct input_pool
     {
         ar(CEREAL_NVP(leaves), CEREAL_NVP(inners), CEREAL_NVP(vectors));
     }
+
+    void merge_previous(const input_pool& other) {}
 };
 
 // This is needed to be able to use the pool that was not read from JSON

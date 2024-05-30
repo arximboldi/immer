@@ -204,6 +204,7 @@ constexpr auto reload_pool_auto = [](auto wrap) {
     return [wrap](std::istream& is, auto pools, bool ignore_pool_exceptions) {
         using Pools                  = std::decay_t<decltype(pools)>;
         auto restore                 = immer::util::istream_snapshot{is};
+        const auto original_pools    = pools;
         pools.ignore_pool_exceptions = ignore_pool_exceptions;
         auto ar = json_immer_input_archive<cereal::JSONInputArchive,
                                            Pools,
@@ -216,6 +217,7 @@ constexpr auto reload_pool_auto = [](auto wrap) {
          */
         pools = {};
         ar(CEREAL_NVP(pools));
+        pools.merge_previous(original_pools);
         return pools;
     };
 };

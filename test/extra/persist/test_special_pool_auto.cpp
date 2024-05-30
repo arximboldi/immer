@@ -621,11 +621,9 @@ TEST_CASE("Test loading broken table")
 
         SECTION("Loaded value has the same structure as the original")
         {
-            // XXX Currently there is a problem with the box, it gets created
-            // twice.
             const auto json_from_loaded =
                 immer::persist::to_json_with_auto_pool(loaded, names);
-            REQUIRE(json_str != json_from_loaded);
+            REQUIRE(json_str == json_from_loaded);
         }
     }
 

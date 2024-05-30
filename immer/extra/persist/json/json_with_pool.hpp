@@ -182,6 +182,11 @@ struct input_pool
     {
         return left.pool == right.pool;
     }
+
+    void merge_previous(const input_pool& original)
+    {
+        pool.merge_previous(original.pool);
+    }
 };
 
 /**
@@ -422,6 +427,15 @@ public:
 
         auto holder = make_shared_storage_holder(std::move(shared_storage));
         return input_pools<decltype(holder), Names>{std::move(holder)};
+    }
+
+    void merge_previous(const input_pools& original)
+    {
+        auto& s                = storage();
+        const auto& original_s = original.storage();
+        hana::for_each(hana::keys(s), [&](auto key) {
+            s[key].merge_previous(original_s[key]);
+        });
     }
 };
 
