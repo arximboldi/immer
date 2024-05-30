@@ -252,44 +252,4 @@ T from_json_with_auto_pool(const std::string& input,
     return from_json_with_auto_pool<T>(is, pools_types);
 }
 
-template <typename T,
-          typename OldType,
-          typename ConversionsMap,
-          class PoolsTypes>
-T from_json_with_auto_pool_with_conversion(std::istream& is,
-                                           const ConversionsMap& map,
-                                           const PoolsTypes& pools_types)
-{
-    constexpr auto wrap = wrap_for_loading;
-
-    // Load the pools part for the old type
-    using OldPools =
-        std::decay_t<decltype(detail::generate_input_pools(pools_types))>;
-    auto pools_old = load_pools<OldPools>(is, reload_pool_auto(wrap));
-
-    auto pools  = pools_old.transform(map);
-    using Pools = decltype(pools);
-
-    auto ar =
-        json_immer_input_archive<cereal::JSONInputArchive,
-                                 Pools,
-                                 decltype(wrap)>{std::move(pools), wrap, is};
-    auto r = T{};
-    ar(r);
-    return r;
-}
-
-template <typename T,
-          typename OldType,
-          typename ConversionsMap,
-          class PoolsTypes>
-T from_json_with_auto_pool_with_conversion(const std::string& input,
-                                           const ConversionsMap& map,
-                                           const PoolsTypes& pools_types)
-{
-    auto is = std::istringstream{input};
-    return from_json_with_auto_pool_with_conversion<T, OldType>(
-        is, map, pools_types);
-}
-
 } // namespace immer::persist

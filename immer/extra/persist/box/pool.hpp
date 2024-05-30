@@ -60,12 +60,6 @@ get_box_id(output_pool<T, MemoryPolicy> pool,
 }
 
 template <typename T, typename MemoryPolicy>
-inline auto make_output_pool_for(const immer::box<T, MemoryPolicy>&)
-{
-    return output_pool<T, MemoryPolicy>{};
-}
-
-template <typename T, typename MemoryPolicy>
 struct input_pool
 {
     immer::vector<immer::box<T, MemoryPolicy>> boxes;
@@ -190,20 +184,6 @@ loader<T, MemoryPolicy> make_loader_for(const immer::box<T, MemoryPolicy>&,
                                         input_pool<T, MemoryPolicy> pool)
 {
     return loader<T, MemoryPolicy>{std::move(pool)};
-}
-
-template <typename T, typename MemoryPolicy, class F>
-auto transform_pool(const input_pool<T, MemoryPolicy>& pool, F&& func)
-{
-    using U    = std::decay_t<decltype(func(std::declval<T>()))>;
-    auto boxes = immer::vector<immer::box<U, MemoryPolicy>>{};
-    for (const auto& item : pool.boxes) {
-        boxes = std::move(boxes).push_back(func(item.get()));
-    }
-
-    return input_pool<U, MemoryPolicy>{
-        .boxes = std::move(boxes),
-    };
 }
 
 } // namespace immer::persist::box

@@ -71,26 +71,4 @@ void load(Archive& ar, values_load<T>& m)
     }
 }
 
-template <class T, class F>
-auto transform(const values_load<T>& values, F&& func)
-{
-    using U   = std::decay_t<decltype(func(std::declval<T>()))>;
-    auto data = std::vector<U>{};
-    for (const auto& item : values.data) {
-        data.push_back(func(item));
-    }
-    return values_load<U>{immer::array<U>{data.begin(), data.end()}};
-}
-
-template <class T, class F>
-auto transform(const immer::map<node_id, values_load<T>>& map, F&& func)
-{
-    using U     = std::decay_t<decltype(func(std::declval<T>()))>;
-    auto result = immer::map<node_id, values_load<U>>{};
-    for (const auto& [key, value] : map) {
-        result = std::move(result).set(key, transform(value, func));
-    }
-    return result;
-}
-
 } // namespace immer::persist

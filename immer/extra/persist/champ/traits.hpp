@@ -73,15 +73,6 @@ struct container_traits<immer::set<T, Hash, Equal, MemoryPolicy, B>>
 {};
 
 namespace champ {
-template <class Container, class F>
-auto transform_pool(const container_input_pool<Container>& ar, F&& func)
-{
-    using NewContainer = decltype(container_traits<Container>::transform(func));
-    return container_input_pool<NewContainer>{
-        .nodes = transform(ar.nodes, func),
-    };
-}
-
 /**
  * The wrapper is used to enable the incompatible_hash_mode, which is required
  * when the key of a hash-based container transformed in a way that changes its

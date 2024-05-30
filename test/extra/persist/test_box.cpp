@@ -14,7 +14,8 @@ TEST_CASE("Test saving a box")
     const auto test1 = Container{"hello"};
     const auto test2 = Container{"world"};
 
-    auto pool = immer::persist::box::make_output_pool_for(test1);
+    auto pool = immer::persist::box::output_pool<Container::value_type,
+                                                 Container::memory_policy>{};
 
     auto id1            = immer::persist::container_id{};
     std::tie(pool, id1) = immer::persist::box::add_to_pool(test1, pool);
@@ -67,7 +68,8 @@ TEST_CASE("Test saving and mutating a box")
     using Container = immer::box<std::string>;
 
     auto test1 = Container{"hello"};
-    auto pool  = immer::persist::box::make_output_pool_for(test1);
+    auto pool  = immer::persist::box::output_pool<Container::value_type,
+                                                 Container::memory_policy>{};
 
     auto id1            = immer::persist::container_id{};
     std::tie(pool, id1) = immer::persist::box::add_to_pool(test1, pool);

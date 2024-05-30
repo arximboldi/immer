@@ -66,19 +66,6 @@ struct inner_node_load
     }
 };
 
-template <class T, immer::detail::hamts::bits_t B, class F>
-auto transform(const inner_node_load<T, B>& node, F&& func)
-{
-    using U = std::decay_t<decltype(func(std::declval<T>()))>;
-    return inner_node_load<U, B>{
-        .values     = transform(node.values, func),
-        .children   = node.children,
-        .nodemap    = node.nodemap,
-        .datamap    = node.datamap,
-        .collisions = node.collisions,
-    };
-}
-
 template <class T, immer::detail::hamts::bits_t B>
 struct nodes_save
 {
@@ -115,17 +102,6 @@ std::pair<nodes_save<T, B>, node_id> get_node_id(
 
 template <class T, immer::detail::hamts::bits_t B>
 using nodes_load = immer::vector<inner_node_load<T, B>>;
-
-template <class T, immer::detail::hamts::bits_t B, class F>
-auto transform(const nodes_load<T, B>& nodes, F&& func)
-{
-    using U     = std::decay_t<decltype(func(std::declval<T>()))>;
-    auto result = nodes_load<U, B>{};
-    for (const auto& item : nodes) {
-        result = std::move(result).push_back(transform(item, func));
-    }
-    return result;
-}
 
 template <template <class, immer::detail::hamts::bits_t> class InnerNodeType,
           class T,

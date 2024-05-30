@@ -280,48 +280,6 @@ public:
     }
 
     /**
-     * Return a new input_pools after applying the described transformations
-     * to each pool type.
-     */
-    template <class ConversionMap>
-    auto transform(const ConversionMap& map) const
-    {
-        const auto transform_pair = [&map](const auto& pair) {
-            // If the conversion map doesn't mention the current type, we leave
-            // it as is.
-            using Contains = decltype(hana::contains(map, hana::first(pair)));
-            if constexpr (Contains::value) {
-                // Look up the conversion function by the type from the original
-                // pool.
-                const auto& func = map[hana::first(pair)];
-                const auto& pool = hana::second(pair).pool;
-
-                // Each pool defines the transform_pool function that
-                // transforms its leaves with the given function.
-                auto new_pool = transform_pool(pool, func);
-
-                using Container = typename decltype(+hana::first(pair))::type;
-                using NewContainer = std::decay_t<
-                    decltype(container_traits<Container>::transform(func))>;
-                return hana::make_pair(
-                    hana::type_c<NewContainer>,
-                    input_pool<NewContainer>{std::move(new_pool)});
-            } else {
-                return pair;
-            }
-        };
-
-        auto new_storage =
-            hana::fold_left(storage(),
-                            hana::make_map(),
-                            [&transform_pair](auto map, auto pair) {
-                                return hana::insert(map, transform_pair(pair));
-                            });
-        auto holder = make_storage_holder(std::move(new_storage));
-        return input_pools<decltype(holder), Names>{std::move(holder)};
-    }
-
-    /**
      * ConversionMap is a map where keys are types of the original container
      * (hana::type_c<vector_one<model::snapshot>>) and the values are converting
      * functions that are used to convert the pools.
@@ -491,17 +449,16 @@ auto get_pools_types(const T&)
  * Type T must provide a callable free function get_pools_types(const T&).
  */
 template <typename T>
-auto to_json_with_pool(const T& serializable)
+auto to_json_with_pool(const T& value0)
 {
     auto os = std::ostringstream{};
     {
-        auto pools =
-            detail::generate_output_pools(get_pools_types(serializable));
+        auto pools  = detail::generate_output_pools(get_pools_types(value0));
         using Pools = std::decay_t<decltype(pools)>;
         auto ar =
             immer::persist::json_immer_output_archive<cereal::JSONOutputArchive,
                                                       Pools>{os};
-        ar(serializable);
+        ar(CEREAL_NVP(value0));
     }
     return os.str();
 }
@@ -561,9 +518,9 @@ T from_json_with_pool(std::istream& is)
     auto ar =
         immer::persist::json_immer_input_archive<cereal::JSONInputArchive,
                                                  Pools>{std::move(pools), is};
-    auto r = T{};
-    ar(r);
-    return r;
+    auto value0 = T{};
+    ar(CEREAL_NVP(value0));
+    return value0;
 }
 
 template <typename T>
@@ -571,33 +528,6 @@ T from_json_with_pool(const std::string& input)
 {
     auto is = std::istringstream{input};
     return from_json_with_pool<T>(is);
-}
-
-template <typename T, typename OldType, typename ConversionsMap>
-T from_json_with_pool_with_conversion(std::istream& is,
-                                      const ConversionsMap& map)
-{
-    // Load the pools part for the old type
-    using OldPools = std::decay_t<decltype(detail::generate_input_pools(
-        get_pools_types(std::declval<OldType>())))>;
-    auto pools_old = load_pools<OldPools>(is, reload_pool);
-    auto pools     = pools_old.transform(map);
-    using Pools    = decltype(pools);
-
-    auto ar =
-        immer::persist::json_immer_input_archive<cereal::JSONInputArchive,
-                                                 Pools>{std::move(pools), is};
-    auto r = T{};
-    ar(r);
-    return r;
-}
-
-template <typename T, typename OldType, typename ConversionsMap>
-T from_json_with_pool_with_conversion(const std::string& input,
-                                      const ConversionsMap& map)
-{
-    auto is = std::istringstream{input};
-    return from_json_with_pool_with_conversion<T, OldType>(is, map);
 }
 
 template <class Storage, class Names, class Container>
@@ -609,7 +539,7 @@ auto get_container_id(const detail::output_pools<Storage, Names>& pools,
     const auto [new_pool, id] = add_to_pool(container, old_pool);
     if (!(new_pool == old_pool)) {
         throw std::logic_error{
-            "Expecting that the container has already been poold"};
+            "Expecting that the container has already been persisted"};
     }
     return id;
 }

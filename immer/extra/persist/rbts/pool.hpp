@@ -134,21 +134,6 @@ input_pool<T> to_input_pool(output_pool<T, MemoryPolicy, B, BL> ar)
     };
 }
 
-/**
- * Given a transformation function from T to U, transform an input_pool<T> into
- * input_pool<U>. This allows to preserve structural sharing while loading.
- */
-template <class T, class F>
-auto transform_pool(const input_pool<T>& pool, F&& func)
-{
-    using U = std::decay_t<decltype(func(std::declval<T>()))>;
-    return input_pool<U>{
-        .leaves  = transform(pool.leaves, func),
-        .inners  = pool.inners,
-        .vectors = pool.vectors,
-    };
-}
-
 } // namespace immer::persist::rbts
 
 namespace std {
