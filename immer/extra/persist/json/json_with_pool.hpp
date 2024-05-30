@@ -463,9 +463,27 @@ auto to_json_with_pool(const T& value0)
     return os.str();
 }
 
-template <typename Pools, class ReloadPoolF>
-auto load_pools(std::istream& is, const ReloadPoolF& reload_pool)
+template <class Pools, class Archive = cereal::JSONInputArchive>
+auto load_pools(std::istream& is, const auto& wrap)
 {
+    const auto reload_pool =
+        [wrap](std::istream& is, Pools pools, bool ignore_pool_exceptions) {
+            auto restore                 = immer::util::istream_snapshot{is};
+            const auto original_pools    = pools;
+            pools.ignore_pool_exceptions = ignore_pool_exceptions;
+            auto ar = json_immer_input_archive<Archive, Pools, decltype(wrap)>{
+                std::move(pools), wrap, is};
+            /**
+             * NOTE: Critical to clear the pools before loading into it
+             * again. I hit a bug when pools contained a vector and every
+             * load would append to it, instead of replacing the contents.
+             */
+            pools = {};
+            ar(CEREAL_NVP(pools));
+            pools.merge_previous(original_pools);
+            return pools;
+        };
+
     auto pools = Pools{};
     if constexpr (detail::is_pool_empty<Pools>()) {
         return pools;
@@ -491,29 +509,12 @@ auto load_pools(std::istream& is, const ReloadPoolF& reload_pool)
     return pools;
 }
 
-constexpr auto reload_pool =
-    [](std::istream& is, auto pools, bool ignore_pool_exceptions) {
-        using Pools                  = std::decay_t<decltype(pools)>;
-        auto restore                 = util::istream_snapshot{is};
-        pools.ignore_pool_exceptions = ignore_pool_exceptions;
-        auto ar = json_immer_input_archive<cereal::JSONInputArchive, Pools>{
-            std::move(pools), is};
-        /**
-         * NOTE: Critical to clear the pools before loading into it
-         * again. I hit a bug when pools contained a vector and every
-         * load would append to it, instead of replacing the contents.
-         */
-        pools = {};
-        ar(CEREAL_NVP(pools));
-        return pools;
-    };
-
 template <typename T>
 T from_json_with_pool(std::istream& is)
 {
     using Pools = std::decay_t<decltype(detail::generate_input_pools(
         get_pools_types(std::declval<T>())))>;
-    auto pools  = load_pools<Pools>(is, reload_pool);
+    auto pools  = load_pools<Pools>(is, boost::hana::id);
 
     auto ar =
         immer::persist::json_immer_input_archive<cereal::JSONInputArchive,

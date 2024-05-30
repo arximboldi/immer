@@ -708,36 +708,16 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
                 }
                 return os.str();
             };
-        constexpr auto reload_pool_xml = [](auto wrap) {
-            return [wrap](std::istream& is,
-                          auto pools,
-                          bool ignore_pool_exceptions) {
-                using Pools  = std::decay_t<decltype(pools)>;
-                auto restore = immer::util::istream_snapshot{is};
-                pools.ignore_pool_exceptions = ignore_pool_exceptions;
-                auto ar = immer::persist::json_immer_input_archive<
-                    cereal::XMLInputArchive,
-                    Pools,
-                    decltype(wrap)>{std::move(pools), wrap, is};
-                /**
-                 * NOTE: Critical to clear the pools before loading into it
-                 * again. I hit a bug when pools contained a vector and every
-                 * load would append to it, instead of replacing the contents.
-                 */
-                pools = {};
-                ar(CEREAL_NVP(pools));
-                return pools;
-            };
-        };
-        constexpr auto from_xml = [reload_pool_xml](const std::string& str,
-                                                    auto& value0,
-                                                    const auto& names,
-                                                    const auto& wrap) {
+        constexpr auto from_xml = [](const std::string& str,
+                                     auto& value0,
+                                     const auto& names,
+                                     const auto& wrap) {
             auto is     = std::istringstream{str};
             using Pools = std::decay_t<
                 decltype(immer::persist::detail::generate_input_pools(names))>;
             auto pools =
-                immer::persist::load_pools<Pools>(is, reload_pool_xml(wrap));
+                immer::persist::load_pools<Pools, cereal::XMLInputArchive>(
+                    is, wrap);
 
             auto ar = immer::persist::json_immer_input_archive<
                 cereal::XMLInputArchive,

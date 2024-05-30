@@ -200,28 +200,6 @@ auto get_auto_pool(const T& serializable,
     return pools;
 }
 
-constexpr auto reload_pool_auto = [](auto wrap) {
-    return [wrap](std::istream& is, auto pools, bool ignore_pool_exceptions) {
-        using Pools                  = std::decay_t<decltype(pools)>;
-        auto restore                 = immer::util::istream_snapshot{is};
-        const auto original_pools    = pools;
-        pools.ignore_pool_exceptions = ignore_pool_exceptions;
-        auto ar = json_immer_input_archive<cereal::JSONInputArchive,
-                                           Pools,
-                                           decltype(wrap)>{
-            std::move(pools), wrap, is};
-        /**
-         * NOTE: Critical to clear the pools before loading into it
-         * again. I hit a bug when pools contained a vector and every
-         * load would append to it, instead of replacing the contents.
-         */
-        pools = {};
-        ar(CEREAL_NVP(pools));
-        pools.merge_previous(original_pools);
-        return pools;
-    };
-};
-
 template <typename T, class PoolsTypes>
 T from_json_with_auto_pool(std::istream& is, const PoolsTypes& pools_types)
 {
@@ -231,7 +209,7 @@ T from_json_with_auto_pool(std::istream& is, const PoolsTypes& pools_types)
     using Pools =
         std::decay_t<decltype(detail::generate_input_pools(pools_types))>;
 
-    auto pools = load_pools<Pools>(is, reload_pool_auto(wrap));
+    auto pools = load_pools<Pools>(is, wrap);
 
     auto ar =
         json_immer_input_archive<cereal::JSONInputArchive,
