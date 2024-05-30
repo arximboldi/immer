@@ -50,24 +50,8 @@ struct persistable
     {
     }
 
-    persistable(const persistable& other)
-        : container{other.container}
-    {
-    }
-
-    persistable& operator=(const persistable&) = default;
-
-    persistable(persistable&& other)
-        : container{std::move(other.container)}
-    {
-    }
-
-    persistable& operator=(persistable&&) = default;
-
-    friend bool operator==(const persistable& left, const persistable& right)
-    {
-        return left.container == right.container;
-    }
+    friend bool operator==(const persistable& left,
+                           const persistable& right) = default;
 
     // template <std::enable_if_t<detail::is_iterable<Container>, bool> = true>
     // friend auto begin(const persistable& value)
@@ -131,7 +115,6 @@ void load_minimal(
 {
     auto& loader =
         const_cast<json_immer_input_archive<Previous, Pools, WrapF>&>(ar)
-            .get_input_pools()
             .template get_loader<Container>();
 
     // Have to be specific because for vectors container_id is different from
@@ -142,7 +125,7 @@ void load_minimal(
     try {
         value.container = loader.load(container_id_{id});
     } catch (const pool_exception& ex) {
-        if (!ar.get_input_pools().ignore_pool_exceptions) {
+        if (!ar.ignore_pool_exceptions) {
             throw ::cereal::Exception{fmt::format(
                 "Failed to load a container ID {} from the pool of {}: {}",
                 id,

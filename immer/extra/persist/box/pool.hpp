@@ -64,10 +64,8 @@ struct input_pool
 {
     immer::vector<immer::box<T, MemoryPolicy>> boxes;
 
-    friend bool operator==(const input_pool& left, const input_pool& right)
-    {
-        return left.boxes == right.boxes;
-    }
+    friend bool operator==(const input_pool& left,
+                           const input_pool& right) = default;
 
     template <class Archive>
     void load(Archive& ar)

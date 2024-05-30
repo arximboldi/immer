@@ -263,8 +263,16 @@ public:
     {
     }
 
-    Pools& get_input_pools() { return pools; }
-    const Pools& get_input_pools() const { return pools; }
+    template <class Container>
+    auto& get_loader()
+    {
+        auto& loader = loaders[boost::hana::type_c<Container>];
+        if (!loader) {
+            const auto& type_pool = pools.template get_pool<Container>();
+            loader.emplace(type_pool.pool, type_pool.transform);
+        }
+        return *loader;
+    }
 
     template <class T>
     friend void prologue(json_immer_input_archive& ar, T&& v)
@@ -322,10 +330,15 @@ public:
         CEREAL_LOAD_FUNCTION_NAME(ar.previous, st);
     }
 
+    bool ignore_pool_exceptions = false;
+
 private:
     WrapF wrap;
     Previous previous;
     Pools pools;
+
+    using Loaders = decltype(Pools::generate_loaders());
+    Loaders loaders;
 };
 
 } // namespace immer::persist

@@ -42,10 +42,8 @@ struct values_load
     {
     }
 
-    friend bool operator==(const values_load& left, const values_load& right)
-    {
-        return left.data == right.data;
-    }
+    friend bool operator==(const values_load& left,
+                           const values_load& right) = default;
 };
 
 template <class Archive, class T>

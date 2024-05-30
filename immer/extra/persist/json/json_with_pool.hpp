@@ -113,20 +113,53 @@ struct output_pools
     }
 };
 
+template <class Derived, class Loader>
+struct no_loader
+{};
+
+template <class Derived, class Loader>
+struct with_loader
+{
+    std::optional<Loader> loader;
+
+    auto& get_loader_from_per_type_pool()
+    {
+        if (!loader) {
+            auto& self = static_cast<Derived&>(*this);
+            loader.emplace(self.pool, self.transform);
+        }
+        return *loader;
+    }
+};
+
+/**
+ * A pool for one container type.
+ * Normally, the pool does not contain a loader, which is located inside the
+ * json_immer_input_archive.
+ *
+ * But in case of transformations, there is no json_immer_input_archive involved
+ * and it becomes convenient to have the corresponding loader stored here, too,
+ * via with_loader.
+ */
 template <class Container,
           class Pool       = typename container_traits<Container>::input_pool_t,
           class TransformF = boost::hana::id_t,
-          class OldContainerType = boost::hana::id_t>
+          class OldContainerType                    = boost::hana::id_t,
+          template <class, class> class LoaderMixin = no_loader>
 struct input_pool
+    : LoaderMixin<input_pool<Container,
+                             Pool,
+                             TransformF,
+                             OldContainerType,
+                             LoaderMixin>,
+                  typename container_traits<
+                      Container>::template loader_t<Pool, TransformF>>
 {
     using container_t     = Container;
     using old_container_t = OldContainerType;
 
     Pool pool = {};
     TransformF transform;
-    std::optional<typename container_traits<
-        Container>::template loader_t<Pool, TransformF>>
-        loader;
 
     input_pool() = default;
 
@@ -142,27 +175,6 @@ struct input_pool
     {
     }
 
-    input_pool(const input_pool& other)
-        : pool{other.pool}
-        , transform{other.transform}
-    {
-    }
-
-    input_pool& operator=(const input_pool& other)
-    {
-        pool      = other.pool;
-        transform = other.transform;
-        return *this;
-    }
-
-    auto& get_loader()
-    {
-        if (!loader) {
-            loader.emplace(pool, transform);
-        }
-        return *loader;
-    }
-
     template <class Func>
     auto with_transform(Func&& func) const
     {
@@ -174,8 +186,8 @@ struct input_pool
                 func))>;
         using TransF = std::function<new_value_type(const value_type&)>;
         // the transform function must be filled in later
-        return input_pool<NewContainer, Pool, TransF, Container>{pool,
-                                                                 TransF{}};
+        return input_pool<NewContainer, Pool, TransF, Container, with_loader>{
+            pool, TransF{}};
     }
 
     friend bool operator==(const input_pool& left, const input_pool& right)
@@ -186,6 +198,12 @@ struct input_pool
     void merge_previous(const input_pool& original)
     {
         pool.merge_previous(original.pool);
+    }
+
+    static auto generate_loader()
+    {
+        return std::optional<typename container_traits<
+            Container>::template loader_t<Pool, TransformF>>{};
     }
 };
 
@@ -230,20 +248,18 @@ public:
     {
     }
 
-    bool ignore_pool_exceptions = false;
-
     auto& storage() { return storage_(); }
     const auto& storage() const { return storage_(); }
 
     template <class Container>
-    auto& get_loader()
+    const auto& get_pool()
     {
         using Contains =
             decltype(hana::contains(storage(), hana::type_c<Container>));
         if constexpr (!Contains::value) {
             auto err = error_missing_pool_for_type<Container>{};
         }
-        return storage()[hana::type_c<Container>].get_loader();
+        return storage()[hana::type_c<Container>];
     }
 
     template <class OldContainer>
@@ -261,7 +277,7 @@ public:
         if constexpr (!IsJust::value) {
             auto err = error_missing_pool_for_type<OldContainer>{};
         }
-        return storage()[Key{}.value()].get_loader();
+        return storage()[Key{}.value()].get_loader_from_per_type_pool();
     }
 
     template <class Archive>
@@ -353,7 +369,8 @@ public:
                     auto err = error_missing_pool_for_type<
                         typename decltype(new_type)::type>{};
                 }
-                auto& loader = get_data()[new_type].get_loader();
+                auto& loader =
+                    get_data()[new_type].get_loader_from_per_type_pool();
                 return loader.load(id);
             };
         };
@@ -394,6 +411,20 @@ public:
         hana::for_each(hana::keys(s), [&](auto key) {
             s[key].merge_previous(original_s[key]);
         });
+    }
+
+    static auto generate_loaders()
+    {
+        using Storage = std::decay_t<decltype(std::declval<StorageF>()())>;
+        using Types   = decltype(hana::keys(std::declval<Storage>()));
+        auto storage =
+            hana::fold_left(Types{}, hana::make_map(), [](auto map, auto type) {
+                using TypePool =
+                    std::decay_t<decltype(std::declval<Storage>()[type])>;
+                return hana::insert(
+                    map, hana::make_pair(type, TypePool::generate_loader()));
+            });
+        return storage;
     }
 };
 
@@ -468,11 +499,11 @@ auto load_pools(std::istream& is, const auto& wrap)
 {
     const auto reload_pool =
         [wrap](std::istream& is, Pools pools, bool ignore_pool_exceptions) {
-            auto restore                 = immer::util::istream_snapshot{is};
-            const auto original_pools    = pools;
-            pools.ignore_pool_exceptions = ignore_pool_exceptions;
+            auto restore              = immer::util::istream_snapshot{is};
+            const auto original_pools = pools;
             auto ar = json_immer_input_archive<Archive, Pools, decltype(wrap)>{
                 std::move(pools), wrap, is};
+            ar.ignore_pool_exceptions = ignore_pool_exceptions;
             /**
              * NOTE: Critical to clear the pools before loading into it
              * again. I hit a bug when pools contained a vector and every

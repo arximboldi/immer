@@ -165,10 +165,7 @@ struct container_input_pool
     nodes_load<T, champ_t::bits> nodes;
 
     friend bool operator==(const container_input_pool& left,
-                           const container_input_pool& right)
-    {
-        return left.nodes == right.nodes;
-    }
+                           const container_input_pool& right) = default;
 
     template <class Archive>
     void load(Archive& ar)
