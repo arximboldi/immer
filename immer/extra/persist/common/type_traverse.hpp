@@ -1,5 +1,6 @@
 #pragma once
 
+#include <immer/box.hpp>
 #include <immer/flex_vector.hpp>
 #include <immer/map.hpp>
 #include <immer/set.hpp>
@@ -7,6 +8,8 @@
 #include <immer/vector.hpp>
 
 #include <boost/hana.hpp>
+
+#include <variant>
 
 namespace immer::persist::util {
 
@@ -125,7 +128,7 @@ constexpr auto insert_conditionally = [](auto map, auto pair) {
  * Generate a map (type, member_name) for all members of a given type,
  * recursively.
  */
-inline auto get_inner_types(const auto& type)
+inline auto get_inner_types_map(const auto& type)
 {
     namespace hana = boost::hana;
 
@@ -157,6 +160,11 @@ inline auto get_inner_types(const auto& type)
             return hana::second(pair) != empty_string;
         });
     return hana::to_map(result);
+}
+
+inline auto get_inner_types(const auto& type)
+{
+    return boost::hana::keys(get_inner_types_map(type));
 }
 
 } // namespace immer::persist::util

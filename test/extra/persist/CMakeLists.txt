@@ -3,7 +3,6 @@ find_package(cereal REQUIRED)
 find_package(xxHash 0.8 CONFIG REQUIRED)
 
 if(${CXX_STANDARD} LESS 20)
-  # Maybe no particular reason, but we're not targeting older compilers anyway.
   message(FATAL_ERROR "persist requires C++20")
 endif()
 
@@ -12,11 +11,11 @@ include(CTest)
 add_executable(
   persist-tests EXCLUDE_FROM_ALL
   test_vectors.cpp
-  test_special_pool.cpp
-  test_special_pool_auto.cpp
   test_champ.cpp
   test_xxhash.cpp
   test_box.cpp
+  test_special_pool.cpp
+  test_special_pool_auto.cpp
   test_conversion.cpp
   test_circular_dependency_conversion.cpp
   test_table_box_recursive.cpp

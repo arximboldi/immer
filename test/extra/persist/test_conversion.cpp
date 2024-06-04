@@ -144,14 +144,14 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
           "[conversion]")
 {
     const auto model_names =
-        immer::persist::get_pools_for_type(hana::type_c<model::history>);
+        immer::persist::get_named_pools_for_type(hana::type_c<model::history>);
     const auto format_names =
-        immer::persist::get_pools_for_type(hana::type_c<format::history>);
+        immer::persist::get_named_pools_for_type(hana::type_c<format::history>);
     (void) format_names;
 
     const auto value = model::make_example_history();
 
-    const auto model_pools = immer::persist::get_auto_pool(value, model_names);
+    const auto model_pools = immer::persist::get_auto_pool(value);
 
     const auto map = hana::make_map(
         hana::make_pair(hana::type_c<vector_one<model::snapshot>>,
@@ -200,9 +200,7 @@ struct two_vectors
 
 TEST_CASE("Not every type is converted", "[conversion]")
 {
-    const auto names =
-        immer::persist::get_pools_for_type(hana::type_c<two_vectors>);
-    const auto pools = immer::persist::get_auto_pool(two_vectors{}, names);
+    const auto pools = immer::persist::get_auto_pool(two_vectors{});
 
     const auto map =
         hana::make_map(hana::make_pair(hana::type_c<vector_one<int>>,
