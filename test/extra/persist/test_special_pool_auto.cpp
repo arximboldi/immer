@@ -112,7 +112,7 @@ TEST_CASE("Auto-persisting")
 {
     constexpr auto names = [] {
         return hana::union_(
-            immer::persist::get_pools_for_type(
+            immer::persist::get_named_pools_for_type(
                 hana::type_c<test_data_with_immer>),
             hana::make_map(hana::make_pair(hana::type_c<vector_one<meta_meta>>,
                                            BOOST_HANA_STRING("meta_meta"))));
@@ -238,7 +238,7 @@ TEST_CASE("Test save and load small type")
         .ints = ints1,
     };
     const auto pool_types =
-        immer::persist::get_pools_for_type(boost::hana::typeid_(value));
+        immer::persist::get_named_pools_for_type(boost::hana::typeid_(value));
     const auto json_str =
         immer::persist::to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
@@ -439,9 +439,8 @@ TEST_CASE("Test table with a funny value")
         .twos_table = t1.insert(two2),
     };
 
-    const auto names =
-        immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
-
+    const auto names = immer::persist::get_named_pools_for_type(
+        hana::type_c<champ_test::value_one>);
     const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
@@ -480,8 +479,8 @@ TEST_CASE("Test loading broken table")
         .twos_table = t1.insert(two2),
     };
 
-    const auto names =
-        immer::persist::get_pools_for_type(hana::type_c<champ_test::value_one>);
+    const auto names = immer::persist::get_named_pools_for_type(
+        hana::type_c<champ_test::value_one>);
 
     const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
@@ -706,7 +705,7 @@ DEFINE_OPERATIONS(key);
 DEFINE_OPERATIONS(value_one);
 DEFINE_OPERATIONS(value_two);
 
-auto get_pools_types(const value_one&)
+auto get_pools_names(const value_one&)
 {
     return hana::make_map(
         hana::make_pair(hana::type_c<immer::box<value_two>>,
@@ -742,11 +741,13 @@ TEST_CASE("Test table with a funny value no auto")
         .twos_table = t1.insert(two2),
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(value);
+    const auto json_str = immer::persist::to_json_with_pool(
+        value, immer::persist::via_get_pools_names_policy{});
     // REQUIRE(json_str == "");
 
     const auto loaded =
-        immer::persist::from_json_with_pool<test_no_auto::value_one>(json_str);
+        immer::persist::from_json_with_pool<test_no_auto::value_one>(
+            json_str, immer::persist::via_get_pools_names_policy{});
     REQUIRE(loaded == value);
 }
 
@@ -783,10 +784,7 @@ TEST_CASE("Structure breaks when hash is changed")
         .map = {{123, "123"}, {456, "456"}},
     };
 
-    const auto names =
-        immer::persist::get_pools_for_type(hana::type_c<test_champs>);
-
-    const auto out_pool = immer::persist::get_auto_pool(value, names);
+    const auto out_pool = immer::persist::get_auto_pool(value);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);
@@ -817,10 +815,7 @@ TEST_CASE("Converting between incompatible keys")
         .table = {{901}, {902}},
     };
 
-    const auto names =
-        immer::persist::get_pools_for_type(hana::type_c<test_champs>);
-
-    const auto ar = immer::persist::get_auto_pool(value, names);
+    const auto ar = immer::persist::get_auto_pool(value);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);
@@ -943,7 +938,7 @@ struct with_variant
 
 TEST_CASE("It goes inside variant")
 {
-    auto names = immer::persist::get_pools_for_type(
+    auto names = immer::persist::get_named_pools_for_type(
         hana::type_c<test_variant::with_variant>);
     using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
                                 BOOST_HANA_STRING("ints"));

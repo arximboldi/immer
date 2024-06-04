@@ -2,6 +2,8 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <immer/extra/persist/json/wrap.hpp>
+
 #include "utils.hpp"
 
 #include <boost/hana.hpp>
@@ -157,7 +159,7 @@ struct test_data
  * A special function that enumerates which types of pools are
  * required. Explicitly name each type, for simplicity.
  */
-inline auto get_pools_types(const test_data&)
+inline auto get_pools_names(const test_data&)
 {
     auto names = hana::make_map(
         hana::make_pair(hana::type_c<vector_one<int>>,
@@ -185,9 +187,19 @@ inline auto get_pools_types(const test_data&)
     return names;
 }
 
-inline auto get_pools_types(const std::pair<test_data, test_data>&)
+auto get_pools_types(const test_data& val)
 {
-    return get_pools_types(test_data{});
+    return hana::keys(get_pools_names(val));
+}
+
+inline auto get_pools_names(const std::pair<test_data, test_data>&)
+{
+    return get_pools_names(test_data{});
+}
+
+auto get_pools_types(const std::pair<test_data, test_data>& val)
+{
+    return hana::keys(get_pools_names(val));
 }
 
 } // namespace
@@ -368,8 +380,9 @@ TEST_CASE("Save with a special pool, special type is enclosed")
     REQUIRE(test1.flex_ints.container.identity() ==
             test2.flex_ints.container.identity());
 
-    const auto json_str =
-        immer::persist::to_json_with_pool(std::make_pair(test1, test2));
+    const auto json_str = immer::persist::to_json_with_pool(
+        std::make_pair(test1, test2),
+        immer::persist::via_get_pools_types_policy{});
 
     // REQUIRE(json_str == "");
 
@@ -415,9 +428,11 @@ TEST_CASE("Special pool loads empty test_data")
 {
     const auto value = test_data{};
 
-    // const auto json_pool_str =
-    //     immer::persist::to_json_with_pool(value);
-    // REQUIRE(json_pool_str == "");
+    // const auto json_pool_str_ = immer::persist::to_json_with_pool<
+    //     test_data,
+    //     immer::persist::name_from_map_fn<decltype(get_pools_types(value))>>(
+    //     value);
+    // REQUIRE(json_pool_str_ == "");
 
     const auto json_pool_str = R"({
   "value0": {
@@ -474,7 +489,7 @@ TEST_CASE("Special pool loads empty test_data")
     {
         auto loaded =
             immer::persist::from_json_with_pool<std::decay_t<decltype(value)>>(
-                json_pool_str);
+                json_pool_str, immer::persist::via_get_pools_names_policy{});
         REQUIRE(loaded == value);
     }
 }
@@ -532,8 +547,12 @@ TEST_CASE("Special pool throws cereal::Exception")
   }
 })";
 
+    const auto call = [&] {
+        return immer::persist::from_json_with_pool<test_data>(
+            json_pool_str, immer::persist::via_get_pools_names_policy{});
+    };
     REQUIRE_THROWS_MATCHES(
-        immer::persist::from_json_with_pool<test_data>(json_pool_str),
+        call(),
         ::cereal::Exception,
         MessageMatches(Catch::Matchers::ContainsSubstring(
                            "Failed to load a container ID 99 from the "
@@ -565,16 +584,10 @@ struct recursive_type
 
 auto get_pools_types(const recursive_type&)
 {
-    auto names = hana::make_map(
-        hana::make_pair(hana::type_c<immer::box<recursive_type>>,
-                        BOOST_HANA_STRING("boxes")),
-        hana::make_pair(
-            hana::type_c<vector_one<per<immer::box<recursive_type>>>>,
-            BOOST_HANA_STRING("vectors"))
-
-    );
-    return names;
+    return hana::tuple_t<immer::box<recursive_type>,
+                         vector_one<per<immer::box<recursive_type>>>>;
 }
+
 } // namespace
 
 TEST_CASE("Test recursive type")
@@ -663,14 +676,8 @@ struct rec_map
 
 auto get_pools_types(const rec_map&)
 {
-    auto names = hana::make_map(
-        hana::make_pair(hana::type_c<immer::box<rec_map>>,
-                        BOOST_HANA_STRING("boxes")),
-        hana::make_pair(hana::type_c<immer::map<int, per<immer::box<rec_map>>>>,
-                        BOOST_HANA_STRING("maps"))
-
-    );
-    return names;
+    return hana::tuple_t<immer::box<rec_map>,
+                         immer::map<int, per<immer::box<rec_map>>>>;
 }
 } // namespace
 
