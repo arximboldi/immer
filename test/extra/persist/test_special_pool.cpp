@@ -714,19 +714,16 @@ TEST_CASE("Test saving a map that contains the same map")
 
 TEST_CASE("Test non-unique names in the map")
 {
-    {
-        const auto names = hana::make_map(
-            hana::make_pair(hana::type_c<immer::box<int>>,
-                            BOOST_HANA_STRING("box_1")),
-            hana::make_pair(hana::type_c<immer::box<std::string>>,
-                            BOOST_HANA_STRING("box_2"))
+    const auto names =
+        hana::make_map(hana::make_pair(hana::type_c<immer::box<int>>,
+                                       BOOST_HANA_STRING("box_1")),
+                       hana::make_pair(hana::type_c<immer::box<std::string>>,
+                                       BOOST_HANA_STRING("box_2"))
 
         );
 
-        using IsUnique =
-            decltype(immer::persist::detail::are_type_names_unique(names));
-        static_assert(IsUnique::value, "Names are unique");
-    }
+    using IsUnique = decltype(immer::persist::are_type_names_unique(names));
+    static_assert(IsUnique::value, "Names are unique");
 }
 
 namespace {
