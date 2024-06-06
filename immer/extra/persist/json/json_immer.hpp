@@ -221,6 +221,15 @@ private:
     bool finalized{false};
 };
 
+template <class T, class = void>
+struct has_has_name_t : std::false_type
+{};
+
+template <class T>
+struct has_has_name_t<T, std::void_t<decltype(std::declval<T>().hasName(""))>>
+    : std::true_type
+{};
+
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
 class json_immer_input_archive
     : public cereal::InputArchive<
@@ -257,6 +266,15 @@ public:
             loader.emplace(type_pool.pool, type_pool.transform);
         }
         return *loader;
+    }
+
+    /**
+     * This is needed for optional_nvp in the custom version of cereal.
+     */
+    std::enable_if_t<has_has_name_t<Previous>::value, bool>
+    hasName(const char* name)
+    {
+        return previous.hasName(name);
     }
 
     template <class T>
