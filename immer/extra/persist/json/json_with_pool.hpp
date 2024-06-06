@@ -28,7 +28,7 @@ auto to_json_with_pool(const T& value0, const Policy& policy = Policy{})
             decltype(policy.get_output_wrap_fn()),
             decltype(policy.get_pool_name_fn(value0))>{
             pools, policy.get_output_wrap_fn(), os};
-        ar(CEREAL_NVP(value0));
+        policy.save(ar, value0);
     }
     return os.str();
 }
@@ -100,7 +100,7 @@ T from_json_with_pool(std::istream& is, const Policy& policy = Policy{})
         json_immer_input_archive<Archive, Pools, decltype(wrap), PoolNameFn>{
             std::move(pools), wrap, is};
     auto value0 = T{};
-    ar(CEREAL_NVP(value0));
+    policy.load(ar, value0);
     return value0;
 }
 
@@ -159,7 +159,6 @@ auto convert_container(const detail::output_pools<SaveStorage>& old_save_pools,
         new_load_pools
             .template get_loader_by_old_container<std::decay_t<Container>>();
     auto result = loader.load(container_id);
-    // return std::make_pair(std::move(result), std::move(new_load_pools));
     return result;
 }
 

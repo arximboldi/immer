@@ -31,8 +31,6 @@ auto get_auto_pool(const T& value0, const Policy& policy = Policy{})
                                             Pools,
                                             decltype(wrap),
                                             detail::empty_name_fn>{pools, wrap};
-        // value0 because that's now cereal saves the unnamed object by default,
-        // maybe change later.
         ar(CEREAL_NVP(value0));
         ar.finalize();
         pools = std::move(ar).get_output_pools();

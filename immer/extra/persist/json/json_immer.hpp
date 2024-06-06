@@ -56,27 +56,6 @@ struct empty_name_fn
     auto operator()(const auto& container) const { return ""; }
 };
 
-template <class T>
-class error_duplicate_pool_name_found;
-
-inline auto are_type_names_unique(auto type_names)
-{
-    namespace hana = boost::hana;
-    auto names_set =
-        hana::fold_left(type_names, hana::make_set(), [](auto set, auto pair) {
-            return hana::if_(
-                hana::contains(set, hana::second(pair)),
-                [](auto pair) {
-                    return error_duplicate_pool_name_found<
-                        decltype(hana::second(pair))>{};
-                },
-                [&set](auto pair) {
-                    return hana::insert(set, hana::second(pair));
-                })(pair);
-        });
-    return hana::length(type_names) == hana::length(names_set);
-}
-
 template <class Pools>
 constexpr bool is_pool_empty()
 {
