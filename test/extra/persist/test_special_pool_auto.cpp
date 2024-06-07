@@ -932,15 +932,41 @@ struct foos
 struct with_variant
 {
     BOOST_HANA_DEFINE_STRUCT(with_variant,
-                             (std::variant<double, foos>, something));
+                             (std::variant<double, foos>, something),
+                             (immer::map<int, immer::vector<std::string>>,
+                              int_map)
+
+    );
 };
 } // namespace test_variant
 
-TEST_CASE("It goes inside variant")
+TEST_CASE("Test types traversal")
 {
     auto names = immer::persist::get_named_pools_for_type(
         hana::type_c<test_variant::with_variant>);
-    using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
-                                BOOST_HANA_STRING("ints"));
-    static_assert(contains_t::value);
+    SECTION("It goes inside variant")
+    {
+        using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
+                                    BOOST_HANA_STRING("ints"));
+        static_assert(contains_t::value);
+    }
+
+    SECTION("Check types with names")
+    {
+        using contains_map_t =
+            decltype(names[hana::type_c<
+                         immer::map<int, immer::vector<std::string>>>] ==
+                     BOOST_HANA_STRING("int_map"));
+        static_assert(contains_map_t::value);
+
+        // It doesn't find the vector because there is no name for it
+        const auto vector_type = hana::type_c<immer::vector<std::string>>;
+        static_assert(decltype(hana::contains(names, vector_type) ==
+                               hana::false_c)::value);
+
+        // But it has the vector when we don't use names
+        auto only_types = immer::persist::get_pools_for_type(
+            hana::type_c<test_variant::with_variant>);
+        static_assert(decltype(hana::contains(only_types, vector_type))::value);
+    }
 }
