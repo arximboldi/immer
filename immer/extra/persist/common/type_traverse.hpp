@@ -17,8 +17,8 @@ namespace detail {
 
 namespace hana = boost::hana;
 
-template <class T, class = void>
-struct get_inner_types_t
+template <class T>
+struct single_type_t
 {
     static auto apply()
     {
@@ -26,6 +26,10 @@ struct get_inner_types_t
             hana::make_pair(hana::type_c<T>, BOOST_HANA_STRING("")));
     }
 };
+
+template <class T, class = void>
+struct get_inner_types_t : single_type_t<T>
+{};
 
 template <class T>
 struct get_inner_types_t<T, std::enable_if_t<hana::Struct<T>::value>>
@@ -45,7 +49,7 @@ template <typename T,
           immer::detail::rbts::bits_t B,
           immer::detail::rbts::bits_t BL>
 struct get_inner_types_t<immer::vector<T, MemoryPolicy, B, BL>>
-    : get_inner_types_t<T>
+    : single_type_t<T>
 {};
 
 template <typename T,
@@ -53,11 +57,11 @@ template <typename T,
           immer::detail::rbts::bits_t B,
           immer::detail::rbts::bits_t BL>
 struct get_inner_types_t<immer::flex_vector<T, MemoryPolicy, B, BL>>
-    : get_inner_types_t<T>
+    : single_type_t<T>
 {};
 
 template <typename T, typename MemoryPolicy>
-struct get_inner_types_t<immer::box<T, MemoryPolicy>> : get_inner_types_t<T>
+struct get_inner_types_t<immer::box<T, MemoryPolicy>> : single_type_t<T>
 {};
 
 template <typename T,
@@ -66,7 +70,7 @@ template <typename T,
           typename MemoryPolicy,
           immer::detail::hamts::bits_t B>
 struct get_inner_types_t<immer::set<T, Hash, Equal, MemoryPolicy, B>>
-    : get_inner_types_t<T>
+    : single_type_t<T>
 {};
 
 template <typename K,
@@ -79,8 +83,8 @@ struct get_inner_types_t<immer::map<K, T, Hash, Equal, MemoryPolicy, B>>
 {
     static auto apply()
     {
-        return hana::concat(get_inner_types_t<K>::apply(),
-                            get_inner_types_t<T>::apply());
+        return hana::concat(single_type_t<K>::apply(),
+                            single_type_t<T>::apply());
     }
 };
 
@@ -91,7 +95,7 @@ template <typename T,
           typename MemoryPolicy,
           immer::detail::hamts::bits_t B>
 struct get_inner_types_t<immer::table<T, KeyFn, Hash, Equal, MemoryPolicy, B>>
-    : get_inner_types_t<T>
+    : single_type_t<T>
 {};
 
 template <class... Types>
@@ -122,13 +126,7 @@ constexpr auto insert_conditionally = [](auto map, auto pair) {
     }
 };
 
-} // namespace detail
-
-/**
- * Generate a map (type, member_name) for all members of a given type,
- * recursively.
- */
-inline auto get_inner_types_map(const auto& type)
+inline auto get_inner_types_map_with_empty_strings(const auto& type)
 {
     namespace hana = boost::hana;
 
@@ -152,19 +150,35 @@ inline auto get_inner_types_map(const auto& type)
 
     auto expanded = hana::while_(
         can_expand, hana::to_map(get_for_one_type(type)), get_for_many);
+    return expanded;
+}
+
+} // namespace detail
+
+/**
+ * Generate a map (type, member_name) for all members of a given type,
+ * recursively.
+ */
+inline auto get_inner_types_map(const auto& type)
+{
+    namespace hana = boost::hana;
+
+    auto with_empty_strings =
+        detail::get_inner_types_map_with_empty_strings(type);
 
     // Throw away types we don't know names for
     const auto empty_string = BOOST_HANA_STRING("");
-    auto result =
-        hana::filter(hana::to_tuple(expanded), [empty_string](auto pair) {
-            return hana::second(pair) != empty_string;
-        });
+    auto result             = hana::filter(hana::to_tuple(with_empty_strings),
+                               [empty_string](auto pair) {
+                                   return hana::second(pair) != empty_string;
+                               });
     return hana::to_map(result);
 }
 
 inline auto get_inner_types(const auto& type)
 {
-    return boost::hana::keys(get_inner_types_map(type));
+    return boost::hana::keys(
+        detail::get_inner_types_map_with_empty_strings(type));
 }
 
 } // namespace immer::persist::util

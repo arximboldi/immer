@@ -2,7 +2,10 @@
 
 #include <immer/extra/persist/common/type_traverse.hpp>
 #include <immer/extra/persist/json/persistable.hpp>
-#include <immer/extra/persist/rbts/pool.hpp>
+
+#include <immer/extra/persist/box/pool.hpp>
+#include <immer/extra/persist/champ/traits.hpp>
+#include <immer/extra/persist/rbts/traits.hpp>
 
 namespace immer::persist {
 
