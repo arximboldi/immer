@@ -9,30 +9,34 @@
 
 namespace immer::persist {
 
-/**
- * Type T must provide a callable free function get_pools_types(const T&).
- */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
           Policy<T> Policy = default_policy>
-auto to_json_with_pool(const T& value0, const Policy& policy = Policy{})
+void to_json_with_pool_stream(auto& os,
+                              const T& value0,
+                              const Policy& policy = Policy{})
+{
+    auto pools  = detail::generate_output_pools(policy.get_pool_types(value0));
+    using Pools = std::decay_t<decltype(pools)>;
+    auto ar     = immer::persist::json_immer_output_archive<
+        Archive,
+        Pools,
+        decltype(policy.get_output_wrap_fn()),
+        decltype(policy.get_pool_name_fn(value0))>{
+        pools, policy.get_output_wrap_fn(), os};
+    policy.save(ar, value0);
+    // Calling finalize explicitly, as it might throw on saving the pools,
+    // for example if pool names are not unique.
+    ar.finalize();
+}
+
+template <class Archive = cereal::JSONOutputArchive,
+          class T,
+          Policy<T> Policy = default_policy>
+std::string to_json_with_pool(const T& value0, const Policy& policy = Policy{})
 {
     auto os = std::ostringstream{};
-    {
-        auto pools =
-            detail::generate_output_pools(policy.get_pool_types(value0));
-        using Pools = std::decay_t<decltype(pools)>;
-        auto ar     = immer::persist::json_immer_output_archive<
-            Archive,
-            Pools,
-            decltype(policy.get_output_wrap_fn()),
-            decltype(policy.get_pool_name_fn(value0))>{
-            pools, policy.get_output_wrap_fn(), os};
-        policy.save(ar, value0);
-        // Calling finalize explicitly, as it might throw on saving the pools,
-        // for example if pool names are not unique.
-        ar.finalize();
-    }
+    to_json_with_pool_stream<Archive>(os, value0, policy);
     return os.str();
 }
 
