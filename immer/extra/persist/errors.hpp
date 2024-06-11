@@ -51,4 +51,14 @@ public:
     }
 };
 
+class duplicate_name_pool_detected : public pool_exception
+{
+public:
+    explicit duplicate_name_pool_detected(const std::string& pool_name)
+        : pool_exception{
+              fmt::format("{} pool name has already been used", pool_name)}
+    {
+    }
+};
+
 } // namespace immer::persist

@@ -53,7 +53,7 @@ struct blackhole_output_archive
 // blackhole_output_archive doesn't care about names
 struct empty_name_fn
 {
-    auto operator()(const auto& container) const { return ""; }
+    void operator()(const auto& container) const {}
 };
 
 template <class Pools>
@@ -119,12 +119,12 @@ public:
         if (finalized) {
             return;
         }
+        finalized = true;
 
         save_pools_impl();
 
         auto& self = *this;
         self(CEREAL_NVP(pools));
-        finalized = true;
     }
 
     template <class T>

@@ -73,10 +73,20 @@ struct output_pools
     {
         using pool_name_fn = typename Archive::pool_name_fn;
         using keys_t       = decltype(hana::keys(storage()));
+        auto used_names    = std::unordered_set<std::string>{};
         hana::for_each(keys_t{}, [&](auto key) {
-            using Container  = typename decltype(key)::type;
-            const auto& name = pool_name_fn{}(Container{});
-            ar(cereal::make_nvp(name, storage()[key]));
+            using Container = typename decltype(key)::type;
+            using NameType  = decltype(pool_name_fn{}(Container{}));
+            if constexpr (std::is_void_v<NameType>) {
+                ar(storage()[key]);
+            } else {
+                const auto& name                = pool_name_fn{}(Container{});
+                const auto [iterator, inserted] = used_names.insert(name);
+                if (!inserted) {
+                    throw duplicate_name_pool_detected{name};
+                }
+                ar(cereal::make_nvp(name, storage()[key]));
+            }
         });
     }
 
