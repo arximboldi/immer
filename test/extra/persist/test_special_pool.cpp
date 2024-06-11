@@ -679,6 +679,15 @@ auto get_pools_types(const rec_map&)
     return hana::tuple_t<immer::box<rec_map>,
                          immer::map<int, per<immer::box<rec_map>>>>;
 }
+
+struct same_name_policy : immer::persist::via_get_pools_types_policy
+{
+    template <class T>
+    auto get_pool_name_fn(const T& value) const
+    {
+        return [](auto&&) { return "same_pool_name"; };
+    }
+};
 } // namespace
 
 TEST_CASE("Test saving a map that contains the same map")
@@ -710,6 +719,13 @@ TEST_CASE("Test saving a map that contains the same map")
         REQUIRE(full_load == value);
         REQUIRE(immer::persist::to_json_with_pool(full_load) == json_str);
     }
+
+    SECTION("Duplicate pool names are detected")
+    {
+        REQUIRE_THROWS_AS(
+            immer::persist::to_json_with_pool(value, same_name_policy{}),
+            immer::persist::duplicate_name_pool_detected);
+    }
 }
 
 TEST_CASE("Test non-unique names in the map")
@@ -725,99 +741,3 @@ TEST_CASE("Test non-unique names in the map")
     using IsUnique = decltype(immer::persist::are_type_names_unique(names));
     static_assert(IsUnique::value, "Names are unique");
 }
-
-namespace {
-using test::new_type;
-using test::old_type;
-
-template <class V>
-using map_t = immer::map<std::string, V, immer::persist::xx_hash<std::string>>;
-
-template <class T>
-using table_t =
-    immer::table<T, immer::table_key_fn, immer::persist::xx_hash<std::string>>;
-
-// Some type that an application would serialize. Contains multiple vectors and
-// maps to demonstrate structural sharing.
-struct old_app_type
-{
-    per<test::vector_one<old_type>> vec;
-    per<test::vector_one<old_type>> vec2;
-    per<map_t<old_type>> map;
-    per<map_t<old_type>> map2;
-    per<table_t<old_type>> table;
-
-    template <class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(CEREAL_NVP(vec),
-           CEREAL_NVP(vec2),
-           CEREAL_NVP(map),
-           CEREAL_NVP(map2),
-           CEREAL_NVP(table));
-    }
-};
-
-auto get_pools_types(const old_app_type&)
-{
-    return hana::make_map(
-        hana::make_pair(hana::type_c<test::vector_one<old_type>>,
-                        BOOST_HANA_STRING("vec")),
-        hana::make_pair(hana::type_c<map_t<old_type>>,
-                        BOOST_HANA_STRING("map")),
-        hana::make_pair(hana::type_c<table_t<old_type>>,
-                        BOOST_HANA_STRING("table"))
-
-    );
-}
-
-/**
- * We want to load and transform the old type into the new type.
- *
- * An approach to first load the old type and then apply some transformation
- * would not preserve the structural sharing within the type. (Converting 2
- * vectors that initially use structural sharing would result in 2 independent
- * vectors without SS).
- *
- * Therefore, we have to apply the transformation to the pools that are later
- * used to materialize these new vectors that would preserve SS.
- *
- * The new type can't differ much from the old type. The type's JSON layout must
- * be the same as the old type. Each persistable member gets serialized into an
- * integer (container ID within the pool), so that works. But we can't add
- * new members.
- */
-struct new_app_type
-{
-    per<test::vector_one<new_type>> vec;
-    per<test::vector_one<new_type>> vec2;
-    per<map_t<new_type>> map;
-    per<map_t<new_type>> map2;
-
-    // Demonstrate the member that we do not upgrade.
-    per<table_t<old_type>> table;
-
-    template <class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(CEREAL_NVP(vec),
-           CEREAL_NVP(vec2),
-           CEREAL_NVP(map),
-           CEREAL_NVP(map2),
-           CEREAL_NVP(table));
-    }
-};
-
-auto get_pools_types(const new_app_type&)
-{
-    return hana::make_map(
-        hana::make_pair(hana::type_c<test::vector_one<new_type>>,
-                        BOOST_HANA_STRING("vec")),
-        hana::make_pair(hana::type_c<map_t<new_type>>,
-                        BOOST_HANA_STRING("map")),
-        hana::make_pair(hana::type_c<table_t<old_type>>,
-                        BOOST_HANA_STRING("table"))
-
-    );
-}
-} // namespace

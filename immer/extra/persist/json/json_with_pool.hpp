@@ -29,6 +29,9 @@ auto to_json_with_pool(const T& value0, const Policy& policy = Policy{})
             decltype(policy.get_pool_name_fn(value0))>{
             pools, policy.get_output_wrap_fn(), os};
         policy.save(ar, value0);
+        // Calling finalize explicitly, as it might throw on saving the pools,
+        // for example if pool names are not unique.
+        ar.finalize();
     }
     return os.str();
 }
