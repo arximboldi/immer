@@ -116,7 +116,7 @@ struct hana_struct_auto_policy
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_type(boost::hana::typeid_(value));
+        return get_pools_for_type<T>();
     }
 };
 
@@ -127,14 +127,13 @@ struct hana_struct_auto_member_name_policy
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_type(boost::hana::typeid_(value));
+        return get_pools_for_type<T>();
     }
 
     template <class T>
     auto get_pool_name_fn(const T& value) const
     {
-        using map_t =
-            decltype(get_named_pools_for_type(boost::hana::typeid_(value)));
+        using map_t = decltype(get_named_pools_for_type<T>());
         return name_from_map_fn<map_t>{};
     }
 };
