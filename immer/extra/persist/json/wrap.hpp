@@ -115,14 +115,15 @@ constexpr auto wrap_for_loading = exclude_internal_pool_types(
  * Generate a hana set of types of persistable members for the given type,
  * recursively. Example: [type_c<immer::map<K, V>>]
  */
-auto get_pools_for_type(auto type)
+template <class T>
+auto get_pools_for_type()
 {
     namespace hana     = boost::hana;
-    auto all_types_set = util::get_inner_types(type);
+    auto all_types_set = util::get_inner_types(hana::type_c<T>);
     auto persistable =
-        hana::filter(hana::to_tuple(all_types_set), [&](auto type) {
-            using T = typename decltype(type)::type;
-            return is_persistable(T{});
+        hana::filter(hana::to_tuple(all_types_set), [](auto type) {
+            using Type = typename decltype(type)::type;
+            return is_persistable(Type{});
         });
     return hana::to_set(persistable);
 }
@@ -132,14 +133,15 @@ auto get_pools_for_type(auto type)
  * Example:
  * [(type_c<immer::map<K, V>>, "tracks")]
  */
-auto get_named_pools_for_type(auto type)
+template <class T>
+auto get_named_pools_for_type()
 {
     namespace hana     = boost::hana;
-    auto all_types_map = util::get_inner_types_map(type);
+    auto all_types_map = util::get_inner_types_map(hana::type_c<T>);
     auto persistable =
-        hana::filter(hana::to_tuple(all_types_map), [&](auto pair) {
-            using T = typename decltype(+hana::first(pair))::type;
-            return is_persistable(T{});
+        hana::filter(hana::to_tuple(all_types_map), [](auto pair) {
+            using Type = typename decltype(+hana::first(pair))::type;
+            return is_persistable(Type{});
         });
     return hana::to_map(persistable);
 }

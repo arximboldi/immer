@@ -238,8 +238,8 @@ TEST_CASE("Test exception while circular converting")
         };
     }();
 
-    const auto names = immer::persist::get_named_pools_for_type(
-        hana::type_c<model::value_one>);
+    const auto names =
+        immer::persist::get_named_pools_for_type<model::value_one>();
     const auto model_pool = immer::persist::get_auto_pool(value);
 
     SECTION("Try to load")
@@ -408,8 +408,8 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         };
     }();
 
-    const auto names = immer::persist::get_named_pools_for_type(
-        hana::type_c<model::value_one>);
+    const auto names =
+        immer::persist::get_named_pools_for_type<model::value_one>();
     const auto model_pools = immer::persist::get_auto_pool(value);
 
     /**
@@ -517,8 +517,8 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
     (void) format_load_pools;
     // show_type<decltype(format_load_pools)> qwe;
 
-    const auto format_names = immer::persist::get_named_pools_for_type(
-        hana::type_c<format::value_one>);
+    const auto format_names =
+        immer::persist::get_named_pools_for_type<format::value_one>();
 
     SECTION("vector")
     {
