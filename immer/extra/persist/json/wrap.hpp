@@ -3,11 +3,14 @@
 #include <immer/extra/persist/common/type_traverse.hpp>
 #include <immer/extra/persist/json/persistable.hpp>
 
+// Bring in all known pools to be able to wrap all immer types
 #include <immer/extra/persist/box/pool.hpp>
 #include <immer/extra/persist/champ/traits.hpp>
 #include <immer/extra/persist/rbts/traits.hpp>
 
 namespace immer::persist {
+
+namespace detail {
 
 template <class T>
 struct is_auto_ignored_type : boost::hana::false_
@@ -112,6 +115,31 @@ constexpr auto wrap_for_loading = exclude_internal_pool_types(
     make_conditional_func(is_persistable, to_persistable_loader));
 
 /**
+ * Returns a wrapping function that wraps only known types.
+ */
+inline auto wrap_known_types(auto types, auto wrap)
+{
+    static_assert(boost::hana::is_a<boost::hana::set_tag, decltype(types)>);
+    using KnownSet      = decltype(types);
+    const auto is_known = [](const auto& value) {
+        using result_t = decltype(boost::hana::contains(
+            KnownSet{}, boost::hana::typeid_(value)));
+        return result_t{};
+    };
+    return make_conditional_func(is_known, std::move(wrap));
+}
+
+static_assert(std::is_same_v<
+                  decltype(wrap_for_saving(std::declval<const std::string&>())),
+                  const std::string&>,
+              "wrap must return a reference when it's not wrapping the type");
+static_assert(std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
+                             persistable<immer::vector<int>>>,
+              "and a value when it's wrapping");
+
+} // namespace detail
+
+/**
  * Generate a hana set of types of persistable members for the given type,
  * recursively. Example: [type_c<immer::map<K, V>>]
  */
@@ -123,7 +151,7 @@ auto get_pools_for_type()
     auto persistable =
         hana::filter(hana::to_tuple(all_types_set), [](auto type) {
             using Type = typename decltype(type)::type;
-            return is_persistable(Type{});
+            return detail::is_persistable(Type{});
         });
     return hana::to_set(persistable);
 }
@@ -141,7 +169,7 @@ auto get_named_pools_for_type()
     auto persistable =
         hana::filter(hana::to_tuple(all_types_map), [](auto pair) {
             using Type = typename decltype(+hana::first(pair))::type;
-            return is_persistable(Type{});
+            return detail::is_persistable(Type{});
         });
     return hana::to_map(persistable);
 }

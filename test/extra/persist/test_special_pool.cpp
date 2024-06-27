@@ -189,7 +189,7 @@ inline auto get_pools_names(const test_data&)
 
 auto get_pools_types(const test_data& val)
 {
-    return hana::keys(get_pools_names(val));
+    return hana::to_set(hana::keys(get_pools_names(val)));
 }
 
 inline auto get_pools_names(const std::pair<test_data, test_data>&)
@@ -199,7 +199,7 @@ inline auto get_pools_names(const std::pair<test_data, test_data>&)
 
 auto get_pools_types(const std::pair<test_data, test_data>& val)
 {
-    return hana::keys(get_pools_names(val));
+    return hana::to_set(hana::keys(get_pools_names(val)));
 }
 
 } // namespace
@@ -584,8 +584,9 @@ struct recursive_type
 
 auto get_pools_types(const recursive_type&)
 {
-    return hana::tuple_t<immer::box<recursive_type>,
-                         vector_one<per<immer::box<recursive_type>>>>;
+    return hana::to_set(
+        hana::tuple_t<immer::box<recursive_type>,
+                      vector_one<per<immer::box<recursive_type>>>>);
 }
 
 } // namespace
@@ -676,8 +677,9 @@ struct rec_map
 
 auto get_pools_types(const rec_map&)
 {
-    return hana::tuple_t<immer::box<rec_map>,
-                         immer::map<int, per<immer::box<rec_map>>>>;
+    return hana::to_set(
+        hana::tuple_t<immer::box<rec_map>,
+                      immer::map<int, per<immer::box<rec_map>>>>);
 }
 
 struct same_name_policy : immer::persist::via_get_pools_types_policy

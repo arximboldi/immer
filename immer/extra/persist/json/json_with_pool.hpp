@@ -2,6 +2,7 @@
 
 #include <immer/extra/persist/json/policy.hpp>
 #include <immer/extra/persist/json/pools.hpp>
+#include <immer/extra/persist/json/wrap.hpp>
 
 /**
  * to_json_with_pool
@@ -16,14 +17,15 @@ void to_json_with_pool_stream(auto& os,
                               const T& value0,
                               const Policy& policy = Policy{})
 {
-    auto pools  = detail::generate_output_pools(policy.get_pool_types(value0));
-    using Pools = std::decay_t<decltype(pools)>;
-    auto ar     = immer::persist::json_immer_output_archive<
+    const auto types = policy.get_pool_types(value0);
+    auto pools       = detail::generate_output_pools(types);
+    const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
+    using Pools      = std::decay_t<decltype(pools)>;
+    auto ar          = immer::persist::json_immer_output_archive<
         Archive,
         Pools,
-        decltype(policy.get_output_wrap_fn()),
-        decltype(policy.get_pool_name_fn(value0))>{
-        pools, policy.get_output_wrap_fn(), os};
+        decltype(wrap),
+        decltype(policy.get_pool_name_fn(value0))>{pools, wrap, os};
     policy.save(ar, value0);
     // Calling finalize explicitly, as it might throw on saving the pools,
     // for example if pool names are not unique.
@@ -95,12 +97,12 @@ template <class T,
           Policy<T> Policy = default_policy>
 T from_json_with_pool(std::istream& is, const Policy& policy = Policy{})
 {
-    using Pools      = std::decay_t<decltype(detail::generate_input_pools(
-        policy.get_pool_types(std::declval<T>())))>;
+    using TypesSet   = decltype(policy.get_pool_types(std::declval<T>()));
+    using Pools      = decltype(detail::generate_input_pools(TypesSet{}));
     using PoolNameFn = decltype(policy.get_pool_name_fn(std::declval<T>()));
 
-    const auto& wrap = policy.get_input_wrap_fn();
-
+    const auto wrap =
+        detail::wrap_known_types(TypesSet{}, detail::wrap_for_loading);
     auto pools = load_pools<Pools, Archive, PoolNameFn>(is, wrap);
 
     auto ar = immer::persist::

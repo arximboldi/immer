@@ -22,9 +22,10 @@ T from_json_with_auto_pool(const std::string& input,
 template <typename T, Policy<T> Policy = hana_struct_auto_policy>
 auto get_auto_pool(const T& value0, const Policy& policy = Policy{})
 {
-    const auto& wrap = policy.get_output_wrap_fn();
-    auto pools  = detail::generate_output_pools(policy.get_pool_types(value0));
-    using Pools = std::decay_t<decltype(pools)>;
+    const auto types = policy.get_pool_types(value0);
+    auto pools       = detail::generate_output_pools(types);
+    const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
+    using Pools      = std::decay_t<decltype(pools)>;
 
     {
         auto ar = json_immer_output_archive<detail::blackhole_output_archive,
