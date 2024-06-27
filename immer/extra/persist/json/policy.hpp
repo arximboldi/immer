@@ -6,10 +6,8 @@
 namespace immer::persist {
 
 template <class T, class Value>
-concept Policy = requires(Value value, T policy) {
-    policy.get_pool_types(value);
-    policy.get_pool_name_fn(value);
-};
+concept Policy =
+    requires(Value value, T policy) { policy.get_pool_types(value); };
 
 template <class T>
 auto get_pools_names(const T&)
@@ -38,28 +36,34 @@ struct value0_serialize_t
     }
 };
 
-struct via_get_pools_names_policy : value0_serialize_t
+template <class T>
+struct via_get_pools_names_policy_t : value0_serialize_t
 {
-    template <class T>
     auto get_pool_types(const T& value) const
     {
         return boost::hana::to_set(boost::hana::keys(get_pools_names(value)));
     }
 
-    template <class T>
-    auto get_pool_name_fn(const T& value) const
+    using Map = decltype(get_pools_names(std::declval<T>()));
+
+    template <class Container>
+    auto get_pool_name(const Container& container) const
     {
-        using Map = decltype(get_pools_names(value));
-        return name_from_map_fn<Map>{};
+        return name_from_map_fn<Map>{}(container);
     }
 };
+
+auto via_get_pools_names_policy(const auto& value)
+{
+    return via_get_pools_names_policy_t<std::decay_t<decltype(value)>>{};
+}
 
 struct demangled_names_t
 {
     template <class T>
-    auto get_pool_name_fn(const T& value) const
+    auto get_pool_name(const T& value) const
     {
-        return get_demangled_name_fn{};
+        return get_demangled_name(value);
     }
 };
 
@@ -83,21 +87,28 @@ struct hana_struct_auto_policy : demangled_names_t
     }
 };
 
-struct hana_struct_auto_member_name_policy : value0_serialize_t
+template <class T>
+struct hana_struct_auto_member_name_policy_t : value0_serialize_t
 {
-    template <class T>
     auto get_pool_types(const T& value) const
     {
         return get_pools_for_type<T>();
     }
 
-    template <class T>
-    auto get_pool_name_fn(const T& value) const
+    using map_t = decltype(get_named_pools_for_type<T>());
+
+    template <class Container>
+    auto get_pool_name(const Container& container) const
     {
-        using map_t = decltype(get_named_pools_for_type<T>());
-        return name_from_map_fn<map_t>{};
+        return name_from_map_fn<map_t>{}(container);
     }
 };
+
+auto hana_struct_auto_member_name_policy(const auto& value)
+{
+    return hana_struct_auto_member_name_policy_t<
+        std::decay_t<decltype(value)>>{};
+}
 
 template <class Map>
 struct via_map_policy : value0_serialize_t
@@ -112,9 +123,9 @@ struct via_map_policy : value0_serialize_t
     }
 
     template <class T>
-    auto get_pool_name_fn(const T&) const
+    auto get_pool_name(const T& value) const
     {
-        return name_from_map_fn<Map>{};
+        return name_from_map_fn<Map>{}(value);
     }
 };
 

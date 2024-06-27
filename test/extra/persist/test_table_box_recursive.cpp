@@ -141,7 +141,7 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
     }
 
     const auto json_str = immer::persist::to_json_with_pool(
-        value, immer::persist::hana_struct_auto_member_name_policy{});
+        value, immer::persist::hana_struct_auto_member_name_policy(value));
     // REQUIRE(json_str == "");
     constexpr auto expected_json_str = R"(
 {
@@ -188,7 +188,8 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
     REQUIRE(json_t::parse(expected_json_str) == json_t::parse(json_str));
 
     const auto loaded = immer::persist::from_json_with_pool<value_one>(
-        json_str, immer::persist::hana_struct_auto_member_name_policy{});
+        json_str,
+        immer::persist::hana_struct_auto_member_name_policy(value_one{}));
     REQUIRE(loaded == value);
 
     SECTION("Loaded value currently fails to reuse the box")
@@ -204,7 +205,8 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
     SECTION("Saved loaded value shows the broken sharing")
     {
         const auto loaded_str = immer::persist::to_json_with_pool(
-            loaded, immer::persist::hana_struct_auto_member_name_policy{});
+            loaded,
+            immer::persist::hana_struct_auto_member_name_policy(loaded));
         // REQUIRE(str == "");
         REQUIRE(json_t::parse(loaded_str) == json_t::parse(expected_json_str));
     }

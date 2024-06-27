@@ -625,10 +625,12 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         {
             const auto format_twos_json = immer::persist::to_json_with_pool(
                 format_twos,
-                immer::persist::hana_struct_auto_member_name_policy{});
+                immer::persist::hana_struct_auto_member_name_policy(
+                    format_twos));
             const auto model_twos_json = immer::persist::to_json_with_pool(
                 value.twos_map,
-                immer::persist::hana_struct_auto_member_name_policy{});
+                immer::persist::hana_struct_auto_member_name_policy(
+                    value.twos_map));
             REQUIRE(model_twos_json == format_twos_json);
         }
     }
@@ -649,7 +651,8 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         {
             const auto format_twos_json = immer::persist::to_json_with_pool(
                 format_twos,
-                immer::persist::hana_struct_auto_member_name_policy{});
+                immer::persist::hana_struct_auto_member_name_policy(
+                    format_twos));
             const auto model_twos_json =
                 immer::persist::to_json_with_auto_pool(value.twos_set, names);
             REQUIRE(json_t::parse(model_twos_json) ==
@@ -672,7 +675,7 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         }();
         const auto format_json_str = immer::persist::to_json_with_pool(
             format_value,
-            immer::persist::hana_struct_auto_member_name_policy{});
+            immer::persist::hana_struct_auto_member_name_policy(format_value));
         const auto json_str =
             immer::persist::to_json_with_auto_pool(value, names);
         REQUIRE(format_json_str == json_str);
@@ -699,10 +702,12 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
     SECTION("XML also works")
     {
         const auto xml_str = to_json_with_pool<cereal::XMLOutputArchive>(
-            value, immer::persist::hana_struct_auto_member_name_policy{});
+            value, immer::persist::hana_struct_auto_member_name_policy(value));
         const auto loaded_value =
             from_json_with_pool<model::value_one, cereal::XMLInputArchive>(
-                xml_str, immer::persist::hana_struct_auto_member_name_policy{});
+                xml_str,
+                immer::persist::hana_struct_auto_member_name_policy(
+                    model::value_one{}));
         REQUIRE(value == loaded_value);
     }
 }
