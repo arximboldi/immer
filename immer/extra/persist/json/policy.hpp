@@ -3,18 +3,11 @@
 #include <immer/extra/persist/json/names.hpp>
 #include <immer/extra/persist/json/wrap.hpp>
 
-// Bring in all known pools to be able to wrap all immer types
-#include <immer/extra/persist/box/pool.hpp>
-#include <immer/extra/persist/champ/traits.hpp>
-#include <immer/extra/persist/rbts/traits.hpp>
-
 namespace immer::persist {
 
 template <class T, class Value>
 concept Policy = requires(Value value, T policy) {
     policy.get_pool_types(value);
-    policy.get_output_wrap_fn();
-    policy.get_input_wrap_fn();
     policy.get_pool_name_fn(value);
 };
 
@@ -45,39 +38,12 @@ struct value0_serialize_t
     }
 };
 
-struct no_wrap_t
-{
-    auto get_output_wrap_fn() const { return boost::hana::id; }
-    auto get_input_wrap_fn() const { return boost::hana::id; }
-};
-
-struct default_wrap_t
-{
-    auto get_output_wrap_fn() const
-    {
-        static_assert(
-            std::is_same_v<decltype(wrap_for_saving(
-                               std::declval<const std::string&>())),
-                           const std::string&>,
-            "wrap must return a reference when it's not wrapping the type");
-        static_assert(
-            std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
-                           persistable<immer::vector<int>>>,
-            "and a value when it's wrapping");
-
-        return wrap_for_saving;
-    }
-    auto get_input_wrap_fn() const { return wrap_for_loading; }
-};
-
-struct via_get_pools_names_policy
-    : value0_serialize_t
-    , no_wrap_t
+struct via_get_pools_names_policy : value0_serialize_t
 {
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return boost::hana::keys(get_pools_names(value));
+        return boost::hana::to_set(boost::hana::keys(get_pools_names(value)));
     }
 
     template <class T>
@@ -100,7 +66,6 @@ struct demangled_names_t
 struct via_get_pools_types_policy
     : demangled_names_t
     , value0_serialize_t
-    , no_wrap_t
 {
     template <class T>
     auto get_pool_types(const T& value) const
@@ -109,9 +74,7 @@ struct via_get_pools_types_policy
     }
 };
 
-struct hana_struct_auto_policy
-    : demangled_names_t
-    , default_wrap_t
+struct hana_struct_auto_policy : demangled_names_t
 {
     template <class T>
     auto get_pool_types(const T& value) const
@@ -120,9 +83,7 @@ struct hana_struct_auto_policy
     }
 };
 
-struct hana_struct_auto_member_name_policy
-    : value0_serialize_t
-    , default_wrap_t
+struct hana_struct_auto_member_name_policy : value0_serialize_t
 {
     template <class T>
     auto get_pool_types(const T& value) const
@@ -139,9 +100,7 @@ struct hana_struct_auto_member_name_policy
 };
 
 template <class Map>
-struct via_map_policy
-    : value0_serialize_t
-    , default_wrap_t
+struct via_map_policy : value0_serialize_t
 {
     static_assert(boost::hana::is_a<boost::hana::map_tag, Map>,
                   "via_map_policy accepts a map of types to pool names");
@@ -149,7 +108,7 @@ struct via_map_policy
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return boost::hana::keys(Map{});
+        return boost::hana::to_set(boost::hana::keys(Map{}));
     }
 
     template <class T>
