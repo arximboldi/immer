@@ -482,6 +482,8 @@ TEST_CASE("A loop with 2 nodes")
 {
     const auto json = std::string{R"({
     "value0": {
+        "B": 5,
+        "BL": 1,
         "leaves": [
             {
                 "key": 32,
@@ -858,6 +860,8 @@ TEST_CASE("Test vector with very big objects")
 TEST_CASE("Test modifying vector nodes")
 {
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {
             {"key", 1},
@@ -906,6 +910,22 @@ TEST_CASE("Test modifying vector nodes")
     {
         REQUIRE_THROWS_AS(load_vec(data.dump(), 99),
                           immer::persist::pool_exception);
+    }
+
+    SECTION("Load different B")
+    {
+        auto b              = GENERATE(1, 3, 6, 7);
+        data["value0"]["B"] = b;
+        REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
+                          immer::persist::rbts::incompatible_bits_parameters);
+    }
+
+    SECTION("Load different BL")
+    {
+        auto bl              = GENERATE(2, 3, 5, 6);
+        data["value0"]["BL"] = bl;
+        REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
+                          immer::persist::rbts::incompatible_bits_parameters);
     }
 
     SECTION("Invalid root id")
@@ -998,6 +1018,8 @@ TEST_CASE("Test modifying vector nodes")
 TEST_CASE("Test modifying flex vector nodes")
 {
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {
             {"key", 1},
@@ -1205,6 +1227,8 @@ TEST_CASE("Print shift calculation", "[.print_shift]")
 TEST_CASE("Test more inner nodes")
 {
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {{"key", 32}, {"value", {58, 59}}}, {{"key", 34}, {"value", {62, 63}}},
         {{"key", 3}, {"value", {0, 1}}},    {{"key", 5}, {"value", {4, 5}}},
@@ -1350,6 +1374,8 @@ TEST_CASE("Exception while loading children")
 {
     // spdlog::set_level(spdlog::level::trace);
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {
             {"key", 1},
@@ -1411,6 +1437,8 @@ TEST_CASE("Exception while loading children")
 TEST_CASE("Test flex vector with a weird shape relaxed")
 {
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {{"key", 1}, {"value", {66}}},
         {{"key", 36}, {"value", {64, 65}}},
@@ -1449,6 +1477,8 @@ TEST_CASE("Test flex vector with a weird shape relaxed")
 TEST_CASE("Test flex vector with a weird shape strict", "[.broken]")
 {
     json_t data;
+    data["value0"]["B"]      = 5;
+    data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
         {{"key", 1}, {"value", {66}}},
         {{"key", 36}, {"value", {64, 65}}},

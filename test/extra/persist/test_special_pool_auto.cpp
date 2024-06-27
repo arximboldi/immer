@@ -495,6 +495,8 @@ TEST_CASE("Test loading broken table")
       {"ones": 1, "key": {"str": "123"}}
     ],
     "ones": {
+      "B": 5,
+      "BL": 1,
       "leaves": [
         {"key": 1, "value": []},
         {"key": 2, "value": [{"twos": 1, "twos_table": 1}]}
@@ -503,6 +505,8 @@ TEST_CASE("Test loading broken table")
       "vectors": [{"root": 0, "tail": 1}, {"root": 0, "tail": 2}]
     },
     "twos": {
+      "B": 5,
+      "BL": 1,
       "leaves": [
         {"key": 1, "value": [{"two": 0}, {"two": 1}]},
         {"key": 2, "value": []}

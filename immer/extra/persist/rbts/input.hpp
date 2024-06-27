@@ -77,6 +77,24 @@ public:
     }
 };
 
+class incompatible_bits_parameters : public pool_exception
+{
+public:
+    incompatible_bits_parameters(immer::detail::rbts::bits_t loader_bits,
+                                 immer::detail::rbts::bits_t loader_bits_leaf,
+                                 immer::detail::rbts::bits_t pool_bits,
+                                 immer::detail::rbts::bits_t pool_bits_leaf)
+        : pool_exception{
+              fmt::format("B and BL parameters must be the same. Loader "
+                          "expects {} and {} but the pool has {} and {}",
+                          loader_bits,
+                          loader_bits_leaf,
+                          pool_bits,
+                          pool_bits_leaf)}
+    {
+    }
+};
+
 template <class T,
           typename MemoryPolicy,
           immer::detail::rbts::bits_t B,
@@ -110,6 +128,8 @@ public:
             throw invalid_container_id{id};
         }
 
+        validate_bits_params();
+
         const auto& info = pool_.vectors[id.value];
 
         const auto relaxed_allowed = false;
@@ -135,6 +155,8 @@ public:
         if (id.value >= pool_.vectors.size()) {
             throw invalid_container_id{id};
         }
+
+        validate_bits_params();
 
         const auto& info = pool_.vectors[id.value];
 
@@ -484,6 +506,15 @@ private:
                             *id, expected_count, real_count};
                     }
                 }));
+    }
+
+    void validate_bits_params() const
+    {
+        auto good = pool_.bits == B && pool_.bits_leaf == BL;
+        if (!good) {
+            throw incompatible_bits_parameters{
+                B, BL, pool_.bits, pool_.bits_leaf};
+        }
     }
 
 private:

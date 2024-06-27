@@ -448,16 +448,22 @@ TEST_CASE("Special pool loads empty test_data")
   },
   "pools": {
     "ints": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "strings": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "flex_ints": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
@@ -466,11 +472,15 @@ TEST_CASE("Special pool loads empty test_data")
           {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
     ],
     "metas": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "meta_metas": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
@@ -514,16 +524,22 @@ TEST_CASE("Special pool throws cereal::Exception")
   },
   "pools": {
     "ints": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "strings": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "flex_ints": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
@@ -532,11 +548,15 @@ TEST_CASE("Special pool throws cereal::Exception")
         {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
     ],
     "metas": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "meta_metas": {
+      "B": 5,
+      "BL": 1,
       "leaves": [{"key": 1, "value": []}],
       "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
       "vectors": [{"root": 0, "tail": 1}]

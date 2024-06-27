@@ -72,7 +72,11 @@ struct output_pool
     template <class Archive>
     void save(Archive& ar) const
     {
-        ar(CEREAL_NVP(leaves), CEREAL_NVP(inners), CEREAL_NVP(vectors));
+        ar(CEREAL_NVP(B),
+           CEREAL_NVP(BL),
+           CEREAL_NVP(leaves),
+           CEREAL_NVP(inners),
+           CEREAL_NVP(vectors));
     }
 };
 
@@ -98,6 +102,8 @@ make_output_pool_for(const immer::flex_vector<T, MemoryPolicy, B, BL>&)
 template <typename T>
 struct input_pool
 {
+    immer::detail::rbts::bits_t bits{};
+    immer::detail::rbts::bits_t bits_leaf{};
     immer::map<node_id, values_load<T>> leaves;
     immer::map<node_id, inner_node> inners;
     immer::vector<rbts_info> vectors;
@@ -108,7 +114,13 @@ struct input_pool
     template <class Archive>
     void load(Archive& ar)
     {
-        ar(CEREAL_NVP(leaves), CEREAL_NVP(inners), CEREAL_NVP(vectors));
+        auto& B  = bits;
+        auto& BL = bits_leaf;
+        ar(CEREAL_NVP(B),
+           CEREAL_NVP(BL),
+           CEREAL_NVP(leaves),
+           CEREAL_NVP(inners),
+           CEREAL_NVP(vectors));
     }
 
     void merge_previous(const input_pool& other) {}
@@ -128,9 +140,11 @@ input_pool<T> to_input_pool(output_pool<T, MemoryPolicy, B, BL> ar)
     }
 
     return {
-        .leaves  = std::move(leaves),
-        .inners  = std::move(ar.inners),
-        .vectors = std::move(ar.vectors),
+        .bits      = B,
+        .bits_leaf = BL,
+        .leaves    = std::move(leaves),
+        .inners    = std::move(ar.inners),
+        .vectors   = std::move(ar.vectors),
     };
 }
 
