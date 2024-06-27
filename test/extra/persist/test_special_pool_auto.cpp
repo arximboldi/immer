@@ -741,12 +741,14 @@ TEST_CASE("Test table with a funny value no auto")
     };
 
     const auto json_str = immer::persist::to_json_with_pool(
-        value, immer::persist::via_get_pools_names_policy{});
+        value, immer::persist::via_get_pools_names_policy(value));
     // REQUIRE(json_str == "");
 
     const auto loaded =
         immer::persist::from_json_with_pool<test_no_auto::value_one>(
-            json_str, immer::persist::via_get_pools_names_policy{});
+            json_str,
+            immer::persist::via_get_pools_names_policy(
+                test_no_auto::value_one{}));
     REQUIRE(loaded == value);
 }
 

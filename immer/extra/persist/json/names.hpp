@@ -5,14 +5,11 @@
 
 namespace immer::persist {
 
-struct get_demangled_name_fn
+template <class T>
+auto get_demangled_name(const T&)
 {
-    template <class T>
-    auto operator()(const T&) const
-    {
-        return boost::core::demangle(typeid(std::decay_t<T>).name());
-    }
-};
+    return boost::core::demangle(typeid(std::decay_t<T>).name());
+}
 
 template <class T>
 class error_duplicate_pool_name_found;

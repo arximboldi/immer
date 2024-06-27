@@ -21,11 +21,15 @@ void to_json_with_pool_stream(auto& os,
     auto pools       = detail::generate_output_pools(types);
     const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
     using Pools      = std::decay_t<decltype(pools)>;
-    auto ar          = immer::persist::json_immer_output_archive<
-        Archive,
-        Pools,
-        decltype(wrap),
-        decltype(policy.get_pool_name_fn(value0))>{pools, wrap, os};
+    auto get_pool_name_fn = [](const auto& value) {
+        return Policy{}.get_pool_name(value);
+    };
+    auto ar =
+        immer::persist::json_immer_output_archive<Archive,
+                                                  Pools,
+                                                  decltype(wrap),
+                                                  decltype(get_pool_name_fn)>{
+            pools, wrap, os};
     policy.save(ar, value0);
     // Calling finalize explicitly, as it might throw on saving the pools,
     // for example if pool names are not unique.
@@ -97,9 +101,13 @@ template <class T,
           Policy<T> Policy = default_policy>
 T from_json_with_pool(std::istream& is, const Policy& policy = Policy{})
 {
-    using TypesSet   = decltype(policy.get_pool_types(std::declval<T>()));
-    using Pools      = decltype(detail::generate_input_pools(TypesSet{}));
-    using PoolNameFn = decltype(policy.get_pool_name_fn(std::declval<T>()));
+    using TypesSet = decltype(policy.get_pool_types(std::declval<T>()));
+    using Pools    = decltype(detail::generate_input_pools(TypesSet{}));
+
+    auto get_pool_name_fn = [](const auto& value) {
+        return Policy{}.get_pool_name(value);
+    };
+    using PoolNameFn = decltype(get_pool_name_fn);
 
     const auto wrap =
         detail::wrap_known_types(TypesSet{}, detail::wrap_for_loading);

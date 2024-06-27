@@ -489,7 +489,8 @@ TEST_CASE("Special pool loads empty test_data")
     {
         auto loaded =
             immer::persist::from_json_with_pool<std::decay_t<decltype(value)>>(
-                json_pool_str, immer::persist::via_get_pools_names_policy{});
+                json_pool_str,
+                immer::persist::via_get_pools_names_policy(value));
         REQUIRE(loaded == value);
     }
 }
@@ -549,7 +550,8 @@ TEST_CASE("Special pool throws cereal::Exception")
 
     const auto call = [&] {
         return immer::persist::from_json_with_pool<test_data>(
-            json_pool_str, immer::persist::via_get_pools_names_policy{});
+            json_pool_str,
+            immer::persist::via_get_pools_names_policy(test_data{}));
     };
     REQUIRE_THROWS_MATCHES(
         call(),
@@ -685,9 +687,9 @@ auto get_pools_types(const rec_map&)
 struct same_name_policy : immer::persist::via_get_pools_types_policy
 {
     template <class T>
-    auto get_pool_name_fn(const T& value) const
+    auto get_pool_name(const T& value) const
     {
-        return [](auto&&) { return "same_pool_name"; };
+        return "same_pool_name";
     }
 };
 } // namespace
