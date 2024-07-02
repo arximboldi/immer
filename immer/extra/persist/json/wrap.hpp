@@ -144,7 +144,7 @@ static_assert(std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
  * recursively. Example: [type_c<immer::map<K, V>>]
  */
 template <class T>
-auto get_pools_for_type()
+auto get_pools_for_hana_type()
 {
     namespace hana     = boost::hana;
     auto all_types_set = util::get_inner_types(hana::type_c<T>);
@@ -162,7 +162,7 @@ auto get_pools_for_type()
  * [(type_c<immer::map<K, V>>, "tracks")]
  */
 template <class T>
-auto get_named_pools_for_type()
+auto get_named_pools_for_hana_type()
 {
     namespace hana     = boost::hana;
     auto all_types_map = util::get_inner_types_map(hana::type_c<T>);

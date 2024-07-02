@@ -112,7 +112,8 @@ TEST_CASE("Auto-persisting")
 {
     constexpr auto names = [] {
         return hana::union_(
-            immer::persist::get_named_pools_for_type<test_data_with_immer>(),
+            immer::persist::get_named_pools_for_hana_type<
+                test_data_with_immer>(),
             hana::make_map(hana::make_pair(hana::type_c<vector_one<meta_meta>>,
                                            BOOST_HANA_STRING("meta_meta"))));
     };
@@ -236,7 +237,7 @@ TEST_CASE("Test save and load small type")
     const auto value = test_data_with_one_immer_member{
         .ints = ints1,
     };
-    const auto pool_types = immer::persist::get_named_pools_for_type<
+    const auto pool_types = immer::persist::get_named_pools_for_hana_type<
         test_data_with_one_immer_member>();
     const auto json_str =
         immer::persist::to_json_with_auto_pool(value, pool_types);
@@ -439,7 +440,7 @@ TEST_CASE("Test table with a funny value")
     };
 
     const auto names =
-        immer::persist::get_named_pools_for_type<champ_test::value_one>();
+        immer::persist::get_named_pools_for_hana_type<champ_test::value_one>();
     const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
@@ -479,7 +480,7 @@ TEST_CASE("Test loading broken table")
     };
 
     const auto names =
-        immer::persist::get_named_pools_for_type<champ_test::value_one>();
+        immer::persist::get_named_pools_for_hana_type<champ_test::value_one>();
 
     const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
@@ -947,8 +948,8 @@ struct with_variant
 
 TEST_CASE("Test types traversal")
 {
-    auto names =
-        immer::persist::get_named_pools_for_type<test_variant::with_variant>();
+    auto names = immer::persist::get_named_pools_for_hana_type<
+        test_variant::with_variant>();
     SECTION("It goes inside variant")
     {
         using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
@@ -970,8 +971,8 @@ TEST_CASE("Test types traversal")
                                hana::false_c)::value);
 
         // But it has the vector when we don't use names
-        auto only_types =
-            immer::persist::get_pools_for_type<test_variant::with_variant>();
+        auto only_types = immer::persist::get_pools_for_hana_type<
+            test_variant::with_variant>();
         static_assert(decltype(hana::contains(only_types, vector_type))::value);
     }
 }
