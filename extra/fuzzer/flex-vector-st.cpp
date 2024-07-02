@@ -42,8 +42,25 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
     auto is_valid_size = [](auto& v) {
         return [&](auto idx) { return idx >= 0 && idx <= v.size(); };
     };
-    auto can_concat = [](auto&& v1, auto&& v2) {
-        return v1.size() + v2.size() < vector_t::max_size();
+    auto can_concat = [](const auto& v1, const auto& v2) {
+        // First, check max_size
+        if (v1.size() + v2.size() > vector_t::max_size()) {
+            return false;
+        }
+
+        // But just checking max_size is not sufficient, because there are other
+        // conditions for the validity of the tree, like shift constraints, for
+        // example.
+        try {
+            // Try to concat and catch an exception if it fails
+            const auto v3 = v1 + v2;
+            if (v3.size()) {
+                return true;
+            }
+        } catch (const immer::detail::rbts::invalid_tree&) {
+            return false;
+        }
+        return true;
     };
     auto can_compare = [](auto&& v) {
         // avoid comparing vectors that are too big, and hence, slow to compare

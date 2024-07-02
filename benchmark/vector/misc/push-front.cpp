@@ -11,12 +11,15 @@
 #include <immer/flex_vector.hpp>
 
 #if IMMER_BENCHMARK_LIBRRB
-extern "C" {
+extern "C"
+{
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
 #endif
+
+// clang-format off
 
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", benchmark_push_front_librrb)
@@ -28,3 +31,5 @@ NONIUS_BENCHMARK("flex/GC", bechmark_push_front<immer::flex_vector<unsigned,gc_m
 NONIUS_BENCHMARK("flex_s/GC", bechmark_push_front<immer::flex_vector<std::size_t,gc_memory,5>>())
 NONIUS_BENCHMARK("flex/NO", bechmark_push_front<immer::flex_vector<unsigned,basic_memory,5>>())
 NONIUS_BENCHMARK("flex/UN", bechmark_push_front<immer::flex_vector<unsigned,unsafe_memory,5>>())
+
+// clang-format on

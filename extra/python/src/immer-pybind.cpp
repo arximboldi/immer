@@ -8,29 +8,29 @@
 
 #include <pybind11/pybind11.h>
 
-#include <immer/vector.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
+#include <immer/vector.hpp>
 
 namespace {
 
 struct heap_t
 {
-    template <typename ...Tags>
+    template <typename... Tags>
     static void* allocate(std::size_t size, Tags...)
     {
         return PyMem_Malloc(size);
     }
 
-    template <typename ...Tags>
+    template <typename... Tags>
     static void deallocate(std::size_t, void* obj, Tags...)
     {
         PyMem_Free(obj);
     }
 };
 
-using memory_t = immer::memory_policy<
-    immer::unsafe_free_list_heap_policy<heap_t>,
-    immer::unsafe_refcount_policy>;
+using memory_t =
+    immer::memory_policy<immer::unsafe_free_list_heap_policy<heap_t>,
+                         immer::unsafe_refcount_policy>;
 
 } // anonymous namespace
 
@@ -53,19 +53,18 @@ PYBIND11_PLUGIN(immer_python_module)
         .def(py::init<>())
         .def("__len__", &vector_t::size)
         .def("__getitem__",
-             [] (const vector_t& v, std::size_t i) {
+             [](const vector_t& v, std::size_t i) {
                  if (i > v.size())
                      throw py::index_error{"Index out of range"};
                  return v[i];
              })
         .def("append",
-             [] (const vector_t& v, py::object x) {
+             [](const vector_t& v, py::object x) {
                  return v.push_back(std::move(x));
              })
-        .def("set",
-             [] (const vector_t& v, std::size_t i, py::object x) {
-                 return v.set(i, std::move(x));
-             });
+        .def("set", [](const vector_t& v, std::size_t i, py::object x) {
+            return v.set(i, std::move(x));
+        });
 
 #ifdef VERSION_INFO
     m.attr("__version__") = py::str(VERSION_INFO);

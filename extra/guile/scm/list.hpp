@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <scm/val.hpp>
 #include <iostream>
+#include <scm/val.hpp>
 
 namespace scm {
 
@@ -18,26 +18,27 @@ struct list : detail::wrapper
     using base_t = detail::wrapper;
     using base_t::base_t;
 
-    using iterator = list;
+    using iterator   = list;
     using value_type = val;
 
-    list() : base_t{SCM_EOL} {};
+    list()
+        : base_t{SCM_EOL} {};
     list end() const { return {}; }
     list begin() const { return *this; }
 
     explicit operator bool() { return handle_ != SCM_EOL; }
 
-    val operator* () const { return val{scm_car(handle_)}; }
+    val operator*() const { return val{scm_car(handle_)}; }
 
-    list& operator++ ()
+    list& operator++()
     {
         handle_ = scm_cdr(handle_);
         return *this;
     }
 
-    list operator++ (int)
+    list operator++(int)
     {
-        auto result = *this;
+        auto result    = *this;
         result.handle_ = scm_cdr(handle_);
         return result;
     }

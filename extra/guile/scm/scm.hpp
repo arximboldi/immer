@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <scm/val.hpp>
-#include <scm/list.hpp>
 #include <scm/group.hpp>
+#include <scm/list.hpp>
 #include <scm/type.hpp>
+#include <scm/val.hpp>

@@ -7,9 +7,11 @@
 //
 
 #include "benchmark/vector/assoc.hpp"
+#include <chunkedseq/chunkedseq.hpp>
 #include <immer/flex_vector.hpp>
 #include <immer/flex_vector_transient.hpp>
-#include <chunkedseq/chunkedseq.hpp>
+
+// clang-format off
 
 NONIUS_BENCHMARK("ours/basic",   benchmark_assoc<immer::flex_vector<unsigned,basic_memory>>())
 NONIUS_BENCHMARK("ours/safe",    benchmark_assoc<immer::flex_vector<unsigned,def_memory>>())
@@ -38,3 +40,5 @@ NONIUS_BENCHMARK("transient relaxed librrb",       benchmark_assoc_mut_librrb(ma
 NONIUS_BENCHMARK("transient std::vector",  benchmark_assoc_std<std::vector<unsigned>>())
 NONIUS_BENCHMARK("transient chunkedseq32", benchmark_assoc_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned, 32>>())
 NONIUS_BENCHMARK("transient chunkedseq",   benchmark_assoc_std<pasl::data::chunkedseq::bootstrapped::deque<unsigned>>())
+
+// clang-format on

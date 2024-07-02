@@ -15,8 +15,7 @@ namespace {
 template <typename Vektor>
 auto bechmark_push_front()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
 
         measure(meter, [&] {
@@ -35,9 +34,8 @@ auto benchmark_push_front_librrb(nonius::chronometer meter)
     measure(meter, [&] {
         auto v = rrb_create();
         for (auto i = 0u; i < n; ++i) {
-            auto f = rrb_push(rrb_create(),
-                              reinterpret_cast<void*>(i));
-            v = rrb_concat(f, v);
+            auto f = rrb_push(rrb_create(), reinterpret_cast<void*>(i));
+            v      = rrb_concat(f, v);
         }
         return v;
     });

@@ -12,12 +12,10 @@
 
 namespace {
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
+template <typename Vektor, typename PushFn = push_back_fn>
 auto benchmark_take()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
 
         auto v = Vektor{};
@@ -31,12 +29,10 @@ auto benchmark_take()
     };
 }
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
+template <typename Vektor, typename PushFn = push_back_fn>
 auto benchmark_take_lin()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
 
         auto v = Vektor{};
@@ -52,12 +48,10 @@ auto benchmark_take_lin()
     };
 }
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
+template <typename Vektor, typename PushFn = push_back_fn>
 auto benchmark_take_move()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
 
         auto v = Vektor{};
@@ -73,12 +67,10 @@ auto benchmark_take_move()
     };
 }
 
-template <typename Vektor,
-          typename PushFn=push_back_fn>
+template <typename Vektor, typename PushFn = push_back_fn>
 auto benchmark_take_mut()
 {
-    return [] (nonius::chronometer meter)
-    {
+    return [](nonius::chronometer meter) {
         auto n = meter.param<N>();
 
         auto vv = Vektor{};
@@ -96,48 +88,43 @@ auto benchmark_take_mut()
 template <typename Fn>
 auto benchmark_take_librrb(Fn make)
 {
-    return [=] (nonius::chronometer meter)
-    {
+    return [=](nonius::chronometer meter) {
         auto n = meter.param<N>();
         auto v = make(n);
         measure(meter, [&] {
-                for (auto i = 0u; i < n; ++i)
-                    rrb_slice(v, 0, i);
-            });
+            for (auto i = 0u; i < n; ++i)
+                rrb_slice(v, 0, i);
+        });
     };
 }
 
 template <typename Fn>
 auto benchmark_take_lin_librrb(Fn make)
 {
-    return [=] (nonius::chronometer meter)
-    {
+    return [=](nonius::chronometer meter) {
         auto n = meter.param<N>();
         auto v = make(n);
-        measure(
-            meter, [&] {
-                auto r = v;
-                for (auto i = n; i > 0; --i)
-                    r = rrb_slice(r, 0, i);
-                return r;
-            });
+        measure(meter, [&] {
+            auto r = v;
+            for (auto i = n; i > 0; --i)
+                r = rrb_slice(r, 0, i);
+            return r;
+        });
     };
 }
 
 template <typename Fn>
 auto benchmark_take_mut_librrb(Fn make)
 {
-    return [=] (nonius::chronometer meter)
-    {
+    return [=](nonius::chronometer meter) {
         auto n = meter.param<N>();
         auto v = make(n);
-        measure(
-            meter, [&] {
-                auto r = rrb_to_transient(v);
-                for (auto i = n; i > 0; --i)
-                    r = transient_rrb_slice(r, 0, i);
-                return r;
-            });
+        measure(meter, [&] {
+            auto r = rrb_to_transient(v);
+            for (auto i = n; i > 0; --i)
+                r = transient_rrb_slice(r, 0, i);
+            return r;
+        });
     };
 }
 

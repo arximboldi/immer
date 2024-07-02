@@ -7,8 +7,10 @@
 //
 
 #include "benchmark/vector/access.hpp"
-#include <immer/flex_vector.hpp>
 #include <chunkedseq/chunkedseq.hpp>
+#include <immer/flex_vector.hpp>
+
+// clang-format off
 
 NONIUS_BENCHMARK("idx owrs", benchmark_access_idx<immer::flex_vector<unsigned,def_memory>>())
 NONIUS_BENCHMARK("idx librrb", benchmark_access_librrb(make_librrb_vector))
@@ -29,3 +31,5 @@ NONIUS_BENCHMARK("reduce chunkedseq32", benchmark_access_reduce_chunkedseq<pasl:
 NONIUS_BENCHMARK("reduce chunkedseq", benchmark_access_reduce_chunkedseq<pasl::data::chunkedseq::bootstrapped::deque<unsigned>>())
 NONIUS_BENCHMARK("reduce std::vector", benchmark_access_iter_std<std::vector<unsigned>>())
 NONIUS_BENCHMARK("reduce std::list", benchmark_access_iter_std<std::list<unsigned>>())
+
+// clang-format on

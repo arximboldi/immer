@@ -14,7 +14,7 @@
 namespace scm {
 namespace detail {
 
-template <typename Tag, int Seq=0>
+template <typename Tag, int Seq = 0>
 struct definer
 {
     using this_t = definer;
@@ -22,30 +22,30 @@ struct definer
 
     std::string group_name_ = {};
 
-    definer() = default;
+    definer()          = default;
     definer(definer&&) = default;
 
-    template <int Seq2,
-              typename Enable=std::enable_if_t<Seq2 + 1 == Seq>>
+    template <int Seq2, typename Enable = std::enable_if_t<Seq2 + 1 == Seq>>
     definer(definer<Tag, Seq2>)
-    {}
+    {
+    }
 
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
         define_impl<this_t>(name, fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 
     template <typename Fn>
     next_t maker(Fn fn) &&
     {
         define_impl<this_t>("make", fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 };
 
-template <typename Tag, int Seq=0>
+template <typename Tag, int Seq = 0>
 struct group_definer
 {
     using this_t = group_definer;
@@ -54,35 +54,37 @@ struct group_definer
     std::string group_name_ = {};
 
     group_definer(std::string name)
-        : group_name_{std::move(name)} {}
+        : group_name_{std::move(name)}
+    {
+    }
 
     group_definer(group_definer&&) = default;
 
-    template <int Seq2,
-              typename Enable=std::enable_if_t<Seq2 + 1 == Seq>>
+    template <int Seq2, typename Enable = std::enable_if_t<Seq2 + 1 == Seq>>
     group_definer(group_definer<Tag, Seq2>)
-    {}
+    {
+    }
 
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
         define_impl<this_t>(group_name_ + "-" + name, fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 };
 
 } // namespace detail
 
-template <typename Tag=void>
+template <typename Tag = void>
 detail::definer<Tag> group()
 {
     return {};
 }
 
-template <typename Tag=void>
+template <typename Tag = void>
 detail::group_definer<Tag> group(std::string name)
 {
-    return { std::move(name) };
+    return {std::move(name)};
 }
 
 } // namespace scm

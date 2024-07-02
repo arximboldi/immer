@@ -42,7 +42,8 @@ struct gc_transience_policy
                 void* v;
                 edit(void* v_)
                     : v{v_}
-                {}
+                {
+                }
                 edit() = delete;
                 bool operator==(edit x) const { return v == x.v; }
                 bool operator!=(edit x) const { return v != x.v; }
@@ -61,7 +62,8 @@ struct gc_transience_policy
 
                 owner()
                     : token_{make_token_()}
-                {}
+                {
+                }
                 owner(const owner& o)
                     : token_{make_token_()}
                 {
@@ -69,7 +71,8 @@ struct gc_transience_policy
                 }
                 owner(owner&& o) noexcept
                     : token_{o.token_.load()}
-                {}
+                {
+                }
                 owner& operator=(const owner& o)
                 {
                     o.token_ = make_token_();
