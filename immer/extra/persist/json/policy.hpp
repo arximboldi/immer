@@ -83,7 +83,7 @@ struct hana_struct_auto_policy : demangled_names_t
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_type<T>();
+        return get_pools_for_hana_type<T>();
     }
 };
 
@@ -92,10 +92,10 @@ struct hana_struct_auto_member_name_policy_t : value0_serialize_t
 {
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_type<T>();
+        return get_pools_for_hana_type<T>();
     }
 
-    using map_t = decltype(get_named_pools_for_type<T>());
+    using map_t = decltype(get_named_pools_for_hana_type<T>());
 
     template <class Container>
     auto get_pool_name(const Container& container) const
