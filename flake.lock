@@ -16,6 +16,23 @@
         "type": "github"
       }
     },
+    "docs-nixpkgs": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1504644969,
+        "narHash": "sha256-FCGfMedr9e5ePAEWOMhBmBs8CS0WiBqrlkGHGXV1Hc8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d0d905668c010b65795b57afdf7f0360aac6245b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d0d905668c010b65795b57afdf7f0360aac6245b",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -135,6 +152,7 @@
     "root": {
       "inputs": {
         "arximboldi-cereal-src": "arximboldi-cereal-src",
+        "docs-nixpkgs": "docs-nixpkgs",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "gitignore": "gitignore",

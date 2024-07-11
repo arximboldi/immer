@@ -25,11 +25,16 @@
       url = "github:arximboldi/cereal";
       flake = false;
     };
+    docs-nixpkgs = {
+      url = "github:NixOS/nixpkgs/d0d905668c010b65795b57afdf7f0360aac6245b";
+      flake = false;
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    docs-nixpkgs,
     flake-utils,
     flake-compat,
     pre-commit-hooks,
@@ -113,6 +118,35 @@
             eval "$(starship init bash)"
           '';
       };
+
+      devShells.docs = let
+        docsPkgs = import docs-nixpkgs {inherit system;};
+        docs = docsPkgs.callPackage ./nix/docs.nix {};
+      in
+        pkgs.mkShell {
+          packages = [
+            pkgs.just
+            pkgs.fzf
+            pkgs.starship
+            pkgs.cmake
+            pkgs.ninja
+
+            docsPkgs.doxygen
+            (docsPkgs.python.withPackages (ps: [
+              ps.sphinx
+              docs.breathe
+              docs.recommonmark
+            ]))
+          ];
+
+          shellHook =
+            self.checks.${system}.pre-commit-check.shellHook
+            + "\n"
+            + ''
+              alias j=just
+              eval "$(starship init bash)"
+            '';
+        };
 
       packages = {
         immer = let
