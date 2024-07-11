@@ -23,6 +23,7 @@ Contents
 
    python
    guile
+   persist
 
 ----
 

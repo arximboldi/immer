@@ -30,3 +30,15 @@ mk-build-asan: (_mk-dir build-asan-path)
 
 run-tests-asan:
     cd {{ build-asan-path }} ; ninja tests && ninja test
+
+build-docs-path := "build-docs-" + os() + "-" + arch()
+
+[linux]
+mk-build-docs: (_mk-dir build-docs-path)
+    rm -rf doc/_build
+    rm -rf doc/_doxygen
+    cmake -B {{ build-docs-path }} -G Ninja -Dimmer_BUILD_TESTS=off
+
+[linux]
+build-docs:
+    cmake --build {{ build-docs-path }} --target docs
