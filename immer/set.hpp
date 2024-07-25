@@ -292,4 +292,10 @@ private:
     impl_t impl_ = impl_t::empty();
 };
 
+static_assert(std::is_nothrow_move_constructible<set<int>>::value,
+              "set is not nothrow move constructible");
+static_assert(std::is_nothrow_move_assignable<set<int>>::value,
+              "set is not nothrow move assignable");
+
+
 } // namespace immer

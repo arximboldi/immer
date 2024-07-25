@@ -139,22 +139,26 @@ struct champ
 
     static node_t* empty()
     {
-        static const auto node = node_t::make_inner_n(0);
-        return node->inc();
+        static const auto empty_ = []{
+            constexpr auto size = node_t::sizeof_inner_n(0);
+            static std::aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            return node_t::make_inner_n_into(&storage, size, 0u);
+        }();
+        return empty_->inc();
     }
 
-    champ(node_t* r, size_t sz = 0)
+    champ(node_t* r, size_t sz = 0) noexcept
         : root{r}
         , size{sz}
     {}
 
-    champ(const champ& other)
+    champ(const champ& other) noexcept
         : champ{other.root, other.size}
     {
         inc();
     }
 
-    champ(champ&& other)
+    champ(champ&& other) noexcept
         : champ{empty()}
     {
         swap(*this, other);
@@ -167,13 +171,13 @@ struct champ
         return *this;
     }
 
-    champ& operator=(champ&& other)
+    champ& operator=(champ&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(champ& x, champ& y)
+    friend void swap(champ& x, champ& y) noexcept
     {
         using std::swap;
         swap(x.root, y.root);

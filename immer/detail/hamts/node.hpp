@@ -222,12 +222,11 @@ struct node
         return can_mutate(impl.d.data.inner.values, e);
     }
 
-    static node_t* make_inner_n(count_t n)
+    static node_t* make_inner_n_into(void* buffer, std::size_t size, count_t n)
     {
         assert(n <= branches<B>);
-        auto m = heap::allocate(sizeof_inner_n(n));
-        auto p = new (m) node_t;
-        assert(p == (node_t*) m);
+        assert(size >= sizeof_inner_n(n));
+        auto p = new (buffer) node_t;
 #if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::inner;
 #endif
@@ -235,6 +234,13 @@ struct node
         p->impl.d.data.inner.datamap = 0;
         p->impl.d.data.inner.values  = nullptr;
         return p;
+    }
+
+    static node_t* make_inner_n(count_t n)
+    {
+        assert(n <= branches<B>);
+        auto m = heap::allocate(sizeof_inner_n(n));
+        return make_inner_n_into(m, sizeof_inner_n(n), n);
     }
 
     static node_t* make_inner_n(count_t n, values_t* values)
