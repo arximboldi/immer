@@ -5,6 +5,19 @@
 
 namespace immer::persist {
 
+/**
+ * @brief Policy is a type that describes certain aspects of serialization for
+ * immer-persist.
+ *      - How to call into the cereal archive to save and load the
+ * user-provided value. Can be used to serealize the value inline (without the
+ * "value0" node) by taking a dependency on
+ * https://github.com/LowCostCustoms/cereal-inline, for example.
+ *      - Types of immer containers that will be serialized using pools. One
+ * pool contains nodes of only one immer container type.
+ *      - Names for each per-type pool.
+ *
+ * @ingroup persist-api
+ */
 template <class T, class Value>
 concept Policy =
     requires(Value value, T policy) { policy.get_pool_types(value); };

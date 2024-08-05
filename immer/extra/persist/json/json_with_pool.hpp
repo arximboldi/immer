@@ -10,6 +10,16 @@
 
 namespace immer::persist {
 
+/**
+ * @defgroup persist-api
+ * @{
+ */
+
+/**
+ * @brief Serialize the provided value using the provided policy to JSON.
+ *
+ * @see Policy
+ */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
           Policy<T> Policy = default_policy>
@@ -178,5 +188,7 @@ auto convert_container(const detail::output_pools<SaveStorage>& old_save_pools,
     auto result = loader.load(container_id);
     return result;
 }
+
+/** @} */ // group: persist-api
 
 } // namespace immer::persist
