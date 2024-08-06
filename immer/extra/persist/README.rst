@@ -79,8 +79,22 @@ Which generates some JSON like this:
 As you can see, the value is serialized with every ``immer`` container replaced by an identifier.
 This identifier is a key into a pool, which is serialized just after.
 
-- XXX: what's a pool?
-- XXX: to_json_with_pool uses cereal
+A pool is a data structure that ``immer-persist`` uses to work with the underlying structure of the ``immer`` containers.
+For example, ``vector`` and ``flex_vector`` use Radix Balanced Trees internally that have inner nodes and leaf nodes. These
+nodes can be seen in the JSON above. In other words, containers can be put into a pool and later can be retrieved from it, all while preserving
+the structural sharing. One pool can only work with one container type.
+
+Currently, ``immer-persist`` focuses on JSON as the serialization format and uses the ``cereal`` library internally. In principle, other formats
+and serialization libraries could be supported in the future.
+
+
+Policy
+------
+
+.. doxygengroup:: Persist-policy
+   :project: immer
+   :content-only:
+
 
 API Overview
 ------------
