@@ -42,27 +42,26 @@ using json_t = nlohmann::json;
 
 TEST_CASE("Docs save with immer-persist", "[docs]")
 {
-    // include:intro/start-no-persist
-    const auto v1 = vector_one{1, 2, 3};
-    const auto v2 = v1.push_back(4).push_back(5).push_back(6);
-    // Vector v2 uses structural sharing to reuse the nodes that store the
-    // values of v1.
+    // include:intro/start-prepare-value
+    const auto v1    = vector_one{1, 2, 3};
+    const auto v2    = v1.push_back(4).push_back(5).push_back(6);
     const auto value = document{v1, v2};
+    // include:intro/end-prepare-value
 
     SECTION("Without immer-persist")
     {
-        // Vectors are serialized directly as lists. Notably, as independent
-        // lists.
         const auto expected_json = json_t::parse(R"(
 {"value0": {"ints": [1, 2, 3], "ints2": [1, 2, 3, 4, 5, 6]}}
 )");
         const auto str           = [&] {
+            // include:intro/start-serialize-with-cereal
             auto os = std::ostringstream{};
             {
                 auto ar = cereal::JSONOutputArchive{os};
                 ar(value);
             }
             return os.str();
+            // include:intro/end-serialize-with-cereal
         }();
         REQUIRE(json_t::parse(str) == expected_json);
 
@@ -76,18 +75,18 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
 
         REQUIRE(value == loaded_value);
     }
-    // include:intro/end-no-persist
 
     SECTION("With immer-persist")
     {
-        // include:intro/start-with-persist
         // Immer-persist uses policies to control certain aspects of
         // serialization:
         // - types of pools that should be used
         // - names of those pools
+        // include:intro/start-serialize-with-persist
         const auto policy =
             immer::persist::hana_struct_auto_member_name_policy(document{});
         const auto str = immer::persist::to_json_with_pool(value, policy);
+        // include:intro/end-serialize-with-persist
 
         // The resulting JSON looks much more complicated for this little
         // example but the more structural sharing is used inside the serialized
@@ -108,6 +107,8 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
         // structure and to refer to the vector with just one integer:
         // `{"ints": 0, "ints2": 1}`: 0 and 1 refer to the indices of this
         // array.
+
+        // include:intro/start-persist-json
         const auto expected_json = json_t::parse(R"(
 {
   "value0": {"ints": 0, "ints2": 1},
@@ -130,11 +131,11 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
   }
 }
     )");
+        // include:intro/end-persist-json
         REQUIRE(json_t::parse(str) == expected_json);
 
         const auto loaded_value =
             immer::persist::from_json_with_pool<document>(str, policy);
         REQUIRE(value == loaded_value);
-        // include:intro/end-with-persist
     }
 }

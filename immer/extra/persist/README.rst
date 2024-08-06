@@ -40,20 +40,47 @@ For this example, we'll use a `document` type that contains two immer vectors.
    :start-after: intro/start-types
    :end-before:  intro/end-types
 
-**Without immer-persist**
+Let's say we have two vectors ``v1`` and ``v2``, where ``v2`` is derived from ``v1`` so that it shares data with it:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
-   :start-after: intro/start-no-persist
-   :end-before:  intro/end-no-persist
+   :start-after: intro/start-prepare-value
+   :end-before:  intro/end-prepare-value
 
-**With immer-persist**
+We can serialize the document using ``cereal`` with this:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
-   :start-after: intro/start-with-persist
-   :end-before:  intro/end-with-persist
+   :start-after: intro/start-serialize-with-cereal
+   :end-before:  intro/end-serialize-with-cereal
 
+Generating a JSON like this one:
+
+.. code-block:: c++
+
+   {"value0": {"ints": [1, 2, 3], "ints2": [1, 2, 3, 4, 5, 6]}}
+
+As you can see, ``ints`` and ``ints2`` contain the full linearization of each vector.
+The structural sharing between these two data structures is not represented in its
+serialized form. However, with ``immer-persist`` we can serialize it with:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: intro/start-serialize-with-persist
+   :end-before:  intro/end-serialize-with-persist
+
+Which generates some JSON like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:intro/start-persist-json
+   :end-before:  include:intro/end-persist-json
+
+As you can see, the value is serialized with every ``immer`` container replaced by an identifier.
+This identifier is a key into a pool, which is serialized just after.
+
+- XXX: what's a pool?
+- XXX: to_json_with_pool uses cereal
 
 API Overview
 ------------
