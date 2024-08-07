@@ -11,28 +11,29 @@
 
 namespace immer::persist {
 
-namespace detail {
-template <typename, typename = void>
-constexpr bool is_iterable{};
-
-template <typename T>
-constexpr bool is_iterable<T,
-                           std::void_t<decltype(std::declval<T>().begin()),
-                                       decltype(std::declval<T>().end())>> =
-    true;
-
-template <class T>
-auto get_iterator_type()
-{
-    if constexpr (is_iterable<T>) {
-        return T{}.begin();
-    } else {
-        return;
-    }
-}
-
-} // namespace detail
-
+/**
+ * @brief A wrapper that allows the library to serialize the wrapped container
+ * using a corresponding pool.
+ *
+ * When saving, it saves the container into the pool by performing the following
+ * steps:
+ *   - request the output pool corresponding to the type of the ``Container``
+ *   - save the container to the pool by calling ``add_to_pool``
+ *   - acquire the ID from the pool for the just saved container
+ *   - save the ID into the output archive.
+ *
+ * Similarly, the steps for loading are:
+ *   - container ID is loaded from the input archive by ``cereal``
+ *   - request the input pool corresponding to the type of the ``Container``
+ *   - load the container with the required ID from the input pool.
+ *
+ * Consequently, instead of the container's actual data, ``persistable`` would
+ * serialize only the ID of the wrapped container.
+ *
+ * @tparam Container ``immer`` container that should be serialized using a pool.
+ *
+ * @ingroup persist-api
+ */
 template <class Container>
 struct persistable
 {
@@ -52,19 +53,6 @@ struct persistable
 
     friend bool operator==(const persistable& left,
                            const persistable& right) = default;
-
-    // template <std::enable_if_t<detail::is_iterable<Container>, bool> = true>
-    // friend auto begin(const persistable& value)
-    // {
-    //     return value.container.begin();
-    // }
-
-    // friend std::enable_if_t<detail::is_iterable<Container>,
-    //                         decltype(std::declval<Container>().end())>
-    // end(const persistable& value)
-    // {
-    //     return value.container.end();
-    // }
 };
 
 template <class Previous,

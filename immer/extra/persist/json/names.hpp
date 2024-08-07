@@ -14,6 +14,12 @@ auto get_demangled_name(const T&)
 template <class T>
 class error_duplicate_pool_name_found;
 
+/**
+ * @brief This function ensures that all the names are unique for the given map
+ * of types to names. Otherwise, it triggers a compile-time error.
+ *
+ * @ingroup persist-api
+ */
 inline auto are_type_names_unique(auto type_names)
 {
     namespace hana = boost::hana;
