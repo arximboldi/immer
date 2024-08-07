@@ -14,8 +14,9 @@ namespace immer::persist {
  * `immer-persist`.
  *      - How to call into the `cereal` archive to save and load the
  * user-provided value. Can be used to serealize the value inline (without the
- * `value0` node) by taking a dependency on
- * https://github.com/LowCostCustoms/cereal-inline, for example.
+ * `value0` node) by taking a dependency on <a
+ * href="https://github.com/LowCostCustoms/cereal-inline">cereal-inline</a>, for
+ * example.
  *      - Types of `immer` containers that will be serialized using pools. One
  * pool contains nodes of only one `immer` container type.
  *      - Names for each per-type pool.
@@ -46,7 +47,8 @@ auto get_pools_types(const T&)
  *
  * Other possible way would be to use a third-party library to serialize the
  * value inline (without the `value0` node) by taking a dependency on
- * https://github.com/LowCostCustoms/cereal-inline, for example.
+ * <a href="https://github.com/LowCostCustoms/cereal-inline">cereal-inline</a>,
+ * for example.
  *
  * @ingroup persist-policy
  */

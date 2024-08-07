@@ -13,6 +13,13 @@ namespace immer::persist {
 
 namespace detail {
 
+/**
+ * @brief This struct has an interface of an output archive but does
+ * nothing when requested to serialize data. It is used when we only care about
+ * the pools and have no need to serialize the actual document.
+ *
+ * @ingroup persist-api
+ */
 struct blackhole_output_archive
 {
     void setNextName(const char* name) {}
@@ -70,6 +77,21 @@ constexpr bool is_pool_empty()
  * Adapted from cereal/archives/adapters.hpp
  */
 
+/**
+ * @brief An output archive wrapper that provides access to the ``Pools`` stored
+ * inside. And serializes the ``pools`` object alongside the user document.
+ *
+ * @tparam Previous Type of the ``cereal`` output archive into which all the
+ * serialization calls are forwarded.
+ * @tparam Pools The wrapped pools. See ``output_pools``.
+ * @tparam WrapFn A function that is called on each serialized value in order to
+ * wrap the desired ``immer`` containers into ``persistable``.
+ * @tparam PoolNameFn A function that is used to determine the name for each
+ * individual pool. It's called with an empty ``immer`` container and must
+ * return the name for the corresponding pool.
+ *
+ * @ingroup persist-api
+ */
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
 class json_immer_output_archive
     : public cereal::OutputArchive<

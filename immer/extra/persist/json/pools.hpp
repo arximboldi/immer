@@ -64,7 +64,7 @@ struct output_pools
 {
     Storage storage_;
 
-    // To aling the interface with input_pools
+    // To align the interface with input_pools
     Storage& storage() { return storage_; }
     const Storage& storage() const { return storage_; }
 

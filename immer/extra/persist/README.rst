@@ -79,10 +79,18 @@ Which generates some JSON like this:
 As you can see, the value is serialized with every ``immer`` container replaced by an identifier.
 This identifier is a key into a pool, which is serialized just after.
 
-A pool is a data structure that ``immer-persist`` uses to work with the underlying structure of the ``immer`` containers.
-For example, ``vector`` and ``flex_vector`` use Radix Balanced Trees internally that have inner nodes and leaf nodes. These
-nodes can be seen in the JSON above. In other words, containers can be put into a pool and later can be retrieved from it, all while preserving
-the structural sharing. One pool can only work with one container type.
+A pool represents a *set* of ``immer`` containers of a given type. For example, we may have a pool that contains all
+``immer::vector<int>`` of our document. You can think of it as a little database of ``immer`` containers. When
+serializing the pool, the internal structure of all those ``immer`` containers is written, preserving the structural
+sharing between those containers. The nodes of the trees that implement the ``immer`` containers are represented
+directly in the JSON and, because we are representing all the containers as a whole, those nodes that are referenced in
+multiple trees can be stored only once. That same structure is preserved when reading the pool back from disk and
+reconstructing the vectors (and other containers) from it, thus allowing us to preserve the structural sharing across
+sessions.
+
+.. note::
+   Currently, ``immer-persist`` makes a distiction between pools used for saving containers (*output* pools) and for loading containers (*input* pools),
+   similar to ``cereal`` with its ``InputArchive`` and ``OutputArchive`` distiction.
 
 Currently, ``immer-persist`` focuses on JSON as the serialization format and uses the ``cereal`` library internally. In principle, other formats
 and serialization libraries could be supported in the future.
