@@ -1,8 +1,8 @@
 #pragma once
 
+#include <immer/extra/persist/detail/json/pools.hpp>
+#include <immer/extra/persist/detail/json/wrap.hpp>
 #include <immer/extra/persist/json/policy.hpp>
-#include <immer/extra/persist/json/pools.hpp>
-#include <immer/extra/persist/json/wrap.hpp>
 
 /**
  * to_json_with_pool

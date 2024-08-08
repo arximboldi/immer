@@ -3,7 +3,6 @@
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 #include <fmt/format.h>
-#include <immer/extra/persist/champ/traits.hpp>
 #include <xxhash.h>
 
 #include "utils.hpp"

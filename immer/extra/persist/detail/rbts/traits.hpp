@@ -1,10 +1,10 @@
 #pragma once
 
-#include <immer/extra/persist/rbts/input.hpp>
-#include <immer/extra/persist/rbts/output.hpp>
-#include <immer/extra/persist/traits.hpp>
+#include <immer/extra/persist/detail/rbts/input.hpp>
+#include <immer/extra/persist/detail/rbts/output.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 template <typename T,
           typename MemoryPolicy,
@@ -54,4 +54,4 @@ struct container_traits<immer::flex_vector<T, MemoryPolicy, B, BL>>
     }
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

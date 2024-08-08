@@ -1,17 +1,16 @@
 #pragma once
 
 #include <immer/extra/io.hpp>
+#include <immer/extra/persist/detail/names.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
+#include <immer/extra/persist/errors.hpp>
 #include <immer/extra/persist/json/json_immer.hpp>
-#include <immer/extra/persist/json/names.hpp>
-#include <immer/extra/persist/traits.hpp>
 
 #include <boost/hana.hpp>
 
 #include <optional>
 
-namespace immer::persist {
-
-namespace detail {
+namespace immer::persist::detail {
 
 namespace hana = boost::hana;
 
@@ -467,6 +466,4 @@ inline auto to_input_pools(const output_pools<Storage>& output_pool)
     return pool;
 }
 
-} // namespace detail
-
-} // namespace immer::persist
+} // namespace immer::persist::detail

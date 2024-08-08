@@ -4,7 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 template <typename Node>
 struct ptr_with_deleter
@@ -120,4 +120,4 @@ private:
     ptr_with_deleter<Node> ptr;
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

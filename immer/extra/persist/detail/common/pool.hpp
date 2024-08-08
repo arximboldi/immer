@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/alias.hpp>
+#include <immer/extra/persist/detail/alias.hpp>
 
 #include <immer/array.hpp>
 #include <immer/map.hpp>
@@ -10,10 +10,10 @@
 namespace immer::persist {
 
 struct node_id_tag;
-using node_id = type_alias<std::size_t, node_id_tag>;
+using node_id = detail::type_alias<std::size_t, node_id_tag>;
 
 struct container_id_tag;
-using container_id = type_alias<std::size_t, container_id_tag>;
+using container_id = detail::type_alias<std::size_t, container_id_tag>;
 
 template <class T>
 struct values_save

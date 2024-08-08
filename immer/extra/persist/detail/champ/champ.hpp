@@ -6,8 +6,7 @@
 
 #include <optional>
 
-namespace immer::persist {
-namespace champ {
+namespace immer::persist::champ {
 
 template <class Node>
 struct node_traits
@@ -185,5 +184,4 @@ add_to_pool(Container container, container_output_pool<Container> pool)
     return {std::move(pool), root_id};
 }
 
-} // namespace champ
-} // namespace immer::persist
+} // namespace immer::persist::champ

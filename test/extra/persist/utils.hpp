@@ -1,9 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/rbts/input.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
-
-#include <immer/extra/persist/champ/traits.hpp>
 
 #include <immer/table.hpp>
 

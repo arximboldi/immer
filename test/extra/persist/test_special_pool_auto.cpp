@@ -603,7 +603,7 @@ TEST_CASE("Test loading broken table")
 
 namespace test_no_auto {
 
-using immer::persist::persistable;
+using immer::persist::detail::persistable;
 
 struct value_two;
 
@@ -841,20 +841,18 @@ TEST_CASE("Converting between incompatible keys")
     const auto map = hana::make_map(
         hana::make_pair(
             hana::type_c<immer::map<int, std::string>>,
-            hana::overload(
-                convert_pair,
-                [](immer::persist::target_container_type_request) {
-                    return immer::persist::champ::incompatible_hash_wrapper<
-                        immer::map<std::string, std::string>>{};
-                })),
+            hana::overload(convert_pair,
+                           [](immer::persist::target_container_type_request) {
+                               return immer::persist::incompatible_hash_wrapper<
+                                   immer::map<std::string, std::string>>{};
+                           })),
         hana::make_pair(
             hana::type_c<immer::table<int_key>>,
-            hana::overload(
-                convert_int_key,
-                [](immer::persist::target_container_type_request) {
-                    return immer::persist::champ::incompatible_hash_wrapper<
-                        immer::table<string_key>>{};
-                })),
+            hana::overload(convert_int_key,
+                           [](immer::persist::target_container_type_request) {
+                               return immer::persist::incompatible_hash_wrapper<
+                                   immer::table<string_key>>{};
+                           })),
         hana::make_pair(
             hana::type_c<immer::set<int>>,
             hana::overload(
@@ -862,7 +860,7 @@ TEST_CASE("Converting between incompatible keys")
                     return convert_int_key(int_key{old}).id;
                 },
                 [](immer::persist::target_container_type_request) {
-                    return immer::persist::champ::incompatible_hash_wrapper<
+                    return immer::persist::incompatible_hash_wrapper<
                         immer::set<std::string>>{};
                 }))
 

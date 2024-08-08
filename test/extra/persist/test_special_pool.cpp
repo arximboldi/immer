@@ -2,16 +2,10 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include <immer/extra/persist/json/wrap.hpp>
-
 #include "utils.hpp"
 
 #include <boost/hana.hpp>
-#include <immer/extra/persist/box/pool.hpp>
-#include <immer/extra/persist/champ/traits.hpp>
 #include <immer/extra/persist/json/json_with_pool.hpp>
-#include <immer/extra/persist/json/persistable.hpp>
-#include <immer/extra/persist/rbts/traits.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 // to save std::pair
@@ -36,7 +30,7 @@ using test::vector_one;
 using json_t = nlohmann::json;
 
 template <class T>
-using per = immer::persist::persistable<T>;
+using per = immer::persist::detail::persistable<T>;
 
 template <class T>
 std::string string_via_tie(const T& value)

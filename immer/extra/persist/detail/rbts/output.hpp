@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/rbts/traverse.hpp>
+#include <immer/extra/persist/detail/rbts/traverse.hpp>
 
 namespace immer::persist::rbts {
 

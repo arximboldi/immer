@@ -1,9 +1,9 @@
 #pragma once
 
+#include <immer/extra/persist/detail/node_ptr.hpp>
+#include <immer/extra/persist/detail/rbts/pool.hpp>
+#include <immer/extra/persist/detail/rbts/traverse.hpp>
 #include <immer/extra/persist/errors.hpp>
-#include <immer/extra/persist/node_ptr.hpp>
-#include <immer/extra/persist/rbts/pool.hpp>
-#include <immer/extra/persist/rbts/traverse.hpp>
 
 #include <boost/hana.hpp>
 #include <boost/range/adaptor/indexed.hpp>
@@ -107,7 +107,7 @@ public:
     using rbtree      = immer::detail::rbts::rbtree<T, MemoryPolicy, B, BL>;
     using rrbtree     = immer::detail::rbts::rrbtree<T, MemoryPolicy, B, BL>;
     using node_t      = typename rbtree::node_t;
-    using node_ptr    = node_ptr<node_t>;
+    using node_ptr    = immer::persist::detail::node_ptr<node_t>;
     using nodes_set_t = immer::set<node_id>;
 
     explicit loader(Pool pool)
@@ -278,7 +278,8 @@ private:
                               children_ids,
                               std::move(loading_nodes).insert(id),
                               relaxed_allowed);
-            auto result = immer::vector<ptr_with_deleter<node_t>>{};
+            auto result = immer::vector<
+                immer::persist::detail::ptr_with_deleter<node_t>>{};
             for (auto& item : children_ptrs) {
                 result =
                     std::move(result).push_back(std::move(item).release_full());

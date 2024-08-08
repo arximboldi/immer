@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 template <class T, class Tag>
 struct type_alias
@@ -39,16 +39,16 @@ struct type_alias
     }
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail
 
 /**
  * Have to use this for fmt v9.
  */
 template <class T, class Tag>
-struct fmt::formatter<immer::persist::type_alias<T, Tag>> : formatter<T>
+struct fmt::formatter<immer::persist::detail::type_alias<T, Tag>> : formatter<T>
 {
     template <typename FormatContext>
-    auto format(const immer::persist::type_alias<T, Tag>& value,
+    auto format(const immer::persist::detail::type_alias<T, Tag>& value,
                 FormatContext& ctx) const
     {
         return formatter<T>::format(value.value, ctx);
@@ -56,9 +56,9 @@ struct fmt::formatter<immer::persist::type_alias<T, Tag>> : formatter<T>
 };
 
 template <class T, class Tag>
-struct std::hash<immer::persist::type_alias<T, Tag>>
+struct std::hash<immer::persist::detail::type_alias<T, Tag>>
 {
-    auto operator()(const immer::persist::type_alias<T, Tag>& x) const
+    auto operator()(const immer::persist::detail::type_alias<T, Tag>& x) const
     {
         return hash<T>{}(x.value);
     }

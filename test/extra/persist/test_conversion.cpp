@@ -2,7 +2,7 @@
 
 #include <immer/extra/persist/json/json_with_pool_auto.hpp>
 
-#include <immer/extra/persist/common/type_traverse.hpp>
+#include <immer/extra/persist/detail/type_traverse.hpp>
 
 #include "utils.hpp"
 

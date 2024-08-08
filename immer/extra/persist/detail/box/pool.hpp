@@ -1,8 +1,8 @@
 #pragma once
 
-#include <immer/extra/persist/common/pool.hpp>
+#include <immer/extra/persist/detail/common/pool.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
 #include <immer/extra/persist/errors.hpp>
-#include <immer/extra/persist/traits.hpp>
 
 #include <immer/box.hpp>
 #include <immer/map.hpp>
@@ -186,7 +186,7 @@ loader<T, MemoryPolicy> make_loader_for(const immer::box<T, MemoryPolicy>&,
 
 } // namespace immer::persist::box
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 template <typename T, typename MemoryPolicy>
 struct container_traits<immer::box<T, MemoryPolicy>>
@@ -208,4 +208,4 @@ struct container_traits<immer::box<T, MemoryPolicy>>
     }
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

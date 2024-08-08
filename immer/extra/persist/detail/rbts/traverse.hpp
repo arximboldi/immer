@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/rbts/pool.hpp>
+#include <immer/extra/persist/detail/rbts/pool.hpp>
 
 #include <immer/detail/rbts/rrbtree.hpp>
 

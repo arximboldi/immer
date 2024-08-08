@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include <immer/extra/persist/champ/traits.hpp>
+#include <immer/extra/persist/detail/champ/traits.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 #include "utils.hpp"

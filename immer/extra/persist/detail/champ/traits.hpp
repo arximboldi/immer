@@ -1,21 +1,13 @@
 #pragma once
 
-#include <immer/extra/persist/champ/champ.hpp>
-#include <immer/extra/persist/champ/pool.hpp>
-#include <immer/extra/persist/traits.hpp>
+#include <immer/extra/persist/detail/champ/champ.hpp>
+#include <immer/extra/persist/detail/champ/pool.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
+#include <immer/extra/persist/hash_container_conversion.hpp>
 
 #include <boost/hana/functional/id.hpp>
 
-namespace immer::persist {
-
-/**
- * A bit of a hack but currently this is the simplest way to request a type of
- * the hash function to be used after the transformation. Maybe the whole thing
- * would change later. Right now everything is driven by the single function,
- * which seems to be convenient otherwise.
- */
-struct target_container_type_request
-{};
+namespace immer::persist::detail {
 
 template <class Container>
 struct champ_traits
@@ -72,19 +64,8 @@ struct container_traits<immer::set<T, Hash, Equal, MemoryPolicy, B>>
     : champ_traits<immer::set<T, Hash, Equal, MemoryPolicy, B>>
 {};
 
-namespace champ {
-/**
- * The wrapper is used to enable the incompatible_hash_mode, which is required
- * when the key of a hash-based container transformed in a way that changes its
- * hash.
- */
 template <class Container>
-struct incompatible_hash_wrapper
-{};
-} // namespace champ
-
-template <class Container>
-struct container_traits<champ::incompatible_hash_wrapper<Container>>
+struct container_traits<incompatible_hash_wrapper<Container>>
     : champ_traits<Container>
 {
     using base_t = champ_traits<Container>;
@@ -102,4 +83,4 @@ struct container_traits<champ::incompatible_hash_wrapper<Container>>
                                                 enable_incompatible_hash_mode>;
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

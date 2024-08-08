@@ -1,9 +1,9 @@
 #pragma once
 
-#include <immer/extra/persist/alias.hpp>
 #include <immer/extra/persist/cereal/immer_map.hpp>
 #include <immer/extra/persist/cereal/immer_vector.hpp>
-#include <immer/extra/persist/common/pool.hpp>
+#include <immer/extra/persist/detail/alias.hpp>
+#include <immer/extra/persist/detail/common/pool.hpp>
 
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
