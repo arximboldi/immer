@@ -179,10 +179,10 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
     REQUIRE(test::to_json(format_snapshots) == test::to_json(value.snapshots));
 
     {
-        const auto json_format = immer::persist::to_json_with_auto_pool(
+        const auto json_format = test::to_json_with_auto_pool(
             format::history{.snapshots = format_snapshots}, format_names);
         const auto json_model =
-            immer::persist::to_json_with_auto_pool(value, model_names);
+            test::to_json_with_auto_pool(value, model_names);
         REQUIRE(json_format == json_model);
     }
 }

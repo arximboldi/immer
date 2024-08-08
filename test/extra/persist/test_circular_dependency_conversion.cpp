@@ -244,17 +244,15 @@ TEST_CASE("Test exception while circular converting")
 
     SECTION("Try to load")
     {
-        const auto json_str =
-            immer::persist::to_json_with_auto_pool(value, names);
+        const auto json_str = test::to_json_with_auto_pool(value, names);
         const auto loaded =
-            immer::persist::from_json_with_auto_pool<model::value_one>(json_str,
-                                                                       names);
+            test::from_json_with_auto_pool<model::value_one>(json_str, names);
         REQUIRE(loaded == value);
 
         SECTION("Loaded value has the same structure as the original")
         {
             const auto json_from_loaded =
-                immer::persist::to_json_with_auto_pool(loaded, names);
+                test::to_json_with_auto_pool(loaded, names);
             REQUIRE(json_str == json_from_loaded);
         }
     }
@@ -550,11 +548,10 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto format_twos_json = immer::persist::to_json_with_pool(
-                format_twos,
-                immer::persist::via_map_policy<decltype(format_names)>{});
+            const auto format_twos_json =
+                test::to_json_with_auto_pool(format_twos, format_names);
             const auto model_twos_json =
-                immer::persist::to_json_with_auto_pool(value.twos, names);
+                test::to_json_with_auto_pool(value.twos, names);
             REQUIRE(model_twos_json == format_twos_json);
         }
     }
@@ -654,7 +651,7 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
                 immer::persist::hana_struct_auto_member_name_policy(
                     format_twos));
             const auto model_twos_json =
-                immer::persist::to_json_with_auto_pool(value.twos_set, names);
+                test::to_json_with_auto_pool(value.twos_set, names);
             REQUIRE(json_t::parse(model_twos_json) ==
                     json_t::parse(format_twos_json));
         }
@@ -676,8 +673,7 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
         const auto format_json_str = immer::persist::to_json_with_pool(
             format_value,
             immer::persist::hana_struct_auto_member_name_policy(format_value));
-        const auto json_str =
-            immer::persist::to_json_with_auto_pool(value, names);
+        const auto json_str = test::to_json_with_auto_pool(value, names);
         REQUIRE(format_json_str == json_str);
     }
 

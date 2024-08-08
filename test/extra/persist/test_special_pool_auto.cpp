@@ -172,14 +172,12 @@ TEST_CASE("Auto-persisting")
         .std_vector_ints = {4, 5, 6, 7},
     };
 
-    const auto json_str =
-        immer::persist::to_json_with_auto_pool(value, pool_types);
+    const auto json_str = to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
 
     {
-        const auto loaded =
-            immer::persist::from_json_with_auto_pool<test_data_with_immer>(
-                json_str, pool_types);
+        const auto loaded = from_json_with_auto_pool<test_data_with_immer>(
+            json_str, pool_types);
         REQUIRE(loaded == value);
     }
 }
@@ -190,13 +188,13 @@ TEST_CASE("Auto-pool must load and save types that have no pool")
     const auto val2  = test_value{234, "value2"};
     const auto value = std::make_pair(val1, val2);
 
-    const auto json_pool_str =
-        immer::persist::to_json_with_auto_pool(value, hana::make_map());
+    const auto json_pool_str = to_json_with_auto_pool(value, hana::make_map());
     REQUIRE(json_pool_str == test::to_json(value));
 
     {
-        auto loaded = immer::persist::from_json_with_auto_pool<
-            std::decay_t<decltype(value)>>(json_pool_str, hana::make_map());
+        auto loaded =
+            test::from_json_with_auto_pool<std::decay_t<decltype(value)>>(
+                json_pool_str, hana::make_map());
         INFO(loaded.first);
         INFO(loaded.second);
         INFO(value.first);
@@ -239,13 +237,13 @@ TEST_CASE("Test save and load small type")
     };
     const auto pool_types = immer::persist::get_named_pools_for_hana_type<
         test_data_with_one_immer_member>();
-    const auto json_str =
-        immer::persist::to_json_with_auto_pool(value, pool_types);
+    const auto json_str = test::to_json_with_auto_pool(value, pool_types);
     // REQUIRE(json_str == "");
 
     {
-        const auto loaded = immer::persist::from_json_with_auto_pool<
-            test_data_with_one_immer_member>(json_str, pool_types);
+        const auto loaded =
+            test::from_json_with_auto_pool<test_data_with_one_immer_member>(
+                json_str, pool_types);
         INFO(test::to_json(loaded));
         INFO(test::to_json(value));
         REQUIRE(loaded == value);
@@ -441,12 +439,11 @@ TEST_CASE("Test table with a funny value")
 
     const auto names =
         immer::persist::get_named_pools_for_hana_type<champ_test::value_one>();
-    const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
+    const auto json_str = test::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
     const auto loaded =
-        immer::persist::from_json_with_auto_pool<champ_test::value_one>(
-            json_str, names);
+        test::from_json_with_auto_pool<champ_test::value_one>(json_str, names);
     REQUIRE(loaded == value);
 }
 
@@ -482,7 +479,7 @@ TEST_CASE("Test loading broken table")
     const auto names =
         immer::persist::get_named_pools_for_hana_type<champ_test::value_one>();
 
-    const auto json_str = immer::persist::to_json_with_auto_pool(value, names);
+    const auto json_str = test::to_json_with_auto_pool(value, names);
     // REQUIRE(json_str == "");
 
     constexpr auto expected_json_str = R"(
@@ -543,8 +540,8 @@ TEST_CASE("Test loading broken table")
     {
         INFO(json_str);
         const auto loaded =
-            immer::persist::from_json_with_auto_pool<champ_test::value_one>(
-                json_str, names);
+            test::from_json_with_auto_pool<champ_test::value_one>(json_str,
+                                                                  names);
         REQUIRE(loaded == value);
     }
 
@@ -552,14 +549,14 @@ TEST_CASE("Test loading broken table")
     {
         INFO(json.dump());
         const auto loaded =
-            immer::persist::from_json_with_auto_pool<champ_test::value_one>(
-                json.dump(), names);
+            test::from_json_with_auto_pool<champ_test::value_one>(json.dump(),
+                                                                  names);
         REQUIRE(loaded == value);
 
         SECTION("Loaded value has the same structure as the original")
         {
             const auto json_from_loaded =
-                immer::persist::to_json_with_auto_pool(loaded, names);
+                test::to_json_with_auto_pool(loaded, names);
             REQUIRE(json_str == json_from_loaded);
         }
     }
@@ -571,7 +568,7 @@ TEST_CASE("Test loading broken table")
         {
             json["pools"]["twos_table"][1]["values"][0]["two"] = 0;
             REQUIRE_THROWS_MATCHES(
-                immer::persist::from_json_with_auto_pool<champ_test::value_one>(
+                test::from_json_with_auto_pool<champ_test::value_one>(
                     json.dump(), names),
                 ::cereal::Exception,
                 MessageMatches(Catch::Matchers::ContainsSubstring(
@@ -581,7 +578,7 @@ TEST_CASE("Test loading broken table")
         {
             json["pools"]["twos_table"][1]["values"][0]["two"] = 99;
             REQUIRE_THROWS_MATCHES(
-                immer::persist::from_json_with_auto_pool<champ_test::value_one>(
+                test::from_json_with_auto_pool<champ_test::value_one>(
                     json.dump(), names),
                 ::cereal::Exception,
                 MessageMatches(Catch::Matchers::ContainsSubstring(
@@ -593,8 +590,8 @@ TEST_CASE("Test loading broken table")
     {
         json["pools"]["twos_table"][0]["values"][0]["two"] = 99;
         REQUIRE_THROWS_MATCHES(
-            immer::persist::from_json_with_auto_pool<champ_test::value_one>(
-                json.dump(), names),
+            test::from_json_with_auto_pool<champ_test::value_one>(json.dump(),
+                                                                  names),
             ::cereal::Exception,
             MessageMatches(Catch::Matchers::ContainsSubstring(
                 "Container ID 99 is not found")));

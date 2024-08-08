@@ -204,6 +204,41 @@ constexpr auto serialize_members = [](auto& ar, auto& value) {
     });
 };
 
+template <class Map>
+struct via_map_policy : immer::persist::value0_serialize_t
+{
+    static_assert(boost::hana::is_a<boost::hana::map_tag, Map>,
+                  "via_map_policy accepts a map of types to pool names");
+
+    template <class T>
+    auto get_pool_types(const T& value) const
+    {
+        return boost::hana::to_set(boost::hana::keys(Map{}));
+    }
+
+    template <class T>
+    auto get_pool_name(const T& value) const
+    {
+        return immer::persist::name_from_map_fn<Map>{}(value);
+    }
+};
+
+template <typename T, class PoolsTypes>
+auto to_json_with_auto_pool(const T& serializable,
+                            const PoolsTypes& pools_types)
+{
+    return immer::persist::to_json_with_pool(serializable,
+                                             via_map_policy<PoolsTypes>{});
+}
+
+template <typename T, class PoolsTypes>
+T from_json_with_auto_pool(const std::string& input,
+                           const PoolsTypes& pools_types)
+{
+    return immer::persist::from_json_with_pool<T>(input,
+                                                  via_map_policy<PoolsTypes>{});
+}
+
 } // namespace test
 
 template <>

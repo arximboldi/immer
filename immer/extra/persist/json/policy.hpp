@@ -193,39 +193,6 @@ auto hana_struct_auto_member_name_policy(const auto& value)
         std::decay_t<decltype(value)>>{};
 }
 
-/**
- * @brief An `immer-persist` policy that uses the provided `boost::hana::map`
- * to determine:
- *   - the types of `immer` containers that should be serialized in a pool
- *   - the names of those pools in JSON (and possibly other formats).
- *
- * The given map's key is a container type and value is the name for this
- * container's pool as a `BOOST_HANA_STRING`.
- *
- * It is similar to `via_get_pools_names_policy` but the map is provided
- * explicitly.
- *
- * @ingroup persist-policy
- */
-template <class Map>
-struct via_map_policy : value0_serialize_t
-{
-    static_assert(boost::hana::is_a<boost::hana::map_tag, Map>,
-                  "via_map_policy accepts a map of types to pool names");
-
-    template <class T>
-    auto get_pool_types(const T& value) const
-    {
-        return boost::hana::to_set(boost::hana::keys(Map{}));
-    }
-
-    template <class T>
-    auto get_pool_name(const T& value) const
-    {
-        return name_from_map_fn<Map>{}(value);
-    }
-};
-
 using default_policy = via_get_pools_types_policy;
 
 } // namespace immer::persist
