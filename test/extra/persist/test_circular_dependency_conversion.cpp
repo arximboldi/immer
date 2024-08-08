@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/persist/json/json_with_pool_auto.hpp>
+#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/transform.hpp>
 
 #include "utils.hpp"
 

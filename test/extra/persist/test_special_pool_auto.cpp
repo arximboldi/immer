@@ -4,7 +4,8 @@
 
 #include "utils.hpp"
 
-#include <immer/extra/persist/json/json_with_pool_auto.hpp>
+#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/transform.hpp>
 #include <nlohmann/json.hpp>
 
 #define DEFINE_OPERATIONS(name)                                                \
