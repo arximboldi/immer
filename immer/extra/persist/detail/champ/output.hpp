@@ -1,11 +1,10 @@
 #pragma once
 
-#include <immer/extra/persist/champ/pool.hpp>
+#include <immer/extra/persist/detail/champ/pool.hpp>
 
 #include <spdlog/spdlog.h>
 
-namespace immer::persist {
-namespace champ {
+namespace immer::persist::champ {
 
 template <class T, immer::detail::hamts::bits_t B>
 struct output_pool_builder
@@ -99,5 +98,4 @@ auto save_nodes(
     return std::move(save.pool);
 }
 
-} // namespace champ
-} // namespace immer::persist
+} // namespace immer::persist::champ

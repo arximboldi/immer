@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include <immer/extra/persist/box/pool.hpp>
+#include <immer/extra/persist/detail/box/pool.hpp>
 
 #include "utils.hpp"
 

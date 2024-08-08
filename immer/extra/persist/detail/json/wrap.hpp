@@ -1,12 +1,12 @@
 #pragma once
 
-#include <immer/extra/persist/common/type_traverse.hpp>
-#include <immer/extra/persist/json/persistable.hpp>
+#include <immer/extra/persist/detail/json/persistable.hpp>
+#include <immer/extra/persist/detail/type_traverse.hpp>
 
 // Bring in all known pools to be able to wrap all immer types
-#include <immer/extra/persist/box/pool.hpp>
-#include <immer/extra/persist/champ/traits.hpp>
-#include <immer/extra/persist/rbts/traits.hpp>
+#include <immer/extra/persist/detail/box/pool.hpp>
+#include <immer/extra/persist/detail/champ/traits.hpp>
+#include <immer/extra/persist/detail/rbts/traits.hpp>
 
 namespace immer::persist {
 
@@ -62,7 +62,7 @@ struct persistable_loader_wrapper
             container_id)
     {
         persistable<Container> arch;
-        immer::persist::load_minimal(ar, arch, container_id);
+        immer::persist::detail::load_minimal(ar, arch, container_id);
         value = std::move(arch).container;
     }
 };

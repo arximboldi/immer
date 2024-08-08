@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/common/pool.hpp>
+#include <immer/extra/persist/detail/common/pool.hpp>
 
 #include <immer/map.hpp>
 #include <immer/set.hpp>

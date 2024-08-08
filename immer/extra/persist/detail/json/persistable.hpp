@@ -1,15 +1,15 @@
 #pragma once
 
+#include <immer/extra/persist/detail/json/pools.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
 #include <immer/extra/persist/errors.hpp>
 #include <immer/extra/persist/json/json_immer.hpp>
-#include <immer/extra/persist/json/pools.hpp>
-#include <immer/extra/persist/traits.hpp>
 
 #include <fmt/format.h>
 
 #include <boost/core/demangle.hpp>
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 /**
  * @brief A wrapper that allows the library to serialize the wrapped container
@@ -148,4 +148,4 @@ void load_minimal(
     // pool.
 }
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

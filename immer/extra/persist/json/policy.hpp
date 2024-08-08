@@ -1,7 +1,7 @@
 #pragma once
 
-#include <immer/extra/persist/json/names.hpp>
-#include <immer/extra/persist/json/wrap.hpp>
+#include <immer/extra/persist/detail/json/wrap.hpp>
+#include <immer/extra/persist/detail/names.hpp>
 
 namespace immer::persist {
 

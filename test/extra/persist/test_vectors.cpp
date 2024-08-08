@@ -10,8 +10,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include <immer/extra/persist/rbts/input.hpp>
-#include <immer/extra/persist/rbts/output.hpp>
+#include <immer/extra/persist/detail/rbts/input.hpp>
+#include <immer/extra/persist/detail/rbts/output.hpp>
 
 #include "utils.hpp"
 

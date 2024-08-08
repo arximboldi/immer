@@ -1,8 +1,8 @@
 #pragma once
 
-#include <immer/extra/persist/champ/pool.hpp>
+#include <immer/extra/persist/detail/champ/pool.hpp>
+#include <immer/extra/persist/detail/node_ptr.hpp>
 #include <immer/extra/persist/errors.hpp>
-#include <immer/extra/persist/node_ptr.hpp>
 
 #include <immer/flex_vector.hpp>
 
@@ -11,8 +11,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace immer::persist {
-namespace champ {
+namespace immer::persist::champ {
 
 class children_count_corrupted_exception : public pool_exception
 {
@@ -65,7 +64,7 @@ public:
     using champ_t =
         immer::detail::hamts::champ<T, Hash, Equal, MemoryPolicy, B>;
     using node_t   = typename champ_t::node_t;
-    using node_ptr = immer::persist::node_ptr<node_t>;
+    using node_ptr = immer::persist::detail::node_ptr<node_t>;
 
     using values_t = immer::flex_vector<immer::array<T>>;
 
@@ -155,7 +154,7 @@ public:
              * NOTE: Be careful with release_full and exceptions, nodes will not
              * be freed automatically.
              */
-            auto result = immer::vector<ptr_with_deleter<node_t>>{};
+            auto result = immer::vector<detail::ptr_with_deleter<node_t>>{};
             for (auto& child : children_ptrs) {
                 result = std::move(result).push_back(
                     std::move(child).release_full());
@@ -250,5 +249,4 @@ private:
     immer::map<node_id, std::pair<node_ptr, values_t>> inners_;
 };
 
-} // namespace champ
-} // namespace immer::persist
+} // namespace immer::persist::champ

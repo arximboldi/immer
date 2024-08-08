@@ -1,6 +1,6 @@
 #include <fuzzer/fuzzer_input.hpp>
 
-#include <immer/extra/persist/champ/champ.hpp>
+#include <immer/extra/persist/detail/champ/champ.hpp>
 
 #include <array>
 #include <bitset>
