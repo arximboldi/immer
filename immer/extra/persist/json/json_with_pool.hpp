@@ -12,13 +12,14 @@ namespace immer::persist {
 
 /**
  * @defgroup persist-api
- * @{
  */
 
 /**
- * @brief Serialize the provided value using the provided policy to JSON.
+ * @brief Serialize the provided value using the provided policy to JSON
+ * outputting into the provided stream.
  *
  * @see Policy
+ * @ingroup persist-api
  */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
@@ -46,6 +47,12 @@ void to_json_with_pool_stream(auto& os,
     ar.finalize();
 }
 
+/**
+ * @brief Serialize the provided value using the provided policy to JSON.
+ *
+ * @return std::string The resulting JSON.
+ * @ingroup persist-api
+ */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
           Policy<T> Policy = default_policy>
@@ -188,7 +195,5 @@ auto convert_container(const detail::output_pools<SaveStorage>& old_save_pools,
     auto result = loader.load(container_id);
     return result;
 }
-
-/** @} */ // group: persist-api
 
 } // namespace immer::persist
