@@ -90,62 +90,67 @@
           });
         };
 
-      devShells.default = (withLLVM pkgs.mkShell) {
-        NIX_HARDENING_ENABLE = "";
-        inputsFrom = [
-          (import ./shell.nix {
-            inherit system nixpkgs;
-          })
-        ];
+      devShells =
+        {
+          default = (withLLVM pkgs.mkShell) {
+            NIX_HARDENING_ENABLE = "";
+            inputsFrom = [
+              (import ./shell.nix {
+                inherit system nixpkgs;
+              })
+            ];
 
-        packages = with pkgs;
-          [
-            # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
-            llvmPackages_latest.bintools-unwrapped
-            cmake-format
-            alejandra
-            just
-            fzf
-            starship
-          ]
-          ++ persist-inputs;
+            packages = with pkgs;
+              [
+                # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
+                llvmPackages_latest.bintools-unwrapped
+                cmake-format
+                alejandra
+                just
+                fzf
+                starship
+              ]
+              ++ persist-inputs;
 
-        shellHook =
-          self.checks.${system}.pre-commit-check.shellHook
-          + "\n"
-          + ''
-            alias j=just
-            eval "$(starship init bash)"
-          '';
-      };
+            shellHook =
+              self.checks.${system}.pre-commit-check.shellHook
+              + "\n"
+              + ''
+                alias j=just
+                eval "$(starship init bash)"
+              '';
+          };
+        }
+        // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          # doxygen doesn't work on macOS currently
+          docs = let
+            docsPkgs = import docs-nixpkgs {inherit system;};
+            docs = docsPkgs.callPackage ./nix/docs.nix {};
+          in
+            pkgs.mkShell {
+              packages = [
+                pkgs.just
+                pkgs.fzf
+                pkgs.starship
+                pkgs.cmake
+                pkgs.ninja
 
-      devShells.docs = let
-        docsPkgs = import docs-nixpkgs {inherit system;};
-        docs = docsPkgs.callPackage ./nix/docs.nix {};
-      in
-        pkgs.mkShell {
-          packages = [
-            pkgs.just
-            pkgs.fzf
-            pkgs.starship
-            pkgs.cmake
-            pkgs.ninja
+                docsPkgs.doxygen
+                (docsPkgs.python.withPackages (ps: [
+                  ps.sphinx
+                  docs.breathe
+                  docs.recommonmark
+                ]))
+              ];
 
-            docsPkgs.doxygen
-            (docsPkgs.python.withPackages (ps: [
-              ps.sphinx
-              docs.breathe
-              docs.recommonmark
-            ]))
-          ];
-
-          shellHook =
-            self.checks.${system}.pre-commit-check.shellHook
-            + "\n"
-            + ''
-              alias j=just
-              eval "$(starship init bash)"
-            '';
+              shellHook =
+                self.checks.${system}.pre-commit-check.shellHook
+                + "\n"
+                + ''
+                  alias j=just
+                  eval "$(starship init bash)"
+                '';
+            };
         };
 
       packages = {

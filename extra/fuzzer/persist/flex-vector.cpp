@@ -12,8 +12,8 @@
 #include <immer/flex_vector.hpp>
 
 #include <fmt/ranges.h>
-#include <immer/extra/persist/rbts/input.hpp>
-#include <immer/extra/persist/rbts/output.hpp>
+#include <immer/extra/persist/detail/rbts/input.hpp>
+#include <immer/extra/persist/detail/rbts/output.hpp>
 
 #include <array>
 
