@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <scm/detail/finalizer_wrapper.hpp>
 #include <scm/detail/define.hpp>
+#include <scm/detail/finalizer_wrapper.hpp>
 #include <string>
 
 namespace scm {
@@ -33,7 +33,7 @@ struct convert_foreign_type
         assert(storage_t::data != SCM_UNSPECIFIED &&
                "can not convert to undefined type");
         scm_assert_foreign_object_type(storage_t::data, v);
-        return *(T*)scm_foreign_object_ref(v, 0);
+        return *(T*) scm_foreign_object_ref(v, 0);
     }
 
     template <typename U>
@@ -41,10 +41,9 @@ struct convert_foreign_type
     {
         assert(storage_t::data != SCM_UNSPECIFIED &&
                "can not convert from undefined type");
-        return scm_make_foreign_object_1(
-            storage_t::data,
-            new (scm_gc_malloc(sizeof(T), "scmpp")) T(
-                std::forward<U>(v)));
+        return scm_make_foreign_object_1(storage_t::data,
+                                         new (scm_gc_malloc(sizeof(T), "scmpp"))
+                                             T(std::forward<U>(v)));
     }
 };
 
@@ -57,23 +56,23 @@ struct convert<T,
                                 // change later...
                                 !std::is_pointer<T>::value>>
     : convert_foreign_type<T>
-{
-};
+{};
 
-template <typename Tag, typename T, int Seq=0>
+template <typename Tag, typename T, int Seq = 0>
 struct type_definer : move_sequence
 {
     using this_t = type_definer;
     using next_t = type_definer<Tag, T, Seq + 1>;
 
-    std::string type_name_ = {};
+    std::string type_name_           = {};
     scm_t_struct_finalize finalizer_ = nullptr;
 
     type_definer(type_definer&&) = default;
 
     type_definer(std::string type_name)
         : type_name_(std::move(type_name))
-    {}
+    {
+    }
 
     ~type_definer()
     {
@@ -87,67 +86,68 @@ struct type_definer : move_sequence
         }
     }
 
-    template <int Seq2, typename Enable=std::enable_if_t<Seq2 + 1 == Seq>>
+    template <int Seq2, typename Enable = std::enable_if_t<Seq2 + 1 == Seq>>
     type_definer(type_definer<Tag, T, Seq2> r)
         : move_sequence{std::move(r)}
         , type_name_{std::move(r.type_name_)}
         , finalizer_{std::move(r.finalizer_)}
-    {}
+    {
+    }
 
     next_t constructor() &&
     {
         define_impl<this_t>(type_name_, [] { return T{}; });
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 
     template <typename Fn>
     next_t constructor(Fn fn) &&
     {
         define_impl<this_t>(type_name_, fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 
     next_t finalizer() &&
     {
-        finalizer_ = (scm_t_struct_finalize) +finalizer_wrapper<Tag>(
-            [] (T& x) { x.~T(); });
-        return { std::move(*this) };
+        finalizer_ = (scm_t_struct_finalize) +
+                     finalizer_wrapper<Tag>([](T& x) { x.~T(); });
+        return {std::move(*this)};
     }
 
     template <typename Fn>
     next_t finalizer(Fn fn) &&
     {
-        finalizer_ = (scm_t_struct_finalize) +finalizer_wrapper<Tag>(fn);
-        return { std::move(*this) };
+        finalizer_ = (scm_t_struct_finalize) + finalizer_wrapper<Tag>(fn);
+        return {std::move(*this)};
     }
 
     next_t maker() &&
     {
         define_impl<this_t>("make-" + type_name_, [] { return T{}; });
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 
     template <typename Fn>
     next_t maker(Fn fn) &&
     {
         define_impl<this_t>("make-" + type_name_, fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
         define_impl<this_t>(type_name_ + "-" + name, fn);
-        return { std::move(*this) };
+        return {std::move(*this)};
     }
 };
 
 } // namespace detail
 
-template <typename Tag, typename T=Tag>
+template <typename Tag, typename T = Tag>
 detail::type_definer<Tag, T> type(std::string type_name)
 {
-    return { type_name };
+    return {type_name};
 }
 
 } // namespace scm

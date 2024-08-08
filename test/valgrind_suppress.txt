@@ -1,0 +1,28 @@
+{
+  <gc1>
+  Memcheck:Cond
+  fun:GC_*
+}
+{
+  <gc2>
+  Memcheck:Value8
+  fun:GC_*
+}
+{
+  <gc3>
+  Memcheck:Value4
+  fun:GC_*
+}
+{
+  <gc4>
+  Memcheck:Addr4
+  fun:memset
+  fun:GC_stopped_mark
+  fun:GC_try_to_collect_inner
+  fun:GC_init
+}
+{
+   <gc5>
+   Memcheck:Addr4
+   fun:GC_*
+}

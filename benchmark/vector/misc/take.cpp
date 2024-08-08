@@ -8,21 +8,24 @@
 
 #include "benchmark/vector/take.hpp"
 
-#include <immer/vector.hpp>
 #include <immer/flex_vector.hpp>
-#include <immer/vector_transient.hpp>
 #include <immer/flex_vector_transient.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
+#include <immer/vector.hpp>
+#include <immer/vector_transient.hpp>
 
 #if IMMER_BENCHMARK_LIBRRB
-extern "C" {
+extern "C"
+{
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
 #endif
+
+// clang-format off
 
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", benchmark_take_librrb(make_librrb_vector))
@@ -63,3 +66,5 @@ NONIUS_BENCHMARK("t/vector/GC", benchmark_take_mut<immer::vector<unsigned,gc_mem
 NONIUS_BENCHMARK("t/vector/NO", benchmark_take_mut<immer::vector<unsigned,basic_memory,5>>())
 NONIUS_BENCHMARK("t/vector/UN", benchmark_take_mut<immer::vector<unsigned,unsafe_memory,5>>())
 NONIUS_BENCHMARK("t/flex/F/5B", benchmark_take_mut<immer::flex_vector<unsigned,def_memory,5>, push_front_fn>())
+
+// clang-format on

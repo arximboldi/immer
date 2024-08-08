@@ -23,9 +23,12 @@ struct convert_wrapper_type
 struct wrapper
 {
     wrapper() = default;
-    wrapper(SCM hdl) : handle_{hdl} {}
+    wrapper(SCM hdl)
+        : handle_{hdl}
+    {
+    }
     SCM get() const { return handle_; }
-    operator SCM () const { return handle_; }
+    operator SCM() const { return handle_; }
 
     bool operator==(wrapper other) { return handle_ == other.handle_; }
     bool operator!=(wrapper other) { return handle_ != other.handle_; }
@@ -41,48 +44,61 @@ struct val : detail::wrapper
     using base_t = detail::wrapper;
     using base_t::base_t;
 
-    template <typename T,
-              typename = std::enable_if_t<
-                  (!std::is_same<std::decay_t<T>, val>{} &&
-                   !std::is_same<std::decay_t<T>, SCM>{})>>
+    template <
+        typename T,
+        typename = std::enable_if_t<(!std::is_same<std::decay_t<T>, val>{} &&
+                                     !std::is_same<std::decay_t<T>, SCM>{})>>
     val(T&& x)
         : base_t(detail::to_scm(std::forward<T>(x)))
-    {}
+    {
+    }
 
     template <typename T,
               typename = std::enable_if_t<
                   std::is_same<T, decltype(detail::to_cpp<T>(SCM{}))>{}>>
-    operator T() const { return detail::to_cpp<T>(handle_); }
+    operator T() const
+    {
+        return detail::to_cpp<T>(handle_);
+    }
 
     template <typename T,
               typename = std::enable_if_t<
                   std::is_same<T&, decltype(detail::to_cpp<T>(SCM{}))>{}>>
-    operator T& () const { return detail::to_cpp<T>(handle_); }
+    operator T&() const
+    {
+        return detail::to_cpp<T>(handle_);
+    }
 
     template <typename T,
               typename = std::enable_if_t<
                   std::is_same<const T&, decltype(detail::to_cpp<T>(SCM{}))>{}>>
-    operator const T& () const { return detail::to_cpp<T>(handle_); }
+    operator const T&() const
+    {
+        return detail::to_cpp<T>(handle_);
+    }
 
-    val operator() () const
-    { return val{scm_call_0(get())}; }
-    val operator() (val a0) const
-    { return val{scm_call_1(get(), a0)}; }
-    val operator() (val a0, val a1) const
-    { return val{scm_call_2(get(), a0, a1)}; }
-    val operator() (val a0, val a1, val a3) const
-    { return val{scm_call_3(get(), a0, a1, a3)}; }
+    val operator()() const { return val{scm_call_0(get())}; }
+    val operator()(val a0) const { return val{scm_call_1(get(), a0)}; }
+    val operator()(val a0, val a1) const
+    {
+        return val{scm_call_2(get(), a0, a1)};
+    }
+    val operator()(val a0, val a1, val a3) const
+    {
+        return val{scm_call_3(get(), a0, a1, a3)};
+    }
 };
 
 } // namespace scm
 
-#define SCM_DECLARE_WRAPPER_TYPE(cpp_name__)                            \
-    namespace scm {                                                     \
-    namespace detail {                                                  \
-    template <>                                                         \
-    struct convert<cpp_name__>                                          \
-        : convert_wrapper_type<cpp_name__> {};                          \
-    }} /* namespace scm::detail */                                      \
+#define SCM_DECLARE_WRAPPER_TYPE(cpp_name__)                                   \
+    namespace scm {                                                            \
+    namespace detail {                                                         \
+    template <>                                                                \
+    struct convert<cpp_name__> : convert_wrapper_type<cpp_name__>              \
+    {};                                                                        \
+    }                                                                          \
+    } /* namespace scm::detail */                                              \
     /**/
 
 SCM_DECLARE_WRAPPER_TYPE(val);

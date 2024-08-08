@@ -42,7 +42,8 @@ struct no_capacity
     no_capacity(node_t* p, size_t s)
         : ptr{p}
         , size{s}
-    {}
+    {
+    }
 
     no_capacity(const no_capacity& other)
         : no_capacity{other.ptr, other.size}

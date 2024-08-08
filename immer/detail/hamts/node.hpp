@@ -23,7 +23,11 @@ namespace hamts {
 // For C++14 support.
 // Calling the destructor inline breaks MSVC in some obscure
 // corner cases.
-template <typename T> constexpr void destroy_at(T* p) { p->~T(); }
+template <typename T>
+constexpr void destroy_at(T* p)
+{
+    p->~T();
+}
 
 template <typename T,
           typename Hash,

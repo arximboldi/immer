@@ -14,7 +14,8 @@ namespace detail {
 struct none_t;
 
 template <typename... Ts>
-struct pack {};
+struct pack
+{};
 
 template <typename Pack>
 struct pack_size;
@@ -34,9 +35,8 @@ struct pack_last
     using type = none_t;
 };
 
-template <typename T, typename ...Ts>
-struct pack_last<pack<T, Ts...>>
-    : pack_last<pack<Ts...>>
+template <typename T, typename... Ts>
+struct pack_last<pack<T, Ts...>> : pack_last<pack<Ts...>>
 {};
 
 template <typename T>

@@ -8,4 +8,5 @@
 
 #define DISABLE_GC_BENCHMARKS
 #include "generator.ipp"
+
 #include "../insert.ipp"

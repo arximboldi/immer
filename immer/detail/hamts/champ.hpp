@@ -150,7 +150,8 @@ struct champ
     champ(node_t* r, size_t sz = 0) noexcept
         : root{r}
         , size{sz}
-    {}
+    {
+    }
 
     champ(const champ& other) noexcept
         : champ{other.root, other.size}
@@ -1304,13 +1305,15 @@ struct champ
             , data{a.data}
             , owned{false}
             , mutated{false}
-        {}
+        {
+        }
         sub_result_mut(sub_result a, bool m)
             : kind{a.kind}
             , data{a.data}
             , owned{false}
             , mutated{m}
-        {}
+        {
+        }
         sub_result_mut()
             : kind{kind_t::nothing}
             , mutated{false} {};

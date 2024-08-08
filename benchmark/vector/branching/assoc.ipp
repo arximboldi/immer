@@ -13,8 +13,12 @@
 #error "define the MEMORY_T"
 #endif
 
+// clang-format off
+
 NONIUS_BENCHMARK("flex/3", benchmark_assoc<immer::flex_vector<std::size_t,MEMORY_T,3>>())
 NONIUS_BENCHMARK("flex/4", benchmark_assoc<immer::flex_vector<std::size_t,MEMORY_T,4>>())
 NONIUS_BENCHMARK("flex/5", benchmark_assoc<immer::flex_vector<std::size_t,MEMORY_T,5>>())
 NONIUS_BENCHMARK("flex/6", benchmark_assoc<immer::flex_vector<std::size_t,MEMORY_T,6>>())
 NONIUS_BENCHMARK("flex/7", benchmark_assoc<immer::flex_vector<std::size_t,MEMORY_T,7>>())
+
+// clang-format on

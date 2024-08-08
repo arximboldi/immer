@@ -53,7 +53,8 @@ struct fuzzer_input
         try {
             while (step(*this))
                 continue;
-        } catch (const no_more_input&) {};
+        } catch (const no_more_input&) {
+        };
         return 0;
     }
 };

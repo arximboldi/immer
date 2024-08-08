@@ -10,8 +10,8 @@
 
 #include <immer/array.hpp>
 #include <immer/flex_vector.hpp>
-#include <immer/vector_transient.hpp>
 #include <immer/vector.hpp>
+#include <immer/vector_transient.hpp>
 
 #if IMMER_BENCHMARK_EXPERIMENTAL
 #include <immer/experimental/dvektor.hpp>
@@ -21,9 +21,9 @@
 #include <immer/refcount/no_refcount_policy.hpp>
 #include <immer/refcount/unsafe_refcount_policy.hpp>
 
-#include <vector>
 #include <list>
 #include <numeric>
+#include <vector>
 
 #if IMMER_BENCHMARK_STEADY
 #define QUARK_ASSERT_ON 0
@@ -31,12 +31,15 @@
 #endif
 
 #if IMMER_BENCHMARK_LIBRRB
-extern "C" {
+extern "C"
+{
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
 #endif
+
+// clang-format off
 
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", benchmark_push_librrb)
@@ -81,3 +84,5 @@ NONIUS_BENCHMARK("array",      benchmark_push<immer::array<unsigned>>())
 #if IMMER_BENCHMARK_STEADY
 NONIUS_BENCHMARK("steady",     benchmark_push<steady::vector<unsigned>>())
 #endif
+
+// clang-format on
