@@ -4,21 +4,6 @@
 
 namespace immer::persist {
 
-template <typename T, class PoolsTypes>
-auto to_json_with_auto_pool(const T& serializable,
-                            const PoolsTypes& pools_types)
-{
-    return to_json_with_pool(serializable, via_map_policy<PoolsTypes>{});
-}
-
-template <typename T, class PoolsTypes>
-T from_json_with_auto_pool(const std::string& input,
-                           const PoolsTypes& pools_types)
-{
-    return from_json_with_pool<T>(input, via_map_policy<PoolsTypes>{});
-}
-
-// Same as to_json_with_auto_pool but we don't generate any JSON.
 template <typename T, Policy<T> Policy = hana_struct_auto_policy>
 auto get_auto_pool(const T& value0, const Policy& policy = Policy{})
 {
