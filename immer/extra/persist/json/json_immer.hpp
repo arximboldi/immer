@@ -18,7 +18,7 @@ namespace detail {
  * nothing when requested to serialize data. It is used when we only care about
  * the pools and have no need to serialize the actual document.
  *
- * @ingroup persist-api
+ * @ingroup persist-impl
  */
 struct blackhole_output_archive
 {

@@ -32,7 +32,7 @@ namespace immer::persist {
  *
  * @tparam Container ``immer`` container that should be serialized using a pool.
  *
- * @ingroup persist-api
+ * @ingroup persist-impl
  */
 template <class Container>
 struct persistable
