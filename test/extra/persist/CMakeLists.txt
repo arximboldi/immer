@@ -22,7 +22,7 @@ add_executable(
   test_for_docs.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/persist/xxhash/xxhash_64.cpp)
 target_precompile_headers(persist-tests PRIVATE
-                          <immer/extra/persist/json/json_with_pool_auto.hpp>)
+                          <immer/extra/persist/json/json_with_pool.hpp>)
 add_dependencies(tests persist-tests)
 add_test("test/persist-tests" persist-tests)
 target_include_directories(persist-tests PRIVATE ${CMAKE_SOURCE_DIR})
