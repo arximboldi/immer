@@ -139,3 +139,129 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
         REQUIRE(value == loaded_value);
     }
 }
+
+namespace {
+// include:start-doc_2-type
+using vector_str = immer::
+    vector<std::string, immer::default_memory_policy, immer::default_bits, 1>;
+
+struct extra_data
+{
+    vector_str comments;
+
+    friend bool operator==(const extra_data&, const extra_data&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(comments));
+    }
+};
+
+struct doc_2
+{
+    vector_one ints;
+    vector_one ints2;
+    vector_str strings;
+    extra_data extra;
+
+    friend bool operator==(const doc_2&, const doc_2&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(ints),
+           CEREAL_NVP(ints2),
+           CEREAL_NVP(strings),
+           CEREAL_NVP(extra));
+    }
+};
+// include:end-doc_2-type
+
+// include:start-doc_2_policy
+struct doc_2_policy
+{
+    auto get_pool_types(const auto&) const
+    {
+        return boost::hana::to_set(
+            boost::hana::tuple_t<vector_one, vector_str>);
+    }
+
+    template <class Archive>
+    void save(Archive& ar, const doc_2& doc2_value) const
+    {
+        ar(CEREAL_NVP(doc2_value));
+    }
+
+    template <class Archive>
+    void load(Archive& ar, doc_2& doc2_value) const
+    {
+        ar(CEREAL_NVP(doc2_value));
+    }
+
+    auto get_pool_name(const vector_one&) const { return "vector_of_ints"; }
+    auto get_pool_name(const vector_str&) const { return "vector_of_strings"; }
+};
+// include:end-doc_2_policy
+} // namespace
+
+TEST_CASE("Custom policy", "[docs]")
+{
+    // include:start-doc_2-cereal_save_with_pools
+    const auto v1   = vector_one{1, 2, 3};
+    const auto v2   = v1.push_back(4).push_back(5).push_back(6);
+    const auto str1 = vector_str{"one", "two"};
+    const auto str2 =
+        str1.push_back("three").push_back("four").push_back("five");
+    const auto value = doc_2{v1, v2, str1, extra_data{str2}};
+
+    const auto str =
+        immer::persist::cereal_save_with_pools(value, doc_2_policy{});
+    // include:end-doc_2-cereal_save_with_pools
+
+    // include:start-doc_2-json
+    const auto expected_json = json_t::parse(R"(
+{
+  "doc2_value": {"ints": 0, "ints2": 1, "strings": 0, "extra": {"comments": 1}},
+  "pools": {
+    "vector_of_ints": {
+      "B": 5,
+      "BL": 1,
+      "leaves": [
+        {"key": 1, "value": [3]},
+        {"key": 2, "value": [1, 2]},
+        {"key": 4, "value": [5, 6]},
+        {"key": 5, "value": [3, 4]}
+      ],
+      "inners": [
+        {"key": 0, "value": {"children": [2], "relaxed": false}},
+        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    },
+    "vector_of_strings": {
+      "B": 5,
+      "BL": 1,
+      "leaves": [
+        {"key": 1, "value": ["one", "two"]},
+        {"key": 3, "value": ["five"]},
+        {"key": 4, "value": ["three", "four"]}
+      ],
+      "inners": [
+        {"key": 0, "value": {"children": [], "relaxed": false}},
+        {"key": 2, "value": {"children": [1, 4], "relaxed": false}}
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 2, "tail": 3}]
+    }
+  }
+}
+    )");
+    // include:end-doc_2-json
+    REQUIRE(json_t::parse(str) == expected_json);
+
+    // include:start-doc_2-load
+    const auto loaded_value =
+        immer::persist::cereal_load_with_pools<doc_2>(str, doc_2_policy{});
+    // include:end-doc_2-load
+    REQUIRE(value == loaded_value);
+}

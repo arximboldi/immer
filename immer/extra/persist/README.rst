@@ -96,6 +96,55 @@ Currently, ``immer-persist`` focuses on JSON as the serialization format and use
 and serialization libraries could be supported in the future.
 
 
+Custom policy
+----------
+
+We can use policy to control the names of the pools for each container.
+
+For this example, let's define a new document type ``doc_2``. It will also contain another type ``extra_data`` with a ``vector`` of ``strings`` in it.
+To demonstrate the responsibilities of the policy, the ``doc_2`` type will not be a ``boost::hana::Struct`` and will not allow for a compile-time reflection.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:start-doc_2-type
+   :end-before:  include:end-doc_2-type
+
+We define the ``doc_2_policy`` as following:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:start-doc_2_policy
+   :end-before:  include:end-doc_2_policy
+
+The ``get_pool_types`` function returns the types of containers that should be serialized with pools, in this case it's both ``vector`` of ``ints`` and ``strings``.
+The ``save`` and ``load`` functions control the name of the document node, in this case it is ``doc2_value``.
+And the ``get_pool_name`` overloaded functions supply the name of the pool for each corresponding ``immer`` container.
+We can create and serialize a value of ``doc_2`` like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:start-doc_2-cereal_save_with_pools
+   :end-before:  include:end-doc_2-cereal_save_with_pools
+
+The serialized JSON looks like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:start-doc_2-json
+   :end-before:  include:end-doc_2-json
+
+And it can also be loaded from JSON like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: include:start-doc_2-load
+   :end-before:  include:end-doc_2-load
+
+This example also demonstrates a case where the main document type ``doc_2`` contains another type ``extra_data`` with a ``vector``.
+As you can see in the resulting JSON, nested types are also serialized with pools: ``"extra": {"comments": 1}``. Only the ID of the ``comments`` ``vector``
+is serialized instead of its content.
+
+
 Policy
 ------
 
