@@ -1,7 +1,7 @@
 #pragma once
 
-#include <immer/extra/persist/cereal/immer_map.hpp>
-#include <immer/extra/persist/cereal/immer_vector.hpp>
+#include <immer/extra/cereal/immer_map.hpp>
+#include <immer/extra/cereal/immer_vector.hpp>
 #include <immer/extra/persist/detail/alias.hpp>
 #include <immer/extra/persist/detail/common/pool.hpp>
 

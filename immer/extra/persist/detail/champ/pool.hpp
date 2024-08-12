@@ -7,8 +7,7 @@
 #include <immer/table.hpp>
 #include <immer/vector.hpp>
 
-#include <cereal/cereal.hpp>
-#include <immer/extra/persist/cereal/immer_vector.hpp>
+#include <immer/extra/cereal/immer_vector.hpp>
 
 #include <boost/endian/conversion.hpp>
 
