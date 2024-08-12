@@ -1,10 +1,10 @@
 #pragma once
 
 #include <immer/extra/io.hpp>
+#include <immer/extra/persist/cereal/archives.hpp>
 #include <immer/extra/persist/detail/names.hpp>
 #include <immer/extra/persist/detail/traits.hpp>
 #include <immer/extra/persist/errors.hpp>
-#include <immer/extra/persist/json/json_immer.hpp>
 
 #include <boost/hana.hpp>
 

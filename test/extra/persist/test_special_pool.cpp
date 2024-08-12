@@ -5,7 +5,7 @@
 #include "utils.hpp"
 
 #include <boost/hana.hpp>
-#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/cereal/with_pools.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 // to save std::pair
@@ -270,14 +270,15 @@ TEST_CASE("Special pool minimal test")
             },
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(test1);
+    const auto json_str = immer::persist::cereal_save_with_pools(test1);
     // REQUIRE(json_str == "");
 
     {
         auto full_load =
-            immer::persist::from_json_with_pool<test_data>(json_str);
+            immer::persist::cereal_load_with_pools<test_data>(json_str);
         REQUIRE(full_load == test1);
-        // REQUIRE(immer::persist::to_json_with_pool(full_load).first == "");
+        // REQUIRE(immer::persist::cereal_save_with_pools(full_load).first ==
+        // "");
     }
 }
 
@@ -316,14 +317,15 @@ TEST_CASE("Save with a special pool")
             },
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(test1);
+    const auto json_str = immer::persist::cereal_save_with_pools(test1);
     // REQUIRE(json_str == "");
 
     {
         auto full_load =
-            immer::persist::from_json_with_pool<test_data>(json_str);
+            immer::persist::cereal_load_with_pools<test_data>(json_str);
         REQUIRE(full_load == test1);
-        // REQUIRE(immer::persist::to_json_with_pool(full_load).first == "");
+        // REQUIRE(immer::persist::cereal_save_with_pools(full_load).first ==
+        // "");
     }
 }
 
@@ -374,14 +376,14 @@ TEST_CASE("Save with a special pool, special type is enclosed")
     REQUIRE(test1.flex_ints.container.identity() ==
             test2.flex_ints.container.identity());
 
-    const auto json_str = immer::persist::to_json_with_pool(
+    const auto json_str = immer::persist::cereal_save_with_pools(
         std::make_pair(test1, test2),
         immer::persist::via_get_pools_types_policy{});
 
     // REQUIRE(json_str == "");
 
     {
-        auto [loaded1, loaded2] = immer::persist::from_json_with_pool<
+        auto [loaded1, loaded2] = immer::persist::cereal_load_with_pools<
             std::pair<test_data, test_data>>(json_str);
         REQUIRE(loaded1 == test1);
         REQUIRE(loaded2 == test2);
@@ -407,13 +409,12 @@ TEST_CASE("Special pool must load and save types that have no pool")
     const auto val2  = test_value{234, "value2"};
     const auto value = std::make_pair(val1, val2);
 
-    const auto json_pool_str = immer::persist::to_json_with_pool(value);
+    const auto json_pool_str = immer::persist::cereal_save_with_pools(value);
     REQUIRE(json_pool_str == test::to_json(value));
 
     {
-        auto loaded =
-            immer::persist::from_json_with_pool<std::decay_t<decltype(value)>>(
-                json_pool_str);
+        auto loaded = immer::persist::cereal_load_with_pools<
+            std::decay_t<decltype(value)>>(json_pool_str);
         REQUIRE(loaded == value);
     }
 }
@@ -422,7 +423,7 @@ TEST_CASE("Special pool loads empty test_data")
 {
     const auto value = test_data{};
 
-    // const auto json_pool_str_ = immer::persist::to_json_with_pool<
+    // const auto json_pool_str_ = immer::persist::cereal_save_with_pools<
     //     test_data,
     //     immer::persist::name_from_map_fn<decltype(get_pools_types(value))>>(
     //     value);
@@ -491,10 +492,9 @@ TEST_CASE("Special pool loads empty test_data")
 })";
 
     {
-        auto loaded =
-            immer::persist::from_json_with_pool<std::decay_t<decltype(value)>>(
-                json_pool_str,
-                immer::persist::via_get_pools_names_policy(value));
+        auto loaded = immer::persist::cereal_load_with_pools<
+            std::decay_t<decltype(value)>>(
+            json_pool_str, immer::persist::via_get_pools_names_policy(value));
         REQUIRE(loaded == value);
     }
 }
@@ -504,7 +504,7 @@ TEST_CASE("Special pool throws cereal::Exception")
     const auto value = test_data{};
 
     // const auto json_pool_str =
-    //     immer::persist::to_json_with_pool(value);
+    //     immer::persist::cereal_save_with_pools(value);
     // REQUIRE(json_pool_str == "");
 
     const auto json_pool_str = R"({
@@ -563,7 +563,7 @@ TEST_CASE("Special pool throws cereal::Exception")
 })";
 
     const auto call = [&] {
-        return immer::persist::from_json_with_pool<test_data>(
+        return immer::persist::cereal_load_with_pools<test_data>(
             json_pool_str,
             immer::persist::via_get_pools_names_policy(test_data{}));
     };
@@ -621,14 +621,14 @@ TEST_CASE("Test recursive type")
                      immer::box<recursive_type>{v2}},
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(v3);
+    const auto json_str = immer::persist::cereal_save_with_pools(v3);
     // REQUIRE(json_str == "");
 
     {
         auto full_load =
-            immer::persist::from_json_with_pool<recursive_type>(json_str);
+            immer::persist::cereal_load_with_pools<recursive_type>(json_str);
         REQUIRE(full_load == v3);
-        REQUIRE(immer::persist::to_json_with_pool(full_load) == json_str);
+        REQUIRE(immer::persist::cereal_save_with_pools(full_load) == json_str);
     }
 }
 
@@ -660,14 +660,14 @@ TEST_CASE("Test recursive type, saving the box triggers saving the box of the "
             },
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(v5);
+    const auto json_str = immer::persist::cereal_save_with_pools(v5);
     // REQUIRE(json_str == "");
 
     {
         const auto full_load =
-            immer::persist::from_json_with_pool<recursive_type>(json_str);
+            immer::persist::cereal_load_with_pools<recursive_type>(json_str);
         REQUIRE(full_load == v5);
-        REQUIRE(immer::persist::to_json_with_pool(full_load) == json_str);
+        REQUIRE(immer::persist::cereal_save_with_pools(full_load) == json_str);
     }
 }
 
@@ -728,20 +728,20 @@ TEST_CASE("Test saving a map that contains the same map")
             },
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(value);
+    const auto json_str = immer::persist::cereal_save_with_pools(value);
     // REQUIRE(json_str == "");
 
     {
         const auto full_load =
-            immer::persist::from_json_with_pool<rec_map>(json_str);
+            immer::persist::cereal_load_with_pools<rec_map>(json_str);
         REQUIRE(full_load == value);
-        REQUIRE(immer::persist::to_json_with_pool(full_load) == json_str);
+        REQUIRE(immer::persist::cereal_save_with_pools(full_load) == json_str);
     }
 
     SECTION("Duplicate pool names are detected")
     {
         REQUIRE_THROWS_AS(
-            immer::persist::to_json_with_pool(value, same_name_policy{}),
+            immer::persist::cereal_save_with_pools(value, same_name_policy{}),
             immer::persist::duplicate_name_pool_detected);
     }
 }

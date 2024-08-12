@@ -1,9 +1,9 @@
 #pragma once
 
-#include <immer/extra/persist/detail/json/input_archive_util.hpp>
-#include <immer/extra/persist/detail/json/pools.hpp>
-#include <immer/extra/persist/detail/json/wrap.hpp>
-#include <immer/extra/persist/json/policy.hpp>
+#include <immer/extra/persist/cereal/policy.hpp>
+#include <immer/extra/persist/detail/cereal/input_archive_util.hpp>
+#include <immer/extra/persist/detail/cereal/pools.hpp>
+#include <immer/extra/persist/detail/cereal/wrap.hpp>
 
 namespace immer::persist {
 
@@ -21,9 +21,9 @@ namespace immer::persist {
 template <class Archive = cereal::JSONOutputArchive,
           class T,
           Policy<T> Policy = default_policy>
-void to_json_with_pool_stream(auto& os,
-                              const T& value0,
-                              const Policy& policy = Policy{})
+void cereal_save_with_pools(std::ostream& os,
+                            const T& value0,
+                            const Policy& policy = Policy{})
 {
     const auto types = policy.get_pool_types(value0);
     auto pools       = detail::generate_output_pools(types);
@@ -53,17 +53,18 @@ void to_json_with_pool_stream(auto& os,
 template <class Archive = cereal::JSONOutputArchive,
           class T,
           Policy<T> Policy = default_policy>
-std::string to_json_with_pool(const T& value0, const Policy& policy = Policy{})
+std::string cereal_save_with_pools(const T& value0,
+                                   const Policy& policy = Policy{})
 {
     auto os = std::ostringstream{};
-    to_json_with_pool_stream<Archive>(os, value0, policy);
+    cereal_save_with_pools<Archive>(os, value0, policy);
     return os.str();
 }
 
 template <class T,
           class Archive    = cereal::JSONInputArchive,
           Policy<T> Policy = default_policy>
-T from_json_with_pool(std::istream& is, const Policy& policy = Policy{})
+T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
 {
     using TypesSet = decltype(policy.get_pool_types(std::declval<T>()));
     using Pools    = decltype(detail::generate_input_pools(TypesSet{}));
@@ -88,10 +89,11 @@ T from_json_with_pool(std::istream& is, const Policy& policy = Policy{})
 template <class T,
           class Archive    = cereal::JSONInputArchive,
           Policy<T> Policy = default_policy>
-T from_json_with_pool(const std::string& input, const Policy& policy = Policy{})
+T cereal_load_with_pools(const std::string& input,
+                         const Policy& policy = Policy{})
 {
     auto is = std::istringstream{input};
-    return from_json_with_pool<T, Archive>(is, policy);
+    return cereal_load_with_pools<T, Archive>(is, policy);
 }
 
 template <typename T, Policy<T> Policy = hana_struct_auto_policy>

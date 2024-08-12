@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/cereal/with_pools.hpp>
 
 #include <test/extra/persist/utils.hpp>
 
@@ -140,7 +140,7 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
         REQUIRE(box1.impl() == box2.impl());
     }
 
-    const auto json_str = immer::persist::to_json_with_pool(
+    const auto json_str = immer::persist::cereal_save_with_pools(
         value, immer::persist::hana_struct_auto_member_name_policy(value));
     // REQUIRE(json_str == "");
     constexpr auto expected_json_str = R"(
@@ -187,7 +187,7 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
     // Saving works, boxes are saved properly
     REQUIRE(json_t::parse(expected_json_str) == json_t::parse(json_str));
 
-    const auto loaded = immer::persist::from_json_with_pool<value_one>(
+    const auto loaded = immer::persist::cereal_load_with_pools<value_one>(
         json_str,
         immer::persist::hana_struct_auto_member_name_policy(value_one{}));
     REQUIRE(loaded == value);
@@ -204,7 +204,7 @@ TEST_CASE("Test boxes and tables preserve structural sharing")
 
     SECTION("Saved loaded value shows the broken sharing")
     {
-        const auto loaded_str = immer::persist::to_json_with_pool(
+        const auto loaded_str = immer::persist::cereal_save_with_pools(
             loaded,
             immer::persist::hana_struct_auto_member_name_policy(loaded));
         // REQUIRE(str == "");

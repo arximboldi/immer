@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/detail/json/wrap.hpp>
+#include <immer/extra/persist/detail/cereal/wrap.hpp>
 #include <immer/extra/persist/detail/names.hpp>
 
 namespace immer::persist {

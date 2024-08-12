@@ -1,9 +1,9 @@
 #pragma once
 
-#include <immer/extra/persist/detail/json/pools.hpp>
+#include <immer/extra/persist/cereal/archives.hpp>
+#include <immer/extra/persist/detail/cereal/pools.hpp>
 #include <immer/extra/persist/detail/traits.hpp>
 #include <immer/extra/persist/errors.hpp>
-#include <immer/extra/persist/json/json_immer.hpp>
 
 #include <fmt/format.h>
 

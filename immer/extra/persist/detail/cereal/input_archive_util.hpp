@@ -1,7 +1,7 @@
 #pragma once
 
 #include <immer/extra/io.hpp>
-#include <immer/extra/persist/json/json_immer.hpp>
+#include <immer/extra/persist/cereal/archives.hpp>
 
 namespace immer::persist::detail {
 

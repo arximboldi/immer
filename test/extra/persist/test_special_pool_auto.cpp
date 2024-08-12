@@ -4,7 +4,7 @@
 
 #include "utils.hpp"
 
-#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/cereal/with_pools.hpp>
 #include <immer/extra/persist/transform.hpp>
 #include <nlohmann/json.hpp>
 
@@ -743,12 +743,12 @@ TEST_CASE("Test table with a funny value no auto")
         .twos_table = t1.insert(two2),
     };
 
-    const auto json_str = immer::persist::to_json_with_pool(
+    const auto json_str = immer::persist::cereal_save_with_pools(
         value, immer::persist::via_get_pools_names_policy(value));
     // REQUIRE(json_str == "");
 
     const auto loaded =
-        immer::persist::from_json_with_pool<test_no_auto::value_one>(
+        immer::persist::cereal_load_with_pools<test_no_auto::value_one>(
             json_str,
             immer::persist::via_get_pools_names_policy(
                 test_no_auto::value_one{}));

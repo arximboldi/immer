@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <immer/extra/persist/cereal/with_pools.hpp>
 #include <immer/extra/persist/detail/type_traverse.hpp>
-#include <immer/extra/persist/json/json_with_pool.hpp>
 #include <immer/extra/persist/transform.hpp>
 
 #include "utils.hpp"

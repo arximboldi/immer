@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/cereal/with_pools.hpp>
 
 #include "utils.hpp"
 #include <nlohmann/json.hpp>
@@ -85,7 +85,7 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
         // include:intro/start-serialize-with-persist
         const auto policy =
             immer::persist::hana_struct_auto_member_name_policy(document{});
-        const auto str = immer::persist::to_json_with_pool(value, policy);
+        const auto str = immer::persist::cereal_save_with_pools(value, policy);
         // include:intro/end-serialize-with-persist
 
         // The resulting JSON looks much more complicated for this little
@@ -135,7 +135,7 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
         REQUIRE(json_t::parse(str) == expected_json);
 
         const auto loaded_value =
-            immer::persist::from_json_with_pool<document>(str, policy);
+            immer::persist::cereal_load_with_pools<document>(str, policy);
         REQUIRE(value == loaded_value);
     }
 }

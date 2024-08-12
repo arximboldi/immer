@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/detail/json/persistable.hpp>
+#include <immer/extra/persist/detail/cereal/persistable.hpp>
 #include <immer/extra/persist/detail/type_traverse.hpp>
 
 // Bring in all known pools to be able to wrap all immer types

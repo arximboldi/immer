@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/persist/json/json_with_pool.hpp>
+#include <immer/extra/persist/cereal/with_pools.hpp>
 #include <immer/extra/persist/transform.hpp>
 
 #include "utils.hpp"
@@ -621,11 +621,12 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto format_twos_json = immer::persist::to_json_with_pool(
-                format_twos,
-                immer::persist::hana_struct_auto_member_name_policy(
-                    format_twos));
-            const auto model_twos_json = immer::persist::to_json_with_pool(
+            const auto format_twos_json =
+                immer::persist::cereal_save_with_pools(
+                    format_twos,
+                    immer::persist::hana_struct_auto_member_name_policy(
+                        format_twos));
+            const auto model_twos_json = immer::persist::cereal_save_with_pools(
                 value.twos_map,
                 immer::persist::hana_struct_auto_member_name_policy(
                     value.twos_map));
@@ -647,10 +648,11 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
         SECTION("Compare structure")
         {
-            const auto format_twos_json = immer::persist::to_json_with_pool(
-                format_twos,
-                immer::persist::hana_struct_auto_member_name_policy(
-                    format_twos));
+            const auto format_twos_json =
+                immer::persist::cereal_save_with_pools(
+                    format_twos,
+                    immer::persist::hana_struct_auto_member_name_policy(
+                        format_twos));
             const auto model_twos_json =
                 test::to_json_with_auto_pool(value.twos_set, names);
             REQUIRE(json_t::parse(model_twos_json) ==
@@ -671,7 +673,7 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
             });
             return result;
         }();
-        const auto format_json_str = immer::persist::to_json_with_pool(
+        const auto format_json_str = immer::persist::cereal_save_with_pools(
             format_value,
             immer::persist::hana_struct_auto_member_name_policy(format_value));
         const auto json_str = test::to_json_with_auto_pool(value, names);
@@ -698,10 +700,10 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
     SECTION("XML also works")
     {
-        const auto xml_str = to_json_with_pool<cereal::XMLOutputArchive>(
+        const auto xml_str = cereal_save_with_pools<cereal::XMLOutputArchive>(
             value, immer::persist::hana_struct_auto_member_name_policy(value));
         const auto loaded_value =
-            from_json_with_pool<model::value_one, cereal::XMLInputArchive>(
+            cereal_load_with_pools<model::value_one, cereal::XMLInputArchive>(
                 xml_str,
                 immer::persist::hana_struct_auto_member_name_policy(
                     model::value_one{}));

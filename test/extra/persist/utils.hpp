@@ -227,16 +227,16 @@ template <typename T, class PoolsTypes>
 auto to_json_with_auto_pool(const T& serializable,
                             const PoolsTypes& pools_types)
 {
-    return immer::persist::to_json_with_pool(serializable,
-                                             via_map_policy<PoolsTypes>{});
+    return immer::persist::cereal_save_with_pools(serializable,
+                                                  via_map_policy<PoolsTypes>{});
 }
 
 template <typename T, class PoolsTypes>
 T from_json_with_auto_pool(const std::string& input,
                            const PoolsTypes& pools_types)
 {
-    return immer::persist::from_json_with_pool<T>(input,
-                                                  via_map_policy<PoolsTypes>{});
+    return immer::persist::cereal_load_with_pools<T>(
+        input, via_map_policy<PoolsTypes>{});
 }
 
 } // namespace test

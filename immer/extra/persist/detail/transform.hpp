@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immer/extra/persist/detail/json/pools.hpp>
+#include <immer/extra/persist/detail/cereal/pools.hpp>
 
 namespace immer::persist::detail {
 
