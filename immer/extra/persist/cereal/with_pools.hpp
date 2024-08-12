@@ -60,6 +60,11 @@ std::string cereal_save_with_pools(const T& value0,
     return os.str();
 }
 
+/**
+ * @brief Load a value of the given type `T` from the provided stream using
+ * pools.
+ * @ingroup persist-api
+ */
 template <class T,
           class Archive    = cereal::JSONInputArchive,
           Policy<T> Policy = default_policy>
@@ -87,6 +92,11 @@ T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
     return value0;
 }
 
+/**
+ * @brief Load a value of the given type `T` from the provided string using
+ * pools.
+ * @ingroup persist-api
+ */
 template <class T,
           class Archive    = cereal::JSONInputArchive,
           Policy<T> Policy = default_policy>

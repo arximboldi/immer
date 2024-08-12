@@ -81,14 +81,10 @@ constexpr bool is_pool_empty()
  * @brief An output archive wrapper that provides access to the ``Pools`` stored
  * inside. And serializes the ``pools`` object alongside the user document.
  *
- * @tparam Previous Type of the ``cereal`` output archive into which all the
- * serialization calls are forwarded.
- * @tparam Pools The wrapped pools. See ``output_pools``.
- * @tparam WrapFn A function that is called on each serialized value in order to
- * wrap the desired ``immer`` containers into ``persistable``.
- * @tparam PoolNameFn A function that is used to determine the name for each
- * individual pool. It's called with an empty ``immer`` container and must
- * return the name for the corresponding pool.
+ * Normally, the function `cereal_save_with_pools` should be used instead of
+ * using wrapper directly.
+ *
+ * @see cereal_save_with_pools
  *
  * @ingroup persist-api
  */
@@ -261,6 +257,17 @@ struct has_has_name_t<T, std::void_t<decltype(std::declval<T>().hasName(""))>>
     : std::true_type
 {};
 
+/**
+ * @brief A wrapper type that wraps a `cereal::InputArchive` (for example,
+ * `JSONInputArchive`) and provides access to the `pools` object.
+ *
+ * Normally, the function `cereal_load_with_pools` should be used instead of
+ * using this wrapper directly.
+ *
+ * @see cereal_load_with_pools
+ *
+ * @ingroup persist-api
+ */
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
 class input_pools_cereal_archive_wrapper
     : public cereal::InputArchive<
