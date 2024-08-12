@@ -8,9 +8,7 @@
 #include <immer/extra/persist/detail/champ/traits.hpp>
 #include <immer/extra/persist/detail/rbts/traits.hpp>
 
-namespace immer::persist {
-
-namespace detail {
+namespace immer::persist::detail {
 
 template <class T>
 struct is_auto_ignored_type : boost::hana::false_
@@ -137,8 +135,6 @@ static_assert(std::is_same_v<decltype(wrap_for_saving(immer::vector<int>{})),
                              persistable<immer::vector<int>>>,
               "and a value when it's wrapping");
 
-} // namespace detail
-
 /**
  * Generate a hana set of types of persistable members for the given type,
  * recursively. Example: [type_c<immer::map<K, V>>]
@@ -174,4 +170,4 @@ auto get_named_pools_for_hana_type()
     return hana::to_map(persistable);
 }
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

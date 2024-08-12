@@ -756,6 +756,7 @@ TEST_CASE("Test non-unique names in the map")
 
         );
 
-    using IsUnique = decltype(immer::persist::are_type_names_unique(names));
+    using IsUnique =
+        decltype(immer::persist::detail::are_type_names_unique(names));
     static_assert(IsUnique::value, "Names are unique");
 }

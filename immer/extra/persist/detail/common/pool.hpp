@@ -1,19 +1,13 @@
 #pragma once
 
-#include <immer/extra/persist/detail/alias.hpp>
+#include <immer/extra/persist/types.hpp>
 
 #include <immer/array.hpp>
 #include <immer/map.hpp>
 
 #include <cereal/types/utility.hpp>
 
-namespace immer::persist {
-
-struct node_id_tag;
-using node_id = detail::type_alias<std::size_t, node_id_tag>;
-
-struct container_id_tag;
-using container_id = detail::type_alias<std::size_t, container_id_tag>;
+namespace immer::persist::detail {
 
 template <class T>
 struct values_save
@@ -69,4 +63,4 @@ void load(Archive& ar, values_load<T>& m)
     }
 }
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

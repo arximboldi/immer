@@ -50,7 +50,7 @@ template <typename T,
           immer::detail::rbts::bits_t BL>
 struct output_pool
 {
-    immer::map<node_id, values_save<T>> leaves;
+    immer::map<node_id, detail::values_save<T>> leaves;
     immer::map<node_id, inner_node> inners;
     immer::vector<rbts_info> vectors;
 
@@ -104,7 +104,7 @@ struct input_pool
 {
     immer::detail::rbts::bits_t bits{};
     immer::detail::rbts::bits_t bits_leaf{};
-    immer::map<node_id, values_load<T>> leaves;
+    immer::map<node_id, detail::values_load<T>> leaves;
     immer::map<node_id, inner_node> inners;
     immer::vector<rbts_info> vectors;
 
@@ -134,7 +134,7 @@ template <typename T,
           immer::detail::rbts::bits_t BL>
 input_pool<T> to_input_pool(output_pool<T, MemoryPolicy, B, BL> ar)
 {
-    auto leaves = immer::map<node_id, values_load<T>>{};
+    auto leaves = immer::map<node_id, detail::values_load<T>>{};
     for (const auto& item : ar.leaves) {
         leaves = std::move(leaves).set(item.first, item.second);
     }

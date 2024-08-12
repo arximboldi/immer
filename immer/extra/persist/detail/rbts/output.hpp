@@ -87,7 +87,7 @@ struct pool_builder
             return;
         }
 
-        auto info = values_save<T>{
+        auto info = persist::detail::values_save<T>{
             .begin = first,
             .end   = first + pos.count(),
         };

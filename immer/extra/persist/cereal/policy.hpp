@@ -80,7 +80,7 @@ struct via_get_pools_names_policy_t : value0_serialize_t
     template <class Container>
     auto get_pool_name(const Container& container) const
     {
-        return name_from_map_fn<Map>{}(container);
+        return detail::name_from_map_fn<Map>{}(container);
     }
 };
 
@@ -116,7 +116,7 @@ struct demangled_names_t
     template <class T>
     auto get_pool_name(const T& value) const
     {
-        return get_demangled_name(value);
+        return detail::get_demangled_name(value);
     }
 };
 
@@ -156,7 +156,7 @@ struct hana_struct_auto_policy : demangled_names_t
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_hana_type<T>();
+        return detail::get_pools_for_hana_type<T>();
     }
 };
 
@@ -165,15 +165,15 @@ struct hana_struct_auto_member_name_policy_t : value0_serialize_t
 {
     auto get_pool_types(const T& value) const
     {
-        return get_pools_for_hana_type<T>();
+        return detail::get_pools_for_hana_type<T>();
     }
 
-    using map_t = decltype(get_named_pools_for_hana_type<T>());
+    using map_t = decltype(detail::get_named_pools_for_hana_type<T>());
 
     template <class Container>
     auto get_pool_name(const Container& container) const
     {
-        return name_from_map_fn<map_t>{}(container);
+        return detail::name_from_map_fn<map_t>{}(container);
     }
 };
 

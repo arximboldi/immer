@@ -3,7 +3,7 @@
 #include <boost/core/demangle.hpp>
 #include <boost/hana.hpp>
 
-namespace immer::persist {
+namespace immer::persist::detail {
 
 template <class T>
 auto get_demangled_name(const T&)
@@ -50,4 +50,4 @@ struct name_from_map_fn
     }
 };
 
-} // namespace immer::persist
+} // namespace immer::persist::detail

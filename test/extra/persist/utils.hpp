@@ -219,7 +219,7 @@ struct via_map_policy : immer::persist::value0_serialize_t
     template <class T>
     auto get_pool_name(const T& value) const
     {
-        return immer::persist::name_from_map_fn<Map>{}(value);
+        return immer::persist::detail::name_from_map_fn<Map>{}(value);
     }
 };
 

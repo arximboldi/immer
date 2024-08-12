@@ -144,9 +144,10 @@ TEST_CASE("Convert between two hierarchies via JSON compatibility",
           "[conversion]")
 {
     const auto model_names =
-        immer::persist::get_named_pools_for_hana_type<model::history>();
+        immer::persist::detail::get_named_pools_for_hana_type<model::history>();
     const auto format_names =
-        immer::persist::get_named_pools_for_hana_type<format::history>();
+        immer::persist::detail::get_named_pools_for_hana_type<
+            format::history>();
     (void) format_names;
 
     const auto value = model::make_example_history();

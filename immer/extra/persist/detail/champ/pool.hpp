@@ -18,7 +18,7 @@ struct inner_node_save
 {
     using bitmap_t = typename immer::detail::hamts::get_bitmap_type<B>::type;
 
-    values_save<T> values;
+    detail::values_save<T> values;
     immer::vector<node_id> children;
     bitmap_t nodemap;
     bitmap_t datamap;
@@ -43,7 +43,7 @@ struct inner_node_load
 {
     using bitmap_t = typename immer::detail::hamts::get_bitmap_type<B>::type;
 
-    values_load<T> values;
+    detail::values_load<T> values;
     immer::vector<node_id> children;
     bitmap_t nodemap;
     bitmap_t datamap;
