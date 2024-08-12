@@ -8,27 +8,26 @@ namespace immer::persist::detail {
 template <class Pools, class Archive, class PoolNameFn>
 auto load_pools(std::istream& is, const auto& wrap)
 {
-    const auto reload_pool = [wrap](std::istream& is,
-                                    Pools pools,
-                                    bool ignore_pool_exceptions) {
-        auto restore              = immer::util::istream_snapshot{is};
-        const auto original_pools = pools;
-        auto ar =
-            json_immer_input_archive<Archive,
-                                     Pools,
-                                     decltype(wrap),
-                                     PoolNameFn>{std::move(pools), wrap, is};
-        ar.ignore_pool_exceptions = ignore_pool_exceptions;
-        /**
-         * NOTE: Critical to clear the pools before loading into it
-         * again. I hit a bug when pools contained a vector and every
-         * load would append to it, instead of replacing the contents.
-         */
-        pools = {};
-        ar(CEREAL_NVP(pools));
-        pools.merge_previous(original_pools);
-        return pools;
-    };
+    const auto reload_pool =
+        [wrap](std::istream& is, Pools pools, bool ignore_pool_exceptions) {
+            auto restore              = immer::util::istream_snapshot{is};
+            const auto original_pools = pools;
+            auto ar = input_pools_cereal_archive_wrapper<Archive,
+                                                         Pools,
+                                                         decltype(wrap),
+                                                         PoolNameFn>{
+                std::move(pools), wrap, is};
+            ar.ignore_pool_exceptions = ignore_pool_exceptions;
+            /**
+             * NOTE: Critical to clear the pools before loading into it
+             * again. I hit a bug when pools contained a vector and every
+             * load would append to it, instead of replacing the contents.
+             */
+            pools = {};
+            ar(CEREAL_NVP(pools));
+            pools.merge_previous(original_pools);
+            return pools;
+        };
 
     auto pools = Pools{};
     if constexpr (detail::is_pool_empty<Pools>()) {

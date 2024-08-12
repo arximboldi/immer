@@ -60,17 +60,19 @@ template <class Previous,
           class WrapFn,
           class PoolNameFn,
           class Container>
-auto save_minimal(const json_immer_output_archive<Previous,
-                                                  detail::output_pools<Storage>,
-                                                  WrapFn,
-                                                  PoolNameFn>& ar,
-                  const persistable<Container>& value)
+auto save_minimal(
+    const output_pools_cereal_archive_wrapper<Previous,
+                                              detail::output_pools<Storage>,
+                                              WrapFn,
+                                              PoolNameFn>& ar,
+    const persistable<Container>& value)
 {
     auto& pool =
-        const_cast<json_immer_output_archive<Previous,
-                                             detail::output_pools<Storage>,
-                                             WrapFn,
-                                             PoolNameFn>&>(ar)
+        const_cast<
+            output_pools_cereal_archive_wrapper<Previous,
+                                                detail::output_pools<Storage>,
+                                                WrapFn,
+                                                PoolNameFn>&>(ar)
             .get_output_pools()
             .template get_output_pool<Container>();
     auto [pool2, id] = add_to_pool(value.container, std::move(pool));
@@ -85,11 +87,12 @@ template <class Previous,
           class WrapFn,
           class PoolNameFn,
           class Container>
-auto save_minimal(const json_immer_output_archive<Previous,
-                                                  detail::input_pools<Storage>,
-                                                  WrapFn,
-                                                  PoolNameFn>& ar,
-                  const persistable<Container>& value) ->
+auto save_minimal(
+    const output_pools_cereal_archive_wrapper<Previous,
+                                              detail::input_pools<Storage>,
+                                              WrapFn,
+                                              PoolNameFn>& ar,
+    const persistable<Container>& value) ->
     typename container_traits<Container>::container_id::rep_t
 {
     throw std::logic_error{"Should never be called"};
@@ -101,13 +104,18 @@ template <class Previous,
           class PoolNameFn,
           class Container>
 void load_minimal(
-    const json_immer_input_archive<Previous, Pools, WrapFn, PoolNameFn>& ar,
+    const input_pools_cereal_archive_wrapper<Previous,
+                                             Pools,
+                                             WrapFn,
+                                             PoolNameFn>& ar,
     persistable<Container>& value,
     const typename container_traits<Container>::container_id::rep_t& id)
 {
     auto& loader =
-        const_cast<
-            json_immer_input_archive<Previous, Pools, WrapFn, PoolNameFn>&>(ar)
+        const_cast<input_pools_cereal_archive_wrapper<Previous,
+                                                      Pools,
+                                                      WrapFn,
+                                                      PoolNameFn>&>(ar)
             .template get_loader<Container>();
 
     // Have to be specific because for vectors container_id is different from

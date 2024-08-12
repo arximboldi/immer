@@ -32,12 +32,11 @@ void cereal_save_with_pools(std::ostream& os,
     auto get_pool_name_fn = [](const auto& value) {
         return Policy{}.get_pool_name(value);
     };
-    auto ar =
-        immer::persist::json_immer_output_archive<Archive,
-                                                  Pools,
-                                                  decltype(wrap),
-                                                  decltype(get_pool_name_fn)>{
-            pools, wrap, os};
+    auto ar = immer::persist::output_pools_cereal_archive_wrapper<
+        Archive,
+        Pools,
+        decltype(wrap),
+        decltype(get_pool_name_fn)>{pools, wrap, os};
     policy.save(ar, value0);
     // Calling finalize explicitly, as it might throw on saving the pools,
     // for example if pool names are not unique.
@@ -78,9 +77,11 @@ T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
         detail::wrap_known_types(TypesSet{}, detail::wrap_for_loading);
     auto pools = load_pools<Pools, Archive, PoolNameFn>(is, wrap);
 
-    auto ar = immer::persist::
-        json_immer_input_archive<Archive, Pools, decltype(wrap), PoolNameFn>{
-            std::move(pools), wrap, is};
+    auto ar = immer::persist::input_pools_cereal_archive_wrapper<Archive,
+                                                                 Pools,
+                                                                 decltype(wrap),
+                                                                 PoolNameFn>{
+        std::move(pools), wrap, is};
     auto value0 = T{};
     policy.load(ar, value0);
     return value0;
@@ -105,10 +106,11 @@ auto get_auto_pool(const T& value0, const Policy& policy = Policy{})
     using Pools      = std::decay_t<decltype(pools)>;
 
     {
-        auto ar = json_immer_output_archive<detail::blackhole_output_archive,
-                                            Pools,
-                                            decltype(wrap),
-                                            detail::empty_name_fn>{pools, wrap};
+        auto ar = output_pools_cereal_archive_wrapper<
+            detail::blackhole_output_archive,
+            Pools,
+            decltype(wrap),
+            detail::empty_name_fn>{pools, wrap};
         ar(CEREAL_NVP(value0));
         ar.finalize();
         pools = std::move(ar).get_output_pools();

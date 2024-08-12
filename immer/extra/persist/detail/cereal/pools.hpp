@@ -141,11 +141,11 @@ struct with_loader
 /**
  * A pool for one container type.
  * Normally, the pool does not contain a loader, which is located inside the
- * json_immer_input_archive.
+ * input_pools_cereal_archive_wrapper.
  *
- * But in case of transformations, there is no json_immer_input_archive involved
- * and it becomes convenient to have the corresponding loader stored here, too,
- * via with_loader.
+ * But in case of transformations, there is no
+ * input_pools_cereal_archive_wrapper involved and it becomes convenient to have
+ * the corresponding loader stored here, too, via with_loader.
  */
 template <class Container,
           class Pool       = typename container_traits<Container>::input_pool_t,

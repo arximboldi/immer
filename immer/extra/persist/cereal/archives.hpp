@@ -93,41 +93,46 @@ constexpr bool is_pool_empty()
  * @ingroup persist-api
  */
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
-class json_immer_output_archive
+class output_pools_cereal_archive_wrapper
     : public cereal::OutputArchive<
-          json_immer_output_archive<Previous, Pools, WrapFn, PoolNameFn>>
+          output_pools_cereal_archive_wrapper<Previous,
+                                              Pools,
+                                              WrapFn,
+                                              PoolNameFn>>
     , public cereal::traits::TextArchive
 {
 public:
     using pool_name_fn = PoolNameFn;
 
     template <class... Args>
-    explicit json_immer_output_archive(Args&&... args)
+    explicit output_pools_cereal_archive_wrapper(Args&&... args)
         requires std::is_same_v<WrapFn, boost::hana::id_t>
-        : cereal::OutputArchive<json_immer_output_archive>{this}
+        : cereal::OutputArchive<output_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
     {
     }
 
     template <class... Args>
-    json_immer_output_archive(Pools pools_, Args&&... args)
+    output_pools_cereal_archive_wrapper(Pools pools_, Args&&... args)
         requires std::is_same_v<WrapFn, boost::hana::id_t>
-        : cereal::OutputArchive<json_immer_output_archive>{this}
+        : cereal::OutputArchive<output_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
     {
     }
 
     template <class... Args>
-    json_immer_output_archive(Pools pools_, WrapFn wrap_, Args&&... args)
-        : cereal::OutputArchive<json_immer_output_archive>{this}
+    output_pools_cereal_archive_wrapper(Pools pools_,
+                                        WrapFn wrap_,
+                                        Args&&... args)
+        : cereal::OutputArchive<output_pools_cereal_archive_wrapper>{this}
         , wrap{std::move(wrap_)}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
     {
     }
 
-    ~json_immer_output_archive() { finalize(); }
+    ~output_pools_cereal_archive_wrapper() { finalize(); }
 
     Pools& get_output_pools() & { return pools; }
     Pools&& get_output_pools() && { return std::move(pools); }
@@ -150,29 +155,31 @@ public:
     }
 
     template <class T>
-    friend void prologue(json_immer_output_archive& ar, T&& v)
+    friend void prologue(output_pools_cereal_archive_wrapper& ar, T&& v)
     {
         using cereal::prologue;
         prologue(ar.previous, std::forward<T>(v));
     }
 
     template <class T>
-    friend void epilogue(json_immer_output_archive& ar, T&& v)
+    friend void epilogue(output_pools_cereal_archive_wrapper& ar, T&& v)
     {
         using cereal::epilogue;
         epilogue(ar.previous, std::forward<T>(v));
     }
 
     template <class T>
-    friend void CEREAL_SAVE_FUNCTION_NAME(json_immer_output_archive& ar,
-                                          cereal::NameValuePair<T> const& t)
+    friend void
+    CEREAL_SAVE_FUNCTION_NAME(output_pools_cereal_archive_wrapper& ar,
+                              cereal::NameValuePair<T> const& t)
     {
         ar.previous.setNextName(t.name);
         ar(ar.wrap(t.value));
     }
 
-    friend void CEREAL_SAVE_FUNCTION_NAME(json_immer_output_archive& ar,
-                                          std::nullptr_t const& t)
+    friend void
+    CEREAL_SAVE_FUNCTION_NAME(output_pools_cereal_archive_wrapper& ar,
+                              std::nullptr_t const& t)
     {
         using cereal::CEREAL_SAVE_FUNCTION_NAME;
         CEREAL_SAVE_FUNCTION_NAME(ar.previous, t);
@@ -181,8 +188,9 @@ public:
     template <class T,
               cereal::traits::EnableIf<std::is_arithmetic<T>::value> =
                   cereal::traits::sfinae>
-    friend void CEREAL_SAVE_FUNCTION_NAME(json_immer_output_archive& ar,
-                                          T const& t)
+    friend void
+    CEREAL_SAVE_FUNCTION_NAME(output_pools_cereal_archive_wrapper& ar,
+                              T const& t)
     {
         using cereal::CEREAL_SAVE_FUNCTION_NAME;
         CEREAL_SAVE_FUNCTION_NAME(ar.previous, t);
@@ -190,7 +198,7 @@ public:
 
     template <class CharT, class Traits, class Alloc>
     friend void CEREAL_SAVE_FUNCTION_NAME(
-        json_immer_output_archive& ar,
+        output_pools_cereal_archive_wrapper& ar,
         std::basic_string<CharT, Traits, Alloc> const& str)
     {
         using cereal::CEREAL_SAVE_FUNCTION_NAME;
@@ -198,8 +206,9 @@ public:
     }
 
     template <class T>
-    friend void CEREAL_SAVE_FUNCTION_NAME(json_immer_output_archive& ar,
-                                          cereal::SizeTag<T> const& v)
+    friend void
+    CEREAL_SAVE_FUNCTION_NAME(output_pools_cereal_archive_wrapper& ar,
+                              cereal::SizeTag<T> const& v)
     {
         using cereal::CEREAL_SAVE_FUNCTION_NAME;
         CEREAL_SAVE_FUNCTION_NAME(ar.previous, v);
@@ -207,17 +216,17 @@ public:
 
 private:
     template <class Previous_, class Pools_, class WrapFn_, class PoolNameFn_>
-    friend class json_immer_output_archive;
+    friend class output_pools_cereal_archive_wrapper;
 
     // Recursively serializes the pools but not calling finalize
     void save_pools_impl()
     {
         const auto save_pool = [wrap = wrap](auto pools) {
-            auto ar =
-                json_immer_output_archive<detail::blackhole_output_archive,
-                                          Pools,
-                                          decltype(wrap),
-                                          detail::empty_name_fn>{pools, wrap};
+            auto ar = output_pools_cereal_archive_wrapper<
+                detail::blackhole_output_archive,
+                Pools,
+                decltype(wrap),
+                detail::empty_name_fn>{pools, wrap};
             // Do not try to serialize pools again inside of this temporary
             // archive
             ar.finalized = true;
@@ -253,26 +262,31 @@ struct has_has_name_t<T, std::void_t<decltype(std::declval<T>().hasName(""))>>
 {};
 
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
-class json_immer_input_archive
+class input_pools_cereal_archive_wrapper
     : public cereal::InputArchive<
-          json_immer_input_archive<Previous, Pools, WrapFn, PoolNameFn>>
+          input_pools_cereal_archive_wrapper<Previous,
+                                             Pools,
+                                             WrapFn,
+                                             PoolNameFn>>
     , public cereal::traits::TextArchive
 {
 public:
     using pool_name_fn = PoolNameFn;
 
     template <class... Args>
-    json_immer_input_archive(Pools pools_, Args&&... args)
+    input_pools_cereal_archive_wrapper(Pools pools_, Args&&... args)
         requires std::is_same_v<WrapFn, boost::hana::id_t>
-        : cereal::InputArchive<json_immer_input_archive>{this}
+        : cereal::InputArchive<input_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
     {
     }
 
     template <class... Args>
-    json_immer_input_archive(Pools pools_, WrapFn wrap_, Args&&... args)
-        : cereal::InputArchive<json_immer_input_archive>{this}
+    input_pools_cereal_archive_wrapper(Pools pools_,
+                                       WrapFn wrap_,
+                                       Args&&... args)
+        : cereal::InputArchive<input_pools_cereal_archive_wrapper>{this}
         , wrap{std::move(wrap_)}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
@@ -300,30 +314,32 @@ public:
     }
 
     template <class T>
-    friend void prologue(json_immer_input_archive& ar, T&& v)
+    friend void prologue(input_pools_cereal_archive_wrapper& ar, T&& v)
     {
         using cereal::prologue;
         prologue(ar.previous, std::forward<T>(v));
     }
 
     template <class T>
-    friend void epilogue(json_immer_input_archive& ar, T&& v)
+    friend void epilogue(input_pools_cereal_archive_wrapper& ar, T&& v)
     {
         using cereal::epilogue;
         epilogue(ar.previous, std::forward<T>(v));
     }
 
     template <class T>
-    friend void CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar,
-                                          cereal::NameValuePair<T>& t)
+    friend void
+    CEREAL_LOAD_FUNCTION_NAME(input_pools_cereal_archive_wrapper& ar,
+                              cereal::NameValuePair<T>& t)
     {
         ar.previous.setNextName(t.name);
         auto&& wrapped = ar.wrap(t.value);
         ar(wrapped);
     }
 
-    friend void CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar,
-                                          std::nullptr_t& t)
+    friend void
+    CEREAL_LOAD_FUNCTION_NAME(input_pools_cereal_archive_wrapper& ar,
+                              std::nullptr_t& t)
     {
         using cereal::CEREAL_LOAD_FUNCTION_NAME;
         CEREAL_LOAD_FUNCTION_NAME(ar.previous, t);
@@ -332,7 +348,8 @@ public:
     template <class T,
               cereal::traits::EnableIf<std::is_arithmetic<T>::value> =
                   cereal::traits::sfinae>
-    friend void CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar, T& t)
+    friend void
+    CEREAL_LOAD_FUNCTION_NAME(input_pools_cereal_archive_wrapper& ar, T& t)
     {
         using cereal::CEREAL_LOAD_FUNCTION_NAME;
         CEREAL_LOAD_FUNCTION_NAME(ar.previous, t);
@@ -340,7 +357,7 @@ public:
 
     template <class CharT, class Traits, class Alloc>
     friend void
-    CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar,
+    CEREAL_LOAD_FUNCTION_NAME(input_pools_cereal_archive_wrapper& ar,
                               std::basic_string<CharT, Traits, Alloc>& str)
     {
         using cereal::CEREAL_LOAD_FUNCTION_NAME;
@@ -348,8 +365,9 @@ public:
     }
 
     template <class T>
-    friend void CEREAL_LOAD_FUNCTION_NAME(json_immer_input_archive& ar,
-                                          cereal::SizeTag<T>& st)
+    friend void
+    CEREAL_LOAD_FUNCTION_NAME(input_pools_cereal_archive_wrapper& ar,
+                              cereal::SizeTag<T>& st)
     {
         using cereal::CEREAL_LOAD_FUNCTION_NAME;
         CEREAL_LOAD_FUNCTION_NAME(ar.previous, st);
@@ -375,18 +393,23 @@ namespace detail {
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
 struct get_output_from_input<
     immer::persist::
-        json_immer_input_archive<Previous, Pools, WrapFn, PoolNameFn>>
+        input_pools_cereal_archive_wrapper<Previous, Pools, WrapFn, PoolNameFn>>
 {
-    using type = immer::persist::
-        json_immer_output_archive<Previous, Pools, WrapFn, PoolNameFn>;
+    using type =
+        immer::persist::output_pools_cereal_archive_wrapper<Previous,
+                                                            Pools,
+                                                            WrapFn,
+                                                            PoolNameFn>;
 };
 template <class Previous, class Pools, class WrapFn, class PoolNameFn>
 struct get_input_from_output<
-    immer::persist::
-        json_immer_output_archive<Previous, Pools, WrapFn, PoolNameFn>>
+    immer::persist::output_pools_cereal_archive_wrapper<Previous,
+                                                        Pools,
+                                                        WrapFn,
+                                                        PoolNameFn>>
 {
     using type = immer::persist::
-        json_immer_input_archive<Previous, Pools, WrapFn, PoolNameFn>;
+        input_pools_cereal_archive_wrapper<Previous, Pools, WrapFn, PoolNameFn>;
 };
 } // namespace detail
 } // namespace traits
