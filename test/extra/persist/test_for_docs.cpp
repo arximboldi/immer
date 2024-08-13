@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <immer/extra/persist/cereal/with_pools.hpp>
+#include <immer/extra/persist/transform.hpp>
 
 #include "utils.hpp"
 #include <nlohmann/json.hpp>
@@ -264,4 +265,69 @@ TEST_CASE("Custom policy", "[docs]")
         immer::persist::cereal_load_with_pools<doc_2>(str, doc_2_policy{});
     // include:end-doc_2-load
     REQUIRE(value == loaded_value);
+}
+
+TEST_CASE("Transform into same type", "[docs]")
+{
+    const auto v1    = vector_one{1, 2, 3};
+    const auto v2    = v1.push_back(4).push_back(5).push_back(6);
+    const auto value = document{v1, v2};
+
+    // include:start-get_auto_pool
+    const auto pools = immer::persist::get_auto_pool(value);
+    // include:end-get_auto_pool
+
+    // include:start-conversion_map
+    namespace hana            = boost::hana;
+    const auto conversion_map = hana::make_map(hana::make_pair(
+        hana::type_c<vector_one>, [](int val) { return val * 10; }));
+    // include:end-conversion_map
+
+    // include:start-transformed_pools
+    auto transformed_pools =
+        immer::persist::transform_output_pool(pools, conversion_map);
+    // include:end-transformed_pools
+
+    // include:start-convert-containers
+    const auto new_v1 =
+        immer::persist::convert_container(pools, transformed_pools, v1);
+    const auto expected_new_v1 = vector_one{10, 20, 30};
+    REQUIRE(new_v1 == expected_new_v1);
+
+    const auto new_v2 =
+        immer::persist::convert_container(pools, transformed_pools, v2);
+    const auto expected_new_v2 = vector_one{10, 20, 30, 40, 50, 60};
+    REQUIRE(new_v2 == expected_new_v2);
+
+    const auto new_value = document{new_v1, new_v2};
+    // include:end-convert-containers
+
+    // include:start-save-new_value
+    const auto policy =
+        immer::persist::hana_struct_auto_member_name_policy(document{});
+    const auto str = immer::persist::cereal_save_with_pools(new_value, policy);
+    const auto expected_json = json_t::parse(R"(
+{
+  "pools": {
+    "ints": {
+      "B": 5,
+      "BL": 1,
+      "inners": [
+        {"key": 0, "value": {"children": [2], "relaxed": false}},
+        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+      ],
+      "leaves": [
+        {"key": 1, "value": [30]},
+        {"key": 2, "value": [10, 20]},
+        {"key": 4, "value": [50, 60]},
+        {"key": 5, "value": [30, 40]}
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    }
+  },
+  "value0": {"ints": 0, "ints2": 1}
+}
+    )");
+    REQUIRE(json_t::parse(str) == expected_json);
+    // include:end-save-new_value
 }

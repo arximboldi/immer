@@ -29,6 +29,7 @@ of the original containers would be lost: we will have multiple independent vect
 This library allows to apply the transformation function directly on the nodes which allows to preserve structural sharing. Additionally, it doesn't matter how many times
 a node is reused, the transformation needs to be performed only once.
 
+.. _first-example:
 
 First example
 -------------
@@ -143,6 +144,78 @@ And it can also be loaded from JSON like this:
 This example also demonstrates a case where the main document type ``doc_2`` contains another type ``extra_data`` with a ``vector``.
 As you can see in the resulting JSON, nested types are also serialized with pools: ``"extra": {"comments": 1}``. Only the ID of the ``comments`` ``vector``
 is serialized instead of its content.
+
+
+Transformations with pools
+--------------------------
+
+Suppose, we want to apply certain transforming functions to the ``immer`` containers inside of a large document type.
+The most straightforward way would be to simply create new containers with the new data, running the transforming
+function over each element. However, this approach has some disadvantages:
+
+- All new containers will be independent, no structural sharing will be preserved and the same data would be stored
+   multiple times.
+- The transformation would be applied more times than necessary when some of the data is shared. Example: one vector
+   is built by appending elements to the other vector. Transforming shared elements multiple times could be
+   unnecessary.
+
+Let's look at a simple case using the document from the :ref:`first-example`. The desired transformation would be to
+multiply each element of the ``immer::vector<int>`` by 10.
+
+First, the document value would be created in the same way:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: intro/start-prepare-value
+   :end-before:  intro/end-prepare-value
+
+The next component we need is the pools of all the containers from the value:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-get_auto_pool
+   :end-before:  end-get_auto_pool
+
+The ``get_auto_pool`` function returns the output pools of all ``immer`` containers that would be serialized using
+pools, as controlled by the policy. Here we use the default policy ``hana_struct_auto_policy`` which will use pools for
+all ``immer`` containers inside of the document type which must be a ``hana::Struct``.
+
+The other required component is the ``conversion_map``:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-conversion_map
+   :end-before:  end-conversion_map
+
+This is a ``hana::map`` that describes the desired transformations to be applied. The key of the map is an ``immer``
+container and the value is the function to be applied to each element of the corresponding container type. In this case,
+it will apply ``[](int val) { return val * 10; }`` to each ``int`` of the ``vector_one`` type, we have two of those in
+the ``document``.
+
+Having these two parts, we can create the new pools with the transformations:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-transformed_pools
+   :end-before:  end-transformed_pools
+
+At this point, we can start converting the ``immer`` containers and create the transformed document value with them,
+``new_value``:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-convert-containers
+   :end-before:  end-convert-containers
+
+In order to confirm that the structural sharing has been preserved after applying the transformations, let's serialize
+the ``new_value`` and inspect the JSON:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-save-new_value
+   :end-before:  end-save-new_value
+
+And indeed, we can see in the JSON that the node ``{"key": 2, "value": [10, 20]}`` is reused in both vectors.
 
 
 Policy
