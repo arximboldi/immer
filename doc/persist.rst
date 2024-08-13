@@ -154,10 +154,10 @@ The most straightforward way would be to simply create new containers with the n
 function over each element. However, this approach has some disadvantages:
 
 - All new containers will be independent, no structural sharing will be preserved and the same data would be stored
-   multiple times.
+  multiple times.
 - The transformation would be applied more times than necessary when some of the data is shared. Example: one vector
-   is built by appending elements to the other vector. Transforming shared elements multiple times could be
-   unnecessary.
+  is built by appending elements to the other vector. Transforming shared elements multiple times could be
+  unnecessary.
 
 Let's look at a simple case using the document from the :ref:`first-example`. The desired transformation would be to
 multiply each element of the ``immer::vector<int>`` by 10.
@@ -216,6 +216,111 @@ the ``new_value`` and inspect the JSON:
    :end-before:  end-save-new_value
 
 And indeed, we can see in the JSON that the node ``{"key": 2, "value": [10, 20]}`` is reused in both vectors.
+
+
+Transformation into a different type
+------------------------------------
+
+The transforming function can even return a different type. In the following example ``vector<int>`` is transformed into ``vector<std::string>``.
+The first two steps are the same as in the previous example:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: intro/start-prepare-value
+   :end-before:  intro/end-prepare-value
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-get_auto_pool
+   :end-before:  end-get_auto_pool
+
+Only this time the transforming function will convert an integer into a string:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-conversion_map-string
+   :end-before:  end-conversion_map-string
+
+Then we convert the two vectors the same way as before:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-convert-vectors-of-strings
+   :end-before:  end-convert-vectors-of-strings
+
+And in order to confirm that the structural sharing has been preserved, we can introduce a new document type with
+the two vectors being ``vector<std::string>``.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-document_str
+   :end-before:  end-document_str
+
+And serialize it with pools:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-save-new_value-str
+   :end-before:  end-save-new_value-str
+
+In the resulting JSON we can confirm that the node ``{"key": 2, "value": ["_1_", "_2_"]}`` is reused for both vectors.
+
+
+Transforming hash-based containers
+----------------------------------
+
+As it was shown, converting ``vectors`` is conceptually simple: the transforming function is applied to each element of
+each node, producing a new node with the transformed elements. When it comes to the hash-based containers, that is `set
+<containers.html#set>`_, `map <containers.html#map>`_ and `table <containers.html#table>`_, their structure is defined
+by the used hash function, so defining the transformation may become a bit more verbose.
+
+In the following example we'll start with a simple case transforming a map. For a map, only the hash of the key matters and we will not modify the key yet.
+We will focus on transformations here and not on the structural sharing within the document, so we will use the ``immer`` container itself as the document.
+Let's define the following policy to say that we want to use pools only for our container:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-direct_container_policy
+   :end-before:  end-direct_container_policy
+
+By default, ``immer`` uses ``std::hash`` for the hash-based containers. While sufficient for the runtime use, this hash can't be used for persistence, as
+the `C++ reference <https://en.cppreference.com/w/cpp/utility/hash>`_ notes:
+
+.. note::
+   Hash functions are only required to produce the same result for the same input within a single execution of a program
+
+We will use `xxHash <https://xxhash.com/>`_ as the hash for this example. Let's create a small map like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-int-map
+   :end-before:  end-prepare-int-map
+
+Our goal is to convert the value from ``int`` to ``std::string``. Let's create the ``conversion_map`` like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-conversion_map
+   :end-before:  end-prepare-conversion_map
+
+A few important details to note:
+
+- For maps, the transforming function accepts a pair of key and value, ``std::pair<std::string, int>``.
+- The transforming function must also support being called with an argument of type
+  ``immer::persist::target_container_type_request``, we achieve it here by using ``hana::overload`` to tie 2 lambdas
+  into one callable value. When called with that argument, it should return an empty container of the type we're
+  transforming to. It has to be explicit like this since there is no good way to automatically determine the hash
+  algorithm for the new container. Even though in this case the type of the key doesn't change (and so the hash stays
+  the same), in other scenarios it might.
+
+Once the ``conversion_map`` is defined, the actual conversion is done as before:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-transform-map
+   :end-before:  end-transform-map
+
+And we can see that the original map's values have been transformed into strings.
 
 
 Policy
