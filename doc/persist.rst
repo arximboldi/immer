@@ -323,6 +323,99 @@ Once the ``conversion_map`` is defined, the actual conversion is done as before:
 And we can see that the original map's values have been transformed into strings.
 
 
+Transforming table's ID
+------------------------
+
+For this example, we'll transform the type of the table element's ID but we'll keep the hash of it the same.
+It may happen, for instance, if the member that serves as the ID gets wrapped into a wrapper type.
+
+Let's start by defining an item type for a table:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-old_item
+   :end-before:  end-old_item
+
+We can create a table value with some data and get the pools for it like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-table-value
+   :end-before:  end-prepare-table-value
+
+In this example, we want to change the type of the ``old_item's`` ID, which is ``std::string``, while keeping its hash the same.
+Let's define a wrapper for ``std::string`` and a ``new_item`` type like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-new-table-types
+   :end-before:  end-new-table-types
+
+We're also changing the type for ``data`` from ``int`` to ``std::string`` but this doesn't affect the structure of the table.
+We define the ``xx_hash_value`` function for the ``new_id_t`` type, that way the type becomes compatible with the ``immer::persist::xx_hash<new_id_t>`` hash.
+Now we can define the target ``new_table_t`` type and the ``conversion_map`` describing how to convert ``old_item`` into a ``new_item``.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-new_table_t-type
+   :end-before:  end-prepare-new_table_t-type
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-new_table_t-conversion_map
+   :end-before:  end-prepare-new_table_t-conversion_map
+
+Finally, to convert the ``value`` with the defined ``conversion_map`` we prepare the converted pools with
+``transform_output_pool`` and use ``convert_container`` to convert the ``value`` table.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-new_table_t-transformation
+   :end-before:  end-new_table_t-transformation
+
+We can see that the ``new_value`` table contains the transformed data from the original ``value`` table.
+
+
+Modifying the hash of the ID
+----------------------------
+
+If a map's key or a table item's ID or a set's element changes its hash as the result of the transformation, the transformed hash-based container can no longer
+keep its shape, can't be efficiently transformed just by applying transformations to its nodes.
+
+``immer::persist`` validates every container it creates from a pool. In case of this hash modification, a runtime exception will be thrown as it is not possible to detect
+it during compile-time. Let's modify the previous example to also change the ID's data:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-new_table_t-broken-conversion_map
+   :end-before:  end-prepare-new_table_t-broken-conversion_map
+
+Now, if we attempt to convert the original table, a ``immer::persist::champ::hash_validation_failed_exception`` will be thrown:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-new_table_t-broken-transformation
+   :end-before:  end-new_table_t-broken-transformation
+
+Even though such transformation can't be performed efficiently, on a node level, we can still request these transformations to be applied and they will run for each
+value of the original container, creating a new independent container that doesn't use structural sharing:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-new_table_t-new-hash-conversion_map
+   :end-before:  end-prepare-new_table_t-new-hash-conversion_map
+
+We can request for such container-level (as opposed to per-node level) transformation to be performed by wrapping the desired new container type ``new_table_t`` into
+a ``immer::persist::incompatible_hash_wrapper`` as the result of the ``immer::persist::target_container_type_request`` call.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-new_table_t-new-hash-transformation
+   :end-before:  end-new_table_t-new-hash-transformation
+
+We can see that the transformation has been applied, the keys have the ``_key`` suffix.
+
+
 Policy
 ------
 

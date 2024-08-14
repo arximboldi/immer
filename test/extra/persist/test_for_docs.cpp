@@ -463,3 +463,149 @@ TEST_CASE("Transform hash-based containers", "[docs]")
     REQUIRE(new_value == expected_new);
     // include:end-transform-map
 }
+
+namespace {
+// include:start-old_item
+struct old_item
+{
+    std::string id;
+    int data;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(id), CEREAL_NVP(data));
+    }
+};
+// include:end-old_item
+
+// include:start-new-table-types
+struct new_id_t
+{
+    std::string id;
+
+    friend bool operator==(const new_id_t&, const new_id_t&) = default;
+
+    friend std::size_t xx_hash_value(const new_id_t& value)
+    {
+        return immer::persist::xx_hash<std::string>{}(value.id);
+    }
+};
+
+struct new_item
+{
+    new_id_t id;
+    std::string data;
+
+    friend bool operator==(const new_item&, const new_item&) = default;
+};
+// include:end-new-table-types
+} // namespace
+
+TEST_CASE("Transform table's ID type", "[docs]")
+{
+    // include:start-prepare-table-value
+    using table_t    = immer::table<old_item,
+                                 immer::table_key_fn,
+                                 immer::persist::xx_hash<std::string>>;
+    const auto value = table_t{old_item{"one", 1}, old_item{"two", 2}};
+    const auto pools = immer::persist::get_auto_pool(
+        value, direct_container_policy<table_t>{});
+    // include:end-prepare-table-value
+
+    namespace hana = boost::hana;
+
+    // include:start-prepare-new_table_t-type
+    using new_table_t = immer::
+        table<new_item, immer::table_key_fn, immer::persist::xx_hash<new_id_t>>;
+    // include:end-prepare-new_table_t-type
+
+    SECTION("Keeping the same hash")
+    {
+        // include:start-prepare-new_table_t-conversion_map
+        const auto conversion_map = hana::make_map(hana::make_pair(
+            hana::type_c<table_t>,
+            hana::overload(
+                [](const old_item& item) {
+                    return new_item{
+                        .id   = new_id_t{item.id},
+                        .data = fmt::format("_{}_", item.data),
+                    };
+                },
+                [](immer::persist::target_container_type_request) {
+                    return new_table_t{};
+                })));
+        // include:end-prepare-new_table_t-conversion_map
+
+        // include:start-new_table_t-transformation
+        auto transformed_pools =
+            immer::persist::transform_output_pool(pools, conversion_map);
+        const auto new_value =
+            immer::persist::convert_container(pools, transformed_pools, value);
+        const auto expected_new =
+            new_table_t{new_item{{"one"}, "_1_"}, new_item{{"two"}, "_2_"}};
+        REQUIRE(new_value == expected_new);
+        // include:end-new_table_t-transformation
+    }
+
+    SECTION("Hash is changed and broken")
+    {
+        // include:start-prepare-new_table_t-broken-conversion_map
+        const auto conversion_map = hana::make_map(hana::make_pair(
+            hana::type_c<table_t>,
+            hana::overload(
+                [](const old_item& item) {
+                    return new_item{
+                        // the ID's data is changed and its hash won't be the
+                        // same
+                        .id   = new_id_t{item.id + "_key"},
+                        .data = fmt::format("_{}_", item.data),
+                    };
+                },
+                [](immer::persist::target_container_type_request) {
+                    return new_table_t{};
+                })));
+        // include:end-prepare-new_table_t-broken-conversion_map
+
+        // include:start-new_table_t-broken-transformation
+        auto transformed_pools =
+            immer::persist::transform_output_pool(pools, conversion_map);
+        REQUIRE_THROWS_AS(
+            immer::persist::convert_container(pools, transformed_pools, value),
+            immer::persist::champ::hash_validation_failed_exception);
+        // include:end-new_table_t-broken-transformation
+    }
+
+    SECTION("Hash is changed and works")
+    {
+        // include:start-prepare-new_table_t-new-hash-conversion_map
+        const auto conversion_map = hana::make_map(hana::make_pair(
+            hana::type_c<table_t>,
+            hana::overload(
+                [](const old_item& item) {
+                    return new_item{
+                        // the ID's data is changed and its hash won't be the
+                        // same
+                        .id   = new_id_t{item.id + "_key"},
+                        .data = fmt::format("_{}_", item.data),
+                    };
+                },
+                [](immer::persist::target_container_type_request) {
+                    // We know that the hash is changing and requesting to
+                    // transform in a less efficient manner
+                    return immer::persist::incompatible_hash_wrapper<
+                        new_table_t>{};
+                })));
+        // include:end-prepare-new_table_t-new-hash-conversion_map
+
+        // include:start-new_table_t-new-hash-transformation
+        auto transformed_pools =
+            immer::persist::transform_output_pool(pools, conversion_map);
+        const auto new_value =
+            immer::persist::convert_container(pools, transformed_pools, value);
+        const auto expected_new = new_table_t{new_item{{"one_key"}, "_1_"},
+                                              new_item{{"two_key"}, "_2_"}};
+        REQUIRE(new_value == expected_new);
+        // include:end-new_table_t-new-hash-transformation
+    }
+}
