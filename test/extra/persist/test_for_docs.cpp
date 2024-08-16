@@ -609,3 +609,194 @@ TEST_CASE("Transform table's ID type", "[docs]")
         // include:end-new_table_t-new-hash-transformation
     }
 }
+
+namespace {
+// include:start-define-nested-types
+struct nested_t
+{
+    BOOST_HANA_DEFINE_STRUCT(nested_t, //
+                             (vector_one, ints));
+
+    friend bool operator==(const nested_t&, const nested_t&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(ints));
+    }
+};
+
+struct with_nested_t
+{
+    BOOST_HANA_DEFINE_STRUCT(with_nested_t, //
+                             (immer::vector<nested_t>, nested));
+
+    friend bool operator==(const with_nested_t&,
+                           const with_nested_t&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(nested));
+    }
+};
+// include:end-define-nested-types
+
+struct new_nested_t
+{
+    BOOST_HANA_DEFINE_STRUCT(new_nested_t, //
+                             (vector_str, str));
+
+    friend bool operator==(const new_nested_t&, const new_nested_t&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(str));
+    }
+};
+
+struct with_new_nested_t
+{
+    BOOST_HANA_DEFINE_STRUCT(with_new_nested_t,
+                             (immer::vector<new_nested_t>, nested) //
+    );
+
+    friend bool operator==(const with_new_nested_t&,
+                           const with_new_nested_t&) = default;
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(nested));
+    }
+};
+} // namespace
+
+TEST_CASE("Transform nested containers", "[docs]")
+{
+    // include:start-prepare-nested-value
+    const auto v1    = vector_one{1, 2, 3};
+    const auto v2    = v1.push_back(4).push_back(5).push_back(6);
+    const auto value = with_nested_t{
+        .nested =
+            {
+                nested_t{.ints = v1},
+                nested_t{.ints = v2},
+            },
+    };
+
+    const auto policy =
+        immer::persist::hana_struct_auto_member_name_policy(with_nested_t{});
+    const auto str = immer::persist::cereal_save_with_pools(value, policy);
+    // include:end-prepare-nested-value
+
+    // include:start-nested-value-json
+    const auto expected_json = json_t::parse(R"(
+{
+  "pools": {
+    "ints": {
+      "B": 5,
+      "BL": 1,
+      "inners": [
+        {"key": 0, "value": {"children": [2], "relaxed": false}},
+        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+      ],
+      "leaves": [
+        {"key": 1, "value": [3]},
+        {"key": 2, "value": [1, 2]},
+        {"key": 4, "value": [5, 6]},
+        {"key": 5, "value": [3, 4]}
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    },
+    "nested": {
+      "B": 5,
+      "BL": 3,
+      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [{"key": 1, "value": [{"ints": 0}, {"ints": 1}]}],
+      "vectors": [{"root": 0, "tail": 1}]
+    }
+  },
+  "value0": {"nested": 0}
+}
+    )");
+    // include:end-nested-value-json
+    REQUIRE(json_t::parse(str) == expected_json);
+
+    namespace hana = boost::hana;
+
+    // include:start-nested-conversion_map
+    const auto conversion_map = hana::make_map(
+        hana::make_pair(
+            hana::type_c<vector_one>,
+            [](int val) -> std::string { return fmt::format("_{}_", val); }),
+        hana::make_pair(
+            hana::type_c<immer::vector<nested_t>>,
+            [](const nested_t& item, const auto& convert_container) {
+                return new_nested_t{
+                    .str =
+                        convert_container(hana::type_c<vector_str>, item.ints),
+                };
+            }));
+    // include:end-nested-conversion_map
+
+    // include:start-apply-nested-transformations
+    const auto pools = immer::persist::get_auto_pool(value, policy);
+    auto transformed_pools =
+        immer::persist::transform_output_pool(pools, conversion_map);
+
+    const auto new_value = with_new_nested_t{
+        .nested = immer::persist::convert_container(
+            pools, transformed_pools, value.nested),
+    };
+    // include:end-apply-nested-transformations
+
+    // include:start-verify-nested-value
+    const auto expected_new = with_new_nested_t{
+        .nested =
+            {
+                new_nested_t{.str = {"_1_", "_2_", "_3_"}},
+                new_nested_t{.str = {"_1_", "_2_", "_3_", "_4_", "_5_", "_6_"}},
+            },
+    };
+    REQUIRE(new_value == expected_new);
+    // include:end-verify-nested-value
+
+    // include:start-verify-structural-sharing-of-nested
+    const auto transformed_str = immer::persist::cereal_save_with_pools(
+        new_value,
+        immer::persist::hana_struct_auto_member_name_policy(
+            with_new_nested_t{}));
+    const auto expected_transformed_json = json_t::parse(R"(
+{
+  "pools": {
+    "nested": {
+      "B": 5,
+      "BL": 3,
+      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [{"key": 1, "value": [{"str": 0}, {"str": 1}]}],
+      "vectors": [{"root": 0, "tail": 1}]
+    },
+    "str": {
+      "B": 5,
+      "BL": 1,
+      "inners": [
+        {"key": 0, "value": {"children": [2], "relaxed": false}},
+        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+      ],
+      "leaves": [
+        {"key": 1, "value": ["_3_"]},
+        {"key": 2, "value": ["_1_", "_2_"]},
+        {"key": 4, "value": ["_5_", "_6_"]},
+        {"key": 5, "value": ["_3_", "_4_"]}
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    }
+  },
+  "value0": {"nested": 0}
+}
+    )");
+    // include:end-verify-structural-sharing-of-nested
+    REQUIRE(json_t::parse(transformed_str) == expected_transformed_json);
+}

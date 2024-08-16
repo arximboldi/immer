@@ -145,6 +145,7 @@ This example also demonstrates a case where the main document type ``doc_2`` con
 As you can see in the resulting JSON, nested types are also serialized with pools: ``"extra": {"comments": 1}``. Only the ID of the ``comments`` ``vector``
 is serialized instead of its content.
 
+.. _transformations-with-pools:
 
 Transformations with pools
 --------------------------
@@ -414,6 +415,71 @@ a ``immer::persist::incompatible_hash_wrapper`` as the result of the ``immer::pe
    :end-before:  end-new_table_t-new-hash-transformation
 
 We can see that the transformation has been applied, the keys have the ``_key`` suffix.
+
+
+Transforming nested containers
+------------------------------
+
+Let's look at a situation where a transforming function, while operating on one item of some ``immer`` container, has another ``immer`` container to transform.
+We define the types like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-define-nested-types
+   :end-before:  end-define-nested-types
+
+The important property here is that we have a ``vector<nested_t>`` and the ``nested_t`` contains ``vector<int>``, so we can say a ``vector`` is nested inside another ``vector``.
+We can prepare a value with some structural sharing and serialize it:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-prepare-nested-value
+   :end-before:  end-prepare-nested-value
+
+The resulting JSON looks like:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-nested-value-json
+   :end-before:  end-nested-value-json
+
+Looking at the JSON we can confirm that the node ``{"key": 2, "value": [1, 2]}`` is reused.
+Let's define a ``conversion_map`` like this:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-nested-conversion_map
+   :end-before:  end-nested-conversion_map
+
+While the transforming function for ``vector_one`` is simple, it transforms an ``int`` into a ``std::string``,
+the function for the ``vector<nested_t>`` is more involved. When we try to transform one item of that vector, ``nested_t``,
+we quickly realize that inside that function we have a ``vector<int>`` to deal with. We're back to the problems described in the beginning of :ref:`transformations-with-pools`.
+To solve this problem, ``immer::persist`` provides the optional second argument to the transforming function, a function ``convert_container``.
+It can be called with two arguments: the desired container type and the ``immer`` container to convert. That way, we have access back to the ``conversion_map`` we're defining.
+This transformation will be performed using pools, as expected, and will preserve structural sharing.
+
+Having defined the ``conversion_map``, we apply it in the usual way and get the ``new_value``:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-apply-nested-transformations
+   :end-before:  end-apply-nested-transformations
+
+We can verify that the ``new_value`` has the expected content:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-verify-nested-value
+   :end-before:  end-verify-nested-value
+
+And we can serialize it again to confirm that the structural sharing of the nested vectors has been preserved:
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-verify-structural-sharing-of-nested
+   :end-before:  end-verify-structural-sharing-of-nested
+
+We can see that the ``{"key": 2, "value": ["_1_", "_2_"]}`` node is still being reused in the two vectors.
 
 
 Policy
