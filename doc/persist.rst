@@ -2,39 +2,44 @@
 Persist
 ===============
 
-This library allows to preserve structural sharing of immer containers while serializing and deserializing them.
+This library allows to preserve structural sharing of ``immer`` containers while serializing and deserializing them.
 
 
 Motivation: serialization
 ----------
 
-Structural sharing allows immer containers to be efficient. In runtime, two distinct containers can be operated on independently but internally they share nodes and
-use memory efficiently in that way. But when such containers are serialized in a simple direct way, for example, as lists, this sharing is lost: they become truly
-independent, same data is stored multiple times on disk and later, when it is read from disk, in memory.
+Structural sharing allows ``immer`` containers to be efficient. At runtime, two distinct containers can be operated on
+independently but internally they share nodes and use memory efficiently in that way. However when such containers are
+serialized in a simple direct way, for example, as lists, this sharing is lost: they become truly independent, same data
+is stored multiple times on disk and later, when it is read from disk, in memory.
 
-This library operates on the internal structure of immer containers: allowing it to be serialized and deserialized (and also transformed). That allows for more efficient
-storage (especially, in case when a lot of nodes are reused) and, even more importantly, for preserving structural sharing after deserializing the containers.
+This library operates on the internal structure of ``immer`` containers: allowing it to be serialized, deserialized and
+transformed. This enables more efficient storage, particularly when many nodes are reused, and, even more importantly,
+preserving structural sharing after deserializing the containers.
 
 
 Motivation: transformation
 ----------
 
-Imagine this scenario: an application has a document type that uses an immer container internally in multiple places, for example, a vector of strings. Some of these vectors
-would be completely identical, some would have just a few elements different (stored in an undo history, for example). And we want to run a transformation function
-over these vectors.
+Consider this scenario: an application has a document type that internally uses an ``immer`` container in multiple
+places, for example, an ``immer::vector<std::string>``. Some of these vectors would be completely identical, while
+others would have just a few elements different (stored in an undo history, for example). The goal is to apply a
+transformation function to these vectors.
 
-A direct approach would be to take each vector and create a new vector applying the transformation function for each element. But after this, all the structural sharing
-of the original containers would be lost: we will have multiple independent vectors without any structural sharing.
+A direct approach would be to take each vector and create a new vector by applying the transformation function for each
+element. However, after this process, all the structural sharing of the original containers would be lost: the result
+would be multiple independent vectors without any structural sharing.
 
-This library allows to apply the transformation function directly on the nodes which allows to preserve structural sharing. Additionally, it doesn't matter how many times
-a node is reused, the transformation needs to be performed only once.
+This library enables the application of the transformation function directly on the nodes, preserving structural
+sharing. Additionally, regardless of how many times a node is reused, the transformation needs to be performed only
+once.
 
 .. _first-example:
 
 First example
 -------------
 
-For this example, we'll use a `document` type that contains two immer vectors.
+For this example, we'll use a `document` type that contains two ``immer`` vectors.
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -80,11 +85,11 @@ Which generates some JSON like this:
 As you can see, the value is serialized with every ``immer`` container replaced by an identifier.
 This identifier is a key into a pool, which is serialized just after.
 
-A pool represents a *set* of ``immer`` containers of a given type. For example, we may have a pool that contains all
-``immer::vector<int>`` of our document. You can think of it as a little database of ``immer`` containers. When
+A pool represents a *set* of ``immer`` containers of a specific type. For example, we may have a pool that contains all
+``immer::vector<int>`` of our document. You can think of it as a small database of ``immer`` containers. When
 serializing the pool, the internal structure of all those ``immer`` containers is written, preserving the structural
-sharing between those containers. The nodes of the trees that implement the ``immer`` containers are represented
-directly in the JSON and, because we are representing all the containers as a whole, those nodes that are referenced in
+sharing between those containers. The nodes of the trees that make up the ``immer`` containers are directly represented
+in the JSON and, because we are representing all the containers as a whole, those nodes that are referenced in
 multiple trees can be stored only once. That same structure is preserved when reading the pool back from disk and
 reconstructing the vectors (and other containers) from it, thus allowing us to preserve the structural sharing across
 sessions.
@@ -102,8 +107,9 @@ Custom policy
 
 We can use policy to control the names of the pools for each container.
 
-For this example, let's define a new document type ``doc_2``. It will also contain another type ``extra_data`` with a ``vector`` of ``strings`` in it.
-To demonstrate the responsibilities of the policy, the ``doc_2`` type will not be a ``boost::hana::Struct`` and will not allow for a compile-time reflection.
+For this example, let's define a new document type ``doc_2``. It will also contain another type ``extra_data`` with a
+``vector`` of ``strings`` in it. To demonstrate the responsibilities of the policy, the ``doc_2`` type will not be a
+``boost::hana::Struct`` and will not allow for compile-time reflection.
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -117,10 +123,10 @@ We define the ``doc_2_policy`` as following:
    :start-after: include:start-doc_2_policy
    :end-before:  include:end-doc_2_policy
 
-The ``get_pool_types`` function returns the types of containers that should be serialized with pools, in this case it's both ``vector`` of ``ints`` and ``strings``.
-The ``save`` and ``load`` functions control the name of the document node, in this case it is ``doc2_value``.
-And the ``get_pool_name`` overloaded functions supply the name of the pool for each corresponding ``immer`` container.
-We can create and serialize a value of ``doc_2`` like this:
+The ``get_pool_types`` function returns the types of containers that should be serialized with pools, in this case it's
+both ``vector`` of ``ints`` and ``strings``. The ``save`` and ``load`` functions control the name of the document node,
+in this case it is ``doc2_value``. And the ``get_pool_name`` overloaded functions supply the name of the pool for each
+corresponding ``immer`` container. To create and serialize a value of ``doc_2``, you can use the following approach:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -141,26 +147,26 @@ And it can also be loaded from JSON like this:
    :start-after: include:start-doc_2-load
    :end-before:  include:end-doc_2-load
 
-This example also demonstrates a case where the main document type ``doc_2`` contains another type ``extra_data`` with a ``vector``.
-As you can see in the resulting JSON, nested types are also serialized with pools: ``"extra": {"comments": 1}``. Only the ID of the ``comments`` ``vector``
-is serialized instead of its content.
+This example also demonstrates a scenario in which the main document type ``doc_2`` contains another type ``extra_data`` with a
+``vector``. As you can see in the resulting JSON, nested types are also serialized with pools: ``"extra": {"comments":
+1}``. Only the ID of the ``comments`` ``vector`` is serialized instead of its content.
 
 .. _transformations-with-pools:
 
 Transformations with pools
 --------------------------
 
-Suppose, we want to apply certain transforming functions to the ``immer`` containers inside of a large document type.
+Suppose, we want to apply certain transforming functions to the ``immer`` containers inside a large document type.
 The most straightforward way would be to simply create new containers with the new data, running the transforming
 function over each element. However, this approach has some disadvantages:
 
-- All new containers will be independent, no structural sharing will be preserved and the same data would be stored
+- All new containers will be independent, no structural sharing will be preserved, leading to the same data being stored
   multiple times.
 - The transformation would be applied more times than necessary when some of the data is shared. Example: one vector
   is built by appending elements to the other vector. Transforming shared elements multiple times could be
   unnecessary.
 
-Let's look at a simple case using the document from the :ref:`first-example`. The desired transformation would be to
+Let's consider a simple case using the document from the :ref:`first-example`. The desired transformation would be to
 multiply each element of the ``immer::vector<int>`` by 10.
 
 First, the document value would be created in the same way:
@@ -179,7 +185,7 @@ The next component we need is the pools of all the containers from the value:
 
 The ``get_output_pools`` function returns the output pools of all ``immer`` containers that would be serialized using
 pools, as controlled by the policy. Here we use the default policy ``hana_struct_auto_policy`` which will use pools for
-all ``immer`` containers inside of the document type which must be a ``hana::Struct``.
+all ``immer`` containers inside the document type which must be a ``hana::Struct``.
 
 The other required component is the ``conversion_map``:
 
@@ -193,7 +199,7 @@ container and the value is the function to be applied to each element of the cor
 it will apply ``[](int val) { return val * 10; }`` to each ``int`` of the ``vector_one`` type, we have two of those in
 the ``document``.
 
-Having these two parts, we can create the new pools with the transformations:
+Having these two parts, we can create new pools with the transformations:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -222,8 +228,8 @@ And indeed, we can see in the JSON that the node ``{"key": 2, "value": [10, 20]}
 Transformation into a different type
 ------------------------------------
 
-The transforming function can even return a different type. In the following example ``vector<int>`` is transformed into ``vector<std::string>``.
-The first two steps are the same as in the previous example:
+The transforming function can even return a different type. In the following example, ``vector<int>`` is transformed into
+``vector<std::string>``. The first two steps are the same as in the previous example:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -276,17 +282,18 @@ each node, producing a new node with the transformed elements. When it comes to 
 <containers.html#set>`_, `map <containers.html#map>`_ and `table <containers.html#table>`_, their structure is defined
 by the used hash function, so defining the transformation may become a bit more verbose.
 
-In the following example we'll start with a simple case transforming a map. For a map, only the hash of the key matters and we will not modify the key yet.
-We will focus on transformations here and not on the structural sharing within the document, so we will use the ``immer`` container itself as the document.
-Let's define the following policy to say that we want to use pools only for our container:
+In the following example, we'll start with a simple case of transforming a map. For a map, only the hash of the key
+matters and we will not modify the key yet. We will focus on transformations here and not on the structural sharing
+within the document, so we will use the ``immer`` container itself as the document. Let's define the following policy to
+indicate that we want to use pools only for our container:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-direct_container_policy
    :end-before:  end-direct_container_policy
 
-By default, ``immer`` uses ``std::hash`` for the hash-based containers. While sufficient for the runtime use, this hash can't be used for persistence, as
-the `C++ reference <https://en.cppreference.com/w/cpp/utility/hash>`_ notes:
+By default, ``immer`` uses ``std::hash`` for the hash-based containers. While this hash is sufficient for runtime use, it
+can't be used for persistence, as noted in the `C++ reference <https://en.cppreference.com/w/cpp/utility/hash>`_:
 
 .. note::
    Hash functions are only required to produce the same result for the same input within a single execution of a program
@@ -308,12 +315,12 @@ Our goal is to convert the value from ``int`` to ``std::string``. Let's create t
 A few important details to note:
 
 - For maps, the transforming function accepts a pair of key and value, ``std::pair<std::string, int>``.
-- The transforming function must also support being called with an argument of type
-  ``immer::persist::target_container_type_request``, we achieve it here by using ``hana::overload`` to tie 2 lambdas
+- The transforming function must also be able to handle an argument of type
+  ``immer::persist::target_container_type_request``. This is achieved by using ``hana::overload`` to combine 2 lambdas
   into one callable value. When called with that argument, it should return an empty container of the type we're
-  transforming to. It has to be explicit like this since there is no good way to automatically determine the hash
-  algorithm for the new container. Even though in this case the type of the key doesn't change (and so the hash stays
-  the same), in other scenarios it might.
+  transforming to. This explicit approach is necessary because there is no reliable way to automatically determine the
+  hash algorithm for the new container. Even though in this case the type of the key doesn't change (and so the hash
+  remains the same), in other scenarios it might.
 
 Once the ``conversion_map`` is defined, the actual conversion is done as before:
 
@@ -328,10 +335,10 @@ And we can see that the original map's values have been transformed into strings
 Transforming table's ID
 ------------------------
 
-For this example, we'll transform the type of the table element's ID but we'll keep the hash of it the same.
-It may happen, for instance, if the member that serves as the ID gets wrapped into a wrapper type.
+For this example, we'll transform the type of the ID of the table element while keeping the hash of it the same.
+This can occur, for instance, if the member that serves as the ID gets wrapped in a wrapper type.
 
-Let's start by defining an item type for a table:
+To begin, let's define an item type for a table:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -353,9 +360,10 @@ Let's define a wrapper for ``std::string`` and a ``new_item`` type like this:
    :start-after: start-new-table-types
    :end-before:  end-new-table-types
 
-We're also changing the type for ``data`` from ``int`` to ``std::string`` but this doesn't affect the structure of the table.
-We define the ``xx_hash_value`` function for the ``new_id_t`` type, that way the type becomes compatible with the ``immer::persist::xx_hash<new_id_t>`` hash.
-Now we can define the target ``new_table_t`` type and the ``conversion_map`` describing how to convert ``old_item`` into a ``new_item``.
+We're also changing the type for ``data`` from ``int`` to ``std::string`` but this change doesn't affect the structure
+of the table. We define the ``xx_hash_value`` function for the ``new_id_t`` type to make it compatible with the
+``immer::persist::xx_hash<new_id_t>`` hash. Then, we can define the target ``new_table_t`` type and the
+``conversion_map`` that describes how to convert ``old_item`` into a ``new_item``.
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -367,7 +375,7 @@ Now we can define the target ``new_table_t`` type and the ``conversion_map`` des
    :start-after: start-prepare-new_table_t-conversion_map
    :end-before:  end-prepare-new_table_t-conversion_map
 
-Finally, to convert the ``value`` with the defined ``conversion_map`` we prepare the converted pools with
+Finally, to convert the ``value`` using the defined ``conversion_map`` we prepare the converted pools with
 ``transform_output_pool`` and use ``convert_container`` to convert the ``value`` table.
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
@@ -382,11 +390,13 @@ We can see that the ``new_value`` table contains the transformed data from the o
 Modifying the hash of the ID
 ----------------------------
 
-If a map's key or a table item's ID or a set's element changes its hash as the result of the transformation, the transformed hash-based container can no longer
-keep its shape, can't be efficiently transformed just by applying transformations to its nodes.
+If the key of a map, the ID of a table item or an element of a set changes its hash due to a transformation, the
+transformed hash-based container can no longer keep its shape and it can't be efficiently transformed by simply applying
+transformations to its nodes.
 
-``immer::persist`` validates every container it creates from a pool. In case of this hash modification, a runtime exception will be thrown as it is not possible to detect
-it during compile-time. Let's modify the previous example to also change the ID's data:
+``immer::persist`` validates every container it creates from a pool. If such a hash modification occurs, a runtime
+exception will be thrown because it is not possible to detect this issue during compile-time. Let's modify the previous
+example to also change the data of the ID:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -400,16 +410,18 @@ Now, if we attempt to convert the original table, a ``immer::persist::champ::has
    :start-after: start-new_table_t-broken-transformation
    :end-before:  end-new_table_t-broken-transformation
 
-Even though such transformation can't be performed efficiently, on a node level, we can still request these transformations to be applied and they will run for each
-value of the original container, creating a new independent container that doesn't use structural sharing:
+Even though such transformation can't be performed efficiently, on a node level, we can still request these
+transformations to be applied. This will run for each value of the original container, creating a new independent
+container that doesn't use structural sharing:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-new_table_t-new-hash-conversion_map
    :end-before:  end-prepare-new_table_t-new-hash-conversion_map
 
-We can request for such container-level (as opposed to per-node level) transformation to be performed by wrapping the desired new container type ``new_table_t`` into
-a ``immer::persist::incompatible_hash_wrapper`` as the result of the ``immer::persist::target_container_type_request`` call.
+We can request for such container-level (as opposed to per-node level) transformation to be performed by wrapping the
+desired new container type ``new_table_t`` in a ``immer::persist::incompatible_hash_wrapper`` as the result of the
+``immer::persist::target_container_type_request`` call.
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -423,16 +435,17 @@ We can see that the transformation has been applied, the keys have the ``_key`` 
 Transforming nested containers
 ------------------------------
 
-Let's look at a situation where a transforming function, while operating on one item of some ``immer`` container, has another ``immer`` container to transform.
-We define the types like this:
+Let's consider a scenario where a transforming function works on an item within an ``immer`` container and also needs to
+transform another ``immer`` container. We define the types as follows:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-define-nested-types
    :end-before:  end-define-nested-types
 
-The important property here is that we have a ``vector<nested_t>`` and the ``nested_t`` contains ``vector<int>``, so we can say a ``vector`` is nested inside another ``vector``.
-We can prepare a value with some structural sharing and serialize it:
+The important property here is that we have a ``vector<nested_t>`` where ``nested_t`` contains ``vector<int>``, so we
+can say a ``vector`` is nested inside another ``vector``. We can prepare a value with some structural sharing and then
+serialize it:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
@@ -454,12 +467,14 @@ Let's define a ``conversion_map`` like this:
    :start-after: start-nested-conversion_map
    :end-before:  end-nested-conversion_map
 
-While the transforming function for ``vector_one`` is simple, it transforms an ``int`` into a ``std::string``,
-the function for the ``vector<nested_t>`` is more involved. When we try to transform one item of that vector, ``nested_t``,
-we quickly realize that inside that function we have a ``vector<int>`` to deal with. We're back to the problems described in the beginning of :ref:`transformations-with-pools`.
-To solve this problem, ``immer::persist`` provides the optional second argument to the transforming function, a function ``convert_container``.
-It can be called with two arguments: the desired container type and the ``immer`` container to convert. That way, we have access back to the ``conversion_map`` we're defining.
-This transformation will be performed using pools, as expected, and will preserve structural sharing.
+The transforming function for ``vector_one`` is simple as it transforms an ``int`` into a ``std::string``. However, the
+function for the ``vector<nested_t>`` is more involved. When we attempt to transform one item of that vector,
+``nested_t``, we realize that inside that function we have a ``vector<int>`` to deal with. This brings us back to the
+problems described in the beginning of the :ref:`transformations-with-pools` section. To solve this issue,
+``immer::persist`` provides an optional second argument to the transforming function, a function called
+``convert_container``. This function can be called with two arguments: the desired container type and the ``immer``
+container to convert. This allows us to access the ``conversion_map`` we're defining. This transformation will be
+performed using pools and will preserve structural sharing as expected.
 
 Having defined the ``conversion_map``, we apply it in the usual way and get the ``new_value``:
 
