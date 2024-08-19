@@ -789,7 +789,7 @@ TEST_CASE("Structure breaks when hash is changed")
         .map = {{123, "123"}, {456, "456"}},
     };
 
-    const auto out_pool = immer::persist::get_auto_pool(value);
+    const auto out_pool = immer::persist::get_output_pools(value);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);
@@ -820,7 +820,7 @@ TEST_CASE("Converting between incompatible keys")
         .table = {{901}, {902}},
     };
 
-    const auto ar = immer::persist::get_auto_pool(value);
+    const auto ar = immer::persist::get_output_pools(value);
 
     constexpr auto convert_pair = [](const std::pair<int, std::string>& old) {
         return std::make_pair(fmt::format("_{}_", old.first), old.second);

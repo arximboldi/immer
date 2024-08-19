@@ -12,8 +12,9 @@ namespace immer::persist {
  */
 
 /**
- * @brief Serialize the provided value using the provided policy to JSON
- * outputting into the provided stream.
+ * @brief Serialize the provided value with pools using the provided policy
+ * outputting into the provided stream. By default, `cereal::JSONOutputArchive`
+ * is used but a different `cereal` output archive can be provided.
  *
  * @see Policy
  * @ingroup persist-api
@@ -44,7 +45,9 @@ void cereal_save_with_pools(std::ostream& os,
 }
 
 /**
- * @brief Serialize the provided value using the provided policy to JSON.
+ * @brief Serialize the provided value with pools using the provided policy. By
+ * default, `cereal::JSONOutputArchive` is used but a different `cereal` output
+ * archive can be provided.
  *
  * @return std::string The resulting JSON.
  * @ingroup persist-api
@@ -62,7 +65,9 @@ std::string cereal_save_with_pools(const T& value0,
 
 /**
  * @brief Load a value of the given type `T` from the provided stream using
- * pools.
+ * pools. By default, `cereal::JSONInputArchive` is used but a different
+ * `cereal` input archive can be provided.
+ *
  * @ingroup persist-api
  */
 template <class T,
@@ -94,7 +99,9 @@ T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
 
 /**
  * @brief Load a value of the given type `T` from the provided string using
- * pools.
+ * pools. By default, `cereal::JSONInputArchive` is used but a different
+ * `cereal` input archive can be provided.
+ *
  * @ingroup persist-api
  */
 template <class T,
@@ -107,8 +114,15 @@ T cereal_load_with_pools(const std::string& input,
     return cereal_load_with_pools<T, Archive>(is, policy);
 }
 
+/**
+ * @brief Return just the pools of all the containers of the provided value
+ * serialized using the provided policy.
+ *
+ * @ingroup persist-transform
+ * @see convert_container
+ */
 template <typename T, Policy<T> Policy = hana_struct_auto_policy>
-auto get_auto_pool(const T& value0, const Policy& policy = Policy{})
+auto get_output_pools(const T& value0, const Policy& policy = Policy{})
 {
     const auto types = policy.get_pool_types(value0);
     auto pools       = detail::generate_output_pools(types);

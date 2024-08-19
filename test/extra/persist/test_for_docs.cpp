@@ -293,9 +293,9 @@ TEST_CASE("Transformations", "[docs]")
     const auto v2    = v1.push_back(4).push_back(5).push_back(6);
     const auto value = document{v1, v2};
 
-    // include:start-get_auto_pool
-    const auto pools = immer::persist::get_auto_pool(value);
-    // include:end-get_auto_pool
+    // include:start-get_output_pools
+    const auto pools = immer::persist::get_output_pools(value);
+    // include:end-get_output_pools
 
     namespace hana = boost::hana;
 
@@ -433,7 +433,7 @@ TEST_CASE("Transform hash-based containers", "[docs]")
         immer::map<std::string, int, immer::persist::xx_hash<std::string>>;
 
     const auto value = int_map_t{{"one", 1}, {"two", 2}};
-    const auto pools = immer::persist::get_auto_pool(
+    const auto pools = immer::persist::get_output_pools(
         value, direct_container_policy<int_map_t>{});
     // include:end-prepare-int-map
 
@@ -509,7 +509,7 @@ TEST_CASE("Transform table's ID type", "[docs]")
                                  immer::table_key_fn,
                                  immer::persist::xx_hash<std::string>>;
     const auto value = table_t{old_item{"one", 1}, old_item{"two", 2}};
-    const auto pools = immer::persist::get_auto_pool(
+    const auto pools = immer::persist::get_output_pools(
         value, direct_container_policy<table_t>{});
     // include:end-prepare-table-value
 
@@ -742,7 +742,7 @@ TEST_CASE("Transform nested containers", "[docs]")
     // include:end-nested-conversion_map
 
     // include:start-apply-nested-transformations
-    const auto pools = immer::persist::get_auto_pool(value, policy);
+    const auto pools = immer::persist::get_output_pools(value, policy);
     auto transformed_pools =
         immer::persist::transform_output_pool(pools, conversion_map);
 

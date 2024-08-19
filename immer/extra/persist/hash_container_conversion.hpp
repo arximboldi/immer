@@ -3,19 +3,33 @@
 namespace immer::persist {
 
 /**
- * The wrapper is used to enable the incompatible_hash_mode, which is required
+ * The wrapper is used to enable the incompatible hash mode which is required
  * when the key of a hash-based container transformed in a way that changes its
  * hash.
+ *
+ * A value of this type should be returned from a transforming function
+ * accepting `target_container_type_request`.
+ *
+ * @ingroup persist-transform
+ * @see
+ * @rst
+ * :ref:`modifying-the-hash-of-the-id`
+ * @endrst
  */
 template <class Container>
 struct incompatible_hash_wrapper
 {};
 
 /**
- * A bit of a hack but currently this is the simplest way to request a type of
- * the hash function to be used after the transformation. Maybe the whole thing
- * would change later. Right now everything is driven by the single function,
- * which seems to be convenient otherwise.
+ * This type is used as an argument for a transforming function.
+ * The return type of the function is used to specify the desired container type
+ * to contain the transformed values.
+ *
+ * @ingroup persist-transform
+ * @see
+ * @rst
+ * :ref:`transforming-hash-based-containers`
+ * @endrst
  */
 struct target_container_type_request
 {};

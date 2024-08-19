@@ -241,7 +241,7 @@ TEST_CASE("Test exception while circular converting")
 
     const auto names = immer::persist::detail::get_named_pools_for_hana_type<
         model::value_one>();
-    const auto model_pool = immer::persist::get_auto_pool(value);
+    const auto model_pool = immer::persist::get_output_pools(value);
 
     SECTION("Try to load")
     {
@@ -409,7 +409,7 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
     const auto names = immer::persist::detail::get_named_pools_for_hana_type<
         model::value_one>();
-    const auto model_pools = immer::persist::get_auto_pool(value);
+    const auto model_pools = immer::persist::get_output_pools(value);
 
     /**
      * NOTE: There is a circular dependency between pools: to convert

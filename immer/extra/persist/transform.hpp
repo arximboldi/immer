@@ -5,8 +5,22 @@
 namespace immer::persist {
 
 /**
- * Given an output_pools and a map of transformations, produce a new type of
- * load pool with those transformations applied
+ * @defgroup persist-transform
+ */
+
+/**
+ * Given output_pools and a map of transformations, produce a new type of
+ * input pools with those transformations applied.
+ *
+ * `conversion_map` is a `boost::hana::map` where keys are types of `immer`
+ * containers and values are the transforming functions.
+ *
+ * @ingroup persist-transform
+ * @see get_output_pools
+ * @rst
+ * :ref:`transformations-with-pools`
+ * :ref:`transforming-nested-containers`
+ * @endrst
  */
 template <class Storage, class ConversionMap>
 inline auto
@@ -23,18 +37,24 @@ transform_output_pool(const detail::output_pools<Storage>& old_pools,
 }
 
 /**
- * Given an old save pools and a new (transformed) load pools, effectively
+ * Given output_pools and new (transformed) input_pools, effectively
  * convert the given container.
+ *
+ * @ingroup persist-transform
+ * @see get_output_pools
+ * @rst
+ * :ref:`transformations-with-pools`
+ * :ref:`transforming-nested-containers`
+ * @endrst
  */
 template <class SaveStorage, class LoadStorage, class Container>
-auto convert_container(const detail::output_pools<SaveStorage>& old_save_pools,
-                       detail::input_pools<LoadStorage>& new_load_pools,
+auto convert_container(const detail::output_pools<SaveStorage>& output_pools,
+                       detail::input_pools<LoadStorage>& new_input_pools,
                        const Container& container)
 {
-    const auto container_id =
-        detail::get_container_id(old_save_pools, container);
+    const auto container_id = detail::get_container_id(output_pools, container);
     auto& loader =
-        new_load_pools
+        new_input_pools
             .template get_loader_by_old_container<std::decay_t<Container>>();
     auto result = loader.load(container_id);
     return result;

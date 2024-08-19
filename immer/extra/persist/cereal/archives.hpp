@@ -74,15 +74,12 @@ constexpr bool is_pool_empty()
 } // namespace detail
 
 /**
- * Adapted from cereal/archives/adapters.hpp
- */
-
-/**
- * @brief An output archive wrapper that provides access to the ``Pools`` stored
- * inside. And serializes the ``pools`` object alongside the user document.
+ * @brief A wrapper type that wraps a `cereal::OutputArchive` (for example,
+ * `JSONOutputArchive`), provides access to the `Pools` object stored inside,
+ * and serializes the `pools` object alongside the user document.
  *
  * Normally, the function `cereal_save_with_pools` should be used instead of
- * using wrapper directly.
+ * using this wrapper directly.
  *
  * @see cereal_save_with_pools
  *

@@ -174,10 +174,10 @@ The next component we need is the pools of all the containers from the value:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
-   :start-after: start-get_auto_pool
-   :end-before:  end-get_auto_pool
+   :start-after: start-get_output_pools
+   :end-before:  end-get_output_pools
 
-The ``get_auto_pool`` function returns the output pools of all ``immer`` containers that would be serialized using
+The ``get_output_pools`` function returns the output pools of all ``immer`` containers that would be serialized using
 pools, as controlled by the policy. Here we use the default policy ``hana_struct_auto_policy`` which will use pools for
 all ``immer`` containers inside of the document type which must be a ``hana::Struct``.
 
@@ -232,8 +232,8 @@ The first two steps are the same as in the previous example:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
-   :start-after: start-get_auto_pool
-   :end-before:  end-get_auto_pool
+   :start-after: start-get_output_pools
+   :end-before:  end-get_output_pools
 
 Only this time the transforming function will convert an integer into a string:
 
@@ -266,6 +266,7 @@ And serialize it with pools:
 
 In the resulting JSON we can confirm that the node ``{"key": 2, "value": ["_1_", "_2_"]}`` is reused for both vectors.
 
+.. _transforming-hash-based-containers:
 
 Transforming hash-based containers
 ----------------------------------
@@ -376,6 +377,7 @@ Finally, to convert the ``value`` with the defined ``conversion_map`` we prepare
 
 We can see that the ``new_value`` table contains the transformed data from the original ``value`` table.
 
+.. _modifying-the-hash-of-the-id:
 
 Modifying the hash of the ID
 ----------------------------
@@ -416,6 +418,7 @@ a ``immer::persist::incompatible_hash_wrapper`` as the result of the ``immer::pe
 
 We can see that the transformation has been applied, the keys have the ``_key`` suffix.
 
+.. _transforming-nested-containers:
 
 Transforming nested containers
 ------------------------------
@@ -494,5 +497,21 @@ API Overview
 ------------
 
 .. doxygengroup:: persist-api
+   :project: immer
+   :content-only:
+
+
+Transform API
+---------------
+
+.. doxygengroup:: Persist-transform
+   :project: immer
+   :content-only:
+
+
+Exceptions
+----------
+
+.. doxygengroup:: Persist-exceptions
    :project: immer
    :content-only:
