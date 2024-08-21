@@ -73,7 +73,7 @@ class set
 public:
     using value_type      = T;
     using size_type       = detail::hamts::size_t;
-    using difference_type  = std::ptrdiff_t;
+    using difference_type = std::ptrdiff_t;
     using hasher          = Hash;
     using key_equal       = Equal;
     using reference       = const T&;
@@ -302,6 +302,5 @@ static_assert(std::is_nothrow_move_constructible<set<int>>::value,
               "set is not nothrow move constructible");
 static_assert(std::is_nothrow_move_assignable<set<int>>::value,
               "set is not nothrow move assignable");
-
 
 } // namespace immer
