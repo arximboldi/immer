@@ -15,7 +15,6 @@
 
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
-#include <catch.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -133,11 +132,13 @@ struct a_type
 b_type::b_type(int a, immer::box<a_type> val)
     : a(a)
     , val(val)
-{}
+{
+}
 
 a_type::a_type()
     : b{}
-{}
+{
+}
 
 } // namespace example1
 
@@ -173,11 +174,13 @@ struct a_type
 b_type::b_type(int a, immer::box<a_type> val)
     : a(a)
     , val(val)
-{}
+{
+}
 
 a_type::a_type()
     : b{}
-{}
+{
+}
 
 } // namespace example2
 
