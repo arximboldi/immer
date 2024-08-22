@@ -17,7 +17,7 @@
 #include "test/dada.hpp"
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <random>
 #include <unordered_map>
@@ -32,9 +32,23 @@ struct pair_key_fn
     }
 
     template <typename F, typename S>
+    auto operator()(std::pair<F, S> p, F k) const
+    {
+        p.first = std::move(k);
+        return p;
+    }
+
+    template <typename F, typename S>
     F operator()(const dadaist<std::pair<F, S>>& p) const
     {
         return p.value.first;
+    }
+
+    template <typename F, typename S>
+    auto operator()(dadaist<std::pair<F, S>> p, F k) const
+    {
+        p.value.first = std::move(k);
+        return p;
     }
 };
 
@@ -48,6 +62,9 @@ using table_map = immer::table<std::pair<K, V>,
                                Eq,
                                SETUP_T::memory_policy,
                                SETUP_T::bits>;
+
+IMMER_RANGES_CHECK(
+    std::ranges::forward_range<table_map<std::string, std::string>>);
 
 template <typename T = uint32_t>
 auto make_generator()
@@ -268,6 +285,20 @@ TEST_CASE("update a lot")
             CHECK(v[i].second == i + 1);
         }
     }
+    SECTION("if_exists immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.update_if_exists(i, incr_id);
+            CHECK(v[i].second == i + 1);
+        }
+    }
+    SECTION("if_exists move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).update_if_exists(i, incr_id);
+            CHECK(v[i].second == i + 1);
+        }
+    }
 }
 
 TEST_CASE("exception safety")
@@ -483,7 +514,9 @@ void test_diff(uint32_t old_num,
 
     // remove
     auto shuffle = old_keys;
-    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::random_device rd{};
+    auto g = std::mt19937{rd()};
+    std::shuffle(shuffle.begin(), shuffle.end(), g);
     std::vector<conflictor> remove_keys(shuffle.begin(),
                                         shuffle.begin() + remove_num);
     std::vector<conflictor> rest_keys(shuffle.begin() + remove_num,

@@ -13,7 +13,7 @@
 #include <immer/vector.hpp>
 #include <immer/vector_transient.hpp>
 
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #if IMMER_CXX_STANDARD >= 17
 
@@ -33,3 +33,8 @@ TEST_CASE("error when erasing an element from a "
 }
 
 #endif
+
+TEST_CASE(
+    "empty test because it's not allowed to have no tests in the cpp file")
+{
+}

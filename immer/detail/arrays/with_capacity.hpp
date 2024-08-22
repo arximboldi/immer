@@ -128,7 +128,7 @@ struct with_capacity
                                bool> = true>
     static with_capacity from_range(Iter first, Sent last)
     {
-        auto count = static_cast<size_t>(distance(first, last));
+        auto count = static_cast<size_t>(detail::distance(first, last));
         if (count == 0)
             return empty();
         else
@@ -302,7 +302,7 @@ struct with_capacity
     {
         assert(sz <= size);
         if (ptr->can_mutate(e)) {
-            destroy_n(data() + size, size - sz);
+            detail::destroy_n(data() + size, size - sz);
             size = sz;
         } else {
             auto cap = recommend_down(sz, capacity);

@@ -17,6 +17,8 @@
 #include <boost/variant.hpp>
 #include <catch.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+
 struct rec_vec
 {
     int data;

@@ -10,7 +10,7 @@
 #error "define the box template to use in BOX_T"
 #endif
 
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("construction and copy")
 {
@@ -140,4 +140,22 @@ TEST_CASE("update move")
     } else {
         CHECK(&y.get() == addr);
     }
+}
+
+namespace {
+struct fwd_type;
+struct test_type
+{
+    immer::box<fwd_type> data;
+};
+struct fwd_type
+{
+    int data = 123;
+};
+} // namespace
+
+TEST_CASE("Test box with a fwd declared type")
+{
+    auto val = test_type{};
+    REQUIRE(val.data.get().data == 123);
 }

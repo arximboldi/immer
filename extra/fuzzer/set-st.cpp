@@ -69,7 +69,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         }
         case op_erase_move: {
             auto value = read<size_t>(in);
-            vars[dst]  = vars[src].erase(value);
+            vars[dst]  = std::move(vars[src]).erase(value);
             break;
         }
         case op_iterate: {

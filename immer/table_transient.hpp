@@ -15,17 +15,12 @@ template <typename T,
 class table;
 
 /*!
+ * Mutable version of `immer::table`.
+ *
  * @rst
  *
- * .. admonition:: Become a sponsor!
- *    :class: danger
- *
- *    This component is planned but it has **not been implemented yet**.
- *
- *    Transience can critically improve the performance of applications
- *    intensively using ``set`` and ``map``. If you are working for an
- *    organization using the library in a commercial project, please consider
- *    **sponsoring this work**: juanpe@sinusoid.al
+ * Refer to :doc:`transients` to learn more about when and how to use
+ * the mutable versions of immutable containers.
  *
  * @endrst
  */
@@ -47,7 +42,7 @@ public:
     using mapped_type     = T;
     using value_type      = T;
     using size_type       = detail::hamts::size_t;
-    using diference_type  = std::ptrdiff_t;
+    using difference_type  = std::ptrdiff_t;
     using hasher          = Hash;
     using key_equal       = Equal;
     using reference       = const value_type&;
@@ -215,36 +210,42 @@ public:
      * It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    void insert(value_type value)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.add(std::move(value));
-    }
+    void insert(value_type value) { impl_.add_mut(*this, std::move(value)); }
 
     /*!
-     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps
-     * `T` to `T`. The `fn` return value should have key `k`.
-     * It may allocate memory and its complexity is *effectively* @f$ O(1) @f$.
+     * Returns `this->insert(fn((*this)[k]))`. In particular, `fn` maps `T` to
+     * `T`. The key `k` will be set into the value returned bu `fn`.  It may
+     * allocate memory and its complexity is *effectively* @f$ O(1) @f$.
      */
     template <typename Fn>
     void update(key_type k, Fn&& fn)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.template update<persistent_type::project_value,
-                                      persistent_type::default_value,
-                                      persistent_type::combine_value>(
-            std::move(k), std::forward<Fn>(fn));
+        impl_.template update_mut<typename persistent_type::project_value,
+                                  typename persistent_type::default_value,
+                                  typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
+    }
+
+    /*!
+     * Returns `this->insert(fn((*this)[k]))` when `this->count(k) > 0`. In
+     * particular, `fn` maps `T` to `T`. The key `k` will be replaced into the
+     * value returned by `fn`.  It may allocate memory and its complexity is
+     * *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    void update_if_exists(key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<
+            typename persistent_type::project_value,
+            typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
      * Removes table entry by given key `k` if there is any. It may allocate
      * memory and its complexity is *effectively* @f$ O(1) @f$.
      */
-    void erase(const K& k)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(k);
-    }
+    void erase(const K& k) { impl_.sub_mut(*this, k); }
 
     /*!
      * Returns an @a immutable form of this container, an
@@ -268,8 +269,7 @@ private:
 
     table_transient(impl_t impl)
         : impl_(std::move(impl))
-    {
-    }
+    {}
 
     impl_t impl_ = impl_t::empty();
 

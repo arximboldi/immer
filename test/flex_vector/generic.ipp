@@ -14,7 +14,7 @@
 
 #include <boost/range/adaptors.hpp>
 #include <boost/range/irange.hpp>
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <array>
@@ -28,6 +28,9 @@
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"
 #endif
+
+IMMER_RANGES_CHECK(
+    std::ranges::random_access_range<FLEX_VECTOR_T<std::string>>);
 
 template <typename V = FLEX_VECTOR_T<unsigned>>
 auto make_test_flex_vector(unsigned min, unsigned max)
@@ -104,6 +107,18 @@ TEST_CASE("push_front")
         for (decltype(v.size()) j = 0; j < v.size(); ++j)
             CHECK(v[v.size() - j - 1] == j);
     }
+}
+
+TEST_CASE("random_access iteration")
+{
+    auto v    = make_test_flex_vector(0, 10);
+    auto iter = v.begin();
+    CHECK(*iter == 0);
+    CHECK(iter[0] == 0);
+    CHECK(iter[3] == 3);
+    CHECK(iter[9] == 9);
+    iter += 4;
+    CHECK(iter[-4] == 0);
 }
 
 TEST_CASE("concat")
@@ -467,7 +482,8 @@ TEST_CASE("iterator relaxed")
     {
         auto s = std::vector<unsigned>(n);
         std::iota(s.begin(), s.end(), 0u);
-        std::equal(v.begin(), v.end(), s.begin(), s.end());
+        const auto unused = std::equal(v.begin(), v.end(), s.begin(), s.end());
+        (void) unused;
     }
 
     SECTION("can go back from end")
@@ -537,7 +553,8 @@ TEST_CASE("exception safety relaxed")
             try {
                 v = v.push_back({i});
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(v, boost::irange(0u, i));
         }
         CHECK(d.happenings > 0);
@@ -553,7 +570,8 @@ TEST_CASE("exception safety relaxed")
             try {
                 v = v.update(i, [](auto x) { return dada(), x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(
                 v, boost::join(boost::irange(1u, 1u + i), boost::irange(i, n)));
         }
@@ -590,7 +608,8 @@ TEST_CASE("exception safety relaxed")
             try {
                 v = lhs + rhs;
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
         }
         CHECK(d.happenings > 0);

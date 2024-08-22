@@ -16,17 +16,12 @@
 namespace immer {
 
 /*!
+ * Mutable version of `immer::set`.
+ *
  * @rst
  *
- * .. admonition:: Become a sponsor!
- *    :class: danger
- *
- *    This component is planned but it has **not been implemented yet**.
- *
- *    Transiens can critically improve the performance of applications
- *    intensively using ``set`` and ``map``. If you are working for an
- *    organization using the library in a commercial project, please consider
- *    **sponsoring this work**: juanpe@sinusoid.al
+ * Refer to :doc:`transients` to learn more about when and how to use
+ * the mutable versions of immutable containers.
  *
  * @endrst
  */
@@ -45,7 +40,7 @@ public:
 
     using value_type      = T;
     using size_type       = detail::hamts::size_t;
-    using diference_type  = std::ptrdiff_t;
+    using difference_type  = std::ptrdiff_t;
     using hasher          = Hash;
     using key_equal       = Equal;
     using reference       = const T&;
@@ -158,11 +153,7 @@ public:
      * the set.  It may allocate memory and its complexity is *effectively* @f$
      * O(1) @f$.
      */
-    void erase(const T& value)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
-    }
+    void erase(const T& value) { impl_.sub_mut(*this, value); }
 
     /*!
      * Returns an @a immutable form of this container, an

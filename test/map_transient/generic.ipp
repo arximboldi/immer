@@ -6,7 +6,11 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <catch.hpp>
+#include "test/util.hpp"
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <numeric>
 
 #ifndef MAP_T
 #error "define the map template to use in MAP_T"
@@ -15,6 +19,10 @@
 #ifndef MAP_TRANSIENT_T
 #error "define the map template to use in MAP_TRANSIENT_T"
 #endif
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<MAP_T<std::string, std::string>>);
+IMMER_RANGES_CHECK(
+    std::ranges::forward_range<MAP_TRANSIENT_T<std::string, std::string>>);
 
 TEST_CASE("instantiate")
 {
@@ -86,6 +94,14 @@ TEST_CASE("update")
 
     t.update("foo", [](auto x) { return x + 6; });
     CHECK(t["foo"] == 48);
+    CHECK(t.size() == 2);
+
+    t.update_if_exists("foo", [](auto x) { return x + 42; });
+    CHECK(t["foo"] == 90);
+    CHECK(t.size() == 2);
+
+    t.update_if_exists("manolo", [](auto x) { return x + 42; });
+    CHECK(t["manolo"] == 0);
     CHECK(t.size() == 2);
 }
 

@@ -13,15 +13,20 @@
 #endif
 
 #include <immer/algorithm.hpp>
+#include <immer/box.hpp>
 
 #include "test/dada.hpp"
 #include "test/util.hpp"
 
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<MAP_T<std::string, std::string>>);
+
+using memory_policy_t = MAP_T<unsigned, unsigned>::memory_policy_type;
 
 template <typename T = unsigned>
 auto make_generator()
@@ -85,6 +90,7 @@ TEST_CASE("instantiation")
     {
         auto v = MAP_T<int, int>{};
         CHECK(v.size() == 0u);
+        CHECK(v.identity() == MAP_T<int, int>{}.identity());
     }
 }
 
@@ -165,7 +171,38 @@ TEST_CASE("equals and setting")
     CHECK(v.set(1234, 42) == v.insert({1234, 42}));
     CHECK(v.update(1234, [](auto&& x) { return x + 1; }) == v.set(1234, 1));
     CHECK(v.update(42, [](auto&& x) { return x + 1; }) == v.set(42, 43));
+
+    CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }) == v);
+    CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }) ==
+          v.set(42, 43));
+
+    CHECK(v.update_if_exists(1234, [](auto&& x) { return x + 1; }).identity() ==
+          v.identity());
+    CHECK(v.update_if_exists(42, [](auto&& x) { return x + 1; }).identity() !=
+          v.set(42, 43).identity());
+
+#if IMMER_DEBUG_STATS
+    std::cout << (v.impl().get_debug_stats() + v.impl().get_debug_stats())
+                     .get_summary();
+#endif
 }
+
+#if IMMER_DEBUG_STATS
+TEST_CASE("debug stats")
+{
+    {
+        std::cout
+            << immer::map<int, int>{}.impl().get_debug_stats().get_summary();
+    }
+    {
+        immer::map<int, int> map;
+        for (int i = 0; i <= 10; i++) {
+            map = std::move(map).set(i, i);
+        }
+        std::cout << map.impl().get_debug_stats().get_summary();
+    }
+}
+#endif
 
 TEST_CASE("iterator")
 {
@@ -244,7 +281,143 @@ TEST_CASE("update a lot")
             CHECK(v[i] == i + 1);
         }
     }
+
+    SECTION("erase")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).erase(i);
+            CHECK(v.count(i) == 0);
+        }
+    }
 }
+
+TEST_CASE("update_if_exists a lot")
+{
+    auto v = make_test_map(666u);
+
+    SECTION("immutable")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = v.update_if_exists(i, [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+    SECTION("move")
+    {
+        for (decltype(v.size()) i = 0; i < v.size(); ++i) {
+            v = std::move(v).update_if_exists(i,
+                                              [](auto&& x) { return x + 1; });
+            CHECK(v[i] == i + 1);
+        }
+    }
+}
+
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("update boxed move string")
+{
+    constexpr auto N = 666u;
+    constexpr auto S = 7;
+    auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};
+    SECTION("preserve immutability")
+    {
+        auto s0 = s;
+        auto i0 = 0u;
+        // insert
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update(std::to_string(i),
+                                    [&](auto&&) { return std::to_string(i); });
+            {
+                CHECK(s.size() == i + 1);
+                for (auto j : test_irange(0u, i + 1)) {
+                    CHECK(s.count(std::to_string(j)) == 1);
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+                }
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(s.count(std::to_string(j)) == 0);
+            }
+            {
+                CHECK(s0.size() == i0);
+                for (auto j : test_irange(0u, i0)) {
+                    CHECK(s0.count(std::to_string(j)) == 1);
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+                }
+                for (auto j : test_irange(i0, N))
+                    CHECK(s0.count(std::to_string(j)) == 0);
+            }
+        }
+        // update
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update(std::to_string(i), [&](auto&&) {
+                return std::to_string(i + 1);
+            });
+            {
+                CHECK(s.size() == N);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+            }
+            {
+                CHECK(s0.size() == N);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i0, N))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+            }
+        }
+    }
+}
+#endif
+
+#if !IMMER_IS_LIBGC_TEST
+TEST_CASE("update_if_exists boxed move string")
+{
+    constexpr auto N = 666u;
+    constexpr auto S = 7;
+    auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};
+    SECTION("preserve immutability")
+    {
+        auto s0 = s;
+        auto i0 = 0u;
+        // insert
+        for (auto i = 0u; i < N; ++i) {
+            s = std::move(s).set(std::to_string(i), std::to_string(i));
+        }
+        // update
+        for (auto i = 0u; i < N; ++i) {
+            if (i % S == 0) {
+                s0 = s;
+                i0 = i;
+            }
+            s = std::move(s).update_if_exists(std::to_string(i), [&](auto&&) {
+                return std::to_string(i + 1);
+            });
+            {
+                CHECK(s.size() == N);
+                for (auto j : test_irange(0u, i + 1))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i + 1u, N))
+                    CHECK(*s.find(std::to_string(j)) == std::to_string(j));
+            }
+            {
+                CHECK(s0.size() == N);
+                for (auto j : test_irange(0u, i0))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j + 1));
+                for (auto j : test_irange(i0, N))
+                    CHECK(*s0.find(std::to_string(j)) == std::to_string(j));
+            }
+        }
+    }
+}
+#endif
 
 TEST_CASE("exception safety")
 {
@@ -266,7 +439,30 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.update(i, [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(i) == i + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(i) == i);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update_if_exists")
+    {
+        auto v = dadaist_map_t{};
+        auto d = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).set(i, i);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = v.update_if_exists(i, [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(i) == i + 1);
             for (auto i : test_irange(i, n))
@@ -288,7 +484,32 @@ TEST_CASE("exception safety")
                 auto s = d.next();
                 v      = v.update(vals[i].first, [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update_if_exists collisisions")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = v.insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = v.update_if_exists(vals[i].first,
+                                       [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -311,7 +532,8 @@ TEST_CASE("exception safety")
                 auto x = vals[i].second;
                 v      = v.set(vals[i].first, x + 1);
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -334,7 +556,8 @@ TEST_CASE("exception safety")
                 auto x = vals[i].second;
                 v      = std::move(v).set(vals[i].first, x + 1);
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
@@ -357,13 +580,61 @@ TEST_CASE("exception safety")
                 v      = std::move(v).update(vals[i].first,
                                         [](auto x) { return x + 1; });
                 ++i;
-            } catch (dada_error) {}
+            } catch (dada_error) {
+            }
             for (auto i : test_irange(0u, i))
                 CHECK(v.at(vals[i].first) == vals[i].second + 1);
             for (auto i : test_irange(i, n))
                 CHECK(v.at(vals[i].first) == vals[i].second);
         }
         CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("update_if_exists collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                auto s = d.next();
+                v      = std::move(v).update_if_exists(vals[i].first,
+                                                  [](auto x) { return x + 1; });
+                ++i;
+            } catch (dada_error) {
+            }
+            for (auto i : test_irange(0u, i))
+                CHECK(v.at(vals[i].first) == vals[i].second + 1);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings > 0);
+        IMMER_TRACE_E(d.happenings);
+    }
+
+    SECTION("erase collisisions move")
+    {
+        auto vals = make_values_with_collisions(n);
+        auto v    = dadaist_conflictor_map_t{};
+        auto d    = dadaism{};
+        for (auto i = 0u; i < n; ++i)
+            v = std::move(v).insert(vals[i]);
+        for (auto i = 0u; i < v.size();) {
+            try {
+                // auto s = d.next();
+                v = std::move(v).erase(vals[i].first);
+                ++i;
+            } catch (dada_error) {
+            }
+            for (auto i : test_irange(0u, i))
+                CHECK(v.count(vals[i].first) == 0);
+            for (auto i : test_irange(i, n))
+                CHECK(v.at(vals[i].first) == vals[i].second);
+        }
+        CHECK(d.happenings == 0);
         IMMER_TRACE_E(d.happenings);
     }
 }
@@ -373,7 +644,8 @@ struct KeyType
 {
     explicit KeyType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
@@ -381,7 +653,8 @@ struct LookupType
 {
     explicit LookupType(unsigned v)
         : value(v)
-    {}
+    {
+    }
     unsigned value;
 };
 
@@ -478,7 +751,9 @@ void test_diff(unsigned old_num,
 
     // remove
     auto shuffle = old_keys;
-    std::random_shuffle(shuffle.begin(), shuffle.end());
+    std::random_device rd{};
+    auto g = std::mt19937{rd()};
+    std::shuffle(shuffle.begin(), shuffle.end(), g);
     std::vector<conflictor> remove_keys(shuffle.begin(),
                                         shuffle.begin() + remove_num);
     std::vector<conflictor> rest_keys(shuffle.begin() + remove_num,

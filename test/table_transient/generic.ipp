@@ -6,7 +6,11 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <catch.hpp>
+#include "test/util.hpp"
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <numeric>
 
 #ifndef SETUP_T
 #error "define the table types via SETUP_T macro"
@@ -16,14 +20,17 @@
 
 struct Item
 {
-    std::string id;
-    int value;
+    std::string id{};
+    int value{};
 
     bool operator==(const Item& other) const
     {
         return value == other.value && id == other.id;
     }
 };
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<SETUP_T::table<Item>>);
+IMMER_RANGES_CHECK(std::ranges::forward_range<SETUP_T::table_transient<Item>>);
 
 TEST_CASE("instantiate")
 {
@@ -62,6 +69,27 @@ TEST_CASE("insert")
     t.insert(Item{"foo", 6});
     CHECK(t["foo"].value == 6);
     CHECK(t.size() == 2);
+
+    t.update("foo", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["foo"].value == 7);
+    CHECK(t.size() == 2);
+
+    t.update("lol", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["lol"].value == 1);
+    CHECK(t.size() == 3);
+
+    t.update_if_exists("foo", [](auto item) {
+        item.value += 1;
+        return item;
+    });
+    CHECK(t["foo"].value == 8);
+    CHECK(t.size() == 3);
 }
 
 TEST_CASE("erase")

@@ -4,7 +4,7 @@ cmake_policy(SET CMP0048 NEW) # enable project VERSION
 cmake_policy(SET CMP0056 NEW) # honor link flags in try_compile()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-project(immer VERSION 0.7.0)
+project(immer VERSION 0.8.0)
 
 if (NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-extended-offsetof -Wno-c++17-extensions -Wno-c++1z-extensions -Wno-unknown-warning-option -Wno-type-limits")
@@ -39,6 +39,7 @@ option(immer_BUILD_TESTS "Build tests" ON)
 option(immer_BUILD_EXAMPLES "Build examples" ON)
 option(immer_BUILD_DOCS "Build docs" ON)
 option(immer_BUILD_EXTRAS "Build extras" ON)
+option(immer_INSTALL_FUZZERS "Install fuzzers" off)
 
 set(CXX_STANDARD 14 CACHE STRING "c++ standard number")
 
@@ -76,8 +77,8 @@ find_package(Boost 1.56 COMPONENTS ${immer_boost_components})
 find_program(CCACHE ccache)
 if (CCACHE)
   message(STATUS "Using ccache: ${CCACHE}")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE})
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CCACHE})
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+  set(CMAKE_CXX_LINKER_LAUNCHER ${CCACHE})
 else()
   message(STATUS "Could not find ccache")
 endif()
@@ -98,6 +99,14 @@ target_include_directories(immer INTERFACE
 install(TARGETS immer EXPORT ImmerConfig)
 install(EXPORT ImmerConfig DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer")
 install(DIRECTORY immer DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion )
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake" DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer" )
 
 # development target to be used in tests, examples, benchmarks...
 immer_canonicalize_cmake_booleans(
@@ -128,13 +137,15 @@ endif()
 #  Testing
 #  =======
 
+if (immer_BUILD_TESTS OR immer_BUILD_EXAMPLES OR immer_BUILD_EXTRAS)
+  add_custom_target(check
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Build and run all the tests and examples.")
+endif()
+
 if (immer_BUILD_TESTS)
   enable_testing()
-
-  add_custom_target(check
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Build and run all the tests and examples.")
 
   add_subdirectory(test)
   add_subdirectory(benchmark)

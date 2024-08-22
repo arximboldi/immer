@@ -73,7 +73,7 @@ class set
 public:
     using value_type      = T;
     using size_type       = detail::hamts::size_t;
-    using diference_type  = std::ptrdiff_t;
+    using difference_type  = std::ptrdiff_t;
     using hasher          = Hash;
     using key_equal       = Equal;
     using reference       = const T&;
@@ -85,6 +85,8 @@ public:
 
     using transient_type = set_transient<T, Hash, Equal, MemoryPolicy, B>;
 
+    using memory_policy_type = MemoryPolicy;
+
     /*!
      * Default constructor.  It creates a set of `size() == 0`.  It
      * does not allocate memory and its complexity is @f$ O(1) @f$.
@@ -95,10 +97,8 @@ public:
      * Constructs a set containing the elements in `values`.
      */
     set(std::initializer_list<value_type> values)
-    {
-        for (auto&& v : values)
-            *this = std::move(*this).insert(v);
-    }
+        : impl_{impl_t::from_initializer_list(values)}
+    {}
 
     /*!
      * Constructs a set containing the elements in the range
@@ -109,10 +109,8 @@ public:
               std::enable_if_t<detail::compatible_sentinel_v<Iter, Sent>,
                                bool> = true>
     set(Iter first, Sent last)
-    {
-        for (; first != last; ++first)
-            *this = std::move(*this).insert(*first);
-    }
+        : impl_{impl_t::from_range(first, last)}
+    {}
 
     /*!
      * Returns an iterator pointing at the first element of the
@@ -253,6 +251,14 @@ public:
         return transient_type{std::move(impl_)};
     }
 
+    /*!
+     * Returns a value that can be used as identity for the container.  If two
+     * values have the same identity, they are guaranteed to be equal and to
+     * contain the same objects.  However, two equal containers are not
+     * guaranteed to have the same identity.
+     */
+    void* identity() const { return impl_.root; }
+
     // Semi-private
     const impl_t& impl() const { return impl_; }
 
@@ -271,8 +277,7 @@ private:
 
     set&& erase_move(std::true_type, const value_type& value)
     {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(value);
+        impl_.sub_mut({}, value);
         return std::move(*this);
     }
     set erase_move(std::false_type, const value_type& value)
@@ -286,5 +291,11 @@ private:
 
     impl_t impl_ = impl_t::empty();
 };
+
+static_assert(std::is_nothrow_move_constructible<set<int>>::value,
+              "set is not nothrow move constructible");
+static_assert(std::is_nothrow_move_assignable<set<int>>::value,
+              "set is not nothrow move assignable");
+
 
 } // namespace immer

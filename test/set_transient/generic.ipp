@@ -6,7 +6,11 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <catch.hpp>
+#include "test/util.hpp"
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <numeric>
 
 #ifndef SET_T
 #error "define the set template to use in SET_T"
@@ -15,6 +19,9 @@
 #ifndef SET_TRANSIENT_T
 #error "define the set template to use in SET_TRANSIENT_T"
 #endif
+
+IMMER_RANGES_CHECK(std::ranges::forward_range<SET_T<std::string>>);
+IMMER_RANGES_CHECK(std::ranges::forward_range<SET_TRANSIENT_T<std::string>>);
 
 TEST_CASE("instantiate")
 {
@@ -61,4 +68,39 @@ TEST_CASE("erase")
     CHECK(t.find(12) != nullptr);
     CHECK(t.count(12) == 1);
     CHECK(t.size() == 1);
+}
+
+TEST_CASE("insert erase many")
+{
+    auto t = SET_T<int>{}.transient();
+    auto n = 1000;
+    for (auto i = 0; i < n; ++i) {
+        t.insert(i);
+        CHECK(t.find(i) != nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(i + 1));
+    }
+    for (auto i = 0; i < n; ++i) {
+        t.erase(i);
+        CHECK(t.find(i) == nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(n - i - 1));
+    }
+}
+
+TEST_CASE("erase many from non transient")
+{
+    const auto n = 10000;
+    auto t       = [] {
+        auto t = SET_T<int>{};
+        for (auto i = 0; i < n; ++i) {
+            t = t.insert(i);
+            CHECK(t.find(i) != nullptr);
+            CHECK(t.size() == static_cast<std::size_t>(i + 1));
+        }
+        return t.transient();
+    }();
+    for (auto i = 0; i < n; ++i) {
+        t.erase(i);
+        CHECK(t.find(i) == nullptr);
+        CHECK(t.size() == static_cast<std::size_t>(n - i - 1));
+    }
 }

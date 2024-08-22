@@ -50,7 +50,7 @@ map
     :undoc-members:
 
 table
----
+-----
 
 .. doxygenclass:: immer::table
     :members:

@@ -24,17 +24,12 @@ template <typename K,
 class map;
 
 /*!
+ * Mutable version of `immer::map`.
+ *
  * @rst
  *
- * .. admonition:: Become a sponsor!
- *    :class: danger
- *
- *    This component is planned but it has **not been implemented yet**.
- *
- *    Transiens can critically improve the performance of applications
- *    intensively using ``set`` and ``map``. If you are working for an
- *    organization using the library in a commercial project, please consider
- *    **sponsoring this work**: juanpe@sinusoid.al
+ * Refer to :doc:`transients` to learn more about when and how to use
+ * the mutable versions of immutable containers.
  *
  * @endrst
  */
@@ -56,7 +51,7 @@ public:
     using mapped_type     = T;
     using value_type      = std::pair<K, T>;
     using size_type       = detail::hamts::size_t;
-    using diference_type  = std::ptrdiff_t;
+    using difference_type  = std::ptrdiff_t;
     using hasher          = Hash;
     using key_equal       = Equal;
     using reference       = const value_type&;
@@ -273,15 +268,26 @@ public:
     }
 
     /*!
+     * Replaces the association `(k, v)` by the association new association `(k,
+     * fn(v))`, where `v` is the currently associated value for `k` in the map
+     * or does nothing if `k` is not present in the map. It may allocate memory
+     * and its complexity is *effectively* @f$ O(1) @f$.
+     */
+    template <typename Fn>
+    void update_if_exists(key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<
+            typename persistent_type::project_value,
+            typename persistent_type::combine_value>(
+            *this, std::move(k), std::forward<Fn>(fn));
+    }
+
+    /*!
      * Removes the key `k` from the k.  Does nothing if the key is not
      * associated in the map.  It may allocate memory and its complexity is
      * *effectively* @f$ O(1) @f$.
      */
-    void erase(const K& k)
-    {
-        // xxx: implement mutable version
-        impl_ = impl_.sub(k);
-    }
+    void erase(const K& k) { impl_.sub_mut(*this, k); }
 
     /*!
      * Returns an @a immutable form of this container, an

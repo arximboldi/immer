@@ -16,7 +16,7 @@
 
 #include <array>
 
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using st_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
                                        immer::unsafe_refcount_policy,
