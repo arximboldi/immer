@@ -108,7 +108,7 @@ struct no_capacity
                                bool> = true>
     static no_capacity from_range(Iter first, Sent last)
     {
-        auto count = static_cast<size_t>(distance(first, last));
+        auto count = static_cast<size_t>(detail::distance(first, last));
         if (count == 0)
             return empty();
         else
