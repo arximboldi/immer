@@ -184,8 +184,7 @@ struct doc_2_policy
 {
     auto get_pool_types(const auto&) const
     {
-        return boost::hana::to_set(
-            boost::hana::tuple_t<vector_one, vector_str>);
+        return boost::hana::tuple_t<vector_one, vector_str>;
     }
 
     template <class Archive>
@@ -420,7 +419,7 @@ struct direct_container_policy : immer::persist::value0_serialize_t
 {
     auto get_pool_types(const auto&) const
     {
-        return boost::hana::to_set(boost::hana::tuple_t<Container>);
+        return boost::hana::tuple_t<Container>;
     }
 };
 // include:end-direct_container_policy

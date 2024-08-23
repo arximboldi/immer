@@ -4,38 +4,12 @@
 #include <immer/extra/persist/detail/type_traverse.hpp>
 
 // Bring in all known pools to be able to wrap all immer types
+#include <immer/extra/persist/detail/array/pool.hpp>
 #include <immer/extra/persist/detail/box/pool.hpp>
 #include <immer/extra/persist/detail/champ/traits.hpp>
 #include <immer/extra/persist/detail/rbts/traits.hpp>
 
 namespace immer::persist::detail {
-
-template <class T>
-struct is_auto_ignored_type : boost::hana::false_
-{};
-
-template <class T>
-struct is_auto_ignored_type<immer::map<node_id, values_save<T>>>
-    : boost::hana::true_
-{};
-
-template <class T>
-struct is_auto_ignored_type<immer::map<node_id, values_load<T>>>
-    : boost::hana::true_
-{};
-
-template <>
-struct is_auto_ignored_type<immer::map<node_id, rbts::inner_node>>
-    : boost::hana::true_
-{};
-
-template <>
-struct is_auto_ignored_type<immer::vector<node_id>> : boost::hana::true_
-{};
-
-template <>
-struct is_auto_ignored_type<immer::vector<rbts::rbts_info>> : boost::hana::true_
-{};
 
 /**
  * This wrapper is used to load a given container via persistable.
@@ -69,10 +43,6 @@ constexpr auto is_persistable = boost::hana::is_valid(
     [](auto&& obj) ->
     typename container_traits<std::decay_t<decltype(obj)>>::output_pool_t {});
 
-constexpr auto is_auto_ignored = [](const auto& value) {
-    return is_auto_ignored_type<std::decay_t<decltype(value)>>{};
-};
-
 /**
  * Make a function that operates conditionally on its single argument, based on
  * the given predicate. If the predicate is not satisfied, the function forwards
@@ -83,14 +53,6 @@ constexpr auto make_conditional_func = [](auto pred, auto func) {
         return boost::hana::if_(pred(value), func, boost::hana::id)(
             std::forward<decltype(value)>(value));
     };
-};
-
-// We must not try to persist types that are actually the pool itself,
-// for example, `immer::map<node_id, values_save<T>> leaves` etc.
-constexpr auto exclude_internal_pool_types = [](auto wrap) {
-    namespace hana = boost::hana;
-    return make_conditional_func(hana::compose(hana::not_, is_auto_ignored),
-                                 wrap);
 };
 
 constexpr auto to_persistable = [](const auto& x) {
@@ -106,11 +68,11 @@ constexpr auto to_persistable_loader = [](auto& value) {
  * This function will wrap a value in persistable if possible or will return a
  * reference to its argument.
  */
-constexpr auto wrap_for_saving = exclude_internal_pool_types(
-    make_conditional_func(is_persistable, to_persistable));
+constexpr auto wrap_for_saving =
+    make_conditional_func(is_persistable, to_persistable);
 
-constexpr auto wrap_for_loading = exclude_internal_pool_types(
-    make_conditional_func(is_persistable, to_persistable_loader));
+constexpr auto wrap_for_loading =
+    make_conditional_func(is_persistable, to_persistable_loader);
 
 /**
  * Returns a wrapping function that wraps only known types.
@@ -149,7 +111,7 @@ auto get_pools_for_hana_type()
             using Type = typename decltype(type)::type;
             return detail::is_persistable(Type{});
         });
-    return hana::to_set(persistable);
+    return persistable;
 }
 
 /**

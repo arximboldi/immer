@@ -72,7 +72,7 @@ struct via_get_pools_names_policy_t : value0_serialize_t
 {
     auto get_pool_types(const T& value) const
     {
-        return boost::hana::to_set(boost::hana::keys(get_pools_names(value)));
+        return boost::hana::keys(get_pools_names(value));
     }
 
     using Map = decltype(get_pools_names(std::declval<T>()));

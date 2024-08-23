@@ -26,7 +26,7 @@ void cereal_save_with_pools(std::ostream& os,
                             const T& value0,
                             const Policy& policy = Policy{})
 {
-    const auto types = policy.get_pool_types(value0);
+    const auto types = boost::hana::to_set(policy.get_pool_types(value0));
     auto pools       = detail::generate_output_pools(types);
     const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
     using Pools      = std::decay_t<decltype(pools)>;
@@ -75,8 +75,9 @@ template <class T,
           Policy<T> Policy = default_policy>
 T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
 {
-    using TypesSet = decltype(policy.get_pool_types(std::declval<T>()));
-    using Pools    = decltype(detail::generate_input_pools(TypesSet{}));
+    using TypesSet =
+        decltype(boost::hana::to_set(policy.get_pool_types(std::declval<T>())));
+    using Pools = decltype(detail::generate_input_pools(TypesSet{}));
 
     auto get_pool_name_fn = [](const auto& value) {
         return Policy{}.get_pool_name(value);
@@ -124,7 +125,7 @@ T cereal_load_with_pools(const std::string& input,
 template <typename T, Policy<T> Policy = hana_struct_auto_policy>
 auto get_output_pools(const T& value0, const Policy& policy = Policy{})
 {
-    const auto types = policy.get_pool_types(value0);
+    const auto types = boost::hana::to_set(policy.get_pool_types(value0));
     auto pools       = detail::generate_output_pools(types);
     const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
     using Pools      = std::decay_t<decltype(pools)>;

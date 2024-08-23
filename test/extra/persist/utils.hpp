@@ -213,7 +213,7 @@ struct via_map_policy : immer::persist::value0_serialize_t
     template <class T>
     auto get_pool_types(const T& value) const
     {
-        return boost::hana::to_set(boost::hana::keys(Map{}));
+        return boost::hana::keys(Map{});
     }
 
     template <class T>

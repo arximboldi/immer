@@ -10,6 +10,7 @@ include(CTest)
 
 add_executable(
   persist-tests EXCLUDE_FROM_ALL
+  test_array.cpp
   test_vectors.cpp
   test_champ.cpp
   test_xxhash.cpp
