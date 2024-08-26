@@ -21,10 +21,12 @@ namespace immer::persist {
  */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
-          Policy<T> Policy = default_policy>
+          Policy<T> Policy = default_policy,
+          class... Args>
 void cereal_save_with_pools(std::ostream& os,
                             const T& value0,
-                            const Policy& policy = Policy{})
+                            const Policy& policy = Policy{},
+                            Args&&... args)
 {
     const auto types = boost::hana::to_set(policy.get_pool_types(value0));
     auto pools       = detail::generate_output_pools(types);
@@ -37,7 +39,8 @@ void cereal_save_with_pools(std::ostream& os,
         Archive,
         Pools,
         decltype(wrap),
-        decltype(get_pool_name_fn)>{pools, wrap, os};
+        decltype(get_pool_name_fn)>{
+        pools, wrap, os, std::forward<Args>(args)...};
     policy.save(ar, value0);
     // Calling finalize explicitly, as it might throw on saving the pools,
     // for example if pool names are not unique.
@@ -54,12 +57,15 @@ void cereal_save_with_pools(std::ostream& os,
  */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
-          Policy<T> Policy = default_policy>
+          Policy<T> Policy = default_policy,
+          class... Args>
 std::string cereal_save_with_pools(const T& value0,
-                                   const Policy& policy = Policy{})
+                                   const Policy& policy = Policy{},
+                                   Args&&... args)
 {
     auto os = std::ostringstream{};
-    cereal_save_with_pools<Archive>(os, value0, policy);
+    cereal_save_with_pools<Archive>(
+        os, value0, policy, std::forward<Args>(args)...);
     return os.str();
 }
 
@@ -72,8 +78,11 @@ std::string cereal_save_with_pools(const T& value0,
  */
 template <class T,
           class Archive    = cereal::JSONInputArchive,
-          Policy<T> Policy = default_policy>
-T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
+          Policy<T> Policy = default_policy,
+          class... Args>
+T cereal_load_with_pools(std::istream& is,
+                         const Policy& policy = Policy{},
+                         Args&&... args)
 {
     using TypesSet =
         decltype(boost::hana::to_set(policy.get_pool_types(std::declval<T>())));
@@ -92,7 +101,7 @@ T cereal_load_with_pools(std::istream& is, const Policy& policy = Policy{})
                                                                  Pools,
                                                                  decltype(wrap),
                                                                  PoolNameFn>{
-        std::move(pools), wrap, is};
+        std::move(pools), wrap, is, std::forward<Args>(args)...};
     auto value0 = T{};
     policy.load(ar, value0);
     return value0;

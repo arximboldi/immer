@@ -270,7 +270,10 @@ TEST_CASE("Special pool minimal test")
             },
     };
 
-    const auto json_str = immer::persist::cereal_save_with_pools(test1);
+    const auto json_str = immer::persist::cereal_save_with_pools(
+        test1,
+        immer::persist::default_policy{},
+        cereal::JSONOutputArchive::Options::NoIndent());
     // REQUIRE(json_str == "");
 
     {
