@@ -222,7 +222,7 @@ the ``new_value`` and inspect the JSON:
    :start-after: start-save-new_value
    :end-before:  end-save-new_value
 
-And indeed, we can see in the JSON that the node ``{"key": 2, "value": [10, 20]}`` is reused in both vectors.
+And indeed, we can see in the JSON that the node ``[2, [10, 20]]`` is reused in both vectors.
 
 
 Transformation into a different type
@@ -270,7 +270,7 @@ And serialize it with pools:
    :start-after: start-save-new_value-str
    :end-before:  end-save-new_value-str
 
-In the resulting JSON we can confirm that the node ``{"key": 2, "value": ["_1_", "_2_"]}`` is reused for both vectors.
+In the resulting JSON we can confirm that the node ``[2, ["_1_", "_2_"]]`` is reused for both vectors.
 
 .. _transforming-hash-based-containers:
 
@@ -459,7 +459,7 @@ The resulting JSON looks like:
    :start-after: start-nested-value-json
    :end-before:  end-nested-value-json
 
-Looking at the JSON we can confirm that the node ``{"key": 2, "value": [1, 2]}`` is reused.
+Looking at the JSON we can confirm that the node ``[2, [1, 2]]`` is reused.
 Let's define a ``conversion_map`` like this:
 
 .. literalinclude:: ../test/extra/persist/test_for_docs.cpp
@@ -497,7 +497,7 @@ And we can serialize it again to confirm that the structural sharing of the nest
    :start-after: start-verify-structural-sharing-of-nested
    :end-before:  end-verify-structural-sharing-of-nested
 
-We can see that the ``{"key": 2, "value": ["_1_", "_2_"]}`` node is still being reused in the two vectors.
+We can see that the ``[2, ["_1_", "_2_"]]`` node is still being reused in the two vectors.
 
 
 Policy

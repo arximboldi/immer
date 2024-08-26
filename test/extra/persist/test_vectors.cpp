@@ -480,276 +480,60 @@ TEST_CASE("Test saving and loading flex vectors of different lengths", "[slow]")
 
 TEST_CASE("A loop with 2 nodes")
 {
-    const auto json = std::string{R"({
+    const auto json = std::string{R"(
+{
     "value0": {
         "B": 5,
         "BL": 1,
         "leaves": [
-            {
-                "key": 32,
-                "value": [
-                    58,
-                    59
-                ]
-            },
-            {
-                "key": 34,
-                "value": [
-                    62,
-                    63
-                ]
-            },
-            {
-                "key": 3,
-                "value": [
-                    0,
-                    1
-                ]
-            },
-            {
-                "key": 5,
-                "value": [
-                    4,
-                    5
-                ]
-            },
-            {
-                "key": 6,
-                "value": [
-                    6,
-                    7
-                ]
-            },
-            {
-                "key": 7,
-                "value": [
-                    8,
-                    9
-                ]
-            },
-            {
-                "key": 8,
-                "value": [
-                    10,
-                    11
-                ]
-            },
-            {
-                "key": 9,
-                "value": [
-                    12,
-                    13
-                ]
-            },
-            {
-                "key": 10,
-                "value": [
-                    14,
-                    15
-                ]
-            },
-            {
-                "key": 11,
-                "value": [
-                    16,
-                    17
-                ]
-            },
-            {
-                "key": 12,
-                "value": [
-                    18,
-                    19
-                ]
-            },
-            {
-                "key": 13,
-                "value": [
-                    20,
-                    21
-                ]
-            },
-            {
-                "key": 14,
-                "value": [
-                    22,
-                    23
-                ]
-            },
-            {
-                "key": 15,
-                "value": [
-                    24,
-                    25
-                ]
-            },
-            {
-                "key": 16,
-                "value": [
-                    26,
-                    27
-                ]
-            },
-            {
-                "key": 17,
-                "value": [
-                    28,
-                    29
-                ]
-            },
-            {
-                "key": 18,
-                "value": [
-                    30,
-                    31
-                ]
-            },
-            {
-                "key": 19,
-                "value": [
-                    32,
-                    33
-                ]
-            },
-            {
-                "key": 20,
-                "value": [
-                    34,
-                    35
-                ]
-            },
-            {
-                "key": 21,
-                "value": [
-                    36,
-                    37
-                ]
-            },
-            {
-                "key": 22,
-                "value": [
-                    38,
-                    39
-                ]
-            },
-            {
-                "key": 23,
-                "value": [
-                    40,
-                    41
-                ]
-            },
-            {
-                "key": 24,
-                "value": [
-                    42,
-                    43
-                ]
-            },
-            {
-                "key": 25,
-                "value": [
-                    44,
-                    45
-                ]
-            },
-            {
-                "key": 26,
-                "value": [
-                    46,
-                    47
-                ]
-            },
-            {
-                "key": 27,
-                "value": [
-                    48,
-                    49
-                ]
-            },
-            {
-                "key": 28,
-                "value": [
-                    50,
-                    51
-                ]
-            },
-            {
-                "key": 29,
-                "value": [
-                    52,
-                    53
-                ]
-            },
-            {
-                "key": 30,
-                "value": [
-                    54,
-                    55
-                ]
-            },
-            {
-                "key": 31,
-                "value": [
-                    56,
-                    57
-                ]
-            },
-            {
-                "key": 1,
-                "value": [
-                    66
-                ]
-            },
-            {
-                "key": 33,
-                "value": [
-                    60,
-                    61
-                ]
-            },
-            {
-                "key": 4,
-                "value": [
-                    2,
-                    3
-                ]
-            },
-            {
-                "key": 36,
-                "value": [
-                    64,
-                    65
-                ]
-            }
+            [32, [58, 59]],
+            [34, [62, 63]],
+            [3, [0, 1]],
+            [5, [4, 5]],
+            [6, [6, 7]],
+            [7, [8, 9]],
+            [8, [10, 11]],
+            [9, [12, 13]],
+            [10, [14, 15]],
+            [11, [16, 17]],
+            [12, [18, 19]],
+            [13, [20, 21]],
+            [14, [22, 23]],
+            [15, [24, 25]],
+            [16, [26, 27]],
+            [17, [28, 29]],
+            [18, [30, 31]],
+            [19, [32, 33]],
+            [20, [34, 35]],
+            [21, [36, 37]],
+            [22, [38, 39]],
+            [23, [40, 41]],
+            [24, [42, 43]],
+            [25, [44, 45]],
+            [26, [46, 47]],
+            [27, [48, 49]],
+            [28, [50, 51]],
+            [29, [52, 53]],
+            [30, [54, 55]],
+            [31, [56, 57]],
+            [1, [66]],
+            [33, [60, 61]],
+            [4, [2, 3]],
+            [36, [64, 65]]
         ],
         "inners": [
-            {
-                "key": 0,
-                "value": {
-                    "children": [
-                        2,
-                        35
-                    ],
-                    "relaxed": false
-                }
-            },
-            {
-                "key": 35,
-                "value": {
-                    "children": [
-                        36, 0
-                    ],
-                    "relaxed": false
-                }
-            },
-            {
-                "key": 2,
-                "value": {
-                    "children": [ 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 ],
-                    "relaxed": false
-                }
-            }
+            [0, {
+                "children": [2, 35],
+                "relaxed": false
+            }],
+            [35, {
+                "children": [36, 0],
+                "relaxed": false
+            }],
+            [2, {
+                "children": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34],
+                "relaxed": false
+            }]
         ],
         "vectors": [
             {
@@ -863,32 +647,17 @@ TEST_CASE("Test modifying vector nodes")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {
-            {"key", 1},
-            {"value", {6}},
-        },
-        {
-            {"key", 2},
-            {"value", {0, 1}},
-        },
-        {
-            {"key", 3},
-            {"value", {2, 3}},
-        },
-        {
-            {"key", 4},
-            {"value", {4, 5}},
-        },
+        {1, {6}},
+        {2, {0, 1}},
+        {3, {2, 3}},
+        {4, {4, 5}},
     };
     data["value0"]["inners"] = {
         {
-            {"key", 0},
+            0,
             {
-                "value",
-                {
-                    {"children", {2, 3, 4}},
-                    {"relaxed", false},
-                },
+                {"children", {2, 3, 4}},
+                {"relaxed", false},
             },
         },
     };
@@ -945,9 +714,9 @@ TEST_CASE("Test modifying vector nodes")
     SECTION("A leaf with too few elements")
     {
         auto& item = data["value0"]["leaves"][2];
-        REQUIRE(item["key"] == 3);
+        REQUIRE(item[0] == 3);
         // Leaf #3 should have two elements, but it has only one.
-        item["value"] = {2};
+        item[1] = {2};
         REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                           immer::persist::rbts::vector_corrupted_exception);
     }
@@ -955,23 +724,23 @@ TEST_CASE("Test modifying vector nodes")
     SECTION("Mess with the tail")
     {
         auto& item = data["value0"]["leaves"][0];
-        REQUIRE(item["key"] == 1);
+        REQUIRE(item[0] == 1);
         SECTION("Add to the tail")
         {
-            item["value"]  = {6, 7};
+            item[1]        = {6, 7};
             const auto vec = test::vector_one<int>{0, 1, 2, 3, 4, 5, 6, 7};
             REQUIRE(load_vec(data.dump(), 0) == vec);
         }
         SECTION("Remove from the tail")
         {
-            item["value"] = json_t::array();
+            item[1] = json_t::array();
             REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                               immer::persist::rbts::vector_corrupted_exception);
         }
         SECTION("Add too many elements")
         {
             // Three elements can't be in a leaf
-            item["value"] = {6, 7, 8};
+            item[1] = {6, 7, 8};
             REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                               immer::persist::invalid_children_count);
         }
@@ -980,34 +749,34 @@ TEST_CASE("Test modifying vector nodes")
     SECTION("Modify children")
     {
         auto& item = data["value0"]["inners"][0];
-        REQUIRE(item["key"] == 0);
+        REQUIRE(item[0] == 0);
         SECTION("Add too many")
         {
-            item["value"]["children"] = std::vector<int>(33, 2);
+            item[1]["children"] = std::vector<int>(33, 2);
             REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                               immer::persist::invalid_children_count);
         }
         SECTION("Remove one")
         {
-            item["value"]["children"] = {2, 4};
-            const auto vec            = test::vector_one<int>{0, 1, 4, 5, 6};
+            item[1]["children"] = {2, 4};
+            const auto vec      = test::vector_one<int>{0, 1, 4, 5, 6};
             REQUIRE(load_vec(data.dump(), 0) == vec);
         }
         SECTION("Unknown child")
         {
-            item["value"]["children"] = {2, 4, 9};
+            item[1]["children"] = {2, 4, 9};
             REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                               immer::persist::invalid_node_id);
         }
         SECTION("Node has itself as a child")
         {
-            item["value"]["children"] = {2, 0, 4};
+            item[1]["children"] = {2, 0, 4};
             REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
                               immer::persist::pool_has_cycles);
         }
         SECTION("Strict vector can not have relaxed nodes")
         {
-            item["value"]["relaxed"] = true;
+            item[1]["relaxed"] = true;
             REQUIRE_THROWS_AS(
                 load_vec(data.dump(), 0),
                 immer::persist::rbts::relaxed_node_not_allowed_exception);
@@ -1021,48 +790,15 @@ TEST_CASE("Test modifying flex vector nodes")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {
-            {"key", 1},
-            {"value", {6, 99}},
-        },
-        {
-            {"key", 2},
-            {"value", {0, 1}},
-        },
-        {
-            {"key", 3},
-            {"value", {2, 3}},
-        },
-        {
-            {"key", 4},
-            {"value", {4, 5}},
-        },
-        {
-            {"key", 5},
-            {"value", {6}},
-        },
+        {1, {6, 99}},
+        {2, {0, 1}},
+        {3, {2, 3}},
+        {4, {4, 5}},
+        {5, {6}},
     };
     data["value0"]["inners"] = {
-        {
-            {"key", 0},
-            {
-                "value",
-                {
-                    {"children", {2, 3, 4, 5, 2, 3, 4}},
-                    {"relaxed", true},
-                },
-            },
-        },
-        {
-            {"key", 902},
-            {
-                "value",
-                {
-                    {"children", {2, 2, 3, 4}},
-                    {"relaxed", true},
-                },
-            },
-        },
+        {0, {{"children", {2, 3, 4, 5, 2, 3, 4}}, {"relaxed", true}}},
+        {902, {{"children", {2, 2, 3, 4}}, {"relaxed", true}}},
     };
     data["value0"]["vectors"] = {
         {
@@ -1091,10 +827,10 @@ TEST_CASE("Test modifying flex vector nodes")
     SECTION("Modify starting leaf")
     {
         auto& item = data["value0"]["leaves"][1];
-        REQUIRE(item["key"] == 2);
+        REQUIRE(item[0] == 2);
         SECTION("One element")
         {
-            item["value"]      = {0};
+            item[1]            = {0};
             const auto vec_234 = test::flex_vector_one<int>{0, 2, 3, 4, 5};
             const auto leaf_1  = test::flex_vector_one<int>{6, 99};
             const auto leaf_5  = test::flex_vector_one<int>{6};
@@ -1105,7 +841,7 @@ TEST_CASE("Test modifying flex vector nodes")
         // Empty starting leaf triggers a separate branch in the code, actually.
         SECTION("Empty leaf")
         {
-            item["value"]      = json_t::array();
+            item[1]            = json_t::array();
             const auto vec_234 = test::flex_vector_one<int>{2, 3, 4, 5};
             const auto leaf_1  = test::flex_vector_one<int>{6, 99};
             const auto leaf_5  = test::flex_vector_one<int>{6};
@@ -1116,10 +852,10 @@ TEST_CASE("Test modifying flex vector nodes")
     SECTION("Modify second leaf")
     {
         auto& item = data["value0"]["leaves"][2];
-        REQUIRE(item["key"] == 3);
+        REQUIRE(item[0] == 3);
         SECTION("One element")
         {
-            item["value"]      = {2};
+            item[1]            = {2};
             const auto vec_234 = test::flex_vector_one<int>{0, 1, 2, 4, 5};
             const auto leaf_1  = test::flex_vector_one<int>{6, 99};
             const auto leaf_5  = test::flex_vector_one<int>{6};
@@ -1128,7 +864,7 @@ TEST_CASE("Test modifying flex vector nodes")
         }
         SECTION("Empty leaf")
         {
-            item["value"]      = json_t::array();
+            item[1]            = json_t::array();
             const auto vec_234 = test::flex_vector_one<int>{0, 1, 4, 5};
             const auto leaf_1  = test::flex_vector_one<int>{6, 99};
             const auto leaf_5  = test::flex_vector_one<int>{6};
@@ -1139,10 +875,10 @@ TEST_CASE("Test modifying flex vector nodes")
     SECTION("Modify inner node")
     {
         auto& item = data["value0"]["inners"][0];
-        REQUIRE(item["key"] == 0);
+        REQUIRE(item[0] == 0);
         SECTION("Mix leaves and inners as children")
         {
-            auto& children = item["value"]["children"];
+            auto& children = item[1]["children"];
             REQUIRE(children == json_t::array({2, 3, 4, 5, 2, 3, 4}));
             children = {2, 3, 4, 902, 4};
             REQUIRE_THROWS_AS(
@@ -1151,19 +887,19 @@ TEST_CASE("Test modifying flex vector nodes")
         }
         SECTION("No children")
         {
-            item["value"]["children"] = json_t::array();
+            item[1]["children"] = json_t::array();
             // There was a problem when an empty relaxed node triggered an
             // assert, while non-relaxed worked fine.
-            const auto is_relaxed    = GENERATE(false, true);
-            item["value"]["relaxed"] = is_relaxed;
-            const auto leaf_1        = test::flex_vector_one<int>{6, 99};
+            const auto is_relaxed = GENERATE(false, true);
+            item[1]["relaxed"]    = is_relaxed;
+            const auto leaf_1     = test::flex_vector_one<int>{6, 99};
             REQUIRE(load_flex_vec(data.dump(), 0) == leaf_1);
         }
         SECTION("Too many children")
         {
-            item["value"]["children"] = std::vector<int>(40, 3);
-            const auto is_relaxed     = GENERATE(false, true);
-            item["value"]["relaxed"]  = is_relaxed;
+            item[1]["children"]   = std::vector<int>(40, 3);
+            const auto is_relaxed = GENERATE(false, true);
+            item[1]["relaxed"]    = is_relaxed;
             REQUIRE_THROWS_AS(load_flex_vec(data.dump(), 0),
                               immer::persist::invalid_children_count);
         }
@@ -1171,10 +907,10 @@ TEST_CASE("Test modifying flex vector nodes")
         {
             SECTION("All leaves are full, non-relaxed works")
             {
-                item["value"]["children"] = {2, 3, 4, 2, 3, 4};
-                const auto is_relaxed     = GENERATE(false, true);
-                item["value"]["relaxed"]  = is_relaxed;
-                const auto leaf_1         = test::flex_vector_one<int>{6, 99};
+                item[1]["children"]   = {2, 3, 4, 2, 3, 4};
+                const auto is_relaxed = GENERATE(false, true);
+                item[1]["relaxed"]    = is_relaxed;
+                const auto leaf_1     = test::flex_vector_one<int>{6, 99};
                 const auto vec_234 =
                     test::flex_vector_one<int>{0, 1, 2, 3, 4, 5};
                 const auto vec = vec_234 + vec_234 + leaf_1;
@@ -1182,10 +918,10 @@ TEST_CASE("Test modifying flex vector nodes")
             }
             SECTION("Relaxed leaf")
             {
-                item["value"]["children"] = {2, 3, 5, 3};
+                item[1]["children"] = {2, 3, 5, 3};
                 SECTION("Non-relaxed breaks")
                 {
-                    item["value"]["relaxed"] = false;
+                    item[1]["relaxed"] = false;
                     REQUIRE_THROWS_AS(
                         load_flex_vec(data.dump(), 0),
                         immer::persist::rbts::vector_corrupted_exception);
@@ -1230,33 +966,24 @@ TEST_CASE("Test more inner nodes")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {{"key", 32}, {"value", {58, 59}}}, {{"key", 34}, {"value", {62, 63}}},
-        {{"key", 3}, {"value", {0, 1}}},    {{"key", 5}, {"value", {4, 5}}},
-        {{"key", 6}, {"value", {6, 7}}},    {{"key", 7}, {"value", {8, 9}}},
-        {{"key", 8}, {"value", {10, 11}}},  {{"key", 9}, {"value", {12, 13}}},
-        {{"key", 10}, {"value", {14, 15}}}, {{"key", 11}, {"value", {16, 17}}},
-        {{"key", 12}, {"value", {18, 19}}}, {{"key", 13}, {"value", {20, 21}}},
-        {{"key", 14}, {"value", {22, 23}}}, {{"key", 15}, {"value", {24, 25}}},
-        {{"key", 16}, {"value", {26, 27}}}, {{"key", 17}, {"value", {28, 29}}},
-        {{"key", 18}, {"value", {30, 31}}}, {{"key", 19}, {"value", {32, 33}}},
-        {{"key", 20}, {"value", {34, 35}}}, {{"key", 21}, {"value", {36, 37}}},
-        {{"key", 22}, {"value", {38, 39}}}, {{"key", 23}, {"value", {40, 41}}},
-        {{"key", 24}, {"value", {42, 43}}}, {{"key", 25}, {"value", {44, 45}}},
-        {{"key", 26}, {"value", {46, 47}}}, {{"key", 27}, {"value", {48, 49}}},
-        {{"key", 28}, {"value", {50, 51}}}, {{"key", 29}, {"value", {52, 53}}},
-        {{"key", 30}, {"value", {54, 55}}}, {{"key", 31}, {"value", {56, 57}}},
-        {{"key", 1}, {"value", {66}}},      {{"key", 33}, {"value", {60, 61}}},
-        {{"key", 4}, {"value", {2, 3}}},    {{"key", 36}, {"value", {64, 65}}},
+        {32, {58, 59}}, {34, {62, 63}}, {3, {0, 1}},    {5, {4, 5}},
+        {6, {6, 7}},    {7, {8, 9}},    {8, {10, 11}},  {9, {12, 13}},
+        {10, {14, 15}}, {11, {16, 17}}, {12, {18, 19}}, {13, {20, 21}},
+        {14, {22, 23}}, {15, {24, 25}}, {16, {26, 27}}, {17, {28, 29}},
+        {18, {30, 31}}, {19, {32, 33}}, {20, {34, 35}}, {21, {36, 37}},
+        {22, {38, 39}}, {23, {40, 41}}, {24, {42, 43}}, {25, {44, 45}},
+        {26, {46, 47}}, {27, {48, 49}}, {28, {50, 51}}, {29, {52, 53}},
+        {30, {54, 55}}, {31, {56, 57}}, {1, {66}},      {33, {60, 61}},
+        {4, {2, 3}},    {36, {64, 65}},
     };
     data["value0"]["inners"] = {
-        {{"key", 0}, {"value", {{"children", {2, 35}}, {"relaxed", false}}}},
-        {{"key", 2},
-         {"value",
-          {{"children",
-            {3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
-             19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34}},
-           {"relaxed", false}}}},
-        {{"key", 35}, {"value", {{"children", {36}}, {"relaxed", false}}}},
+        {0, {{"children", {2, 35}}, {"relaxed", false}}},
+        {2,
+         {{"children",
+           {3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
+            19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34}},
+          {"relaxed", false}}},
+        {35, {{"children", {36}}, {"relaxed", false}}},
     };
     data["value0"]["vectors"] = {
         {
@@ -1273,16 +1000,14 @@ TEST_CASE("Test more inner nodes")
     SECTION("Throw in some empty nodes")
     {
         // Empty leaf #205
-        data["value0"]["leaves"].push_back(
-            {{"key", 205}, {"value", json_t::array()}});
+        data["value0"]["leaves"].push_back({205, json_t::array()});
         // Inner node #560 referencing the empty leaf
         data["value0"]["inners"].push_back(
-            {{"key", 560},
-             {"value", {{"children", {205}}, {"relaxed", false}}}});
+            {560, {{"children", {205}}, {"relaxed", false}}});
         auto& item = data["value0"]["inners"][0];
         SECTION("Three nodes")
         {
-            item["value"]["children"] = {2, 560, 35};
+            item[1]["children"] = {2, 560, 35};
             REQUIRE(load_vec(data.dump(), 0) == gen(example_vector{}, 67));
         }
 
@@ -1293,7 +1018,7 @@ TEST_CASE("Test more inner nodes")
         // SECTION("Empty first")
         // {
         //     FAIL("Fix this test");
-        //     item["value"]["children"] = {560, 35};
+        //     item[1]["children"] = {560, 35};
         //     REQUIRE_NOTHROW(load_vec(data.dump(), 0));
         //     for (auto i : load_vec(data.dump(), 0)) {
         //         SPDLOG_INFO(i);
@@ -1305,13 +1030,13 @@ TEST_CASE("Test more inner nodes")
         // SECTION("Empty last")
         // {
         //     FAIL("Fix this test");
-        //     item["value"]["children"] = {35, 560};
+        //     item[1]["children"] = {35, 560};
         //     REQUIRE(load_vec(data.dump(), 0) == example_vector{64, 65, 66});
         // }
     }
     SECTION("Mix leaves and inners as children")
     {
-        auto& children = data["value0"]["inners"][0]["value"]["children"];
+        auto& children = data["value0"]["inners"][0][1]["children"];
         REQUIRE(children == json_t::array({2, 35}));
         children = {2, 28};
         REQUIRE_THROWS_AS(load_vec(data.dump(), 0),
@@ -1322,7 +1047,7 @@ TEST_CASE("Test more inner nodes")
         SECTION("Relaxed root, 0")
         {
             auto& inners = data["value0"]["inners"];
-            auto& item   = inners[0]["value"];
+            auto& item   = inners[0][1];
             REQUIRE_FALSE(item["relaxed"]);
             item["relaxed"] = true;
             REQUIRE_THROWS_AS(
@@ -1332,7 +1057,7 @@ TEST_CASE("Test more inner nodes")
         SECTION("Relaxed non-root")
         {
             auto& inners = data["value0"]["inners"];
-            auto& item   = inners[1]["value"];
+            auto& item   = inners[1][1];
             REQUIRE_FALSE(item["relaxed"]);
             item["relaxed"] = true;
             REQUIRE_THROWS_AS(
@@ -1347,22 +1072,22 @@ TEST_CASE("Test more inner nodes")
         auto& inners = data["value0"]["inners"];
         SECTION("Relaxed 0 can contain non-relaxed")
         {
-            auto& item = inners[0]["value"];
+            auto& item = inners[0][1];
             REQUIRE_FALSE(item["relaxed"]);
             item["relaxed"] = true;
             REQUIRE(load_flex_vec(data.dump(), 0) == gen(example_vector{}, 67));
 
             SECTION("Relaxed 0 can contain relaxed 2")
             {
-                inners[1]["value"]["relaxed"] = true;
+                inners[1][1]["relaxed"] = true;
                 REQUIRE(load_flex_vec(data.dump(), 0) ==
                         gen(example_vector{}, 67));
             }
         }
         SECTION("Strict 0 can't contain relaxed 2")
         {
-            inners[1]["value"]["relaxed"]  = true;
-            inners[1]["value"]["children"] = {3, 4, 5};
+            inners[1][1]["relaxed"]  = true;
+            inners[1][1]["children"] = {3, 4, 5};
             REQUIRE_THROWS_AS(
                 load_flex_vec(data.dump(), 0),
                 immer::persist::rbts::relaxed_node_not_allowed_exception);
@@ -1377,48 +1102,15 @@ TEST_CASE("Exception while loading children")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {
-            {"key", 1},
-            {"value", {6, 99}},
-        },
-        {
-            {"key", 2},
-            {"value", {0, 1}},
-        },
-        {
-            {"key", 3},
-            {"value", {2, 3}},
-        },
-        {
-            {"key", 4},
-            {"value", {4, 5}},
-        },
-        {
-            {"key", 5},
-            {"value", {6}},
-        },
+        {1, {6, 99}},
+        {2, {0, 1}},
+        {3, {2, 3}},
+        {4, {4, 5}},
+        {5, {6}},
     };
     data["value0"]["inners"] = {
-        {
-            {"key", 0},
-            {
-                "value",
-                {
-                    {"children", {2, 3, 4, 5, 2, 3, 4}},
-                    {"relaxed", true},
-                },
-            },
-        },
-        {
-            {"key", 902},
-            {
-                "value",
-                {
-                    {"children", {5}},
-                    {"relaxed", true},
-                },
-            },
-        },
+        {0, {{"children", {2, 3, 4, 5, 2, 3, 4}}, {"relaxed", true}}},
+        {902, {{"children", {5}}, {"relaxed", true}}},
     };
     data["value0"]["vectors"] = {
         {
@@ -1427,7 +1119,7 @@ TEST_CASE("Exception while loading children")
         },
     };
 
-    auto& children = data["value0"]["inners"][0]["value"]["children"];
+    auto& children = data["value0"]["inners"][0][1]["children"];
     REQUIRE(children == json_t::array({2, 3, 4, 5, 2, 3, 4}));
     children = {2, 3, 4, 902, 4};
     REQUIRE_THROWS_AS(load_flex_vec(data.dump(), 0),
@@ -1440,12 +1132,12 @@ TEST_CASE("Test flex vector with a weird shape relaxed")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {{"key", 1}, {"value", {66}}},
-        {{"key", 36}, {"value", {64, 65}}},
+        {1, {66}},
+        {36, {64, 65}},
     };
     data["value0"]["inners"] = {
-        {{"key", 0}, {"value", {{"children", {35}}, {"relaxed", true}}}},
-        {{"key", 35}, {"value", {{"children", {36}}, {"relaxed", true}}}},
+        {0, {{"children", {35}}, {"relaxed", true}}},
+        {35, {{"children", {36}}, {"relaxed", true}}},
     };
     data["value0"]["vectors"] = {
         {
@@ -1480,12 +1172,12 @@ TEST_CASE("Test flex vector with a weird shape strict", "[.broken]")
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
     data["value0"]["leaves"] = {
-        {{"key", 1}, {"value", {66}}},
-        {{"key", 36}, {"value", {64, 65}}},
+        {1, {66}},
+        {36, {64, 65}},
     };
     data["value0"]["inners"] = {
-        {{"key", 0}, {"value", {{"children", {35}}, {"relaxed", false}}}},
-        {{"key", 35}, {"value", {{"children", {36}}, {"relaxed", false}}}},
+        {0, {{"children", {35}}, {"relaxed", false}}},
+        {35, {{"children", {36}}, {"relaxed", false}}},
     };
     data["value0"]["vectors"] = {
         {{"root", 0}, {"tail", 1}},

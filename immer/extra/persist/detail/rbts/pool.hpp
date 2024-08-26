@@ -3,6 +3,7 @@
 #include <immer/extra/cereal/immer_map.hpp>
 #include <immer/extra/cereal/immer_vector.hpp>
 #include <immer/extra/persist/detail/alias.hpp>
+#include <immer/extra/persist/detail/cereal/compact_map.hpp>
 #include <immer/extra/persist/detail/common/pool.hpp>
 
 #include <immer/array.hpp>
@@ -72,10 +73,12 @@ struct output_pool
     template <class Archive>
     void save(Archive& ar) const
     {
+        auto leaves_copy = leaves;
+        auto inners_copy = inners;
         ar(CEREAL_NVP(B),
            CEREAL_NVP(BL),
-           CEREAL_NVP(leaves),
-           CEREAL_NVP(inners),
+           cereal::make_nvp("leaves", detail::make_compact_map(leaves_copy)),
+           cereal::make_nvp("inners", detail::make_compact_map(inners_copy)),
            CEREAL_NVP(vectors));
     }
 };
@@ -118,8 +121,8 @@ struct input_pool
         auto& BL = bits_leaf;
         ar(CEREAL_NVP(B),
            CEREAL_NVP(BL),
-           CEREAL_NVP(leaves),
-           CEREAL_NVP(inners),
+           cereal::make_nvp("leaves", detail::make_compact_map(leaves)),
+           cereal::make_nvp("inners", detail::make_compact_map(inners)),
            CEREAL_NVP(vectors));
     }
 

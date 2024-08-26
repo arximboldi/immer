@@ -429,7 +429,8 @@ TEST_CASE("Special pool loads empty test_data")
     //     value);
     // REQUIRE(json_pool_str_ == "");
 
-    const auto json_pool_str = R"({
+    const auto json_pool_str = R"(
+{
   "value0": {
     "ints": 0,
     "strings": 0,
@@ -445,51 +446,70 @@ TEST_CASE("Special pool loads empty test_data")
     "ints": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "strings": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "flex_ints": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "int_string_map": [
-          {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
+      {
+        "values": [],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 0,
+        "collisions": false
+      }
     ],
     "metas": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "meta_metas": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "table_test_value": [],
     "int_meta_map": [
-        {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
+      {
+        "values": [],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 0,
+        "collisions": false
+      }
     ],
     "int_vector_map": [
-        {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
+      {
+        "values": [],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 0,
+        "collisions": false
+      }
     ],
     "string_box": [""]
   }
-})";
+}
+    )";
 
     {
         auto loaded = immer::persist::cereal_load_with_pools<
@@ -507,7 +527,8 @@ TEST_CASE("Special pool throws cereal::Exception")
     //     immer::persist::cereal_save_with_pools(value);
     // REQUIRE(json_pool_str == "");
 
-    const auto json_pool_str = R"({
+    const auto json_pool_str = R"(
+{
   "value0": {
     "ints": 99,
     "strings": 0,
@@ -520,39 +541,45 @@ TEST_CASE("Special pool throws cereal::Exception")
     "ints": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "strings": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "flex_ints": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "int_string_map": [
-        {"values": [], "children": [], "nodemap": 0, "datamap": 0, "collisions": false}
+      {
+        "values": [],
+        "children": [],
+        "nodemap": 0,
+        "datamap": 0,
+        "collisions": false
+      }
     ],
     "metas": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "meta_metas": {
       "B": 5,
       "BL": 1,
-      "leaves": [{"key": 1, "value": []}],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "table_test_value": [],
@@ -560,7 +587,8 @@ TEST_CASE("Special pool throws cereal::Exception")
     "int_vector_map": [],
     "string_box": []
   }
-})";
+}
+    )";
 
     const auto call = [&] {
         return immer::persist::cereal_load_with_pools<test_data>(

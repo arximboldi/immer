@@ -118,20 +118,15 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
       "B": 5,
       "BL": 1,
       "inners": [
-        {"key": 0, "value": {"children": [2], "relaxed": false}},
-        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
       ],
-      "leaves": [
-        {"key": 1, "value": [3]},
-        {"key": 2, "value": [1, 2]},
-        {"key": 4, "value": [5, 6]},
-        {"key": 5, "value": [3, 4]}
-      ],
+      "leaves": [[1, [3]], [2, [1, 2]], [4, [5, 6]], [5, [3, 4]]],
       "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
     }
   }
 }
-    )");
+        )");
         // include:intro/end-persist-json
         REQUIRE(json_t::parse(str) == expected_json);
 
@@ -227,29 +222,20 @@ TEST_CASE("Custom policy", "[docs]")
     "vector_of_ints": {
       "B": 5,
       "BL": 1,
-      "leaves": [
-        {"key": 1, "value": [3]},
-        {"key": 2, "value": [1, 2]},
-        {"key": 4, "value": [5, 6]},
-        {"key": 5, "value": [3, 4]}
-      ],
+      "leaves": [[1, [3]], [2, [1, 2]], [4, [5, 6]], [5, [3, 4]]],
       "inners": [
-        {"key": 0, "value": {"children": [2], "relaxed": false}},
-        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
       ],
       "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
     },
     "vector_of_strings": {
       "B": 5,
       "BL": 1,
-      "leaves": [
-        {"key": 1, "value": ["one", "two"]},
-        {"key": 3, "value": ["five"]},
-        {"key": 4, "value": ["three", "four"]}
-      ],
+      "leaves": [[1, ["one", "two"]], [3, ["five"]], [4, ["three", "four"]]],
       "inners": [
-        {"key": 0, "value": {"children": [], "relaxed": false}},
-        {"key": 2, "value": {"children": [1, 4], "relaxed": false}}
+        [0, {"children": [], "relaxed": false}],
+        [2, {"children": [1, 4], "relaxed": false}]
       ],
       "vectors": [{"root": 0, "tail": 1}, {"root": 2, "tail": 3}]
     }
@@ -330,27 +316,22 @@ TEST_CASE("Transformations", "[docs]")
         const auto str =
             immer::persist::cereal_save_with_pools(new_value, policy);
         const auto expected_json = json_t::parse(R"(
-          {
-            "pools": {
-              "ints": {
-                "B": 5,
-                "BL": 1,
-                "inners": [
-                  {"key": 0, "value": {"children": [2], "relaxed": false}},
-                  {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
-                ],
-                "leaves": [
-                  {"key": 1, "value": [30]},
-                  {"key": 2, "value": [10, 20]},
-                  {"key": 4, "value": [50, 60]},
-                  {"key": 5, "value": [30, 40]}
-                ],
-                "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
-              }
-            },
-            "value0": {"ints": 0, "ints2": 1}
-          }
-    )");
+{
+  "pools": {
+    "ints": {
+      "B": 5,
+      "BL": 1,
+      "inners": [
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
+      ],
+      "leaves": [[1, [30]], [2, [10, 20]], [4, [50, 60]], [5, [30, 40]]],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    }
+  },
+  "value0": {"ints": 0, "ints2": 1}
+}
+        )");
         REQUIRE(json_t::parse(str) == expected_json);
         // include:end-save-new_value
     }
@@ -386,27 +367,27 @@ TEST_CASE("Transformations", "[docs]")
         const auto str =
             immer::persist::cereal_save_with_pools(new_value, policy);
         const auto expected_json = json_t::parse(R"(
-          {
-            "pools": {
-              "str": {
-                "B": 5,
-                "BL": 1,
-                "inners": [
-                  {"key": 0, "value": {"children": [2], "relaxed": false}},
-                  {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
-                ],
-                "leaves": [
-                  {"key": 1, "value": ["_3_"]},
-                  {"key": 2, "value": ["_1_", "_2_"]},
-                  {"key": 4, "value": ["_5_", "_6_"]},
-                  {"key": 5, "value": ["_3_", "_4_"]}
-                ],
-                "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
-              }
-            },
-            "value0": {"str": 0, "str2": 1}
-          }
-            )");
+{
+  "pools": {
+    "str": {
+      "B": 5,
+      "BL": 1,
+      "inners": [
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
+      ],
+      "leaves": [
+        [1, ["_3_"]],
+        [2, ["_1_", "_2_"]],
+        [4, ["_5_", "_6_"]],
+        [5, ["_3_", "_4_"]]
+      ],
+      "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
+    }
+  },
+  "value0": {"str": 0, "str2": 1}
+}
+        )");
         REQUIRE(json_t::parse(str) == expected_json);
         // include:end-save-new_value-str
     }
@@ -698,22 +679,17 @@ TEST_CASE("Transform nested containers", "[docs]")
       "B": 5,
       "BL": 1,
       "inners": [
-        {"key": 0, "value": {"children": [2], "relaxed": false}},
-        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
       ],
-      "leaves": [
-        {"key": 1, "value": [3]},
-        {"key": 2, "value": [1, 2]},
-        {"key": 4, "value": [5, 6]},
-        {"key": 5, "value": [3, 4]}
-      ],
+      "leaves": [[1, [3]], [2, [1, 2]], [4, [5, 6]], [5, [3, 4]]],
       "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
     },
     "nested": {
       "B": 5,
       "BL": 3,
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
-      "leaves": [{"key": 1, "value": [{"ints": 0}, {"ints": 1}]}],
+      "inners": [[0, {"children": [], "relaxed": false}]],
+      "leaves": [[1, [{"ints": 0}, {"ints": 1}]]],
       "vectors": [{"root": 0, "tail": 1}]
     }
   },
@@ -773,22 +749,22 @@ TEST_CASE("Transform nested containers", "[docs]")
     "nested": {
       "B": 5,
       "BL": 3,
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
-      "leaves": [{"key": 1, "value": [{"str": 0}, {"str": 1}]}],
+      "inners": [[0, {"children": [], "relaxed": false}]],
+      "leaves": [[1, [{"str": 0}, {"str": 1}]]],
       "vectors": [{"root": 0, "tail": 1}]
     },
     "str": {
       "B": 5,
       "BL": 1,
       "inners": [
-        {"key": 0, "value": {"children": [2], "relaxed": false}},
-        {"key": 3, "value": {"children": [2, 5], "relaxed": false}}
+        [0, {"children": [2], "relaxed": false}],
+        [3, {"children": [2, 5], "relaxed": false}]
       ],
       "leaves": [
-        {"key": 1, "value": ["_3_"]},
-        {"key": 2, "value": ["_1_", "_2_"]},
-        {"key": 4, "value": ["_5_", "_6_"]},
-        {"key": 5, "value": ["_3_", "_4_"]}
+        [1, ["_3_"]],
+        [2, ["_1_", "_2_"]],
+        [4, ["_5_", "_6_"]],
+        [5, ["_3_", "_4_"]]
       ],
       "vectors": [{"root": 0, "tail": 1}, {"root": 3, "tail": 4}]
     }

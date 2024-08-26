@@ -497,21 +497,15 @@ TEST_CASE("Test loading broken table")
     "ones": {
       "B": 5,
       "BL": 1,
-      "leaves": [
-        {"key": 1, "value": []},
-        {"key": 2, "value": [{"twos": 1, "twos_table": 1}]}
-      ],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, []], [2, [{"twos": 1, "twos_table": 1}]]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}, {"root": 0, "tail": 2}]
     },
     "twos": {
       "B": 5,
       "BL": 1,
-      "leaves": [
-        {"key": 1, "value": [{"two": 0}, {"two": 1}]},
-        {"key": 2, "value": []}
-      ],
-      "inners": [{"key": 0, "value": {"children": [], "relaxed": false}}],
+      "leaves": [[1, [{"two": 0}, {"two": 1}]], [2, []]],
+      "inners": [[0, {"children": [], "relaxed": false}]],
       "vectors": [{"root": 0, "tail": 1}, {"root": 0, "tail": 2}]
     },
     "twos_table": [
@@ -531,7 +525,8 @@ TEST_CASE("Test loading broken table")
       }
     ]
   }
-})";
+}
+    )";
     using json_t                     = nlohmann::json;
     auto json                        = json_t::parse(expected_json_str);
 
