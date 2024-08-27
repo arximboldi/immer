@@ -9,6 +9,10 @@
 
 namespace immer::persist::detail {
 
+/**
+ * This type is used in container-specific pools to refer to the actual data
+ * from the leaf nodes. The values are serialized as a list.
+ */
 template <class T>
 struct values_save
 {
@@ -19,6 +23,10 @@ struct values_save
                            const values_save& right) = default;
 };
 
+/**
+ * This type is used in container-specific pools to contain the actual data for
+ * the leaf nodes. The values are deserialized from a list.
+ */
 template <class T>
 struct values_load
 {
