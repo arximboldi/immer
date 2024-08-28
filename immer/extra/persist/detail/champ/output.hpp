@@ -2,8 +2,6 @@
 
 #include <immer/extra/persist/detail/champ/pool.hpp>
 
-#include <spdlog/spdlog.h>
-
 namespace immer::persist::champ {
 
 template <class T, immer::detail::hamts::bits_t B>

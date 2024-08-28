@@ -11,8 +11,6 @@
 #include <immer/vector.hpp>
 #include <optional>
 
-#include <spdlog/spdlog.h>
-
 namespace immer::persist::rbts {
 
 inline constexpr auto get_shift_for_depth(immer::detail::rbts::bits_t b,
@@ -476,17 +474,14 @@ private:
             detail::visitor_helper{},
             boost::hana::overload(
                 [&](detail::regular_pos_tag, auto&& pos, auto&& visit) {
-                    // SPDLOG_INFO("regular_pos_tag");
                     const bool visiting_relaxed = false;
                     check_inner(pos, visit, visiting_relaxed);
                 },
                 [&](detail::relaxed_pos_tag, auto&& pos, auto&& visit) {
-                    // SPDLOG_INFO("relaxed_pos_tag");
                     const bool visiting_relaxed = true;
                     check_inner(pos, visit, visiting_relaxed);
                 },
                 [&](detail::leaf_pos_tag, auto&& pos, auto&& visit) {
-                    // SPDLOG_INFO("leaf_pos_tag");
                     const auto* id = loaded_leaves_.find(pos.node());
                     assert(id);
                     if (!id) {

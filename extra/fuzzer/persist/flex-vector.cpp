@@ -92,7 +92,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
         auto src      = read<char>(in, is_valid_var);
         auto dst      = read<char>(in, is_valid_var);
         const auto op = read<char>(in);
-        SPDLOG_DEBUG("op = {}", static_cast<int>(op));
         switch (op) {
         case op_push_back: {
             vars[dst] = vars[src].push_back(42);

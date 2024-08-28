@@ -2,8 +2,6 @@
 
 #include <immer/vector.hpp>
 
-#include <spdlog/spdlog.h>
-
 namespace immer::persist::detail {
 
 template <typename Node>
@@ -27,7 +25,6 @@ struct ptr_with_deleter
     void dec() const
     {
         if (ptr && ptr->dec()) {
-            SPDLOG_TRACE("calling deleter for {}", (void*) ptr);
             deleter(ptr);
         }
     }
@@ -49,7 +46,6 @@ public:
     node_ptr(Node* ptr_, std::function<void(Node* ptr)> deleter_)
         : ptr{ptr_, std::move(deleter_)}
     {
-        SPDLOG_TRACE("ctor {} with ptr {}", (void*) this, (void*) ptr.ptr);
         // Assuming the node has just been created and not calling inc() on
         // it.
     }
@@ -57,7 +53,6 @@ public:
     node_ptr(const node_ptr& other)
         : ptr{other.ptr}
     {
-        SPDLOG_TRACE("copy ctor {} from {}", (void*) this, (void*) &other);
         if (ptr.ptr) {
             ptr.ptr->inc();
         }
@@ -66,13 +61,11 @@ public:
     node_ptr(node_ptr&& other)
         : node_ptr{}
     {
-        SPDLOG_TRACE("move ctor {} from {}", (void*) this, (void*) &other);
         swap(*this, other);
     }
 
     node_ptr& operator=(const node_ptr& other)
     {
-        SPDLOG_TRACE("copy assign {} = {}", (void*) this, (void*) &other);
         auto temp = other;
         swap(*this, temp);
         return *this;
@@ -80,17 +73,12 @@ public:
 
     node_ptr& operator=(node_ptr&& other)
     {
-        SPDLOG_TRACE("move assign {} = {}", (void*) this, (void*) &other);
         auto temp = node_ptr{std::move(other)};
         swap(*this, temp);
         return *this;
     }
 
-    ~node_ptr()
-    {
-        SPDLOG_TRACE("dtor {}", (void*) this);
-        ptr.dec();
-    }
+    ~node_ptr() { ptr.dec(); }
 
     explicit operator bool() const { return ptr.ptr; }
 

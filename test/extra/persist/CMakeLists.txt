@@ -1,4 +1,4 @@
-find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 find_package(cereal REQUIRED)
 find_package(xxHash 0.8 CONFIG REQUIRED)
 
@@ -27,8 +27,8 @@ target_precompile_headers(persist-tests PRIVATE
 add_dependencies(tests persist-tests)
 add_test("test/persist-tests" persist-tests)
 target_include_directories(persist-tests PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(
-  persist-tests PRIVATE spdlog::spdlog Catch2::Catch2WithMain xxHash::xxhash)
+target_link_libraries(persist-tests PRIVATE fmt::fmt Catch2::Catch2WithMain
+                                            xxHash::xxhash)
 
 target_compile_options(persist-tests PRIVATE -O1 -fno-optimize-sibling-calls -g
                                              -fno-omit-frame-pointer)
@@ -40,9 +40,7 @@ if(ENABLE_ASAN)
   target_link_options(persist-tests PRIVATE -fsanitize=address)
 endif()
 target_compile_definitions(persist-tests PRIVATE BOOST_USE_ASAN=1)
-target_compile_definitions(
-  persist-tests PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE
-                        IMMER_NO_FREE_LIST=1)
+target_compile_definitions(persist-tests PRIVATE IMMER_NO_FREE_LIST=1)
 
 install(TARGETS persist-tests DESTINATION bin)
 install(FILES valgrind.supp DESTINATION bin)

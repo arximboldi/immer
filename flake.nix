@@ -54,7 +54,7 @@
       arximboldi-cereal = pkgs.callPackage ./nix/cereal.nix {inherit arximboldi-cereal-src;};
 
       persist-inputs = with pkgs; [
-        spdlog
+        fmt
         arximboldi-cereal
         xxHash
         nlohmann_json

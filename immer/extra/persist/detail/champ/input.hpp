@@ -9,8 +9,6 @@
 #include <boost/hana/functional/id.hpp>
 #include <boost/range/adaptor/indexed.hpp>
 
-#include <spdlog/spdlog.h>
-
 namespace immer::persist::champ {
 
 class children_count_corrupted_exception : public pool_exception

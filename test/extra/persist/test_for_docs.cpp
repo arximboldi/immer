@@ -17,13 +17,8 @@ using vector_one =
 
 struct document
 {
-    // Make it a boost::hana Struct.
-    // This allows the persist library to determine what pool types are needed
-    // and also to name the pools.
-    BOOST_HANA_DEFINE_STRUCT(document,
-                             (vector_one, ints),
-                             (vector_one, ints2) //
-    );
+    vector_one ints;
+    vector_one ints2;
 
     friend bool operator==(const document&, const document&) = default;
 
@@ -40,6 +35,13 @@ using json_t = nlohmann::json;
 // include:intro/end-types
 
 } // namespace
+
+// Make it a boost::hana Struct.
+// This allows the persist library to determine what pool types are needed
+// and also to name the pools.
+// include:intro/start-adapt-document-for-hana
+BOOST_HANA_ADAPT_STRUCT(document, ints, ints2);
+// include:intro/end-adapt-document-for-hana
 
 TEST_CASE("Docs save with immer-persist", "[docs]")
 {
@@ -252,14 +254,12 @@ TEST_CASE("Custom policy", "[docs]")
     REQUIRE(value == loaded_value);
 }
 
-namespace {
 // include:start-document_str
+namespace {
 struct document_str
 {
-    BOOST_HANA_DEFINE_STRUCT(document_str,
-                             (vector_str, str),
-                             (vector_str, str2) //
-    );
+    vector_str str;
+    vector_str str2;
 
     friend bool operator==(const document_str&, const document_str&) = default;
 
@@ -269,8 +269,9 @@ struct document_str
         ar(CEREAL_NVP(str), CEREAL_NVP(str2));
     }
 };
-// include:end-document_str
 } // namespace
+BOOST_HANA_ADAPT_STRUCT(document_str, str, str2);
+// include:end-document_str
 
 TEST_CASE("Transformations", "[docs]")
 {
@@ -594,8 +595,7 @@ namespace {
 // include:start-define-nested-types
 struct nested_t
 {
-    BOOST_HANA_DEFINE_STRUCT(nested_t, //
-                             (vector_one, ints));
+    vector_one ints;
 
     friend bool operator==(const nested_t&, const nested_t&) = default;
 
@@ -608,8 +608,7 @@ struct nested_t
 
 struct with_nested_t
 {
-    BOOST_HANA_DEFINE_STRUCT(with_nested_t, //
-                             (immer::vector<nested_t>, nested));
+    immer::vector<nested_t> nested;
 
     friend bool operator==(const with_nested_t&,
                            const with_nested_t&) = default;
@@ -624,8 +623,7 @@ struct with_nested_t
 
 struct new_nested_t
 {
-    BOOST_HANA_DEFINE_STRUCT(new_nested_t, //
-                             (vector_str, str));
+    vector_str str;
 
     friend bool operator==(const new_nested_t&, const new_nested_t&) = default;
 
@@ -638,9 +636,7 @@ struct new_nested_t
 
 struct with_new_nested_t
 {
-    BOOST_HANA_DEFINE_STRUCT(with_new_nested_t,
-                             (immer::vector<new_nested_t>, nested) //
-    );
+    immer::vector<new_nested_t> nested;
 
     friend bool operator==(const with_new_nested_t&,
                            const with_new_nested_t&) = default;
@@ -652,6 +648,11 @@ struct with_new_nested_t
     }
 };
 } // namespace
+
+BOOST_HANA_ADAPT_STRUCT(nested_t, ints);
+BOOST_HANA_ADAPT_STRUCT(with_nested_t, nested);
+BOOST_HANA_ADAPT_STRUCT(new_nested_t, str);
+BOOST_HANA_ADAPT_STRUCT(with_new_nested_t, nested);
 
 TEST_CASE("Transform nested containers", "[docs]")
 {

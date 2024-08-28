@@ -17,7 +17,6 @@
 
 #include <boost/hana.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
-#include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
 
@@ -51,8 +50,6 @@ auto load_flex_vec(const auto& json, std::size_t vec_id)
 
 TEST_CASE("Save and load multiple times into the same pool")
 {
-    // spdlog::set_level(spdlog::level::trace);
-
     auto test_vectors = std::vector<example_vector>{
         // gen(example_vector{}, 4)
         example_vector{},
@@ -67,14 +64,12 @@ TEST_CASE("Save and load multiple times into the same pool")
         std::tie(pool, vector_id) =
             immer::persist::rbts::add_to_pool(vec, pool);
 
-        SPDLOG_DEBUG("start test size {}", vec.size());
         {
             auto loader =
                 std::make_optional(example_loader{to_input_pool(pool)});
             auto loaded_vec = loader->load_vector(vector_id);
             REQUIRE(loaded_vec == vec);
         }
-        SPDLOG_DEBUG("end test size {}", vec.size());
     };
     // Memory leak investigation: starts only with 4 iterations.
     // for (int i = 0; i < 4; ++i) {
@@ -132,7 +127,6 @@ TEST_CASE("Save and load vectors with shared nodes")
         ++index;
     }
 
-    SPDLOG_DEBUG("loaded == vectors {}", loaded == vectors);
     REQUIRE(loaded == vectors);
 
     SECTION("Deallocate loaded first, loader should collect all nodes")
@@ -954,7 +948,6 @@ TEST_CASE("Print shift calculation", "[.print_shift]")
         vec              = vec.push_back(index);
         const auto shift = vec.impl().shift;
         if (shift != last_shift) {
-            SPDLOG_INFO("size {}, shift {}", vec.size(), shift);
             last_shift = shift;
         }
     }
@@ -1020,9 +1013,6 @@ TEST_CASE("Test more inner nodes")
         //     FAIL("Fix this test");
         //     item[1]["children"] = {560, 35};
         //     REQUIRE_NOTHROW(load_vec(data.dump(), 0));
-        //     for (auto i : load_vec(data.dump(), 0)) {
-        //         SPDLOG_INFO(i);
-        //     }
         //     REQUIRE(1 == 2);
         //     // REQUIRE(load_vec(data.dump(), 0) == example_vector{64, 65,
         //     66});
@@ -1097,7 +1087,6 @@ TEST_CASE("Test more inner nodes")
 
 TEST_CASE("Exception while loading children")
 {
-    // spdlog::set_level(spdlog::level::trace);
     json_t data;
     data["value0"]["B"]      = 5;
     data["value0"]["BL"]     = 1;
@@ -1152,7 +1141,6 @@ TEST_CASE("Test flex vector with a weird shape relaxed")
     //     immer::persist::rbts::make_output_pool_for(loaded); auto vector_id =
     //     immer::persist::node_id{}; std::tie(pool, vector_id) =
     //         immer::persist::rbts::add_to_pool(loaded, pool);
-    //     SPDLOG_INFO("{}", test::to_json(pool));
     // }
 
     const auto expected = example_vector{64, 65, 66};
@@ -1189,7 +1177,6 @@ TEST_CASE("Test flex vector with a weird shape strict", "[.broken]")
     //     immer::persist::rbts::make_output_pool_for(loaded); auto vector_id =
     //     immer::persist::node_id{}; std::tie(pool, vector_id) =
     //         immer::persist::rbts::add_to_pool(loaded, pool);
-    //     SPDLOG_INFO("{}", test::to_json(pool));
     // }
 
     const auto expected = example_vector{64, 65, 66};

@@ -34,6 +34,14 @@ This library enables the application of the transformation function directly on 
 sharing. Additionally, regardless of how many times a node is reused, the transformation needs to be performed only
 once.
 
+
+Dependencies
+------------
+
+In addition to the `dependencies <introduction.html#dependencies>`_ of ``immer``, this library makes use of **C++20**,
+`Boost.Hana <https://boostorg.github.io/hana/>`_, `fmt <https://fmt.dev/>`_ and `cereal <https://uscilab.github.io/cereal/>`_.
+
+
 .. _first-example:
 
 First example
@@ -45,6 +53,14 @@ For this example, we'll use a `document` type that contains two ``immer`` vector
    :language: c++
    :start-after: intro/start-types
    :end-before:  intro/end-types
+
+Let's make the ``document`` struct compatible with ``boost::hana``. This way, the ``persist`` library can determine what
+pool types are needed and to name the pools.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: intro/start-adapt-document-for-hana
+   :end-before:  intro/end-adapt-document-for-hana
 
 Let's say we have two vectors ``v1`` and ``v2``, where ``v2`` is derived from ``v1`` so that it shares data with it:
 

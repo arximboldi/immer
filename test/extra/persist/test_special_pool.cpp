@@ -287,8 +287,6 @@ TEST_CASE("Special pool minimal test")
 
 TEST_CASE("Save with a special pool")
 {
-    spdlog::set_level(spdlog::level::debug);
-
     const auto ints1 = test::gen(test::example_vector{}, 3);
     const auto test1 = test_data{
         .ints      = ints1,
