@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <immer/vector.hpp>
 
 namespace immer::persist::detail {

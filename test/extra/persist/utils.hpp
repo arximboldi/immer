@@ -1,5 +1,7 @@
 #pragma once
 
+#include <immer/extra/persist/cereal/load.hpp>
+#include <immer/extra/persist/cereal/save.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 #include <immer/table.hpp>

@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <immer/extra/persist/cereal/with_pools.hpp>
+#include <immer/extra/persist/cereal/save.hpp>
 
 #include <test/extra/persist/utils.hpp>
 

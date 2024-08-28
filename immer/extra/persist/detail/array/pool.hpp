@@ -3,6 +3,8 @@
 #include <immer/extra/cereal/immer_array.hpp>
 #include <immer/extra/cereal/immer_vector.hpp>
 #include <immer/extra/persist/detail/common/pool.hpp>
+#include <immer/extra/persist/detail/traits.hpp>
+#include <immer/extra/persist/errors.hpp>
 
 #include <boost/hana/functional/id.hpp>
 

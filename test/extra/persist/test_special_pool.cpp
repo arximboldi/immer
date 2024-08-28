@@ -5,7 +5,7 @@
 #include "utils.hpp"
 
 #include <boost/hana.hpp>
-#include <immer/extra/persist/cereal/with_pools.hpp>
+#include <immer/extra/persist/cereal/save.hpp>
 #include <immer/extra/persist/xxhash/xxhash.hpp>
 
 // to save std::pair

@@ -9,6 +9,34 @@ namespace immer::persist {
  */
 
 /**
+ * @brief Return just the pools of all the containers of the provided value
+ * serialized using the provided policy.
+ *
+ * @ingroup persist-transform
+ * @see convert_container
+ */
+template <typename T, Policy<T> Policy = hana_struct_auto_policy>
+auto get_output_pools(const T& value0, const Policy& policy = Policy{})
+{
+    const auto types = boost::hana::to_set(policy.get_pool_types(value0));
+    auto pools       = detail::generate_output_pools(types);
+    const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
+    using Pools      = std::decay_t<decltype(pools)>;
+
+    {
+        auto ar = output_pools_cereal_archive_wrapper<
+            detail::blackhole_output_archive,
+            Pools,
+            decltype(wrap),
+            detail::empty_name_fn>{pools, wrap};
+        ar(CEREAL_NVP(value0));
+        ar.finalize();
+        pools = std::move(ar).get_output_pools();
+    }
+    return pools;
+}
+
+/**
  * Given output_pools and a map of transformations, produce a new type of
  * input pools with those transformations applied.
  *

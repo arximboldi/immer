@@ -4,7 +4,7 @@
 
 #include "utils.hpp"
 
-#include <immer/extra/persist/cereal/with_pools.hpp>
+#include <immer/extra/persist/cereal/save.hpp>
 #include <immer/extra/persist/transform.hpp>
 #include <nlohmann/json.hpp>
 

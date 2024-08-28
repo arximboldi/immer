@@ -22,8 +22,9 @@ add_executable(
   test_table_box_recursive.cpp
   test_for_docs.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/persist/xxhash/xxhash_64.cpp)
-target_precompile_headers(persist-tests PRIVATE
-                          <immer/extra/persist/cereal/with_pools.hpp>)
+target_precompile_headers(
+  persist-tests PRIVATE <immer/extra/persist/cereal/save.hpp>
+  <immer/extra/persist/cereal/load.hpp>)
 add_dependencies(tests persist-tests)
 add_test("test/persist-tests" persist-tests)
 target_include_directories(persist-tests PRIVATE ${CMAKE_SOURCE_DIR})
