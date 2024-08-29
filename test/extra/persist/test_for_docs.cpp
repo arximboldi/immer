@@ -588,6 +588,12 @@ TEST_CASE("Transform table's ID type", "[docs]")
                                               new_item{{"two_key"}, "_2_"}};
         REQUIRE(new_value == expected_new);
         // include:end-new_table_t-new-hash-transformation
+
+        // include:start-returned-transformed-container-is-the-same
+        const auto new_value_2 =
+            immer::persist::convert_container(pools, transformed_pools, value);
+        REQUIRE(new_value_2.impl().root == new_value.impl().root);
+        // include:end-returned-transformed-container-is-the-same
     }
 }
 

@@ -446,6 +446,16 @@ desired new container type ``new_table_t`` in a ``immer::persist::incompatible_h
 
 We can see that the transformation has been applied, the keys have the ``_key`` suffix.
 
+.. note::
+   While different transformed containers will not have structural sharing, transforming the same container multiple times will reuse previously transformed data.
+   In other words, transformation will be cached on the container level but not on the nodes level.
+
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
+   :language: c++
+   :start-after: start-returned-transformed-container-is-the-same
+   :end-before:  end-returned-transformed-container-is-the-same
+
+
 .. _transforming-nested-containers:
 
 Transforming nested containers
