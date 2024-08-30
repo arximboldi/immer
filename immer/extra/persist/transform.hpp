@@ -1,5 +1,6 @@
 #pragma once
 
+#include <immer/extra/persist/cereal/policy.hpp>
 #include <immer/extra/persist/detail/transform.hpp>
 
 namespace immer::persist {
