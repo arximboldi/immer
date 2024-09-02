@@ -9,7 +9,7 @@ when serializing, deserializing or transforming the data.
 .. warning:: This library is still experimental and its API may
    change in the future. The headers can be found in
    ``immer/extra/persist/...`` and the ``extra`` subpath will be
-   removed once its interface stabilises.
+   removed once its interface stabilizes.
 
 Dependencies
 ------------
