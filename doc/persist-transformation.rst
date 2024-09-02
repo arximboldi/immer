@@ -26,7 +26,7 @@ each element of the ``immer::vector<int>`` by 10.
 
 First, the document value would be created in the same way:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-prepare-value
    :end-before:  intro/end-prepare-value
@@ -34,7 +34,7 @@ First, the document value would be created in the same way:
 The next component we need is the :ref:`pools<pools>` of all the
 containers from the value:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-get_output_pools
    :end-before:  end-get_output_pools
@@ -47,7 +47,7 @@ containers inside the document type which must be a ``hana::Struct``.
 
 The other required component is the ``conversion_map``:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-conversion_map
    :end-before:  end-conversion_map
@@ -61,7 +61,7 @@ of those in the ``document``.
 
 Having these two parts, we can create new pools with the transformations:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-transformed_pools
    :end-before:  end-transformed_pools
@@ -69,7 +69,7 @@ Having these two parts, we can create new pools with the transformations:
 At this point, we can start converting the ``immer`` containers and
 create the transformed document value with them, ``new_value``:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-convert-containers
    :end-before:  end-convert-containers
@@ -78,7 +78,7 @@ In order to confirm that the structural sharing has been preserved
 after applying the transformations, let's serialize the ``new_value``
 and inspect the JSON:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-save-new_value
    :end-before:  end-save-new_value
@@ -95,12 +95,12 @@ following example, ``vector<int>`` is transformed into
 ``vector<std::string>``. The first two steps are the same as in the
 previous example:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-prepare-value
    :end-before:  intro/end-prepare-value
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-get_output_pools
    :end-before:  end-get_output_pools
@@ -108,14 +108,14 @@ previous example:
 Only this time the transforming function will convert an integer into
 a string:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-conversion_map-string
    :end-before:  end-conversion_map-string
 
 Then we convert the two vectors the same way as before:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-convert-vectors-of-strings
    :end-before:  end-convert-vectors-of-strings
@@ -124,14 +124,14 @@ And in order to confirm that the structural sharing has been
 preserved, we can introduce a new document type with the two vectors
 being ``vector<std::string>``.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-document_str
    :end-before:  end-document_str
 
 And serialize it with pools:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-save-new_value-str
    :end-before:  end-save-new_value-str
@@ -160,7 +160,7 @@ not on the structural sharing within the document, so we will use the
 ``immer`` container itself as the document. Let's define the following
 policy to indicate that we want to use pools only for our container:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-direct_container_policy
    :end-before:  end-direct_container_policy
@@ -177,7 +177,7 @@ used for persistence, as noted in the `C++ reference
 We will use `xxHash <https://xxhash.com/>`_ as the hash for this
 example. Let's create a small map like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-int-map
    :end-before:  end-prepare-int-map
@@ -185,7 +185,7 @@ example. Let's create a small map like this:
 Our goal is to convert the value from ``int`` to
 ``std::string``. Let's create the ``conversion_map`` like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-conversion_map
    :end-before:  end-prepare-conversion_map
@@ -209,7 +209,7 @@ A few important details to note:
 Once the ``conversion_map`` is defined, the actual conversion is done
 as before:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-transform-map
    :end-before:  end-transform-map
@@ -228,7 +228,7 @@ wrapper type.
 
 To begin, let's define an item type for a table:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-old_item
    :end-before:  end-old_item
@@ -236,7 +236,7 @@ To begin, let's define an item type for a table:
 We can create a table value with some data and get the pools for it
 like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-table-value
    :end-before:  end-prepare-table-value
@@ -246,7 +246,7 @@ which is ``std::string``, while keeping its hash the same.  Let's
 define a wrapper for ``std::string`` and a ``new_item`` type like
 this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-new-table-types
    :end-before:  end-new-table-types
@@ -259,12 +259,12 @@ type to make it compatible with the
 target ``new_table_t`` type and the ``conversion_map`` that describes
 how to convert ``old_item`` into a ``new_item``.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-new_table_t-type
    :end-before:  end-prepare-new_table_t-type
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-new_table_t-conversion_map
    :end-before:  end-prepare-new_table_t-conversion_map
@@ -273,7 +273,7 @@ Finally, to convert the ``value`` using the defined ``conversion_map``
 we prepare the converted pools with ``transform_output_pool`` and use
 ``convert_container`` to convert the ``value`` table.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-new_table_t-transformation
    :end-before:  end-new_table_t-transformation
@@ -297,7 +297,7 @@ thrown because it is not possible to detect this issue during
 compile-time. Let's modify the previous example to also change the
 data of the ID:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-new_table_t-broken-conversion_map
    :end-before:  end-prepare-new_table_t-broken-conversion_map
@@ -306,7 +306,7 @@ Now, if we attempt to convert the original table, a
 ``immer::persist::champ::hash_validation_failed_exception`` will be
 thrown:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-new_table_t-broken-transformation
    :end-before:  end-new_table_t-broken-transformation
@@ -317,7 +317,7 @@ applied. This will run for each value of the original container,
 creating a new independent container that doesn't use structural
 sharing:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-new_table_t-new-hash-conversion_map
    :end-before:  end-prepare-new_table_t-new-hash-conversion_map
@@ -328,7 +328,7 @@ type ``new_table_t`` in a
 ``immer::persist::incompatible_hash_wrapper`` as the result of the
 ``immer::persist::target_container_type_request`` call.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-new_table_t-new-hash-transformation
    :end-before:  end-new_table_t-new-hash-transformation
@@ -341,7 +341,7 @@ We can see that the transformation has been applied, the keys have the ``_key`` 
    previously transformed data.  In other words, transformation will
    be cached on the container level but not on the nodes level.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-returned-transformed-container-is-the-same
    :end-before:  end-returned-transformed-container-is-the-same
@@ -356,7 +356,7 @@ Let's consider a scenario where a transforming function works on an
 item within an ``immer`` container and also needs to transform another
 ``immer`` container. We define the types as follows:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-define-nested-types
    :end-before:  end-define-nested-types
@@ -366,14 +366,14 @@ where ``nested_t`` contains ``vector<int>``, so we can say a
 ``vector`` is nested inside another ``vector``. We can prepare a value
 with some structural sharing and then serialize it:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-prepare-nested-value
    :end-before:  end-prepare-nested-value
 
 The resulting JSON looks like:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-nested-value-json
    :end-before:  end-nested-value-json
@@ -381,7 +381,7 @@ The resulting JSON looks like:
 Looking at the JSON we can confirm that the node ``[2, [1, 2]]`` is reused.
 Let's define a ``conversion_map`` like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-nested-conversion_map
    :end-before:  end-nested-conversion_map
@@ -404,14 +404,14 @@ expected.
 Having defined the ``conversion_map``, we apply it in the usual way
 and get the ``new_value``:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-apply-nested-transformations
    :end-before:  end-apply-nested-transformations
 
 We can verify that the ``new_value`` has the expected content:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-verify-nested-value
    :end-before:  end-verify-nested-value
@@ -419,7 +419,7 @@ We can verify that the ``new_value`` has the expected content:
 And we can serialize it again to confirm that the structural sharing
 of the nested vectors has been preserved:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: start-verify-structural-sharing-of-nested
    :end-before:  end-verify-structural-sharing-of-nested

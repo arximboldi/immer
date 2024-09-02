@@ -20,7 +20,7 @@ Example
 For this example, we'll use a ``document`` type that contains two
 ``immer`` vectors.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-types
    :end-before:  intro/end-types
@@ -28,14 +28,14 @@ For this example, we'll use a ``document`` type that contains two
 Let's say we have two vectors ``v1`` and ``v2``, where ``v2`` is
 derived from ``v1`` so that it shares data with it:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-prepare-value
    :end-before:  intro/end-prepare-value
 
 We can serialize the document using ``cereal`` with this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-serialize-with-cereal
    :end-before:  intro/end-serialize-with-cereal
@@ -58,21 +58,21 @@ First, let's make the ``document`` struct compatible with
 determine what :ref:`pool<pools>` types are needed, and to name the
 pools.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-adapt-document-for-hana
    :end-before:  intro/end-adapt-document-for-hana
 
 Then using ``immer::persist`` we can serialize it with:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: intro/start-serialize-with-persist
    :end-before:  intro/end-serialize-with-persist
 
 Which generates some JSON like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:intro/start-persist-json
    :end-before:  include:intro/end-persist-json
@@ -111,14 +111,14 @@ also contain another type ``extra_data`` with a ``vector`` of
 the ``doc_2`` type will not be a ``boost::hana::Struct`` and will not
 allow for compile-time reflection.
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:start-doc_2-type
    :end-before:  include:end-doc_2-type
 
 We define the ``doc_2_policy`` as following:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:start-doc_2_policy
    :end-before:  include:end-doc_2_policy
@@ -131,21 +131,21 @@ the ``get_pool_name`` overloaded functions supply the name of the pool
 for each corresponding ``immer`` container. To create and serialize a
 value of ``doc_2``, you can use the following approach:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:start-doc_2-cereal_save_with_pools
    :end-before:  include:end-doc_2-cereal_save_with_pools
 
 The serialized JSON looks like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:start-doc_2-json
    :end-before:  include:end-doc_2-json
 
 And it can also be loaded from JSON like this:
 
-.. literalinclude:: ../../test/extra/persist/test_for_docs.cpp
+.. literalinclude:: ../test/extra/persist/test_for_docs.cpp
    :language: c++
    :start-after: include:start-doc_2-load
    :end-before:  include:end-doc_2-load
