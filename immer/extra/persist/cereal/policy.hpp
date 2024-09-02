@@ -11,7 +11,7 @@ namespace immer::persist {
 
 /**
  * @brief Policy is a type that describes certain aspects of serialization for
- * `immer-persist`.
+ * `immer::persist`.
  *      - How to call into the `cereal` archive to save and load the
  * user-provided value. Can be used to serealize the value inline (without the
  * `value0` node) by taking a dependency on <a
@@ -40,10 +40,10 @@ auto get_pools_types(const T&)
 }
 
 /**
- * @brief This struct provides functions that `immer-persist` uses to serialize
+ * @brief This struct provides functions that `immer::persist` uses to serialize
  * the user-provided value using `cereal`. In this case, we use `cereal`'s
  * default name, `value0`. It's used in all policies provided by
- * `immer-persist`.
+ * `immer::persist`.
  *
  * Other possible way would be to use a third-party library to serialize the
  * value inline (without the `value0` node) by taking a dependency on
@@ -85,7 +85,7 @@ struct via_get_pools_names_policy_t : value0_serialize_t
 };
 
 /**
- * @brief Create an `immer-persist` policy that uses the user-provided
+ * @brief Create an `immer::persist` policy that uses the user-provided
  * `get_pools_names` function (located in the same namespace as the value user
  * serializes) to determine:
  *   - the types of `immer` containers that should be serialized in a pool
@@ -121,7 +121,7 @@ struct demangled_names_t
 };
 
 /**
- * @brief An `immer-persist` policy that uses the user-provided
+ * @brief An `immer::persist` policy that uses the user-provided
  * `get_pools_types` function to determine the types of `immer` containers that
  * should be serialized in a pool.
  *
@@ -144,7 +144,7 @@ struct via_get_pools_types_policy
 };
 
 /**
- * @brief An `immer-persist` policy that recursively finds all `immer`
+ * @brief An `immer::persist` policy that recursively finds all `immer`
  * containers in a serialized value. The value must be a `boost::hana::Struct`.
  *
  * The names for the pools are determined via `demangled_names_t`.
@@ -178,7 +178,7 @@ struct hana_struct_auto_member_name_policy_t : value0_serialize_t
 };
 
 /**
- * @brief Create an `immer-persist` policy that recursively finds all `immer`
+ * @brief Create an `immer::persist` policy that recursively finds all `immer`
  * containers in a serialized value and uses member names to name the pools.
  * The value must be a `boost::hana::Struct`.
  *

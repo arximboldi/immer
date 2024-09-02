@@ -23,7 +23,7 @@ struct document
     friend bool operator==(const document&, const document&) = default;
 
     // Make the struct serializable with cereal as usual, nothing special
-    // related to immer-persist.
+    // related to immer::persist.
     template <class Archive>
     void serialize(Archive& ar)
     {
@@ -43,7 +43,7 @@ using json_t = nlohmann::json;
 BOOST_HANA_ADAPT_STRUCT(document, ints, ints2);
 // include:intro/end-adapt-document-for-hana
 
-TEST_CASE("Docs save with immer-persist", "[docs]")
+TEST_CASE("Docs save with immer::persist", "[docs]")
 {
     // include:intro/start-prepare-value
     const auto v1    = vector_one{1, 2, 3};
@@ -51,7 +51,7 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
     const auto value = document{v1, v2};
     // include:intro/end-prepare-value
 
-    SECTION("Without immer-persist")
+    SECTION("Without immer::persist")
     {
         const auto expected_json = json_t::parse(R"(
 {"value0": {"ints": [1, 2, 3], "ints2": [1, 2, 3, 4, 5, 6]}}
@@ -79,9 +79,9 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
         REQUIRE(value == loaded_value);
     }
 
-    SECTION("With immer-persist")
+    SECTION("With immer::persist")
     {
-        // Immer-persist uses policies to control certain aspects of
+        // immer::persist uses policies to control certain aspects of
         // serialization:
         // - types of pools that should be used
         // - names of those pools
@@ -93,7 +93,7 @@ TEST_CASE("Docs save with immer-persist", "[docs]")
 
         // The resulting JSON looks much more complicated for this little
         // example but the more structural sharing is used inside the serialized
-        // value, the bigger the benefit from using immer-persist.
+        // value, the bigger the benefit from using immer::persist.
         //
         // Notable points for the structure of this JSON:
         // - vectors "ints" and "ints2" are serialized as integers, referring to
