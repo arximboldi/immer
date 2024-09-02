@@ -21,24 +21,44 @@
         nixpkgs.follows = "nixpkgs";
       };
     };
+    arximboldi-cereal-src = {
+      url = "github:arximboldi/cereal";
+      flake = false;
+    };
+    docs-nixpkgs = {
+      url = "github:NixOS/nixpkgs/d0d905668c010b65795b57afdf7f0360aac6245b";
+      flake = false;
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    docs-nixpkgs,
     flake-utils,
     flake-compat,
     pre-commit-hooks,
     gitignore,
+    arximboldi-cereal-src,
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
+
       withLLVM = drv:
         if pkgs.stdenv.isLinux
         # Use LLVM for Linux to build fuzzers
         then drv.override {stdenv = pkgs.llvmPackages_latest.stdenv;}
         # macOS uses LLVM by default
         else drv;
+
+      arximboldi-cereal = pkgs.callPackage ./nix/cereal.nix {inherit arximboldi-cereal-src;};
+
+      persist-inputs = with pkgs; [
+        fmt
+        arximboldi-cereal
+        xxHash
+        nlohmann_json
+      ];
     in {
       checks =
         {
@@ -46,6 +66,11 @@
             src = ./.;
             hooks = {
               alejandra.enable = true;
+              cmake-format.enable = true;
+              clang-format = {
+                enable = true;
+                types_or = pkgs.lib.mkForce ["c" "c++"];
+              };
             };
           };
 
@@ -58,26 +83,75 @@
             ninjaFlags = ["tests"];
             checkPhase = ''
               ctest -D ExperimentalMemCheck
+              valgrind --quiet --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=all \
+                --suppressions=./test/extra/persist/valgrind.supp \
+                ./test/extra/persist/persist-tests
             '';
           });
         };
 
-      devShells.default = (withLLVM pkgs.mkShell) {
-        NIX_HARDENING_ENABLE = "";
-        inputsFrom = [
-          (import ./shell.nix {
-            inherit system nixpkgs;
-          })
-        ];
+      devShells =
+        {
+          default = (withLLVM pkgs.mkShell) {
+            NIX_HARDENING_ENABLE = "";
+            inputsFrom = [
+              (import ./shell.nix {
+                inherit system nixpkgs;
+              })
+            ];
 
-        packages = [
-          # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
-          pkgs.llvmPackages_latest.bintools-unwrapped
-        ];
+            packages = with pkgs;
+              [
+                # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
+                llvmPackages_latest.bintools-unwrapped
+                cmake-format
+                alejandra
+                just
+                fzf
+                starship
+              ]
+              ++ persist-inputs;
 
-        shellHook =
-          self.checks.${system}.pre-commit-check.shellHook;
-      };
+            shellHook =
+              self.checks.${system}.pre-commit-check.shellHook
+              + "\n"
+              + ''
+                alias j=just
+                eval "$(starship init bash)"
+              '';
+          };
+        }
+        // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          # doxygen doesn't work on macOS currently
+          docs = let
+            docsPkgs = import docs-nixpkgs {inherit system;};
+            docs = docsPkgs.callPackage ./nix/docs.nix {};
+          in
+            pkgs.mkShell {
+              packages = [
+                pkgs.just
+                pkgs.fzf
+                pkgs.starship
+                pkgs.cmake
+                pkgs.ninja
+
+                docsPkgs.doxygen
+                (docsPkgs.python.withPackages (ps: [
+                  ps.sphinx
+                  docs.breathe
+                  docs.recommonmark
+                ]))
+              ];
+
+              shellHook =
+                self.checks.${system}.pre-commit-check.shellHook
+                + "\n"
+                + ''
+                  alias j=just
+                  eval "$(starship init bash)"
+                '';
+            };
+        };
 
       packages = {
         immer = let
@@ -112,7 +186,7 @@
 
         unit-tests = (withLLVM self.packages.${system}.immer).overrideAttrs (prev: {
           name = "immer-unit-tests";
-          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt];
+          buildInputs = with pkgs; [catch2_3 boehmgc boost fmt] ++ persist-inputs;
           nativeBuildInputs = with pkgs; [cmake ninja];
           dontBuild = false;
           doCheck = true;
@@ -124,7 +198,9 @@
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Debug"
             "-Dimmer_BUILD_TESTS=ON"
+            "-Dimmer_BUILD_PERSIST_TESTS=ON"
             "-Dimmer_BUILD_EXAMPLES=OFF"
+            "-DCXX_STANDARD=20"
           ];
         });
       };

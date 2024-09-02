@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <scm/detail/invoke.hpp>
-#include <scm/detail/function_args.hpp>
 #include <scm/detail/convert.hpp>
+#include <scm/detail/function_args.hpp>
+#include <scm/detail/invoke.hpp>
 
 namespace scm {
 namespace detail {
@@ -24,35 +24,37 @@ auto subr_wrapper_impl(Fn fn, pack<R>, pack<>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] () -> SCM { return to_scm(invoke(fn_)); };
+    return []() -> SCM { return to_scm(invoke(fn_)); };
 }
 template <typename Tag, typename Fn, typename R, typename T1>
 auto subr_wrapper_impl(Fn fn, pack<R>, pack<T1>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1) -> SCM {
-        return to_scm(invoke(fn_, to_cpp<T1>(a1)));
-    };
+    return [](SCM a1) -> SCM { return to_scm(invoke(fn_, to_cpp<T1>(a1))); };
 }
 template <typename Tag, typename Fn, typename R, typename T1, typename T2>
 auto subr_wrapper_impl(Fn fn, pack<R>, pack<T1, T2>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2) -> SCM {
+    return [](SCM a1, SCM a2) -> SCM {
         return to_scm(invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2)));
     };
 }
-template <typename Tag, typename Fn, typename R, typename T1, typename T2,
+template <typename Tag,
+          typename Fn,
+          typename R,
+          typename T1,
+          typename T2,
           typename T3>
 auto subr_wrapper_impl(Fn fn, pack<R>, pack<T1, T2, T3>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2, SCM a3) -> SCM {
-        return to_scm(invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2),
-                             to_cpp<T3>(a3)));
+    return [](SCM a1, SCM a2, SCM a3) -> SCM {
+        return to_scm(
+            invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3)));
     };
 }
 
@@ -61,15 +63,19 @@ auto subr_wrapper_impl(Fn fn, pack<void>, pack<>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] () -> SCM { invoke(fn_); return SCM_UNSPECIFIED; };
+    return []() -> SCM {
+        invoke(fn_);
+        return SCM_UNSPECIFIED;
+    };
 }
 template <typename Tag, typename Fn, typename T1>
 auto subr_wrapper_impl(Fn fn, pack<void>, pack<T1>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1) -> SCM {
-        invoke(fn_, to_cpp<T1>(a1)); return SCM_UNSPECIFIED;
+    return [](SCM a1) -> SCM {
+        invoke(fn_, to_cpp<T1>(a1));
+        return SCM_UNSPECIFIED;
     };
 }
 template <typename Tag, typename Fn, typename T1, typename T2>
@@ -77,7 +83,7 @@ auto subr_wrapper_impl(Fn fn, pack<void>, pack<T1, T2>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2) -> SCM {
+    return [](SCM a1, SCM a2) -> SCM {
         invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2));
         return SCM_UNSPECIFIED;
     };
@@ -87,7 +93,7 @@ auto subr_wrapper_impl(Fn fn, pack<void>, pack<T1, T2, T3>)
 {
     check_call_once<Tag, Fn>();
     static const Fn fn_ = fn;
-    return [] (SCM a1, SCM a2, SCM a3) -> SCM {
+    return [](SCM a1, SCM a2, SCM a3) -> SCM {
         invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3));
         return SCM_UNSPECIFIED;
     };

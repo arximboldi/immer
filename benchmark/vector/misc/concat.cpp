@@ -15,12 +15,15 @@
 #include <immer/refcount/unsafe_refcount_policy.hpp>
 
 #if IMMER_BENCHMARK_LIBRRB
-extern "C" {
+extern "C"
+{
 #define restrict __restrict__
 #include <rrb.h>
 #undef restrict
 }
 #endif
+
+// clang-format off
 
 #if IMMER_BENCHMARK_LIBRRB
 NONIUS_BENCHMARK("librrb", benchmark_concat_librrb(make_librrb_vector))
@@ -47,3 +50,5 @@ NONIUS_BENCHMARK("i/flex/UN", benchmark_concat_incr<immer::flex_vector<unsigned,
 
 NONIUS_BENCHMARK("m/flex/GC", benchmark_concat_incr_mut<immer::flex_vector<unsigned,gc_memory,5>>())
 NONIUS_BENCHMARK("m/flex_s/GC", benchmark_concat_incr_mut<immer::flex_vector<std::size_t,gc_memory,5>>())
+
+// clang-format on

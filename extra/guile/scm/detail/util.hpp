@@ -13,9 +13,8 @@
 namespace scm {
 namespace detail {
 
-#define SCM_DECLTYPE_RETURN(...)                \
-    decltype(__VA_ARGS__)                       \
-    { return __VA_ARGS__; }                     \
+#define SCM_DECLTYPE_RETURN(...)                                               \
+    decltype(__VA_ARGS__) { return __VA_ARGS__; }                              \
     /**/
 
 template <typename... Ts>
@@ -28,19 +27,21 @@ template <typename... Ts>
 void check_call_once()
 {
     static bool called = false;
-    if (called) scm_misc_error (nullptr, "Double defined binding. \
+    if (called)
+        scm_misc_error(nullptr,
+                       "Double defined binding. \
 This may be caused because there are multiple C++ binding groups in the same \
 translation unit.  You may solve this by using different type tags for each \
-binding group.", SCM_EOL);
+binding group.",
+                       SCM_EOL);
     called = true;
 }
 
 struct move_sequence
 {
-    move_sequence() = default;
+    move_sequence()                     = default;
     move_sequence(const move_sequence&) = delete;
-    move_sequence(move_sequence&& other)
-    { other.moved_from_ = true; };
+    move_sequence(move_sequence&& other) { other.moved_from_ = true; };
 
     bool moved_from_ = false;
 };

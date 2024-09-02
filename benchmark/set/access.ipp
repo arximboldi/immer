@@ -13,7 +13,9 @@
 #endif
 
 using generator__ = GENERATOR_T;
-using t__ = typename decltype(generator__{}(0))::value_type;
+using t__         = typename decltype(generator__{}(0))::value_type;
+
+// clang-format off
 
 NONIUS_BENCHMARK("std::set", benchmark_access_std<generator__, std::set<t__>>())
 NONIUS_BENCHMARK("std::unordered_set", benchmark_access_std<generator__, std::unordered_set<t__>>())
@@ -28,3 +30,5 @@ NONIUS_BENCHMARK("bad/boost::flat_set", benchmark_bad_access_std<generator__, bo
 NONIUS_BENCHMARK("bad/hamt::hash_trie", benchmark_bad_access_hamt<generator__, hamt::hash_trie<t__>>())
 NONIUS_BENCHMARK("bad/immer::set/5B", benchmark_bad_access<generator__, immer::set<t__, std::hash<t__>,std::equal_to<t__>,def_memory,5>>())
 NONIUS_BENCHMARK("bad/immer::set/4B", benchmark_bad_access<generator__, immer::set<t__, std::hash<t__>,std::equal_to<t__>,def_memory,4>>())
+
+// clang-format on

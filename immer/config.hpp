@@ -121,6 +121,10 @@
 #endif
 #endif
 
+#ifndef IMMER_THROW_ON_INVALID_STATE
+#define IMMER_THROW_ON_INVALID_STATE 0
+#endif
+
 namespace immer {
 
 const auto default_bits           = 5;

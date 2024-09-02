@@ -49,7 +49,8 @@ struct object_t
 
     explicit object_t(PyObject* p, wrap_t)
         : ptr_{p}
-    {}
+    {
+    }
     explicit object_t(PyObject* p, adopt_t)
         : ptr_{p}
     {

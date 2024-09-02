@@ -139,9 +139,10 @@ struct champ
 
     static node_t* empty()
     {
-        static const auto empty_ = []{
+        static const auto empty_ = [] {
             constexpr auto size = node_t::sizeof_inner_n(0);
-            static std::aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            static std::aligned_storage_t<size, alignof(std::max_align_t)>
+                storage;
             return node_t::make_inner_n_into(&storage, size, 0u);
         }();
         return empty_->inc();
@@ -150,7 +151,8 @@ struct champ
     champ(node_t* r, size_t sz = 0) noexcept
         : root{r}
         , size{sz}
-    {}
+    {
+    }
 
     champ(const champ& other) noexcept
         : champ{other.root, other.size}
@@ -1304,13 +1306,15 @@ struct champ
             , data{a.data}
             , owned{false}
             , mutated{false}
-        {}
+        {
+        }
         sub_result_mut(sub_result a, bool m)
             : kind{a.kind}
             , data{a.data}
             , owned{false}
             , mutated{m}
-        {}
+        {
+        }
         sub_result_mut()
             : kind{kind_t::nothing}
             , mutated{false} {};

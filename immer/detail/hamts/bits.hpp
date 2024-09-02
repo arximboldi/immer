@@ -60,7 +60,7 @@ template <bits_t B, typename T = count_t>
 constexpr T max_depth = (sizeof(hash_t) * 8u + B - 1u) / B;
 
 template <bits_t B, typename T = count_t>
-constexpr T max_shift = max_depth<B, count_t>* B;
+constexpr T max_shift = max_depth<B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 
@@ -165,7 +165,8 @@ class set_bits_range
 public:
     set_bits_range(bitmap_t bitmap)
         : bitmap(bitmap)
-    {}
+    {
+    }
     set_bits_iterator begin() const { return set_bits_iterator(bitmap); }
     set_bits_iterator end() const { return set_bits_iterator(0); }
 };

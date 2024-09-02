@@ -22,9 +22,11 @@
 #include <steady/steady_vector.h>
 #endif
 
-#include <vector>
 #include <list>
 #include <numeric>
+#include <vector>
+
+// clang-format off
 
 NONIUS_BENCHMARK("std::vector", benchmark_access_iter_std<std::vector<unsigned>>())
 NONIUS_BENCHMARK("std::vector/idx", benchmark_access_idx_std<std::vector<unsigned>>())
@@ -92,3 +94,5 @@ NONIUS_BENCHMARK("dvektor/6B/random",  benchmark_access_random<immer::dvektor<un
 #if IMMER_BENCHMARK_BOOST_COROUTINE
 NONIUS_BENCHMARK("vector/5B/coro", benchmark_access_coro<immer::vector<unsigned,def_memory,5>>())
 #endif
+
+// clang-format on
