@@ -1,7 +1,7 @@
 Serialization
 =========
 
-Serializing your data structures using ``immer::persist`` allows you
+Serializing your data structures using ``immer::persist`` allows you to
 preserve the *structural sharing* across sessions of your application.
 
 This has multiple practical use cases, like storing the undo history
@@ -82,28 +82,28 @@ replaced by an identifier.  This identifier is a key into a
 :ref:`pool<pools>`, which is serialized just after.
 
 .. note::
-   Currently, ``immer-persist`` makes a distiction between
+   Currently, ``immer-persist`` makes a distinction between
    pools used for saving containers (*output* pools) and for loading
    containers (*input* pools), similar to ``cereal`` with its
-   ``InputArchive`` and ``OutputArchive`` distiction.
+   ``InputArchive`` and ``OutputArchive`` distinction.
 
 Currently, ``immer-persist`` focuses on JSON as the serialization
 format and uses the ``cereal`` library internally. In principle, other
 formats and serialization libraries could be supported in the future.
 sharing across sessions.
 
-You can see in the out that the nodes of the trees that make up the
+You can see in the output that the nodes of the trees that make up the
 ``immer`` containers are directly represented in the JSON and, because
-we are representing all the containers as a whole, those nodes that
-are referenced in multiple trees can be stored only once. That same
+we are representing all the containers as a whole, those nodes that are
+referenced in multiple trees can be stored only once. That same
 structure is preserved when reading the pool back from disk and
-reconstructing the vectors (and other containers) from it, thus
-allowing us to preserve the structural sharing across sessions.
+reconstructing the vectors (and other containers) from it, thus allowing
+us to preserve the structural sharing across sessions.
 
 Custom policies
 ----------
 
-We can use policy to control the names of the pools for each container.
+We can use policy to control the naming of the pools for each container.
 
 For this example, let's define a new document type ``doc_2``. It will
 also contain another type ``extra_data`` with a ``vector`` of

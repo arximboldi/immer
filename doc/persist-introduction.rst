@@ -2,14 +2,14 @@ Introduction
 ===============
 
 The ``immer::persist`` library persists persistent data structures,
-allowing the preservation structural sharing of ``immer`` containers
+allowing the preservation of structural sharing of ``immer`` containers
 when serializing, deserializing or transforming the data.
 
 
-.. warning:: This library is still experimental and it's API may
+.. warning:: This library is still experimental and its API may
    change in the future. The headers can be found in
    ``immer/extra/persist/...`` and the ``extra`` subpath will be
-   removed once it's interface stabilises.
+   removed once its interface stabilizes.
 
 Dependencies
 ------------
@@ -30,7 +30,7 @@ runtime, two distinct containers can be operated on independently but
 internally they share nodes and use memory efficiently in that
 way.
 
-However when such containers are serialized in a trival form, for
+However when such containers are serialized in a trivial form, for
 example, as JSON lists, this sharing is lost: they become truly
 independent---the same data is stored multiple times on disk, and
 later, when read back into memory, the program has lost the structural
@@ -50,8 +50,8 @@ Consider this scenario where you have multiple
 ``immer::vector<std::string>``, where the various instances are
 derived from one another. Some of these vectors would be completely
 identical, while others would have just a few elements different. This
-scenario is not uncommon, for example, when `implement the undo
-history of an application by preseriving the previous
+scenario is not uncommon, for example, when `implementing the undo
+history of an application by preserving the previous
 states <https://sinusoid.es/lager/modularity.html#genericity>`_.
 
 The goal is to apply a transformation function to these vectors with
@@ -81,9 +81,9 @@ type. For example, we may have a pool that contains all
 ``immer::vector<int>`` of our document. You can think of it as a small
 database of ``immer`` containers. When serializing the pool, the
 internal structure of all those ``immer`` containers is written as
-whole, preserving the structural sharing between those containers.
+a whole, preserving the structural sharing between those containers.
 
 Note that for the most part, the user of the library is not concerned
 with pools, as they are generated automatically from your
-data-structures.  However, you may become aware of them in the JSON
+data structures.  However, you may become aware of them in the JSON
 output or when transforming recursive data structures.
