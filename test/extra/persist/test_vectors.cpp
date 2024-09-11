@@ -28,7 +28,8 @@ using immer::persist::rbts::add_to_pool;
 using json_t   = nlohmann::json;
 namespace hana = boost::hana;
 
-auto load_vec(const auto& json, std::size_t vec_id)
+template <class T>
+auto load_vec(const T& json, std::size_t vec_id)
 {
     const auto pool =
         test::from_json<immer::persist::rbts::input_pool<int>>(json);
@@ -37,7 +38,8 @@ auto load_vec(const auto& json, std::size_t vec_id)
     return loader.load(container_id{vec_id});
 }
 
-auto load_flex_vec(const auto& json, std::size_t vec_id)
+template <class T>
+auto load_flex_vec(const T& json, std::size_t vec_id)
 {
     const auto pool =
         test::from_json<immer::persist::rbts::input_pool<int>>(json);
@@ -587,11 +589,15 @@ template <class T>
 class show_type;
 
 template <class T>
-using node_for = typename decltype([] {
+auto get_node_for()
+{
     using rbtree_t = std::decay_t<decltype(test::vector_one<T>{}.impl())>;
     using node_t   = typename rbtree_t::node_t;
     return boost::hana::type_c<node_t>;
-}())::type;
+}
+
+template <class T>
+using node_for = typename decltype(get_node_for<T>())::type;
 } // namespace
 
 TEST_CASE("Test vector with very big objects")

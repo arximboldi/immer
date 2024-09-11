@@ -17,6 +17,10 @@
     {                                                                          \
         return members(left) == members(right);                                \
     }                                                                          \
+    bool operator!=(const name& left, const name& right)                       \
+    {                                                                          \
+        return members(left) != members(right);                                \
+    }                                                                          \
     template <class Archive>                                                   \
     void serialize(Archive& ar, name& m)                                       \
     {                                                                          \
@@ -701,10 +705,13 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
 
     SECTION("XML also works")
     {
-        const auto xml_str = cereal_save_with_pools<cereal::XMLOutputArchive>(
-            value, immer::persist::hana_struct_auto_member_name_policy(value));
+        const auto xml_str =
+            immer::persist::cereal_save_with_pools<cereal::XMLOutputArchive>(
+                value,
+                immer::persist::hana_struct_auto_member_name_policy(value));
         const auto loaded_value =
-            cereal_load_with_pools<model::value_one, cereal::XMLInputArchive>(
+            immer::persist::cereal_load_with_pools<model::value_one,
+                                                   cereal::XMLInputArchive>(
                 xml_str,
                 immer::persist::hana_struct_auto_member_name_policy(
                     model::value_one{}));

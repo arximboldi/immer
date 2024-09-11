@@ -137,7 +137,8 @@ namespace {
 template <class Container>
 struct direct_container_policy : immer::persist::value0_serialize_t
 {
-    auto get_pool_types(const auto&) const
+    template <class T>
+    auto get_pool_types(const T&) const
     {
         return boost::hana::tuple_t<Container>;
     }

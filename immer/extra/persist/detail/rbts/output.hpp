@@ -33,8 +33,8 @@ struct pool_builder
 {
     output_pool<T, MemoryPolicy, B, BL> pool;
 
-    template <class Pos>
-    void operator()(regular_pos_tag, Pos& pos, auto&& visit)
+    template <class Pos, class VisitF>
+    void operator()(regular_pos_tag, Pos& pos, VisitF&& visit)
     {
         auto id = get_node_id(pos.node());
         if (pool.inners.count(id)) {
@@ -54,8 +54,8 @@ struct pool_builder
         pool.inners = std::move(pool.inners).set(id, node_info);
     }
 
-    template <class Pos>
-    void operator()(relaxed_pos_tag, Pos& pos, auto&& visit)
+    template <class Pos, class VisitF>
+    void operator()(relaxed_pos_tag, Pos& pos, VisitF&& visit)
     {
         auto id = get_node_id(pos.node());
         if (pool.inners.count(id)) {
@@ -78,8 +78,8 @@ struct pool_builder
         pool.inners = std::move(pool.inners).set(id, node_info);
     }
 
-    template <class Pos>
-    void operator()(leaf_pos_tag, Pos& pos, auto&& visit)
+    template <class Pos, class VisitF>
+    void operator()(leaf_pos_tag, Pos& pos, VisitF&& visit)
     {
         T* first = pos.node()->leaf();
         auto id  = get_node_id(pos.node());

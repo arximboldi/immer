@@ -5,8 +5,8 @@
 
 namespace immer::persist::detail {
 
-template <class Pools, class Archive, class PoolNameFn>
-auto load_pools(std::istream& is, const auto& wrap)
+template <class Pools, class Archive, class PoolNameFn, class WrapF>
+auto load_pools(std::istream& is, const WrapF& wrap)
 {
     const auto reload_pool =
         [wrap](std::istream& is, Pools pools, bool ignore_pool_exceptions) {

@@ -18,8 +18,15 @@ struct type_alias
     {
     }
 
-    friend bool operator==(const type_alias& left,
-                           const type_alias& right) = default;
+    friend bool operator==(const type_alias& left, const type_alias& right)
+    {
+        return left.value == right.value;
+    }
+
+    friend bool operator!=(const type_alias& left, const type_alias& right)
+    {
+        return left.value != right.value;
+    }
 
     /**
      * This works only starting with fmt v10.

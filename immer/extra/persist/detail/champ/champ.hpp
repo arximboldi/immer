@@ -75,7 +75,6 @@ class container_loader
 
 public:
     explicit container_loader(Pool pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : pool_{std::move(pool)}
         , nodes_{pool_.nodes}
     {

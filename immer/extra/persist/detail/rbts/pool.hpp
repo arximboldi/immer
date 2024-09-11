@@ -20,8 +20,12 @@ struct inner_node
     immer::vector<node_id> children;
     bool relaxed = {};
 
-    friend bool operator==(const inner_node& left,
-                           const inner_node& right) = default;
+    auto tie() const { return std::tie(children, relaxed); }
+
+    friend bool operator==(const inner_node& left, const inner_node& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -35,8 +39,12 @@ struct rbts_info
     node_id root;
     node_id tail;
 
-    friend bool operator==(const rbts_info& left,
-                           const rbts_info& right) = default;
+    auto tie() const { return std::tie(root, tail); }
+
+    friend bool operator==(const rbts_info& left, const rbts_info& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -68,6 +76,11 @@ struct output_pool
     friend bool operator==(const output_pool& left, const output_pool& right)
     {
         return left.tie() == right.tie();
+    }
+
+    friend bool operator!=(const output_pool& left, const output_pool& right)
+    {
+        return left.tie() != right.tie();
     }
 
     template <class Archive>
@@ -111,8 +124,15 @@ struct input_pool
     immer::map<node_id, inner_node> inners;
     immer::vector<rbts_info> vectors;
 
-    friend bool operator==(const input_pool& left,
-                           const input_pool& right) = default;
+    auto tie() const
+    {
+        return std::tie(bits, bits_leaf, leaves, inners, vectors);
+    }
+
+    friend bool operator==(const input_pool& left, const input_pool& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     template <class Archive>
     void load(Archive& ar)

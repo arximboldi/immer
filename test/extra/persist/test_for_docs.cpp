@@ -20,7 +20,12 @@ struct document
     vector_one ints;
     vector_one ints2;
 
-    friend bool operator==(const document&, const document&) = default;
+    auto tie() const { return std::tie(ints, ints2); }
+
+    friend bool operator==(const document& left, const document& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     // Make the struct serializable with cereal as usual, nothing special
     // related to immer::persist.
@@ -147,7 +152,10 @@ struct extra_data
 {
     vector_str comments;
 
-    friend bool operator==(const extra_data&, const extra_data&) = default;
+    friend bool operator==(const extra_data& left, const extra_data& right)
+    {
+        return left.comments == right.comments;
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -163,7 +171,12 @@ struct doc_2
     vector_str strings;
     extra_data extra;
 
-    friend bool operator==(const doc_2&, const doc_2&) = default;
+    auto tie() const { return std::tie(ints, ints2, strings, extra); }
+
+    friend bool operator==(const doc_2& left, const doc_2& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -179,7 +192,8 @@ struct doc_2
 // include:start-doc_2_policy
 struct doc_2_policy
 {
-    auto get_pool_types(const auto&) const
+    template <class T>
+    auto get_pool_types(const T&) const
     {
         return boost::hana::tuple_t<vector_one, vector_str>;
     }
@@ -261,7 +275,12 @@ struct document_str
     vector_str str;
     vector_str str2;
 
-    friend bool operator==(const document_str&, const document_str&) = default;
+    auto tie() const { return std::tie(str, str2); }
+
+    friend bool operator==(const document_str& left, const document_str& right)
+    {
+        return left.tie() == right.tie();
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -399,7 +418,8 @@ namespace {
 template <class Container>
 struct direct_container_policy : immer::persist::value0_serialize_t
 {
-    auto get_pool_types(const auto&) const
+    template <class T>
+    auto get_pool_types(const T&) const
     {
         return boost::hana::tuple_t<Container>;
     }
@@ -465,7 +485,10 @@ struct new_id_t
 {
     std::string id;
 
-    friend bool operator==(const new_id_t&, const new_id_t&) = default;
+    friend bool operator==(const new_id_t& left, const new_id_t& right)
+    {
+        return left.id == right.id;
+    }
 
     friend std::size_t xx_hash_value(const new_id_t& value)
     {
@@ -478,7 +501,12 @@ struct new_item
     new_id_t id;
     std::string data;
 
-    friend bool operator==(const new_item&, const new_item&) = default;
+    auto tie() const { return std::tie(id, data); }
+
+    friend bool operator==(const new_item& left, const new_item& right)
+    {
+        return left.tie() == right.tie();
+    }
 };
 // include:end-new-table-types
 } // namespace
@@ -603,7 +631,10 @@ struct nested_t
 {
     vector_one ints;
 
-    friend bool operator==(const nested_t&, const nested_t&) = default;
+    friend bool operator==(const nested_t& left, const nested_t& right)
+    {
+        return left.ints == right.ints;
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -616,8 +647,11 @@ struct with_nested_t
 {
     immer::vector<nested_t> nested;
 
-    friend bool operator==(const with_nested_t&,
-                           const with_nested_t&) = default;
+    friend bool operator==(const with_nested_t& left,
+                           const with_nested_t& right)
+    {
+        return left.nested == right.nested;
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -631,7 +665,10 @@ struct new_nested_t
 {
     vector_str str;
 
-    friend bool operator==(const new_nested_t&, const new_nested_t&) = default;
+    friend bool operator==(const new_nested_t& left, const new_nested_t& right)
+    {
+        return left.str == right.str;
+    }
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -644,8 +681,11 @@ struct with_new_nested_t
 {
     immer::vector<new_nested_t> nested;
 
-    friend bool operator==(const with_new_nested_t&,
-                           const with_new_nested_t&) = default;
+    friend bool operator==(const with_new_nested_t& left,
+                           const with_new_nested_t& right)
+    {
+        return left.nested == right.nested;
+    }
 
     template <class Archive>
     void serialize(Archive& ar)

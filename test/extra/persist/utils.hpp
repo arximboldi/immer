@@ -33,7 +33,8 @@ using example_output_pool =
 using example_loader = immer::persist::rbts::
     loader<int, immer::default_memory_policy, immer::default_bits, 1>;
 
-inline auto gen(auto init, int count)
+template <class T>
+auto gen(T init, int count)
 {
     for (int i = 0; i < count; ++i) {
         init = std::move(init).push_back(i);
@@ -158,7 +159,8 @@ constexpr auto convert_old_type_table = boost::hana::overload(
     },
     convert_old_type);
 
-inline auto transform_vec(const auto& vec)
+template <class T>
+auto transform_vec(const T& vec)
 {
     auto result = vector_one<new_type>{};
     for (const auto& item : vec) {
@@ -167,7 +169,8 @@ inline auto transform_vec(const auto& vec)
     return result;
 }
 
-inline auto transform_map(const auto& map)
+template <class T>
+auto transform_map(const T& map)
 {
     auto result = immer::
         map<std::string, new_type, immer::persist::xx_hash<std::string>>{};
@@ -177,7 +180,8 @@ inline auto transform_map(const auto& map)
     return result;
 }
 
-inline auto transform_table(const auto& table)
+template <class T>
+auto transform_table(const T& table)
 {
     auto result = immer::table<new_type,
                                immer::table_key_fn,

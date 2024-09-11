@@ -9,7 +9,8 @@ struct output_pool_builder
 {
     nodes_save<T, B> pool;
 
-    void visit_inner(const auto* node, auto depth)
+    template <class Node, class Depth>
+    void visit_inner(const Node* node, Depth depth)
     {
         auto id = get_node_id(node);
         if (pool.inners.count(id)) {
@@ -38,7 +39,8 @@ struct output_pool_builder
         pool.inners = std::move(pool.inners).set(id, node_info);
     }
 
-    void visit_collision(const auto* node)
+    template <class Node>
+    void visit_collision(const Node* node)
     {
         auto id = get_node_id(node);
         if (pool.inners.count(id)) {
@@ -55,7 +57,8 @@ struct output_pool_builder
                                });
     }
 
-    void visit(const auto* node, immer::detail::hamts::count_t depth)
+    template <class Node>
+    void visit(const Node* node, immer::detail::hamts::count_t depth)
     {
         using immer::detail::hamts::max_depth;
 
@@ -66,7 +69,8 @@ struct output_pool_builder
         }
     }
 
-    node_id get_node_id(auto* ptr)
+    template <class Node>
+    node_id get_node_id(Node* ptr)
     {
         auto [pool2, id] =
             immer::persist::champ::get_node_id(std::move(pool), ptr);

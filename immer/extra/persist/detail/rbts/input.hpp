@@ -109,7 +109,6 @@ public:
     using nodes_set_t = immer::set<node_id>;
 
     explicit loader(Pool pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : pool_{std::move(pool)}
     {
     }
@@ -534,7 +533,6 @@ class vector_loader
 {
 public:
     explicit vector_loader(Pool pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : loader{std::move(pool)}
     {
     }
@@ -571,7 +569,6 @@ class flex_vector_loader
 {
 public:
     explicit flex_vector_loader(Pool pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : loader{std::move(pool)}
     {
     }

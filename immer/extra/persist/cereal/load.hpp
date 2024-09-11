@@ -15,8 +15,8 @@ namespace immer::persist {
  * @ingroup persist-api
  */
 template <class T,
-          class Archive    = cereal::JSONInputArchive,
-          Policy<T> Policy = default_policy,
+          class Archive = cereal::JSONInputArchive,
+          class Policy  = default_policy,
           class... Args>
 T cereal_load_with_pools(std::istream& is,
                          const Policy& policy = Policy{},
@@ -26,10 +26,7 @@ T cereal_load_with_pools(std::istream& is,
         decltype(boost::hana::to_set(policy.get_pool_types(std::declval<T>())));
     using Pools = decltype(detail::generate_input_pools(TypesSet{}));
 
-    auto get_pool_name_fn = [](const auto& value) {
-        return Policy{}.get_pool_name(value);
-    };
-    using PoolNameFn = decltype(get_pool_name_fn);
+    using PoolNameFn = get_pool_name_fn_t<Policy>;
 
     const auto wrap =
         detail::wrap_known_types(TypesSet{}, detail::wrap_for_loading);
@@ -53,8 +50,8 @@ T cereal_load_with_pools(std::istream& is,
  * @ingroup persist-api
  */
 template <class T,
-          class Archive    = cereal::JSONInputArchive,
-          Policy<T> Policy = default_policy>
+          class Archive = cereal::JSONInputArchive,
+          class Policy  = default_policy>
 T cereal_load_with_pools(const std::string& input,
                          const Policy& policy = Policy{})
 {

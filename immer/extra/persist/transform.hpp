@@ -16,7 +16,7 @@ namespace immer::persist {
  * @ingroup persist-transform
  * @see convert_container
  */
-template <typename T, Policy<T> Policy = hana_struct_auto_policy>
+template <typename T, class Policy = hana_struct_auto_policy>
 auto get_output_pools(const T& value0, const Policy& policy = Policy{})
 {
     const auto types = boost::hana::to_set(policy.get_pool_types(value0));

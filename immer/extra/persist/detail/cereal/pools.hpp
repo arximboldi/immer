@@ -170,7 +170,6 @@ struct input_pool
     input_pool() = default;
 
     explicit input_pool(Pool pool_)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : pool{std::move(pool_)}
     {
     }
@@ -199,6 +198,11 @@ struct input_pool
     friend bool operator==(const input_pool& left, const input_pool& right)
     {
         return left.pool == right.pool;
+    }
+
+    friend bool operator!=(const input_pool& left, const input_pool& right)
+    {
+        return left.pool != right.pool;
     }
 
     void merge_previous(const input_pool& original)
@@ -429,7 +433,8 @@ public:
     }
 };
 
-inline auto generate_output_pools(auto types)
+template <class T>
+auto generate_output_pools(T types)
 {
     auto storage =
         hana::fold_left(types, hana::make_map(), [](auto map, auto type) {
@@ -444,7 +449,8 @@ inline auto generate_output_pools(auto types)
     return output_pools<Storage>{storage};
 }
 
-inline auto generate_input_pools(auto types)
+template <class T>
+auto generate_input_pools(T types)
 {
     auto storage =
         hana::fold_left(types, hana::make_map(), [](auto map, auto type) {

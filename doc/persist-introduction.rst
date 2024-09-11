@@ -15,7 +15,7 @@ Dependencies
 ------------
 
 In addition to the `dependencies <introduction.html#dependencies>`_ of
-``immer``, this library makes use of **C++20**, `Boost.Hana
+``immer``, this library makes use of **C++17**, `Boost.Hana
 <https://boostorg.github.io/hana/>`_, `fmt <https://fmt.dev/>`_ and
 `cereal <https://uscilab.github.io/cereal/>`_.
 
