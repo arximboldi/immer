@@ -5,9 +5,9 @@
 
 #include "utils.hpp"
 
-#include <test/extra/persist/cereal/immer_box.hpp>
-#include <test/extra/persist/cereal/immer_set.hpp>
-#include <test/extra/persist/cereal/immer_table.hpp>
+#include <immer/extra/cereal/immer_box.hpp>
+#include <immer/extra/cereal/immer_set.hpp>
+#include <immer/extra/cereal/immer_table.hpp>
 
 #include <cereal/archives/xml.hpp>
 #include <nlohmann/json.hpp>

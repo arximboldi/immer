@@ -21,6 +21,7 @@ add_executable(
   test_circular_dependency_conversion.cpp
   test_table_box_recursive.cpp
   test_for_docs.cpp
+  test_containers_cereal.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/persist/xxhash/xxhash_64.cpp)
 target_precompile_headers(
   persist-tests PRIVATE <immer/extra/persist/cereal/save.hpp>
