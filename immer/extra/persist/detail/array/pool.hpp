@@ -22,6 +22,11 @@ struct output_pool
         return left.arrays == right.arrays;
     }
 
+    friend bool operator!=(const output_pool& left, const output_pool& right)
+    {
+        return left.arrays != right.arrays;
+    }
+
     template <class Archive>
     void save(Archive& ar) const
     {
@@ -78,8 +83,10 @@ struct input_pool
 {
     immer::vector<immer::array<T, MemoryPolicy>> arrays;
 
-    friend bool operator==(const input_pool& left,
-                           const input_pool& right) = default;
+    friend bool operator==(const input_pool& left, const input_pool& right)
+    {
+        return left.arrays == right.arrays;
+    }
 
     template <class Archive>
     void load(Archive& ar)
@@ -125,7 +132,6 @@ class loader
 {
 public:
     explicit loader(Pool pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : pool_{std::move(pool)}
     {
     }

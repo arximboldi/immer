@@ -24,7 +24,6 @@ struct champ_traits
 
     template <class F>
     static auto transform(F&& func)
-        requires std::is_invocable_v<F, target_container_type_request>
     {
         // We need this special target_container_type_request because we can't
         // determine the hash and equality operators for the new key any other

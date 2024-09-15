@@ -20,7 +20,7 @@ namespace immer::persist {
  */
 template <class Archive = cereal::JSONOutputArchive,
           class T,
-          Policy<T> Policy = default_policy,
+          class Policy = default_policy,
           class... Args>
 void cereal_save_with_pools(std::ostream& os,
                             const T& value0,
@@ -31,14 +31,11 @@ void cereal_save_with_pools(std::ostream& os,
     auto pools       = detail::generate_output_pools(types);
     const auto wrap  = detail::wrap_known_types(types, detail::wrap_for_saving);
     using Pools      = std::decay_t<decltype(pools)>;
-    auto get_pool_name_fn = [](const auto& value) {
-        return Policy{}.get_pool_name(value);
-    };
-    auto ar = immer::persist::output_pools_cereal_archive_wrapper<
+    auto ar          = immer::persist::output_pools_cereal_archive_wrapper<
         Archive,
         Pools,
         decltype(wrap),
-        decltype(get_pool_name_fn)>{
+        get_pool_name_fn_t<Policy>>{
         pools, wrap, os, std::forward<Args>(args)...};
     policy.save(ar, value0);
     // Calling finalize explicitly, as it might throw on saving the pools,
@@ -54,16 +51,18 @@ void cereal_save_with_pools(std::ostream& os,
  * @return std::string The resulting JSON.
  * @ingroup persist-api
  */
-template <class Archive = cereal::JSONOutputArchive,
-          class T,
-          Policy<T> Policy = default_policy,
-          class... Args>
+template <
+    class Archive = cereal::JSONOutputArchive,
+    class T,
+    class Policy = default_policy,
+    class = decltype(std::declval<Policy>().get_pool_types(std::declval<T>())),
+    class... Args>
 std::string cereal_save_with_pools(const T& value0,
                                    const Policy& policy = Policy{},
                                    Args&&... args)
 {
     auto os = std::ostringstream{};
-    cereal_save_with_pools<Archive>(
+    cereal_save_with_pools<Archive, T, Policy>(
         os, value0, policy, std::forward<Args>(args)...);
     return os.str();
 }

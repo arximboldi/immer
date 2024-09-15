@@ -9,24 +9,6 @@ namespace immer::persist {
  * @defgroup persist-policy
  */
 
-/**
- * @brief Policy is a type that describes certain aspects of serialization for
- * `immer::persist`.
- *      - How to call into the `cereal` archive to save and load the
- * user-provided value. Can be used to serealize the value inline (without the
- * `value0` node) by taking a dependency on <a
- * href="https://github.com/LowCostCustoms/cereal-inline">cereal-inline</a>, for
- * example.
- *      - Types of `immer` containers that will be serialized using pools. One
- * pool contains nodes of only one `immer` container type.
- *      - Names for each per-type pool.
- *
- * @ingroup persist-policy
- */
-template <class T, class Value>
-concept Policy =
-    requires(Value value, T policy) { policy.get_pool_types(value); };
-
 template <class T>
 auto get_pools_names(const T&)
 {
@@ -67,6 +49,20 @@ struct value0_serialize_t
     }
 };
 
+/**
+ * @brief Policy is a type that describes certain aspects of serialization for
+ * `immer::persist`.
+ *      - How to call into the `cereal` archive to save and load the
+ * user-provided value. Can be used to serealize the value inline (without the
+ * `value0` node) by taking a dependency on <a
+ * href="https://github.com/LowCostCustoms/cereal-inline">cereal-inline</a>, for
+ * example.
+ *      - Types of `immer` containers that will be serialized using pools. One
+ * pool contains nodes of only one `immer` container type.
+ *      - Names for each per-type pool.
+ *
+ * @ingroup persist-policy
+ */
 template <class T>
 struct via_get_pools_names_policy_t : value0_serialize_t
 {
@@ -100,9 +96,10 @@ struct via_get_pools_names_policy_t : value0_serialize_t
  *
  * @ingroup persist-policy
  */
-auto via_get_pools_names_policy(const auto& value)
+template <class T>
+auto via_get_pools_names_policy(const T& value)
 {
-    return via_get_pools_names_policy_t<std::decay_t<decltype(value)>>{};
+    return via_get_pools_names_policy_t<std::decay_t<T>>{};
 }
 
 /**
@@ -187,12 +184,22 @@ struct hana_struct_auto_member_name_policy_t : value0_serialize_t
  *
  * @ingroup persist-policy
  */
-auto hana_struct_auto_member_name_policy(const auto& value)
+template <class T>
+auto hana_struct_auto_member_name_policy(const T& value)
 {
-    return hana_struct_auto_member_name_policy_t<
-        std::decay_t<decltype(value)>>{};
+    return hana_struct_auto_member_name_policy_t<std::decay_t<T>>{};
 }
 
 using default_policy = via_get_pools_types_policy;
+
+template <class Policy>
+struct get_pool_name_fn_t
+{
+    template <class T>
+    auto operator()(const T& value) const
+    {
+        return Policy{}.get_pool_name(value);
+    }
+};
 
 } // namespace immer::persist

@@ -33,6 +33,7 @@ CEREAL_LOAD_FUNCTION_NAME(Archive& ar, immer::map<K, T, H, E, MP, B>& m)
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         T x;
@@ -71,6 +72,7 @@ CEREAL_LOAD_FUNCTION_NAME(Archive& ar, immer::map<K, T, H, E, MP, B>& m)
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         K k;

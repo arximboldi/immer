@@ -51,8 +51,15 @@ struct persistable
     {
     }
 
-    friend bool operator==(const persistable& left,
-                           const persistable& right) = default;
+    friend bool operator==(const persistable& left, const persistable& right)
+    {
+        return left.container == right.container;
+    }
+
+    friend bool operator!=(const persistable& left, const persistable& right)
+    {
+        return left.container != right.container;
+    }
 };
 
 template <class Previous,

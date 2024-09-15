@@ -16,6 +16,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, immer::set<T, H, E, MP, B>& m)
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         T x;

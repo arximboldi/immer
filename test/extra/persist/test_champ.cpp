@@ -28,7 +28,8 @@ const auto gen_map = [](auto map, int count) {
     return map;
 };
 
-auto gen_table(auto table, std::size_t from, std::size_t to)
+template <class T>
+auto gen_table(T table, std::size_t from, std::size_t to)
 {
     for (auto i = std::min(from, to); i < std::max(from, to); ++i) {
         table = std::move(table).insert(test_value{i, fmt::format("_{}_", i)});

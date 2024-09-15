@@ -177,8 +177,9 @@ TEST_CASE("Auto-persisting")
     // REQUIRE(json_str == "");
 
     {
-        const auto loaded = from_json_with_auto_pool<test_data_with_immer>(
-            json_str, pool_types);
+        const auto loaded =
+            test::from_json_with_auto_pool<test_data_with_immer>(json_str,
+                                                                 pool_types);
         REQUIRE(loaded == value);
     }
 }
@@ -741,6 +742,14 @@ TEST_CASE("Test table with a funny value no auto")
 
     const auto json_str = immer::persist::cereal_save_with_pools(
         value, immer::persist::via_get_pools_names_policy(value));
+
+    SECTION("Test streaming")
+    {
+        auto os = std::ostringstream{};
+        immer::persist::cereal_save_with_pools(
+            os, value, immer::persist::via_get_pools_names_policy(value));
+        REQUIRE(os.str() == json_str);
+    }
     // REQUIRE(json_str == "");
 
     const auto loaded =
@@ -944,18 +953,17 @@ TEST_CASE("Test types traversal")
         test_variant::with_variant>();
     SECTION("It goes inside variant")
     {
-        using contains_t = decltype(names[hana::type_c<immer::vector<int>>] ==
-                                    BOOST_HANA_STRING("ints"));
-        static_assert(contains_t::value);
+        auto contains = names[hana::type_c<immer::vector<int>>] ==
+                        BOOST_HANA_STRING("ints");
+        static_assert(decltype(contains)::value);
     }
 
     SECTION("Check types with names")
     {
-        using contains_map_t =
-            decltype(names[hana::type_c<
-                         immer::map<int, immer::vector<std::string>>>] ==
-                     BOOST_HANA_STRING("int_map"));
-        static_assert(contains_map_t::value);
+        auto contains_map =
+            names[hana::type_c<immer::map<int, immer::vector<std::string>>>] ==
+            BOOST_HANA_STRING("int_map");
+        static_assert(decltype(contains_map)::value);
 
         // It doesn't find the vector because there is no name for it
         const auto vector_type = hana::type_c<immer::vector<std::string>>;

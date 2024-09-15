@@ -60,7 +60,10 @@ struct blackhole_output_archive
 // blackhole_output_archive doesn't care about names
 struct empty_name_fn
 {
-    void operator()(const auto& container) const {}
+    template <class T>
+    void operator()(const T& container) const
+    {
+    }
 };
 
 template <class Pools>
@@ -99,7 +102,6 @@ public:
 
     template <class... Args>
     explicit output_pools_cereal_archive_wrapper(Args&&... args)
-        requires std::is_same_v<WrapFn, boost::hana::id_t>
         : cereal::OutputArchive<output_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
     {
@@ -107,7 +109,6 @@ public:
 
     template <class... Args>
     output_pools_cereal_archive_wrapper(Pools pools_, Args&&... args)
-        requires std::is_same_v<WrapFn, boost::hana::id_t>
         : cereal::OutputArchive<output_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}
@@ -279,7 +280,6 @@ public:
 
     template <class... Args>
     input_pools_cereal_archive_wrapper(Pools pools_, Args&&... args)
-        requires std::is_same_v<WrapFn, boost::hana::id_t>
         : cereal::InputArchive<input_pools_cereal_archive_wrapper>{this}
         , previous{std::forward<Args>(args)...}
         , pools{std::move(pools_)}

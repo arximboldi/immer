@@ -19,8 +19,12 @@ struct values_save
     const T* begin = nullptr;
     const T* end   = nullptr;
 
-    friend bool operator==(const values_save& left,
-                           const values_save& right) = default;
+    auto tie() const { return std::tie(begin, end); }
+
+    friend bool operator==(const values_save& left, const values_save& right)
+    {
+        return left.tie() == right.tie();
+    }
 };
 
 /**
@@ -44,8 +48,10 @@ struct values_load
     {
     }
 
-    friend bool operator==(const values_load& left,
-                           const values_load& right) = default;
+    friend bool operator==(const values_load& left, const values_load& right)
+    {
+        return left.data == right.data;
+    }
 };
 
 template <class Archive, class T>

@@ -58,6 +58,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar,
 {
     size_type size;
     ar(make_size_tag(size));
+    m.map = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         auto pair = immer::persist::detail::compact_pair<K, T>{};

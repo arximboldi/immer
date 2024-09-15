@@ -10,6 +10,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, immer::array<T, MemoryPolicy>& m)
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         T x;

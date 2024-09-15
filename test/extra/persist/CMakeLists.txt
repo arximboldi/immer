@@ -2,8 +2,8 @@ find_package(fmt REQUIRED)
 find_package(cereal REQUIRED)
 find_package(xxHash 0.8 CONFIG REQUIRED)
 
-if(${CXX_STANDARD} LESS 20)
-  message(FATAL_ERROR "persist requires C++20")
+if(${CXX_STANDARD} LESS 17)
+  message(FATAL_ERROR "persist requires C++17")
 endif()
 
 include(CTest)
@@ -21,6 +21,7 @@ add_executable(
   test_circular_dependency_conversion.cpp
   test_table_box_recursive.cpp
   test_for_docs.cpp
+  test_containers_cereal.cpp
   ${PROJECT_SOURCE_DIR}/immer/extra/persist/xxhash/xxhash_64.cpp)
 target_precompile_headers(
   persist-tests PRIVATE <immer/extra/persist/cereal/save.hpp>
@@ -33,7 +34,8 @@ target_link_libraries(persist-tests PRIVATE fmt::fmt Catch2::Catch2WithMain
 
 target_compile_options(persist-tests PRIVATE -O1 -fno-optimize-sibling-calls -g
                                              -fno-omit-frame-pointer)
-target_compile_options(persist-tests PRIVATE -Wno-unused-function)
+target_compile_options(persist-tests PRIVATE -Wno-unused-function
+                                             -Wno-c++20-designator)
 
 if(ENABLE_ASAN)
   target_compile_options(

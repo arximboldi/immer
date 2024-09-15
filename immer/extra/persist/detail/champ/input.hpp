@@ -67,7 +67,6 @@ public:
     using values_t = immer::flex_vector<immer::array<T>>;
 
     explicit nodes_loader(NodesLoad pool)
-        requires std::is_same_v<TransformF, boost::hana::id_t>
         : pool_{std::move(pool)}
     {
     }
@@ -226,7 +225,8 @@ public:
     }
 
 private:
-    immer::array<T> get_values(const auto& array) const
+    template <class Array>
+    immer::array<T> get_values(const Array& array) const
     {
         if constexpr (std::is_same_v<TransformF, boost::hana::id_t>) {
             return array;

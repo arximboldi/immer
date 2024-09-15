@@ -18,7 +18,8 @@
 #include <array>
 
 namespace {
-void require_eq(const auto& a, const auto& b)
+template <class T>
+void require_eq(const T& a, const T& b)
 {
     if (a != b) {
         throw std::runtime_error{

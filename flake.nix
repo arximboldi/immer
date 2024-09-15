@@ -200,7 +200,7 @@
             "-Dimmer_BUILD_TESTS=ON"
             "-Dimmer_BUILD_PERSIST_TESTS=ON"
             "-Dimmer_BUILD_EXAMPLES=OFF"
-            "-DCXX_STANDARD=20"
+            "-DCXX_STANDARD=17"
           ];
         });
       };

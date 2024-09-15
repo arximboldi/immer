@@ -20,7 +20,8 @@ class error_duplicate_pool_name_found;
  *
  * @ingroup persist-impl
  */
-inline auto are_type_names_unique(auto type_names)
+template <class T>
+auto are_type_names_unique(T type_names)
 {
     namespace hana = boost::hana;
     auto names_set =
@@ -44,7 +45,8 @@ struct name_from_map_fn
     static_assert(decltype(are_type_names_unique(Map{}))::value,
                   "Pool names in the map must be unique");
 
-    auto operator()(const auto& container) const
+    template <class T>
+    auto operator()(const T& container) const
     {
         return Map{}[boost::hana::typeid_(container)].c_str();
     }

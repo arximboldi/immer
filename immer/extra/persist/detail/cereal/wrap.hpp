@@ -77,10 +77,10 @@ constexpr auto wrap_for_loading =
 /**
  * Returns a wrapping function that wraps only known types.
  */
-inline auto wrap_known_types(auto types, auto wrap)
+template <class KnownSet, class WrapF>
+auto wrap_known_types(KnownSet types, WrapF wrap)
 {
-    static_assert(boost::hana::is_a<boost::hana::set_tag, decltype(types)>);
-    using KnownSet      = decltype(types);
+    static_assert(boost::hana::is_a<boost::hana::set_tag, KnownSet>);
     const auto is_known = [](const auto& value) {
         using result_t = decltype(boost::hana::contains(
             KnownSet{}, boost::hana::typeid_(value)));

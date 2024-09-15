@@ -6,6 +6,8 @@ foreach(_file IN LISTS immer_fuzzers)
   add_executable(${_target} EXCLUDE_FROM_ALL "${_file}")
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
   target_compile_options(${_target} PUBLIC ${immer_fuzzing_engine})
+  target_compile_options(${_target} PRIVATE ${immer_fuzzing_engine}
+                                            -Wno-c++20-designator)
   target_include_directories(${_target} PRIVATE ../..)
   target_link_libraries(${_target} PUBLIC ${immer_fuzzing_engine} immer-dev)
   add_dependencies(fuzzers ${_target})

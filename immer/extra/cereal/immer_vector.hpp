@@ -15,6 +15,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar,
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         T x;
@@ -46,6 +47,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar,
 {
     size_type size;
     ar(make_size_tag(size));
+    m = {};
 
     for (auto i = size_type{}; i < size; ++i) {
         T x;

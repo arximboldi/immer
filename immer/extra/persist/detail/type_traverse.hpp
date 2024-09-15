@@ -126,13 +126,14 @@ constexpr auto insert_conditionally = [](auto map, auto pair) {
     }
 };
 
-inline auto get_inner_types_map_with_empty_strings(const auto& type)
+template <class T>
+auto get_inner_types_map_with_empty_strings(const T& type)
 {
     namespace hana = boost::hana;
 
     constexpr auto get_for_one_type = [](auto type) {
-        using T = typename decltype(type)::type;
-        return detail::get_inner_types_t<T>::apply();
+        using type_t = typename decltype(type)::type;
+        return detail::get_inner_types_t<type_t>::apply();
     };
 
     constexpr auto get_for_many = [get_for_one_type](const auto& map) {
@@ -159,7 +160,8 @@ inline auto get_inner_types_map_with_empty_strings(const auto& type)
  * Generate a map (type, member_name) for all members of a given type,
  * recursively.
  */
-inline auto get_inner_types_map(const auto& type)
+template <class T>
+auto get_inner_types_map(const T& type)
 {
     namespace hana = boost::hana;
 
@@ -175,7 +177,8 @@ inline auto get_inner_types_map(const auto& type)
     return hana::to_map(result);
 }
 
-inline auto get_inner_types(const auto& type)
+template <class T>
+auto get_inner_types(const T& type)
 {
     return boost::hana::keys(
         detail::get_inner_types_map_with_empty_strings(type));
