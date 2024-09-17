@@ -22,6 +22,7 @@
 #endif
 #endif
 
+#if !defined(IMMER_USE_EXCEPTIONS) && !defined(IMMER_NO_EXCEPTIONS)
 #if defined(_MSC_VER)
 #if !_HAS_EXCEPTIONS
 #define IMMER_NO_EXCEPTIONS
@@ -29,6 +30,7 @@
 #else
 #if !__cpp_exceptions
 #define IMMER_NO_EXCEPTIONS
+#endif
 #endif
 #endif
 

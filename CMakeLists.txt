@@ -42,6 +42,12 @@ option(immer_BUILD_EXAMPLES "Build examples" ON)
 option(immer_BUILD_DOCS "Build docs" ON)
 option(immer_BUILD_EXTRAS "Build extras" ON)
 option(immer_INSTALL_FUZZERS "Install fuzzers" off)
+option(immer_ENABLE_EXCEPTIONS "Always enable exceptions regardless of detected compiler support" OFF)
+option(immer_DISABLE_EXCEPTIONS "Always disable exceptions regardless of detected compiler support" OFF)
+
+if (immer_ENABLE_EXCEPTIONS AND immer_DISABLE_EXCEPTIONS)
+  message(FATAL_ERROR "Cannot both enable and disable exceptions")
+endif()
 
 set(CXX_STANDARD
     14
@@ -101,6 +107,17 @@ target_include_directories(
   INTERFACE $<BUILD_INTERFACE:${immer_BINARY_DIR}/>
             $<BUILD_INTERFACE:${immer_SOURCE_DIR}/>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+if(immer_ENABLE_EXCEPTIONS)
+  message(STATUS "Explicitly enabling exceptions")
+  target_compile_definitions(immer INTERFACE IMMER_USE_EXCEPTIONS)
+endif()
+
+if(immer_DISABLE_EXCEPTIONS)
+  message(STATUS "Explicitly disabling exceptions")
+  target_compile_definitions(immer INTERFACE IMMER_NO_EXCEPTIONS)
+endif()
+
 install(TARGETS immer EXPORT ImmerConfig)
 install(EXPORT ImmerConfig DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer")
 install(DIRECTORY immer DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
