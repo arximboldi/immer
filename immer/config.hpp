@@ -22,8 +22,12 @@
 #endif
 #endif
 
-#ifdef __has_feature
-#if !__has_feature(cxx_exceptions)
+#if defined(_MSC_VER)
+#if !_HAS_EXCEPTIONS
+#define IMMER_NO_EXCEPTIONS
+#endif
+#else
+#if !__cpp_exceptions
 #define IMMER_NO_EXCEPTIONS
 #endif
 #endif
