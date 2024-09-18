@@ -20,7 +20,6 @@ namespace detail {
 namespace hamts {
 
 using size_t  = std::size_t;
-using hash_t  = std::size_t;
 using bits_t  = std::uint32_t;
 using count_t = std::uint32_t;
 using shift_t = std::uint32_t;
@@ -53,14 +52,14 @@ struct get_bitmap_type<4u>
 template <bits_t B, typename T = count_t>
 constexpr T branches = T{1u} << B;
 
-template <bits_t B, typename T = size_t>
+template <typename T, bits_t B>
 constexpr T mask = branches<B, T> - 1u;
 
-template <bits_t B, typename T = count_t>
+template <typename hash_t, bits_t B, typename T = count_t>
 constexpr T max_depth = (sizeof(hash_t) * 8u + B - 1u) / B;
 
-template <bits_t B, typename T = count_t>
-constexpr T max_shift = max_depth<B, count_t> * B;
+template <typename hash_t, bits_t B, typename T = count_t>
+constexpr T max_shift = max_depth<hash_t, B, count_t> * B;
 
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
 

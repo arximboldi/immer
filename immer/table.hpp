@@ -150,13 +150,10 @@ class table
 
     struct hash_key
     {
-        std::size_t operator()(const value_t& v) const
-        {
-            return Hash{}(KeyFn{}(v));
-        }
+        auto operator()(const value_t& v) const { return Hash{}(KeyFn{}(v)); }
 
         template <typename Key>
-        std::size_t operator()(const Key& v) const
+        auto operator()(const Key& v) const
         {
             return Hash{}(v);
         }

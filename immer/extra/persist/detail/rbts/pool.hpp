@@ -15,25 +15,6 @@
 
 namespace immer::persist::rbts {
 
-struct inner_node
-{
-    immer::vector<node_id> children;
-    bool relaxed = {};
-
-    auto tie() const { return std::tie(children, relaxed); }
-
-    friend bool operator==(const inner_node& left, const inner_node& right)
-    {
-        return left.tie() == right.tie();
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(CEREAL_NVP(children), CEREAL_NVP(relaxed));
-    }
-};
-
 struct rbts_info
 {
     node_id root;
@@ -50,6 +31,47 @@ struct rbts_info
     void serialize(Archive& ar)
     {
         ar(CEREAL_NVP(root), CEREAL_NVP(tail));
+    }
+};
+
+} // namespace immer::persist::rbts
+
+template <>
+struct std::hash<immer::persist::rbts::rbts_info>
+{
+    auto operator()(const immer::persist::rbts::rbts_info& x) const
+    {
+        const auto boost_combine = [](std::size_t& seed, std::size_t hash) {
+            seed ^= hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        };
+
+        auto seed = std::size_t{};
+        boost_combine(seed,
+                      hash<immer::persist::node_id::rep_t>{}(x.root.value));
+        boost_combine(seed,
+                      hash<immer::persist::node_id::rep_t>{}(x.tail.value));
+        return seed;
+    }
+};
+
+namespace immer::persist::rbts {
+
+struct inner_node
+{
+    immer::vector<node_id> children;
+    bool relaxed = {};
+
+    auto tie() const { return std::tie(children, relaxed); }
+
+    friend bool operator==(const inner_node& left, const inner_node& right)
+    {
+        return left.tie() == right.tie();
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(CEREAL_NVP(children), CEREAL_NVP(relaxed));
     }
 };
 
@@ -172,25 +194,3 @@ input_pool<T> to_input_pool(output_pool<T, MemoryPolicy, B, BL> ar)
 }
 
 } // namespace immer::persist::rbts
-
-namespace std {
-
-template <>
-struct hash<immer::persist::rbts::rbts_info>
-{
-    auto operator()(const immer::persist::rbts::rbts_info& x) const
-    {
-        const auto boost_combine = [](std::size_t& seed, std::size_t hash) {
-            seed ^= hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        };
-
-        auto seed = std::size_t{};
-        boost_combine(seed,
-                      hash<immer::persist::node_id::rep_t>{}(x.root.value));
-        boost_combine(seed,
-                      hash<immer::persist::node_id::rep_t>{}(x.tail.value));
-        return seed;
-    }
-};
-
-} // namespace std
