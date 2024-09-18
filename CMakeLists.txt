@@ -42,10 +42,12 @@ option(immer_BUILD_EXAMPLES "Build examples" ON)
 option(immer_BUILD_DOCS "Build docs" ON)
 option(immer_BUILD_EXTRAS "Build extras" ON)
 option(immer_INSTALL_FUZZERS "Install fuzzers" off)
-option(immer_ENABLE_EXCEPTIONS "Always enable exceptions regardless of detected compiler support" OFF)
-option(immer_DISABLE_EXCEPTIONS "Always disable exceptions regardless of detected compiler support" OFF)
+option(immer_ENABLE_EXCEPTIONS
+       "Always enable exceptions regardless of detected compiler support" OFF)
+option(immer_DISABLE_EXCEPTIONS
+       "Always disable exceptions regardless of detected compiler support" OFF)
 
-if (immer_ENABLE_EXCEPTIONS AND immer_DISABLE_EXCEPTIONS)
+if(immer_ENABLE_EXCEPTIONS AND immer_DISABLE_EXCEPTIONS)
   message(FATAL_ERROR "Cannot both enable and disable exceptions")
 endif()
 
