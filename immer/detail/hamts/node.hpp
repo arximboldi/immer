@@ -47,6 +47,7 @@ struct node
     using edit_t      = typename transience::edit;
     using value_t     = T;
     using bitmap_t    = typename get_bitmap_type<B>::type;
+    using hash_t      = decltype(Hash{}(std::declval<const T&>()));
 
     enum class kind_t
     {
@@ -991,9 +992,9 @@ struct node
     static node_t*
     make_merged(shift_t shift, T v1, hash_t hash1, T v2, hash_t hash2)
     {
-        if (shift < max_shift<B>) {
-            auto idx1 = hash1 & (mask<B> << shift);
-            auto idx2 = hash2 & (mask<B> << shift);
+        if (shift < max_shift<hash_t, B>) {
+            auto idx1 = hash1 & (mask<hash_t, B> << shift);
+            auto idx2 = hash2 & (mask<hash_t, B> << shift);
             if (idx1 == idx2) {
                 auto merged = make_merged(
                     shift + B, std::move(v1), hash1, std::move(v2), hash2);
@@ -1020,9 +1021,9 @@ struct node
     static node_t* make_merged_e(
         edit_t e, shift_t shift, T v1, hash_t hash1, T v2, hash_t hash2)
     {
-        if (shift < max_shift<B>) {
-            auto idx1 = hash1 & (mask<B> << shift);
-            auto idx2 = hash2 & (mask<B> << shift);
+        if (shift < max_shift<hash_t, B>) {
+            auto idx1 = hash1 & (mask<hash_t, B> << shift);
+            auto idx2 = hash2 & (mask<hash_t, B> << shift);
             if (idx1 == idx2) {
                 auto merged = make_merged_e(
                     e, shift + B, std::move(v1), hash1, std::move(v2), hash2);
@@ -1097,7 +1098,7 @@ struct node
 
     static void delete_deep(node_t* p, shift_t s)
     {
-        if (s == max_depth<B>)
+        if (s == max_depth<hash_t, B>)
             delete_collision(p);
         else {
             auto fst = p->children();
@@ -1111,7 +1112,7 @@ struct node
 
     static void delete_deep_shift(node_t* p, shift_t s)
     {
-        if (s == max_shift<B>)
+        if (s == max_shift<hash_t, B>)
             delete_collision(p);
         else {
             auto fst = p->children();

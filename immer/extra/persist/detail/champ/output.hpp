@@ -61,8 +61,9 @@ struct output_pool_builder
     void visit(const Node* node, immer::detail::hamts::count_t depth)
     {
         using immer::detail::hamts::max_depth;
+        using hash_t = typename Node::hash_t;
 
-        if (depth < max_depth<B>) {
+        if (depth < max_depth<hash_t, B>) {
             visit_inner(node, depth);
         } else {
             visit_collision(node);
