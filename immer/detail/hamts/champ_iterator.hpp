@@ -15,6 +15,32 @@ namespace immer {
 namespace detail {
 namespace hamts {
 
+template <bool Enabled, bits_t B>
+struct relocation_info_t
+{
+    void reset() {}
+    void increment() {}
+    void step_right(count_t) {}
+    void step_down(count_t) {}
+};
+
+template <bits_t B>
+struct relocation_info_t<true, B>
+{
+    count_t cur_off_;
+    std::uint8_t path_off_[max_depth<B>] = {
+        0,
+    };
+
+    void reset() { cur_off_ = 0; }
+
+    void increment() { cur_off_++; }
+
+    void step_right(count_t depth) { ++path_off_[depth - 1]; }
+
+    void step_down(count_t depth) { path_off_[depth - 1] = 0; }
+};
+
 template <typename T, typename Hash, typename Eq, typename MP, bits_t B>
 struct champ_iterator
     : iterator_facade<champ_iterator<T, Hash, Eq, MP, B>,
@@ -35,6 +61,7 @@ struct champ_iterator
 
     champ_iterator(const tree_t& v)
         : depth_{0}
+        , relocation_info_{}
     {
         if (v.root->datamap()) {
             cur_ = v.root->values();
@@ -50,6 +77,7 @@ struct champ_iterator
         : cur_{nullptr}
         , end_{nullptr}
         , depth_{0}
+        , relocation_info_{}
     {
         path_[0] = &v.root;
     }
@@ -58,9 +86,12 @@ struct champ_iterator
         : cur_{other.cur_}
         , end_{other.end_}
         , depth_{other.depth_}
+        , relocation_info_{other.relocation_info_}
     {
         std::copy(other.path_, other.path_ + depth_ + 1, path_);
     }
+
+    auto relocation_info() const { return relocation_info_; }
 
 private:
     friend iterator_core_access;
@@ -71,10 +102,12 @@ private:
     node_t* const* path_[max_depth<hash_t, B> + 1] = {
         0,
     };
+    relocation_info_t<MP::track_base_offset_of_pointers, B> relocation_info_;
 
     void increment()
     {
         ++cur_;
+        relocation_info_.increment();
         ensure_valid_();
     }
 
@@ -86,16 +119,19 @@ private:
             if (parent->nodemap()) {
                 ++depth_;
                 path_[depth_] = parent->children();
-                auto child    = *path_[depth_];
+                relocation_info_.step_down(depth_);
+                auto child = *path_[depth_];
                 assert(child);
                 if (depth_ < max_depth<hash_t, B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
                         end_ = cur_ + child->data_count();
+                        relocation_info_.reset();
                     }
                 } else {
                     cur_ = child->collisions();
                     end_ = cur_ + child->collision_count();
+                    relocation_info_.reset();
                 }
                 return true;
             }
@@ -111,16 +147,19 @@ private:
             auto next   = path_[depth_] + 1;
             if (next < last) {
                 path_[depth_] = next;
-                auto child    = *path_[depth_];
+                relocation_info_.step_right(depth_);
+                auto child = *path_[depth_];
                 assert(child);
                 if (depth_ < max_depth<hash_t, B>) {
                     if (child->datamap()) {
                         cur_ = child->values();
                         end_ = cur_ + child->data_count();
+                        relocation_info_.reset();
                     }
                 } else {
                     cur_ = child->collisions();
                     end_ = cur_ + child->collision_count();
+                    relocation_info_.reset();
                 }
                 return true;
             }
@@ -139,6 +178,7 @@ private:
                 // end of sequence
                 assert(depth_ == 0);
                 cur_ = end_ = nullptr;
+                relocation_info_.reset();
                 return;
             }
         }
