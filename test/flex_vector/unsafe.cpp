@@ -10,9 +10,10 @@
 #include <immer/memory_policy.hpp>
 #include <immer/vector.hpp>
 
-using unsafe_memory = immer::memory_policy<immer::unsafe_free_list_heap_policy<immer::cpp_heap>,
-                                           immer::no_refcount_policy,
-                                           immer::no_lock_policy>;
+using unsafe_memory =
+    immer::memory_policy<immer::unsafe_free_list_heap_policy<immer::cpp_heap>,
+                         immer::no_refcount_policy,
+                         immer::no_lock_policy>;
 
 template <typename T>
 using test_flex_vector_t = immer::flex_vector<T, unsafe_memory, 3u, 6u>;
