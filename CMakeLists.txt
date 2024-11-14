@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0048 NEW) # enable project VERSION
 cmake_policy(SET CMP0056 NEW) # honor link flags in try_compile()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -128,7 +128,7 @@ include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake"
   VERSION ${PROJECT_VERSION}
-  COMPATIBILITY SameMajorVersion)
+  COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ImmerConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Immer")
