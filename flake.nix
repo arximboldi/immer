@@ -108,7 +108,6 @@
                 alejandra
                 just
                 fzf
-                starship
               ]
               ++ persist-inputs;
 
@@ -117,7 +116,6 @@
               + "\n"
               + ''
                 alias j=just
-                eval "$(starship init bash)"
               '';
           };
         }
@@ -131,7 +129,6 @@
               packages = [
                 pkgs.just
                 pkgs.fzf
-                pkgs.starship
                 pkgs.cmake
                 pkgs.ninja
 
@@ -148,7 +145,6 @@
                 + "\n"
                 + ''
                   alias j=just
-                  eval "$(starship init bash)"
                 '';
             };
         };
@@ -199,7 +195,7 @@
             "-DCMAKE_BUILD_TYPE=Debug"
             "-Dimmer_BUILD_TESTS=ON"
             "-Dimmer_BUILD_PERSIST_TESTS=ON"
-            "-Dimmer_BUILD_EXAMPLES=OFF"
+            "-Dimmer_BUILD_EXAMPLES=ON"
             "-DCXX_STANDARD=17"
           ];
         });

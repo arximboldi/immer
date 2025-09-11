@@ -144,6 +144,8 @@ in
         boost
         boehmgc
         fmt
+        cereal
+        xxHash
       ]
       ++ lib.optionals stdenv.isLinux [
         gdb

@@ -36,8 +36,7 @@ target_link_libraries(persist-tests PRIVATE fmt::fmt Catch2::Catch2WithMain
 target_compile_options(persist-tests PRIVATE -O1 -fno-optimize-sibling-calls -g
                                              -fno-omit-frame-pointer)
 target_compile_options(
-  persist-tests PRIVATE -Wno-unused-function -Wno-c++20-designator
-                        -Wimplicit-int-conversion)
+  persist-tests PRIVATE -Wno-unused-function -Wno-c++20-designator)
 
 if(ENABLE_ASAN)
   target_compile_options(
