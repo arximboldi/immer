@@ -98,9 +98,11 @@ protected:
 public:
     ReferenceT operator*() const { return access_t::dereference(derived()); }
     PointerT operator->() const { return &access_t::dereference(derived()); }
+
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     ReferenceT operator[](DifferenceTypeT n) const
     {
-        static_assert(is_random_access, "");
         return *(derived() + n);
     }
 
@@ -125,15 +127,21 @@ public:
         return tmp;
     }
 
+    template <
+        typename U                      = iterator_facade,
+        typename std::enable_if_t<U::is_bidirectional || U::is_random_access,
+                                  bool> = true>
     DerivedT& operator--()
     {
-        static_assert(is_bidirectional || is_random_access, "");
         access_t::decrement(derived());
         return derived();
     }
+    template <
+        typename U                      = iterator_facade,
+        typename std::enable_if_t<U::is_bidirectional || U::is_random_access,
+                                  bool> = true>
     DerivedT operator--(int)
     {
-        static_assert(is_bidirectional || is_random_access, "");
         auto tmp = derived();
         access_t::decrement(derived());
         return tmp;
@@ -150,47 +158,58 @@ public:
         return derived();
     }
 
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     DerivedT operator+(DifferenceTypeT n) const
     {
-        static_assert(is_random_access, "");
         auto tmp = derived();
         return tmp += n;
     }
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend DerivedT operator+(DifferenceTypeT n, const DerivedT& i)
     {
-        static_assert(is_random_access, "");
         return i + n;
     }
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     DerivedT operator-(DifferenceTypeT n) const
     {
-        static_assert(is_random_access, "");
         auto tmp = derived();
         return tmp -= n;
     }
+
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend DifferenceTypeT operator-(const DerivedT& a, const DerivedT& b)
     {
-        static_assert(is_random_access, "");
         return access_t::distance_to(b, a);
     }
 
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend bool operator<(const DerivedT& a, const DerivedT& b)
+
     {
-        static_assert(is_random_access, "");
         return access_t::distance_to(a, b) > 0;
     }
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend bool operator<=(const DerivedT& a, const DerivedT& b)
     {
-        static_assert(is_random_access, "");
         return access_t::distance_to(a, b) >= 0;
     }
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend bool operator>(const DerivedT& a, const DerivedT& b)
+
     {
-        static_assert(is_random_access, "");
         return access_t::distance_to(a, b) < 0;
     }
+    template <typename U = iterator_facade,
+              typename std::enable_if_t<U::is_random_access, bool> = true>
     friend bool operator>=(const DerivedT& a, const DerivedT& b)
     {
-        static_assert(is_random_access, "");
         return access_t::distance_to(a, b) <= 0;
     }
 };
