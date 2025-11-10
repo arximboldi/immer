@@ -184,10 +184,13 @@ system once you have manually cloned the repository::
 .. _nix package manager: https://nixos.org/nix
 .. _cmake: https://cmake.org/
 
-Installing immer using vcpkg
------------------------------
+Installation
+-----------
 
-You can download and install immer using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager::
+Using vcpkg
+~~~~~~~~~~
+
+You can download and install immer using the `vcpkg <https://github.com/Microsoft/vcpkg>`_ dependency manager::
 
     git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg
@@ -195,7 +198,26 @@ You can download and install immer using the [vcpkg](https://github.com/Microsof
     ./vcpkg integrate install
     ./vcpkg install immer
 
-The immer port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+The immer port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please `create an issue or pull request <https://github.com/Microsoft/vcpkg>`_ on the vcpkg repository.
+
+Using build2
+~~~~~~~~~~~
+
+For projects using `build2 <https://build2.org>`_, ensure your project is setup to use `cppget.org <https://cppget.org>`_ as a package repository, then add immer as a dependency in your project's ``manifest`` file:
+
+::
+
+  depends: libimmer ^0.8.1
+
+Then in your ``buildfile``, import and link against the library:
+
+::
+
+  import libs = libimmer%lib{immer}
+
+  exe{hello}: {hxx cxx}{**} $libs
+
+The immer package in build2 is kept up to date by community contributors. If the version is out of date, please `create an issue or pull request <https://github.com/build2-packaging/immer>`_ on immer build2 package repository.
 
 Development
 -----------
