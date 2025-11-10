@@ -1,5 +1,5 @@
 function(immer_target_name_for out_target out_file file)
-  get_filename_component(_extension ${_file} EXT)
+  get_filename_component(_extension ${file} EXT)
 
   file(RELATIVE_PATH _relative ${PROJECT_SOURCE_DIR} ${file})
   string(REPLACE "${_extension}" "" _name ${_relative})
