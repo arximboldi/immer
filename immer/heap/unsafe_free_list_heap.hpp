@@ -24,6 +24,8 @@ struct unsafe_free_list_storage
     {
         free_list_node* data;
         std::size_t count;
+
+        ~head_t() { Heap::clear(); }
     };
 
     static head_t& head()
