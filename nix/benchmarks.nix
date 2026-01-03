@@ -4,7 +4,8 @@
   autoreconfHook,
   boehmgc,
   fetchFromGitHub,
-}: {
+}:
+{
   c_rrb = stdenv.mkDerivation rec {
     name = "c-rrb-${version}";
     version = "git-${commit}";
@@ -15,8 +16,8 @@
       rev = commit;
       sha256 = "0zmha3xi80vgdcwzb4vwdllf97dvggjpjfgahrpsb5f5qi3yshxa";
     };
-    nativeBuildInputs = [autoreconfHook];
-    propagatedBuildInputs = [boehmgc];
+    nativeBuildInputs = [ autoreconfHook ];
+    propagatedBuildInputs = [ boehmgc ];
     meta = {
       homepage = "http://hypirion.com/thesis";
       description = "RRB-tree implemented as a library in C. ";

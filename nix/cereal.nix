@@ -9,8 +9,8 @@ stdenv.mkDerivation rec {
   version = "git-${commit}";
   commit = arximboldi-cereal-src.rev;
   src = arximboldi-cereal-src;
-  nativeBuildInputs = [cmake];
-  cmakeFlags = ["-DJUST_INSTALL_CEREAL=true"];
+  nativeBuildInputs = [ cmake ];
+  cmakeFlags = [ "-DJUST_INSTALL_CEREAL=true" ];
   meta = {
     homepage = "http://uscilab.github.io/cereal";
     description = "A C++11 library for serialization";

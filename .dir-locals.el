@@ -4,4 +4,6 @@
  (c-mode .
          ((mode . c++)))
  (c++-mode .
-          ((eval add-hook 'before-save-hook #'clang-format-buffer nil t))))
+           ((eval add-hook 'before-save-hook #'clang-format-buffer nil t)))
+ (nix-mode .
+           ((mode . nixfmt-on-save))))

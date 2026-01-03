@@ -8,7 +8,7 @@ stdenv.mkDerivation {
   name = "immer-git";
   version = "git";
   inherit src;
-  nativeBuildInputs = [cmake];
+  nativeBuildInputs = [ cmake ];
   dontBuild = true;
   dontUseCmakeBuildDir = true;
   cmakeFlags = [
