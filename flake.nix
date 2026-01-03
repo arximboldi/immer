@@ -12,15 +12,6 @@
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
-      inputs = {
-        flake-compat.follows = "flake-compat";
-        flake-utils.follows = "flake-utils";
-        gitignore.follows = "gitignore";
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
     arximboldi-cereal-src = {
       url = "github:arximboldi/cereal";
       flake = false;
@@ -37,7 +28,6 @@
     docs-nixpkgs,
     flake-utils,
     flake-compat,
-    pre-commit-hooks,
     gitignore,
     arximboldi-cereal-src,
   }:
@@ -62,18 +52,6 @@
     in {
       checks =
         {
-          pre-commit-check = pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              alejandra.enable = true;
-              cmake-format.enable = true;
-              clang-format = {
-                enable = true;
-                types_or = pkgs.lib.mkForce ["c" "c++"];
-              };
-            };
-          };
-
           inherit (self.packages.${system}) unit-tests fuzzers-debug;
         }
         // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
@@ -112,13 +90,10 @@
               ]
               ++ persist-inputs;
 
-            shellHook =
-              self.checks.${system}.pre-commit-check.shellHook
-              + "\n"
-              + ''
-                alias j=just
-                eval "$(starship init bash)"
-              '';
+            shellHook = ''
+              alias j=just
+              eval "$(starship init bash)"
+            '';
           };
         }
         // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
