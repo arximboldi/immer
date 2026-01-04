@@ -1,19 +1,10 @@
 {
   toolchain ? "",
-  rev ? "08ef0f28e3a41424b92ba1d203de64257a9fca6a",
-  sha256 ? "1mql1gp86bk6pfsrp0lcww6hw5civi6f8542d4nh356506jdxmcy",
-  pkgs ? import <nixpkgs> { },
+  flake ? import ./nix/flake-compat.nix { },
+  pkgs ? import flake.inputs.nixpkgs { },
   ...
 }@args:
 let
-  catch2_3 =
-    if pkgs ? catch2_3 then
-      pkgs.catch2_3
-    else
-      pkgs.callPackage ./nix/catch2_3.nix {
-        stdenv = tc.stdenv;
-      };
-
   # For the documentation tools we use an older Nixpkgs since the
   # newer versions seem to be not working great...
   oldNixpkgsSrc = pkgs.fetchFromGitHub {
@@ -35,6 +26,16 @@ let
         stdenv = pkgs.stdenv;
         cc = pkgs.stdenv.cc;
       }
+    else if toolchain == "gnu" then
+      {
+        stdenv = pkgs.gccStdenv;
+        cc = pkgs.gcc_latest;
+      }
+    else if toolchain == "llvm" then
+      {
+        stdenv = pkgs.llvmPackages_latest.libcxxStdenv;
+        cc = pkgs.llvmPackages_latest.clang;
+      }
     else
       let
         parts = builtins.split "-" toolchain;
@@ -53,6 +54,12 @@ let
         }
       else
         abort "unknown toolchain";
+
+  # use Catch2 v3
+  catch2_3 = pkgs.callPackage ./nix/catch2_3.nix {
+    stdenv = tc.stdenv;
+  };
+
 in
 tc.stdenv.mkDerivation rec {
   name = "immer-env";
