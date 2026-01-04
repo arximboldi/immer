@@ -1,14 +1,19 @@
 {
-  arximboldi-cereal-src,
   stdenv,
   cmake,
   lib,
+  fetchFromGitHub,
 }:
 stdenv.mkDerivation rec {
   name = "cereal-${version}";
   version = "git-${commit}";
-  commit = arximboldi-cereal-src.rev;
-  src = arximboldi-cereal-src;
+  commit = "4bfaf5fee1cbc69db4614169092368a29c7607c4";
+  src = fetchFromGitHub {
+    owner = "arximboldi";
+    repo = "cereal";
+    rev = commit;
+    hash = "sha256-G8V5g0POddpukPmiWAX/MhnIhi+EEVE/P+MQGCGH/J0=";
+  };
   nativeBuildInputs = [ cmake ];
   cmakeFlags = [ "-DJUST_INSTALL_CEREAL=true" ];
   meta = {

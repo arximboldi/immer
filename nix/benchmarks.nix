@@ -16,6 +16,7 @@
       rev = commit;
       sha256 = "0zmha3xi80vgdcwzb4vwdllf97dvggjpjfgahrpsb5f5qi3yshxa";
     };
+    NIX_CFLAGS_COMPILE = "-Wno-error -Wno-incompatible-pointer-types";
     nativeBuildInputs = [ autoreconfHook ];
     propagatedBuildInputs = [ boehmgc ];
     meta = {
