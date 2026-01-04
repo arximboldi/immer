@@ -5,15 +5,19 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(immer VERSION 0.9.0)
 
-if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-extended-offsetof -Wno-c++17-extensions -Wno-c++1z-extensions -Wno-unknown-warning-option -Wno-type-limits"
-  )
-endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_EXTENSIONS off)
+
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits"
+  )
+endif()
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits")
+endif()
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments -Wno-unknown-warning-option")
 endif()
 
 include(GNUInstallDirs)
@@ -51,9 +55,15 @@ if(immer_ENABLE_EXCEPTIONS AND immer_DISABLE_EXCEPTIONS)
   message(FATAL_ERROR "Cannot both enable and disable exceptions")
 endif()
 
-set(CXX_STANDARD
+if (immer_BUILD_PERSIST_TESTS)
+  set(CXX_STANDARD
+    17
+    CACHE STRING "c++ standard number")
+else()
+  set(CXX_STANDARD
     14
     CACHE STRING "c++ standard number")
+endif()
 
 set(CMAKE_CXX_STANDARD ${CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED on)

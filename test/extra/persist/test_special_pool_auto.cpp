@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #define DEFINE_OPERATIONS(name)                                                \
-    bool operator==(const name& left, const name& right)                       \
+    inline bool operator==(const name& left, const name& right)                \
     {                                                                          \
         return members(left) == members(right);                                \
     }                                                                          \
