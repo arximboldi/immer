@@ -65,12 +65,7 @@ in
 pkgs.mkShell.override { inherit stdenv; } {
   inputsFrom = [ immer ];
   packages = (
-    with pkgs;
-    lib.optionals stdenv.isLinux [
-      gdb
-      ccache
-      valgrind
-    ]
+    with pkgs; [ ccache ] ++ lib.optionals cc.isClang [ lldb ] ++ lib.optionals cc.isGNU [ gdb ]
   );
   hardeningDisable = [ "fortify" ];
 }

@@ -2,6 +2,7 @@
   pkgs,
   lib,
   stdenv,
+  clangStdenv,
   cmake,
   ninja,
   xxHash,
@@ -10,12 +11,19 @@
   boost,
   fmt,
   catch2_3,
+  valgrind,
   src ? ../.,
   withTests ? false,
   withExamples ? false,
   withBenchmarks ? false,
   withDocs ? false,
   withPersist ? false,
+  withFuzzers ? false,
+  withDebug ? false,
+  withASan ? false,
+  withUBSan ? false,
+  withLSan ? false,
+  withValgrind ? false,
 }:
 
 let
@@ -24,15 +32,34 @@ let
   docs = pkgs.callPackage ./docs.nix { };
   cereal = pkgs.callPackage ./cereal.nix { };
 
+  # building fuzzers require clang
+  withSanitizer = withASan || withUBSan || withLSan;
+  preferClang = withFuzzers || withSanitizer;
+  theStdenv = if preferClang && !stdenv.cc.isClang then clangStdenv else stdenv;
 in
-stdenv.mkDerivation {
-  name = "immer";
+theStdenv.mkDerivation {
+  name = builtins.concatStringsSep "-" (
+    [ "immer" ]
+    ++ lib.optionals withPersist [ "persist" ]
+    ++ lib.optionals withDebug [ "debug" ]
+    ++ lib.optionals withTests [ "tests" ]
+    ++ lib.optionals withBenchmarks [ "benchmarks" ]
+    ++ lib.optionals withFuzzers [ "fuzzers" ]
+    ++ lib.optionals withASan [ "asan" ]
+    ++ lib.optionals withUBSan [ "ubsan" ]
+    ++ lib.optionals withLSan [ "lsan" ]
+  );
   version = "git";
+
   inherit src;
 
+  hardeningDisable = lib.optionals withSanitizer [ "fortify" ];
+
   buildInputs =
-    lib.optionals withTests [
+    lib.optionals (withExamples || withFuzzers || withTests || withBenchmarks) [
       boehmgc
+    ]
+    ++ lib.optionals (withTests || withBenchmarks) [
       boost
       fmt
       catch2_3
@@ -44,6 +71,7 @@ stdenv.mkDerivation {
       nlohmann_json
     ]
     ++ lib.optionals withBenchmarks [
+      valgrind
       benchmarks.c_rrb
       benchmarks.steady
       benchmarks.chunkedseq
@@ -62,17 +90,40 @@ stdenv.mkDerivation {
 
   # dontBuild = true;
   # dontUseCmakeBuildDir = false;
-  # doCheck = true;
 
-  cmakeFlags = [
-    (lib.cmakeBool "immer_BUILD_TESTS" withTests)
-    (lib.cmakeBool "immer_BUILD_PERSIST_TESTS" (withPersist && withTests))
-    (lib.cmakeBool "immer_BUILD_EXAMPLES" withExamples)
-    (lib.cmakeBool "immer_BUILD_BENCHMARKS" withBenchmarks)
-    (lib.cmakeBool "immer_BUILD_DOCS" withDocs)
+  doCheck = withTests;
+
+  ctestFlags = lib.optionals withValgrind [
+    "-D"
+    "ExperimentalMemCheck"
   ];
 
-  checkPhase = ''ninja check'';
+  cmakeBuildType =
+    if withDebug then
+      "Debug"
+    else if withSanitizer then
+      "RelWithDebInfo"
+    else
+      "Release";
+
+  cmakeFlags = [
+    (lib.cmakeBool "ENABLE_ASAN" withASan)
+    (lib.cmakeBool "ENABLE_UBSAN" withUBSan)
+    (lib.cmakeBool "ENABLE_LSAN" withLSan)
+    (lib.cmakeBool "immer_BUILD_TESTS" (withTests || withBenchmarks))
+    (lib.cmakeBool "immer_BUILD_PERSIST_TESTS" (withPersist && withTests))
+    (lib.cmakeBool "immer_BUILD_EXAMPLES" withExamples)
+    (lib.cmakeBool "immer_BUILD_DOCS" withDocs)
+    (lib.cmakeBool "immer_INSTALL_FUZZERS" withFuzzers)
+    (lib.cmakeBool "CHECK_BENCHMARKS" withBenchmarks)
+    (lib.cmakeBool "DISABLE_FREE_LIST" (withSanitizer || withValgrind))
+  ];
+
+  ninjaFlags =
+    lib.optionals withFuzzers [ "fuzzers" ]
+    ++ lib.optionals withTests [ "tests" ]
+    ++ lib.optionals withExamples [ "examples" ]
+    ++ lib.optionals withBenchmarks [ "benchmarks" ];
 
   meta = {
     homepage = "https://github.com/arximboldi/immer";
