@@ -36,6 +36,7 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        lib = nixpkgs.lib;
 
         withLLVM =
           drv:
@@ -75,66 +76,25 @@
           });
         };
 
-        devShells = {
-          default = (withLLVM pkgs.mkShell) {
-            NIX_HARDENING_ENABLE = "";
-            inputsFrom = [
-              (import ./shell.nix {
-                inherit system nixpkgs;
-              })
+        devShells =
+          let
+            mkShell = import ./shell.nix;
+            toolchains = [
+              "gnu"
+              "gnu-10"
+              "gnu-11"
+              "gnu-12"
+              "gnu-13"
+              "llvm"
+              "llvm-18"
+              "llvm-19"
+              "llvm-20"
             ];
-
-            packages =
-              with pkgs;
-              [
-                # for the llvm-symbolizer binary, that allows to show stacks in ASAN and LeakSanitizer.
-                llvmPackages_latest.bintools-unwrapped
-                cmake-format
-                alejandra
-                just
-                fzf
-                starship
-              ]
-              ++ persist-inputs;
-
-            shellHook = ''
-              alias j=just
-              eval "$(starship init bash)"
-            '';
-          };
-        }
-        // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
-          # doxygen doesn't work on macOS currently
-          docs =
-            let
-              docsPkgs = import docs-nixpkgs { inherit system; };
-              docs = docsPkgs.callPackage ./nix/docs.nix { };
-            in
-            pkgs.mkShell {
-              packages = [
-                pkgs.just
-                pkgs.fzf
-                pkgs.starship
-                pkgs.cmake
-                pkgs.ninja
-
-                docsPkgs.doxygen
-                (docsPkgs.python.withPackages (ps: [
-                  ps.sphinx
-                  docs.breathe
-                  docs.recommonmark
-                ]))
-              ];
-
-              shellHook =
-                self.checks.${system}.pre-commit-check.shellHook
-                + "\n"
-                + ''
-                  alias j=just
-                  eval "$(starship init bash)"
-                '';
-            };
-        };
+          in
+          {
+            default = mkShell { inherit pkgs; };
+          }
+          // lib.attrsets.genAttrs toolchains (toolchain: mkShell { inherit pkgs toolchain; });
 
         packages = {
           immer =

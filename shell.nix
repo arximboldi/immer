@@ -7,13 +7,12 @@
 let
   # For the documentation tools we use an older Nixpkgs since the
   # newer versions seem to be not working great...
-  oldNixpkgsSrc = pkgs.fetchFromGitHub {
+  oldNixpkgs = import (pkgs.fetchFromGitHub {
     owner = "NixOS";
     repo = "nixpkgs";
     rev = "d0d905668c010b65795b57afdf7f0360aac6245b";
     sha256 = "1kqxfmsik1s1jsmim20n5l4kq6wq8743h5h17igfxxbbwwqry88l";
-  };
-  oldNixpkgs = import oldNixpkgsSrc (if args ? system then { inherit (args) system; } else { });
+  }) { system = pkgs.system; };
 
   docs = oldNixpkgs.callPackage ./nix/docs.nix { };
   benchmarks = pkgs.callPackage ./nix/benchmarks.nix { };
@@ -40,7 +39,7 @@ let
       let
         parts = builtins.split "-" toolchain;
         compiler = builtins.elemAt parts 0;
-        version = builtins.elemAt parts 1;
+        version = builtins.elemAt parts 2;
       in
       if compiler == "gnu" then
         {
@@ -75,12 +74,11 @@ tc.stdenv.mkDerivation rec {
       lldb
       boost
       boehmgc
-      fmt
+      (fmt.override { stdenv = tc.stdenv; })
     ]
     ++
       # for immer::persist
       [
-        fmt
         arximboldi-cereal
         xxHash
         nlohmann_json
