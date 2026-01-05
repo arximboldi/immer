@@ -54,7 +54,7 @@ endif()
 
 if(ENABLE_ASAN)
   target_compile_options(
-    persist-tests PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address)
+    persist-tests PRIVATE -fsanitize=address)
   target_link_options(persist-tests PRIVATE -fsanitize=address)
   target_compile_definitions(persist-tests PRIVATE BOOST_USE_ASAN=1)
 endif()
