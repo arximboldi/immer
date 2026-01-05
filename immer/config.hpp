@@ -12,6 +12,7 @@
 #define IMMER_HAS_CPP17 1
 #endif
 
+#if IMMER_HAS_CPP17
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(nodiscard)
 #define IMMER_NODISCARD [[nodiscard]]
@@ -19,6 +20,7 @@
 #else
 #if _MSVC_LANG >= 201703L
 #define IMMER_NODISCARD [[nodiscard]]
+#endif
 #endif
 #endif
 

@@ -19,6 +19,12 @@
 #include <memory>
 #include <type_traits>
 
+// Disable some warnings for this file as it seems to be causing various
+// false positives when compiling with various versions of GCC.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+
 namespace immer {
 namespace detail {
 namespace rbts {
@@ -1031,3 +1037,5 @@ constexpr bits_t derive_bits_leaf = derive_bits_leaf_aux<T, MP, B>();
 } // namespace rbts
 } // namespace detail
 } // namespace immer
+
+#pragma GCC diagnostic pop

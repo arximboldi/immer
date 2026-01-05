@@ -16,6 +16,12 @@
 #include <cassert>
 #include <cstddef>
 
+// Disable some warnings for this file as it seems to be causing various
+// false positives when compiling with various versions of GCC.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+
 namespace immer {
 namespace detail {
 namespace hamts {
@@ -347,6 +353,7 @@ struct node
 #if IMMER_TAGGED_NODE
         p->impl.d.kind = node_t::kind_t::collision;
 #endif
+        // false positive warning
         p->impl.d.data.collision.count = 2;
         auto cols                      = p->collisions();
         IMMER_TRY {
@@ -1151,3 +1158,5 @@ struct node
 } // namespace hamts
 } // namespace detail
 } // namespace immer
+
+#pragma GCC diagnostic pop
