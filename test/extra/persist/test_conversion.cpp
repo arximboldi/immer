@@ -15,7 +15,8 @@
     void serialize(Archive& ar)                                                \
     {                                                                          \
         serialize_members(ar, *this);                                          \
-    }
+    }                                                                          \
+    static_assert(true, "require semicolon")
 
 namespace {
 
