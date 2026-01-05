@@ -5,18 +5,7 @@
   ...
 }@args:
 let
-  # For the documentation tools we use an older Nixpkgs since the
-  # newer versions seem to be not working great...
-  oldNixpkgs = import (pkgs.fetchFromGitHub {
-    owner = "NixOS";
-    repo = "nixpkgs";
-    rev = "d0d905668c010b65795b57afdf7f0360aac6245b";
-    sha256 = "1kqxfmsik1s1jsmim20n5l4kq6wq8743h5h17igfxxbbwwqry88l";
-  }) { system = pkgs.system; };
-
-  docs = oldNixpkgs.callPackage ./nix/docs.nix { };
-  benchmarks = pkgs.callPackage ./nix/benchmarks.nix { };
-  arximboldi-cereal = pkgs.callPackage ./nix/cereal.nix { };
+  lib = pkgs.lib;
 
   # toolchain is a string of the form "gnu-X" or "llvm-Y", empty for default
   tc =
@@ -54,50 +43,34 @@ let
       else
         abort "unknown toolchain";
 
+  stdenv = tc.stdenv;
+  cc = tc.cc;
+
   # use Catch2 v3
   catch2_3 = pkgs.callPackage ./nix/catch2_3.nix {
-    stdenv = tc.stdenv;
+    inherit stdenv;
+  };
+
+  immer = pkgs.callPackage ./nix/immer.nix {
+    inherit catch2_3 stdenv;
+    fmt = (pkgs.fmt.override { stdenv = tc.stdenv; });
+    withTests = true;
+    withExamples = true;
+    withPersist = true;
+    withBenchmarks = stdenv.isLinux;
+    withDocs = stdenv.isLinux;
   };
 
 in
-tc.stdenv.mkDerivation rec {
-  name = "immer-env";
-  buildInputs =
+pkgs.mkShell.override { inherit stdenv; } {
+  inputsFrom = [ immer ];
+  packages = (
     with pkgs;
-    [
-      tc.cc
-      git
-      catch2_3
-      cmake
-      pkg-config
-      ninja
-      lldb
-      boost
-      boehmgc
-      (fmt.override { stdenv = tc.stdenv; })
-    ]
-    ++
-      # for immer::persist
-      [
-        arximboldi-cereal
-        xxHash
-        nlohmann_json
-      ]
-    ++ lib.optionals stdenv.isLinux [
+    lib.optionals stdenv.isLinux [
       gdb
       ccache
       valgrind
-      benchmarks.c_rrb
-      benchmarks.steady
-      benchmarks.chunkedseq
-      benchmarks.immutable_cpp
-      benchmarks.hash_trie
-      oldNixpkgs.doxygen
-      (oldNixpkgs.python.withPackages (ps: [
-        ps.sphinx
-        docs.breathe
-        docs.recommonmark
-      ]))
-    ];
+    ]
+  );
   hardeningDisable = [ "fortify" ];
 }

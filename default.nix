@@ -1,8 +1,10 @@
 {
-  pkgs ? import <nixpkgs> { },
+  flake ? import ./nix/flake-compat.nix { },
+  pkgs ? import flake.inputs.nixpkgs { },
 }:
-with pkgs;
+
 let
+  inherit (pkgs) lib;
   inherit
     (import (pkgs.fetchFromGitHub {
       owner = "hercules-ci";
@@ -20,21 +22,6 @@ let
       filter = nixFilter;
       src = gitignoreSource src;
     };
+
 in
-stdenv.mkDerivation rec {
-  name = "immer-git";
-  version = "git";
-  src = srcFilter ./.;
-  nativeBuildInputs = [ cmake ];
-  dontBuild = true;
-  dontUseCmakeBuildDir = true;
-  cmakeFlags = [
-    "-Dimmer_BUILD_TESTS=OFF"
-    "-Dimmer_BUILD_EXAMPLES=OFF"
-  ];
-  meta = {
-    homepage = "https://github.com/arximboldi/immer";
-    description = "Postmodern immutable data structures for C++";
-    license = lib.licenses.boost;
-  };
-}
+pkgs.callPackage ./nix/immer.nix { src = srcFilter ./.; }

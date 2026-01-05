@@ -5,6 +5,9 @@
   boehmgc,
   fetchFromGitHub,
 }:
+
+# A bunch of libraries implementing persistent data structures in
+# C/C++, so that we can compare them with immer in benchmarks.
 {
   c_rrb = stdenv.mkDerivation rec {
     name = "c-rrb-${version}";
