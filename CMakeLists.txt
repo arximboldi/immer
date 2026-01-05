@@ -105,8 +105,8 @@ else()
   message(STATUS "Could not find ccache")
 endif()
 
-if(NOT BOEHM_GC_FOUND)
-  set(BOEHM_GC_LIBRARIES "")
+if(NOT BoehmGC_FOUND)
+  set(BoehmGC_LIBRARIES "")
 endif()
 
 # Targets
@@ -148,9 +148,9 @@ immer_canonicalize_cmake_booleans(DISABLE_FREE_LIST DISABLE_THREAD_SAFETY
                                   CHECK_SLOW_TESTS)
 add_library(immer-dev INTERFACE)
 target_include_directories(
-  immer-dev SYSTEM INTERFACE ${Boost_INCLUDE_DIR} ${BOEHM_GC_INCLUDE_DIR}
+  immer-dev SYSTEM INTERFACE ${Boost_INCLUDE_DIR} ${BoehmGC_INCLUDE_DIR}
                              ${CMAKE_CURRENT_SOURCE_DIR}/tools/include)
-target_link_libraries(immer-dev INTERFACE immer ${BOEHM_GC_LIBRARIES}
+target_link_libraries(immer-dev INTERFACE immer ${BoehmGC_LIBRARIES}
                                           ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(
   immer-dev
