@@ -89,8 +89,8 @@ theStdenv.mkDerivation {
     ninja
   ];
 
-  # dontBuild = true;
-  # dontUseCmakeBuildDir = false;
+  # on macos "build" conflicts with the BUILD file
+  cmakeBuildDir = "project";
 
   doCheck = withTests;
 

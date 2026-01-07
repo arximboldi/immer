@@ -2,11 +2,14 @@ name: test
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
-      - uses: cachix/cachix-action@v14
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
         with:
           name: arximboldi
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
@@ -27,81 +30,79 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v14
+      - uses: cachix/cachix-action@v16
         with:
           name: arximboldi
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-      - run: nix-shell --run "mkdir build"
-      - run: nix-shell --run "cd build && cmake .."
-      - run: nix-shell --run "cd build && make docs"
+      - run: nix develop --command cmake -B build
+      - run: nix develop --command make -C build docs
       - uses: shimataro/ssh-key-action@v2
         if: github.ref == 'refs/heads/master' && github.repository_owner == 'arximboldi'
         with:
           key: ${{ secrets.SINUSOIDES_SSH_KEY }}
           known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
-      - run: nix-shell --run "cd build && make upload-docs"
+      - run: nix develop --command make -C build upload-docs
         if: github.ref == 'refs/heads/master' && github.repository_owner == 'arximboldi'
 
   check:
     strategy:
       matrix:
         type: [Debug, Release]
-        toolchain: [gnu-6, gnu-7, llvm-5, llvm-6]
+        toolchain: [gnu-15, gnu-14, gnu-13, llvm-20, llvm-19, llvm-18]
         std: [14]
         opts: [[]]
         include:
           # coverage
           - type: Debug
-            toolchain: gnu-9
+            toolchain: gnu
             std: 14
             opts: ['coverage']
           # std 17
           - type: Debug
-            toolchain: gnu-8
+            toolchain: gnu
             std: 17
           - type: Debug
-            toolchain: llvm-9
+            toolchain: llvm
             std: 17
             opts: ['fuzzers']
           # std 20
           - type: Debug
-            toolchain: gnu-11
+            toolchain: gnu
             std: 20
           - type: Debug
-            toolchain: llvm-13
+            toolchain: llvm
             std: 20
           # sanitizers
           - type: Debug
-            toolchain: llvm-8
+            toolchain: llvm
             std: 14
             opts: ['sanitize']
           # benchmarks
           - type: Release
-            toolchain: gnu-9
+            toolchain: gnu
             std: 14
             opts: ['benchmark']
           - type: Release
-            toolchain: llvm-10
+            toolchain: llvm
             std: 14
             opts: ['benchmark']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v14
+      - uses: cachix/cachix-action@v16
         with:
           name: arximboldi
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "mkdir build"
       - name: configure CMake
         run: |
-          nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "
-            cd build && cmake .. \
+          nix develop .#${{ matrix.toolchain }} --command \
+            cmake -B build -G Ninja \
               -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
               -DCHECK_SLOW_TESTS=false \
               -DCXX_STANDARD=${{ matrix.std }} \
@@ -112,14 +113,14 @@ jobs:
               -DENABLE_UBSAN=${{ contains(matrix.opts, 'sanitize') }} \
               -DCHECK_FUZZERS=${{ contains(matrix.opts, 'fuzzers') }} \
               -DDISABLE_FREE_LIST=${{ contains(matrix.opts, 'sanitize') }}
-          "
-      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "cd build && make check -j`nproc`"
-      - run: nix-shell --argstr toolchain ${{ matrix.toolchain }} --run "bash <(curl -s https://codecov.io/bash)"
+
+      - run: nix develop .#${{ matrix.toolchain }} --command ninja -C build check
+      - run: nix develop .#${{ matrix.toolchain }} --command bash <(curl -s https://codecov.io/bash)
         if: contains(matrix.opts, 'coverage')
       - uses: shimataro/ssh-key-action@v2
         if: contains(matrix.opts, 'benchmark') && github.repository_owner == 'arximboldi'
         with:
           key: ${{ secrets.SINUSOIDES_SSH_KEY }}
           known_hosts: ${{ secrets.SINUSOIDES_KNOWN_HOSTS }}
-      - run: nix-shell --run "cd build && make upload-benchmark-reports"
+      - run: nix develop .#${{ matrix.toolchain }} --command ninja -C build upload-benchmark-reports
         if: contains(matrix.opts, 'benchmark') && github.repository_owner == 'arximboldi'
