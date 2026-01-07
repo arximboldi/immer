@@ -6,7 +6,6 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_gc_guard.hpp"
 #include "fuzzer_input.hpp"
 
 #include <immer/heap/gc_heap.hpp>
@@ -31,7 +30,7 @@ struct colliding_hash_t
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
-    auto guard = fuzzer_gc_guard{};
+    auto guard = immer::gc_disable_guard{};
 
     constexpr auto var_count = 4;
 

@@ -128,4 +128,19 @@ public:
     }
 };
 
+/*!
+ * Disable garbage collection within a scope, re-enabling it and collecting
+ * garbage afterwards.
+ */
+struct gc_disable_guard
+{
+    gc_disable_guard() { GC_disable(); }
+
+    ~gc_disable_guard()
+    {
+        GC_enable();
+        GC_gcollect();
+    }
+};
+
 } // namespace immer

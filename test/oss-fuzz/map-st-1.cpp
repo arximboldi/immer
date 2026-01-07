@@ -8,8 +8,6 @@
 
 #include "input.hpp"
 
-#include "extra/fuzzer/fuzzer_gc_guard.hpp"
-
 #include <immer/algorithm.hpp>
 #include <immer/heap/gc_heap.hpp>
 #include <immer/map.hpp>

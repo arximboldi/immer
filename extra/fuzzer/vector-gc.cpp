@@ -6,7 +6,6 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_gc_guard.hpp"
 #include "fuzzer_input.hpp"
 
 #include <immer/heap/gc_heap.hpp>
@@ -25,7 +24,7 @@ using gc_memory = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
                                       std::size_t size)
 {
-    auto guard = fuzzer_gc_guard{};
+    auto guard = immer::gc_disable_guard{};
 
     constexpr auto var_count = 4;
     constexpr auto bits      = 2;

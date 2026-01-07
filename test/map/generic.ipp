@@ -312,7 +312,6 @@ TEST_CASE("update_if_exists a lot")
     }
 }
 
-#if !IMMER_IS_LIBGC_TEST
 TEST_CASE("update boxed move string")
 {
     constexpr auto N = 666u;
@@ -375,11 +374,10 @@ TEST_CASE("update boxed move string")
         }
     }
 }
-#endif
 
-#if !IMMER_IS_LIBGC_TEST
 TEST_CASE("update_if_exists boxed move string")
 {
+    IMMER_GC_TEST_GUARD;
     constexpr auto N = 666u;
     constexpr auto S = 7;
     auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};
@@ -417,7 +415,6 @@ TEST_CASE("update_if_exists boxed move string")
         }
     }
 }
-#endif
 
 TEST_CASE("exception safety")
 {

@@ -26,6 +26,15 @@
 
 namespace {
 
+// libgc can sometimes cause trouble with address sanitizer, so we temporarily
+// disable garbage collection inside tests that break
+#if IMMER_IS_GC_TEST && IMMER_ASAN_ENABLED
+#define IMMER_GC_TEST_GUARD                                                    \
+    auto gc_guard_ = ::immer::gc_disable_guard {}
+#else
+#define IMMER_GC_TEST_GUARD
+#endif
+
 struct identity_t
 {
     template <typename T>
@@ -101,7 +110,7 @@ auto test_irange(Integer from, Integer to)
             CHECK(xf(v1[size - 3]) == xf(*(first + (size - 3))));              \
         }                                                                      \
     }(v1_, first_, last_, __VA_ARGS__) // CHECK_EQUALS
-#endif                                 // IMMER_SLOW_TESTS
+#endif // IMMER_SLOW_TESTS
 
 #define CHECK_VECTOR_EQUALS_AUX(v1_, v2_, ...)                                 \
     [](auto&& v1, auto&& v2, auto&&... xs) {                                   \

@@ -133,6 +133,19 @@
 #define IMMER_THROW_ON_INVALID_STATE 0
 #endif
 
+#if defined(__has_feature)
+#define IMMER_COMPILER_HAS_FEATURE __has_feature
+#else
+#define IMMER_COMPILER_HAS_FEATURE(x) 0
+#endif
+
+#if defined(__SANITIZE_ADDRESS__) ||                                           \
+    IMMER_COMPILER_HAS_FEATURE(address_sanitizer)
+#define IMMER_ASAN_ENABLED 1
+#else
+#define IMMER_ASAN_ENABLED 0
+#endif
+
 namespace immer {
 
 const auto default_bits           = 5;

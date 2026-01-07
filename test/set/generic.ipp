@@ -252,7 +252,7 @@ TEST_CASE("insert conflicts")
     }
 }
 
-#if !IMMER_IS_LIBGC_TEST
+#if !IMMER_IS_GC_TEST
 TEST_CASE("insert boxed move string")
 {
     constexpr auto N = 666u;
@@ -322,7 +322,7 @@ TEST_CASE("erase a lot")
     }
 }
 
-#if !IMMER_IS_LIBGC_TEST
+#if !IMMER_IS_GC_TEST
 TEST_CASE("erase a lot boxed string")
 {
     constexpr auto N = 666u;

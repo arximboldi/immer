@@ -6,7 +6,6 @@
 // See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "fuzzer_gc_guard.hpp"
 #include "fuzzer_input.hpp"
 
 #include <immer/array.hpp>
@@ -27,7 +26,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data,
 {
     constexpr auto var_count = 4;
 
-    auto guard = fuzzer_gc_guard{};
+    auto guard = immer::gc_disable_guard{};
 
     using array_t     = immer::array<int, gc_memory>;
     using transient_t = typename array_t::transient_type;

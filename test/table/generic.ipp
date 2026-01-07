@@ -498,6 +498,7 @@ void test_diff(uint32_t old_num,
                uint32_t remove_num,
                uint32_t change_num)
 {
+    IMMER_GC_TEST_GUARD;
     auto values = make_values_with_collisions(old_num + add_num);
     std::vector<std::pair<conflictor, uint32_t>> initial_values(
         values.begin(), values.begin() + old_num);
