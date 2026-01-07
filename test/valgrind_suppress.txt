@@ -1,3 +1,4 @@
+# for libgc based tests
 {
   <gc1>
   Memcheck:Cond

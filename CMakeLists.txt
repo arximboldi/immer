@@ -13,11 +13,15 @@ if(NOT MSVC)
       "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits"
   )
 endif()
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits")
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits"
+  )
 endif()
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments -Wno-unknown-warning-option")
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -Qunused-arguments -Wno-unknown-warning-option")
 endif()
 
 include(GNUInstallDirs)
@@ -31,10 +35,14 @@ option(ENABLE_MSAN "compile with memory sanitizer enabled")
 option(ENABLE_LSAN "compile with leak sanitizer enabled")
 option(ENABLE_UBSAN "compile with undefined behavior sanitizer enabled")
 option(ENABLE_COVERAGE "compile with test coverage support")
-option(DISABLE_WERROR "enable --werror")
+option(ENABLE_VALGRIND "use valgrind when running tests")
+
+option(DISABLE_WERROR "disable --werror")
 option(DISABLE_FREE_LIST "disables the free list heap")
 option(DISABLE_THREAD_SAFETY "disables thread safety by default")
-option(CHECK_FUZZERS "Add fuzzers as part of make check")
+
+option(CHECK_FUZZERS "Add fuzzers as part of make check" off)
+option(CHECK_BENCHMARKS "Run benchmarks on check target" off)
 
 option(ENABLE_PYTHON "enable building python module" off)
 option(ENABLE_GUILE "enable building guile module" off)
@@ -55,14 +63,14 @@ if(immer_ENABLE_EXCEPTIONS AND immer_DISABLE_EXCEPTIONS)
   message(FATAL_ERROR "Cannot both enable and disable exceptions")
 endif()
 
-if (immer_BUILD_PERSIST_TESTS)
+if(immer_BUILD_PERSIST_TESTS)
   set(CXX_STANDARD
-    17
-    CACHE STRING "c++ standard number")
+      17
+      CACHE STRING "c++ standard number")
 else()
   set(CXX_STANDARD
-    14
-    CACHE STRING "c++ standard number")
+      14
+      CACHE STRING "c++ standard number")
 endif()
 
 set(CMAKE_CXX_STANDARD ${CXX_STANDARD})
@@ -176,6 +184,19 @@ if(immer_BUILD_TESTS
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Build and run all the tests and examples.")
+endif()
+
+if(ENABLE_VALGRIND)
+  # these variables need to before including CTest, because including it
+  # triggers the generation of the config DartConfiguration.tcl
+  find_program(MEMORYCHECK_COMMAND valgrind)
+  set(MEMORYCHECK_COMMAND_OPTIONS
+      "${MEMORYCHECK_COMMAND_OPTIONS} --leak-check=full --error-exitcode=1 --suppressions=${PROJECT_SOURCE_DIR}/test/extra/persist/valgrind.supp"
+  )
+  set(MEMORYCHECK_SUPPRESSIONS_FILE
+      "${PROJECT_SOURCE_DIR}/test/valgrind_suppress.txt"
+      CACHE FILEPATH "")
+  message(STATUS "Valgrind enabled for tests")
 endif()
 
 if(immer_BUILD_TESTS)
