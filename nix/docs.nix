@@ -1,5 +1,5 @@
 {
-  system,
+  stdenv,
   fetchFromGitHub,
   lib,
 }:
@@ -12,7 +12,7 @@ let
     repo = "nixpkgs";
     rev = "d0d905668c010b65795b57afdf7f0360aac6245b";
     sha256 = "1kqxfmsik1s1jsmim20n5l4kq6wq8743h5h17igfxxbbwwqry88l";
-  }) { inherit system; };
+  }) { inherit (stdenv.hostPlatform) system; };
 
 in
 rec {

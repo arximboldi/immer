@@ -3,14 +3,14 @@ option(USE_BOOST_PYTHON "bind with boost::python" off)
 
 if(USE_PYBIND)
   set(PYBIND11_CPP_STANDARD -std=c++14)
-  find_package(Boost 1.56 REQUIRED)
+  find_package(Boost CONFIG 1.56 REQUIRED)
   add_subdirectory(lib/pybind11)
   pybind11_add_module(immer_python_module src/immer-pybind.cpp)
   target_link_libraries(immer_python_module PUBLIC immer)
 
 elseif(USE_BOOST_PYTHON)
   find_package(Python)
-  find_package(Boost 1.56 COMPONENTS python)
+  find_package(Boost CONFIG 1.56 COMPONENTS python)
   python_add_module(immer_python_module src/immer-boost.cpp)
   include_directories(immer_python_module PUBLIC ${immer_include_dir}
                       ${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})

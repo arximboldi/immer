@@ -2,35 +2,15 @@
   description = "Immutable data structures";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-    gitignore = {
-      url = "github:hercules-ci/gitignore.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    arximboldi-cereal-src = {
-      url = "github:arximboldi/cereal";
-      flake = false;
-    };
-    docs-nixpkgs = {
-      url = "github:NixOS/nixpkgs/d0d905668c010b65795b57afdf7f0360aac6245b";
-      flake = false;
-    };
   };
 
   outputs =
     {
       self,
       nixpkgs,
-      docs-nixpkgs,
       flake-utils,
-      flake-compat,
-      gitignore,
-      arximboldi-cereal-src,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -39,15 +19,13 @@
         lib = nixpkgs.lib;
         toolchains = [
           "gnu"
-          "gnu-10"
-          "gnu-11"
-          "gnu-12"
+          "gnu-15"
+          "gnu-14"
           "gnu-13"
           "llvm"
-          "llvm-11"
-          "llvm-12"
-          "llvm-13"
-          "llvm-14"
+          "llvm-20"
+          "llvm-19"
+          "llvm-18"
         ];
       in
       {
@@ -66,7 +44,7 @@
           {
             default = immer;
 
-            immer = pkgs.callPackage nix/immer.nix { src = ./.; };
+            immer = pkgs.callPackage nix/immer.nix { sources = ./.; };
 
             tests = immer.override {
               withTests = true;

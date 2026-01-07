@@ -610,7 +610,7 @@ namespace {
 struct recursive_type
 {
     int data;
-    per<vector_one<per<immer::box<recursive_type>>>> children;
+    per<vector_one<per<immer::box<recursive_type>>>> children{};
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -703,7 +703,7 @@ namespace {
 struct rec_map
 {
     int data;
-    per<immer::map<int, per<immer::box<rec_map>>>> map;
+    per<immer::map<int, per<immer::box<rec_map>>>> map{};
 
     template <class Archive>
     void serialize(Archive& ar)

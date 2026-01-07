@@ -120,7 +120,7 @@ TEST_CASE("Test hash size for map")
 
     auto map = immer::map<std::string, int, small_hash>{};
     for (const auto& [index, item] : boost::adaptors::index(strings)) {
-        map = std::move(map).set(item, index);
+        map = std::move(map).set(item, static_cast<int>(index));
     }
 
     REQUIRE(map.size() == strings.size());

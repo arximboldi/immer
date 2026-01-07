@@ -708,6 +708,7 @@ TEST_CASE("lookup with transparent hash")
 
 void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
 {
+    IMMER_GC_TEST_GUARD;
     auto values = make_values_with_collisions(old_num + add_num);
     std::vector<conflictor> initial_values(values.begin(),
                                            values.begin() + old_num);

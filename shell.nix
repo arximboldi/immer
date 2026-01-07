@@ -47,7 +47,7 @@ let
   cc = tc.cc;
 
   # use Catch2 v3
-  catch2_3 = pkgs.callPackage ./nix/catch2_3.nix {
+  catch2_3 = pkgs.catch2_3.override {
     inherit stdenv;
   };
 

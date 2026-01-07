@@ -12,7 +12,7 @@
   fmt,
   catch2_3,
   valgrind,
-  src ? ../.,
+  sources ? ../.,
   withTests ? false,
   withExamples ? false,
   withBenchmarks ? false,
@@ -40,18 +40,19 @@ in
 theStdenv.mkDerivation {
   name = builtins.concatStringsSep "-" (
     [ "immer" ]
-    ++ lib.optionals withPersist [ "persist" ]
     ++ lib.optionals withDebug [ "debug" ]
+    ++ lib.optionals withPersist [ "persist" ]
     ++ lib.optionals withTests [ "tests" ]
     ++ lib.optionals withBenchmarks [ "benchmarks" ]
     ++ lib.optionals withFuzzers [ "fuzzers" ]
     ++ lib.optionals withASan [ "asan" ]
     ++ lib.optionals withUBSan [ "ubsan" ]
     ++ lib.optionals withLSan [ "lsan" ]
+    ++ lib.optionals withValgrind [ "valgrind" ]
   );
   version = "git";
 
-  inherit src;
+  src = sources;
 
   hardeningDisable = lib.optionals withSanitizer [ "fortify" ];
 

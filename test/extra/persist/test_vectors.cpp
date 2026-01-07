@@ -59,7 +59,8 @@ TEST_CASE("Save and load multiple times into the same pool")
     auto counter = std::size_t{};
     auto pool    = immer::persist::rbts::make_output_pool_for(example_vector{});
     const auto save_and_load = [&]() {
-        const auto vec = test_vectors.back().push_back(++counter);
+        const auto vec =
+            test_vectors.back().push_back(static_cast<int>(++counter));
         test_vectors.push_back(vec);
 
         auto vector_id = immer::persist::container_id{};

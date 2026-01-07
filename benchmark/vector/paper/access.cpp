@@ -12,6 +12,7 @@
 // false positives when compiling with various versions of GCC.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wuninitialized"
 #include <chunkedseq/chunkedseq.hpp>
 #pragma GCC diagnostic pop
 

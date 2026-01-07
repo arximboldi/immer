@@ -102,7 +102,7 @@ endif()
 
 find_package(Threads)
 find_package(BoehmGC)
-find_package(Boost 1.56 COMPONENTS ${immer_boost_components})
+find_package(Boost CONFIG 1.56 COMPONENTS ${immer_boost_components})
 
 find_program(CCACHE ccache)
 if(CCACHE)

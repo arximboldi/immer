@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <algorithm> // missing in nonius
+
 #include <nonius.h++>
 
 #include <immer/heap/gc_heap.hpp>
@@ -47,13 +49,13 @@ void measure(Meter& m, Fn&& fn)
 
 using def_memory   = immer::default_memory_policy;
 using gc_memory    = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
-                                       immer::no_refcount_policy,
-                                       immer::default_lock_policy>;
+                                          immer::no_refcount_policy,
+                                          immer::default_lock_policy>;
 using gcf_memory   = immer::memory_policy<immer::heap_policy<immer::gc_heap>,
-                                        immer::no_refcount_policy,
-                                        immer::default_lock_policy,
-                                        immer::gc_transience_policy,
-                                        false>;
+                                          immer::no_refcount_policy,
+                                          immer::default_lock_policy,
+                                          immer::gc_transience_policy,
+                                          false>;
 using basic_memory = immer::memory_policy<immer::heap_policy<immer::cpp_heap>,
                                           immer::refcount_policy,
                                           immer::default_lock_policy>;

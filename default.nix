@@ -24,4 +24,4 @@ let
     };
 
 in
-pkgs.callPackage ./nix/immer.nix { src = srcFilter ./.; }
+pkgs.callPackage ./nix/immer.nix { sources = srcFilter ./.; }
