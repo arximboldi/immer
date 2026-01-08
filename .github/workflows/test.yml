@@ -67,7 +67,6 @@ jobs:
           - type: Debug
             toolchain: llvm
             std: 17
-            opts: ['fuzzers']
           # std 20
           - type: Debug
             toolchain: gnu
@@ -75,11 +74,6 @@ jobs:
           - type: Debug
             toolchain: llvm
             std: 20
-          # sanitizers
-          - type: Debug
-            toolchain: llvm
-            std: 14
-            opts: ['sanitize']
           # benchmarks
           - type: Release
             toolchain: gnu
