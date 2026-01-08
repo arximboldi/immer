@@ -12,8 +12,33 @@
 #include <immer/memory_policy.hpp>
 
 #include <cstddef>
+#include <type_traits>
 
 namespace immer {
+
+namespace detail {
+namespace arrays {
+// Forward declarations for SFINAE
+template <typename T, typename MemoryPolicy>
+struct with_capacity;
+template <typename T, typename MemoryPolicy>
+struct no_capacity;
+} // namespace arrays
+
+// Type trait to detect internal array implementation types
+template <typename T>
+struct is_array_impl : std::false_type {};
+
+template <typename T, typename MP>
+struct is_array_impl<arrays::with_capacity<T, MP>> : std::true_type {};
+
+template <typename T, typename MP>
+struct is_array_impl<arrays::no_capacity<T, MP>> : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_array_impl_v = is_array_impl<std::decay_t<T>>::value;
+
+} // namespace detail
 
 namespace detail {
 
@@ -77,7 +102,8 @@ public:
      */
     template <typename Arg,
               typename Enable = std::enable_if_t<
-                  !std::is_same<box, std::decay_t<Arg>>::value>>
+                  !std::is_same<box, std::decay_t<Arg>>::value &&
+                  !detail::is_array_impl_v<Arg>>>
     box(Arg&& arg)
         : impl_{detail::make<heap, holder>(std::forward<Arg>(arg))}
     {
