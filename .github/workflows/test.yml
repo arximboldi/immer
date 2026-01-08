@@ -51,28 +51,23 @@ jobs:
     strategy:
       matrix:
         type: [Debug, Release]
-        toolchain: [gnu-15, gnu-14, gnu-13, llvm-20, llvm-19, llvm-18]
+        toolchain: [gnu-14, gnu-13, llvm-19, llvm-18]
         std: [14]
         opts: [[]]
         include:
-          # coverage
-          - type: Debug
-            toolchain: gnu
-            std: 14
-            opts: ['coverage']
           # std 17
           - type: Debug
-            toolchain: gnu
+            toolchain: gnu-15
             std: 17
           - type: Debug
-            toolchain: llvm
+            toolchain: llvm-20
             std: 17
           # std 20
           - type: Debug
-            toolchain: gnu
+            toolchain: gnu-15
             std: 20
           - type: Debug
-            toolchain: llvm
+            toolchain: llvm-20
             std: 20
           # benchmarks
           - type: Release
@@ -83,6 +78,11 @@ jobs:
             toolchain: llvm
             std: 14
             opts: ['benchmark']
+          # coverage
+          - type: Debug
+            toolchain: gnu
+            std: 14
+            opts: ['coverage']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
