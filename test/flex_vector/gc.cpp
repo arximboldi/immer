@@ -23,6 +23,7 @@ using test_flex_vector_t = immer::flex_vector<T, gc_memory, 3u>;
 template <typename T>
 using test_vector_t = immer::vector<T, gc_memory, 3u>;
 
+#define IMMER_IS_GC_TEST 1
 #define FLEX_VECTOR_T test_flex_vector_t
 #define VECTOR_T test_vector_t
 #include "generic.ipp"
