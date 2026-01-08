@@ -13,7 +13,7 @@
 // 16-byte alignment seems to happen by default for box, map, set, is
 // only broken by 32, but that incurs over-alignment which requires a custom
 // allocator anyway...
-constexpr unsigned alignment = 16;
+constexpr unsigned alignment = alignof(max_align_t);
 
 // just in case alignment issues only show up for the non-first element
 constexpr int N = 4;
