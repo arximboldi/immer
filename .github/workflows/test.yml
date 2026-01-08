@@ -1,11 +1,27 @@
 name: test
 on: [push, pull_request]
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+
+  nix-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - id: set-matrix
+        name: Generate Nix Matrix
+        run: |
+          set -Eeu
+          matrix="$(nix eval --json '.#githubActions.matrix')"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-nix:
+    name: "nix: ${{ matrix.name }} (${{ matrix.system }})"
+    needs: nix-matrix
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
@@ -13,8 +29,7 @@ jobs:
         with:
           name: arximboldi
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-      - run: nix build
-      - run: nix flake check -L
+      - run: nix build -L '.#${{ matrix.attr }}'
 
   build-spm:
      runs-on: macos-latest
