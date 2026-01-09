@@ -1,7 +1,7 @@
 # * Try to find Boehm GC Once done, this will define
 #
-# BoehmGC_FOUND - system has Boehm GC BoehmGC_INCLUDE_DIR - the Boehm GC
-# include directories BoehmGC_LIBRARIES - link these to use Boehm GC
+# BoehmGC_FOUND - system has Boehm GC BoehmGC_INCLUDE_DIR - the Boehm GC include
+# directories BoehmGC_LIBRARIES - link these to use Boehm GC
 #
 # Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
 #
@@ -31,17 +31,25 @@
 
 # CMake module to find Boehm GC
 
+# for compatibility with older versions of this file
+if(DEFINED BOEHM_GC_INCLUDE_DIR)
+  set(BoehmGC_INCLUDE_DIR "${BOEHM_GC_INCLUDE_DIR}")
+endif()
+if(DEFINED BOEHM_GC_LIBRARIES)
+  set(BoehmGC_LIBRARIES "${BOEHM_GC_LIBRARIES}")
+endif()
+
 # use pkg-config if available
 find_package(PkgConfig)
 pkg_check_modules(PC_BDW_GC QUIET bdw-gc)
 
 # try newer one first in case of gc.h is overwritten.
 find_path(BoehmGC_INCLUDE_DIR gc/gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
-                                             ${PC_BDW_GC_INCLUDE_DIRS})
+                                            ${PC_BDW_GC_INCLUDE_DIRS})
 
 if(NOT BoehmGC_INCLUDE_DIR)
   find_path(BoehmGC_INCLUDE_DIR gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
-                                            ${PC_BDW_GC_INCLUDE_DIRS})
+                                           ${PC_BDW_GC_INCLUDE_DIRS})
   if(BoehmGC_INCLUDE_DIR)
     set(HAVE_GC_H TRUE)
   endif()
@@ -109,3 +117,8 @@ find_package_handle_standard_args(BoehmGC DEFAULT_MSG BoehmGC_LIBRARIES
                                   BoehmGC_INCLUDE_DIR)
 
 mark_as_advanced(BoehmGC_LIBRARIES BoehmGC_INCLUDE_DIR)
+
+# for compatibility with older versions of this file
+if(DEFINED BoehmGC_FOUND)
+  set(BOEHM_GC_FOUND "${BoehmGC_FOUND}")
+endif()
