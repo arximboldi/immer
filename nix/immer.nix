@@ -5,6 +5,7 @@
   clangStdenv,
   cmake,
   ninja,
+  pkg-config,
   xxHash,
   nlohmann_json,
   boehmgc,
@@ -87,6 +88,7 @@ theStdenv.mkDerivation {
   nativeBuildInputs = [
     cmake
     ninja
+    pkg-config
   ];
 
   # on macos "build" conflicts with the BUILD file
