@@ -35,16 +35,30 @@ target_link_libraries(persist-tests PRIVATE fmt::fmt Catch2::Catch2WithMain
 
 target_compile_options(persist-tests PRIVATE -O1 -fno-optimize-sibling-calls -g
                                              -fno-omit-frame-pointer)
-target_compile_options(
-  persist-tests PRIVATE -Wno-unused-function -Wno-c++20-designator
-                        -Wimplicit-int-conversion)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(
+    persist-tests PRIVATE
+    -Wno-unused-function
+    -Wno-c++20-designator
+    -Wimplicit-int-conversion
+  )
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(
+    persist-tests PRIVATE
+    -Wno-c++20-extensions
+    -Wno-changes-meaning
+    -Wno-missing-field-initializers
+  )
+endif()
 
 if(ENABLE_ASAN)
   target_compile_options(
-    persist-tests PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address)
+    persist-tests PRIVATE -fsanitize=address)
   target_link_options(persist-tests PRIVATE -fsanitize=address)
+  target_compile_definitions(persist-tests PRIVATE BOOST_USE_ASAN=1)
 endif()
-target_compile_definitions(persist-tests PRIVATE BOOST_USE_ASAN=1)
+
 target_compile_definitions(persist-tests PRIVATE IMMER_NO_FREE_LIST=1
                                                  IMMER_DEBUG_STATS=1)
 

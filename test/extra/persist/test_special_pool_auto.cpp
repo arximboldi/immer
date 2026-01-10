@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #define DEFINE_OPERATIONS(name)                                                \
-    bool operator==(const name& left, const name& right)                       \
+    inline bool operator==(const name& left, const name& right)                \
     {                                                                          \
         return members(left) == members(right);                                \
     }                                                                          \
@@ -155,7 +155,8 @@ TEST_CASE("Auto-persisting")
             {
                 meta_value,
                 meta{
-                    .ints = ints2,
+                    .ints  = ints2,
+                    .metas = {},
                 },
             },
         .metas_map =
@@ -430,6 +431,7 @@ TEST_CASE("Test table with a funny value")
         .ones =
             {
                 champ_test::value_one{
+                    .twos       = {},
                     .twos_table = t1,
                 },
             },
@@ -437,6 +439,7 @@ TEST_CASE("Test table with a funny value")
     }};
 
     const auto value = champ_test::value_one{
+        .twos       = {},
         .twos_table = t1.insert(two2),
     };
 
@@ -463,6 +466,7 @@ TEST_CASE("Test loading broken table")
         .ones =
             {
                 champ_test::value_one{
+                    .twos       = {},
                     .twos_table = t1,
                 },
             },
@@ -730,6 +734,7 @@ TEST_CASE("Test table with a funny value no auto")
         .ones =
             {
                 test_no_auto::value_one{
+                    .twos       = {},
                     .twos_table = t1,
                 },
             },
@@ -737,6 +742,7 @@ TEST_CASE("Test table with a funny value no auto")
     }};
 
     const auto value = test_no_auto::value_one{
+        .twos       = {},
         .twos_table = t1.insert(two2),
     };
 
@@ -790,7 +796,9 @@ DEFINE_OPERATIONS(test_champs);
 TEST_CASE("Structure breaks when hash is changed")
 {
     const auto value = test_champs{
-        .map = {{123, "123"}, {456, "456"}},
+        .map   = {{123, "123"}, {456, "456"}},
+        .table = {},
+        .set   = {},
     };
 
     const auto out_pool = immer::persist::get_output_pools(value);
@@ -822,6 +830,7 @@ TEST_CASE("Converting between incompatible keys")
     const auto value = test_champs{
         .map   = {{123, "123"}, {456, "456"}},
         .table = {{901}, {902}},
+        .set   = {},
     };
 
     const auto ar = immer::persist::get_output_pools(value);

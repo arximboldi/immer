@@ -4,7 +4,11 @@
   autoreconfHook,
   boehmgc,
   fetchFromGitHub,
-}: {
+}:
+
+# A bunch of libraries implementing persistent data structures in
+# C/C++, so that we can compare them with immer in benchmarks.
+{
   c_rrb = stdenv.mkDerivation rec {
     name = "c-rrb-${version}";
     version = "git-${commit}";
@@ -15,8 +19,9 @@
       rev = commit;
       sha256 = "0zmha3xi80vgdcwzb4vwdllf97dvggjpjfgahrpsb5f5qi3yshxa";
     };
-    nativeBuildInputs = [autoreconfHook];
-    propagatedBuildInputs = [boehmgc];
+    NIX_CFLAGS_COMPILE = "-Wno-error -Wno-incompatible-pointer-types";
+    nativeBuildInputs = [ autoreconfHook ];
+    propagatedBuildInputs = [ boehmgc ];
     meta = {
       homepage = "http://hypirion.com/thesis";
       description = "RRB-tree implemented as a library in C. ";

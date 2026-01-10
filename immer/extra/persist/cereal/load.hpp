@@ -30,7 +30,7 @@ T cereal_load_with_pools(std::istream& is,
 
     const auto wrap =
         detail::wrap_known_types(TypesSet{}, detail::wrap_for_loading);
-    auto pools = load_pools<Pools, Archive, PoolNameFn>(is, wrap);
+    auto pools = detail::load_pools<Pools, Archive, PoolNameFn>(is, wrap);
 
     auto ar = immer::persist::input_pools_cereal_archive_wrapper<Archive,
                                                                  Pools,

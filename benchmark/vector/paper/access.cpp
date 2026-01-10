@@ -7,7 +7,15 @@
 //
 
 #include "benchmark/vector/access.hpp"
+
+// Disable some warnings for this file as it seems to be causing various
+// false positives when compiling with various versions of GCC.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wuninitialized"
 #include <chunkedseq/chunkedseq.hpp>
+#pragma GCC diagnostic pop
+
 #include <immer/flex_vector.hpp>
 
 // clang-format off

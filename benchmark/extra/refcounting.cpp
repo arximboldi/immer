@@ -9,6 +9,9 @@
 #include <immer/detail/ref_count_base.hpp>
 
 #include <boost/intrusive_ptr.hpp>
+
+#include <algorithm> // missing in nonius
+
 #include <nonius.h++>
 
 #include <array>

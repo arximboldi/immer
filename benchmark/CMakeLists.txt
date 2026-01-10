@@ -1,7 +1,6 @@
 # Config
 # ======
 
-option(CHECK_BENCHMARKS "Run benchmarks on check target" off)
 option(BENCHMARK_DISABLE_GC "Disable gc during a measurement")
 
 set(BENCHMARK_PARAM

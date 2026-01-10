@@ -149,17 +149,17 @@ public:
     }
 
     template <class T>
-    friend void prologue(output_pools_cereal_archive_wrapper& ar, T&& v)
+    friend void prologue(output_pools_cereal_archive_wrapper& ar, const T& v)
     {
         using cereal::prologue;
-        prologue(ar.previous, std::forward<T>(v));
+        prologue(ar.previous, v);
     }
 
     template <class T>
-    friend void epilogue(output_pools_cereal_archive_wrapper& ar, T&& v)
+    friend void epilogue(output_pools_cereal_archive_wrapper& ar, const T& v)
     {
         using cereal::epilogue;
-        epilogue(ar.previous, std::forward<T>(v));
+        epilogue(ar.previous, v);
     }
 
     template <class T>
@@ -318,17 +318,17 @@ public:
     }
 
     template <class T>
-    friend void prologue(input_pools_cereal_archive_wrapper& ar, T&& v)
+    friend void prologue(input_pools_cereal_archive_wrapper& ar, const T& v)
     {
         using cereal::prologue;
-        prologue(ar.previous, std::forward<T>(v));
+        prologue(ar.previous, v);
     }
 
     template <class T>
-    friend void epilogue(input_pools_cereal_archive_wrapper& ar, T&& v)
+    friend void epilogue(input_pools_cereal_archive_wrapper& ar, const T& v)
     {
         using cereal::epilogue;
-        epilogue(ar.previous, std::forward<T>(v));
+        epilogue(ar.previous, v);
     }
 
     template <class T>

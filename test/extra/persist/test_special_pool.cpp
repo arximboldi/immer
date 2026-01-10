@@ -46,8 +46,8 @@ std::string string_via_tie(const T& value)
 
 struct meta_meta
 {
-    per<vector_one<int>> ints;
-    per<immer::table<test_value>> table;
+    per<vector_one<int>> ints{};
+    per<immer::table<test_value>> table{};
 
     auto tie() const { return std::tie(ints, table); }
 
@@ -70,8 +70,8 @@ struct meta_meta
 
 struct meta
 {
-    per<vector_one<int>> ints;
-    per<vector_one<meta_meta>> metas;
+    per<vector_one<int>> ints{};
+    per<vector_one<meta_meta>> metas{};
 
     auto tie() const { return std::tie(ints, metas); }
 
@@ -94,24 +94,24 @@ struct meta
 
 struct test_data
 {
-    per<vector_one<int>> ints;
-    per<vector_one<std::string>> strings;
+    per<vector_one<int>> ints{};
+    per<vector_one<std::string>> strings{};
 
-    per<flex_vector_one<int>> flex_ints;
-    per<immer::map<int, std::string>> map;
+    per<flex_vector_one<int>> flex_ints{};
+    per<immer::map<int, std::string>> map{};
 
-    per<vector_one<meta>> metas;
+    per<vector_one<meta>> metas{};
 
     // Map value is indirectly persistable
-    per<immer::map<int, meta>> metas_map;
+    per<immer::map<int, meta>> metas_map{};
 
     // Map value is directly persistable
-    per<immer::map<int, per<vector_one<int>>>> vectors_map;
+    per<immer::map<int, per<vector_one<int>>>> vectors_map{};
 
     // Also test having meta directly, not inside an persistable type
-    meta single_meta;
+    meta single_meta{};
 
-    per<immer::box<std::string>> box;
+    per<immer::box<std::string>> box{};
 
     auto tie() const
     {
@@ -610,7 +610,7 @@ namespace {
 struct recursive_type
 {
     int data;
-    per<vector_one<per<immer::box<recursive_type>>>> children;
+    per<vector_one<per<immer::box<recursive_type>>>> children{};
 
     template <class Archive>
     void serialize(Archive& ar)
@@ -703,7 +703,7 @@ namespace {
 struct rec_map
 {
     int data;
-    per<immer::map<int, per<immer::box<rec_map>>>> map;
+    per<immer::map<int, per<immer::box<rec_map>>>> map{};
 
     template <class Archive>
     void serialize(Archive& ar)

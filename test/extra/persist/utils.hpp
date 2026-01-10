@@ -108,9 +108,9 @@ struct old_type
 
 struct new_type
 {
-    std::string id;
-    int data;
-    std::string data2;
+    std::string id{};
+    int data{};
+    std::string data2{};
 
     auto tie() const { return std::tie(id, data, data2); }
 

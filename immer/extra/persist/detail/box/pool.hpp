@@ -178,8 +178,8 @@ public:
     }
 
 private:
-    const Pool pool_;
-    const TransformF transform_;
+    const Pool pool_{};
+    const TransformF transform_{};
     immer::map<container_id, immer::box<T, MemoryPolicy>> boxes_;
 };
 

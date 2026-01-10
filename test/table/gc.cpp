@@ -15,4 +15,5 @@ struct setup_t
 };
 
 #define SETUP_T setup_t
+#define IMMER_IS_GC_TEST 1
 #include "generic.ipp"

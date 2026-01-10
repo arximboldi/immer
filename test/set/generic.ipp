@@ -252,7 +252,7 @@ TEST_CASE("insert conflicts")
     }
 }
 
-#if !IMMER_IS_LIBGC_TEST
+#if !IMMER_IS_GC_TEST
 TEST_CASE("insert boxed move string")
 {
     constexpr auto N = 666u;
@@ -322,7 +322,7 @@ TEST_CASE("erase a lot")
     }
 }
 
-#if !IMMER_IS_LIBGC_TEST
+#if !IMMER_IS_GC_TEST
 TEST_CASE("erase a lot boxed string")
 {
     constexpr auto N = 666u;
@@ -708,6 +708,7 @@ TEST_CASE("lookup with transparent hash")
 
 void test_diff(unsigned old_num, unsigned add_num, unsigned remove_num)
 {
+    IMMER_GC_TEST_GUARD;
     auto values = make_values_with_collisions(old_num + add_num);
     std::vector<conflictor> initial_values(values.begin(),
                                            values.begin() + old_num);

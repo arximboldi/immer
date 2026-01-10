@@ -1,7 +1,7 @@
 # * Try to find Boehm GC Once done, this will define
 #
-# BOEHM_GC_FOUND - system has Boehm GC BOEHM_GC_INCLUDE_DIR - the Boehm GC
-# include directories BOEHM_GC_LIBRARIES - link these to use Boehm GC
+# BoehmGC_FOUND - system has Boehm GC BoehmGC_INCLUDE_DIR - the Boehm GC include
+# directories BoehmGC_LIBRARIES - link these to use Boehm GC
 #
 # Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
 #
@@ -31,18 +31,26 @@
 
 # CMake module to find Boehm GC
 
+# for compatibility with older versions of this file
+if(DEFINED BOEHM_GC_INCLUDE_DIR)
+  set(BoehmGC_INCLUDE_DIR "${BOEHM_GC_INCLUDE_DIR}")
+endif()
+if(DEFINED BOEHM_GC_LIBRARIES)
+  set(BoehmGC_LIBRARIES "${BOEHM_GC_LIBRARIES}")
+endif()
+
 # use pkg-config if available
 find_package(PkgConfig)
 pkg_check_modules(PC_BDW_GC QUIET bdw-gc)
 
 # try newer one first in case of gc.h is overwritten.
-find_path(BOEHM_GC_INCLUDE_DIR gc/gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
-                                             ${PC_BDW_GC_INCLUDE_DIRS})
-
-if(NOT BOEHM_GC_INCLUDE_DIR)
-  find_path(BOEHM_GC_INCLUDE_DIR gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
+find_path(BoehmGC_INCLUDE_DIR gc/gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
                                             ${PC_BDW_GC_INCLUDE_DIRS})
-  if(BOEHM_GC_INCLUDE_DIR)
+
+if(NOT BoehmGC_INCLUDE_DIR)
+  find_path(BoehmGC_INCLUDE_DIR gc.h HINTS ${PC_BDW_GC_INCLUDEDIR}
+                                           ${PC_BDW_GC_INCLUDE_DIRS})
+  if(BoehmGC_INCLUDE_DIR)
     set(HAVE_GC_H TRUE)
   endif()
 else()
@@ -55,13 +63,13 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   include(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
   # not sure if this links properly...
   find_library(
-    BOEHM_GC_LIBRARIES
+    BoehmGC_LIBRARIES
     NAMES gc
     HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
-  message(STATUS "GC library ${BOEHM_GC_LIBRARIES}")
+  message(STATUS "GC library ${BoehmGC_LIBRARIES}")
   set(CMAKE_REQUIRED_LIBRARIES "gc")
   set(CMAKE_REQUIRED_DEFINITIONS "-DGC_THREADS")
-  set(CMAKE_REQUIRED_INCLUDES "${BOEHM_GC_INCLUDE_DIR}")
+  set(CMAKE_REQUIRED_INCLUDES "${BoehmGC_INCLUDE_DIR}")
   set(CMAKE_REQUIRED_FLAGS "-L${PC_BDW_GC_LIBRARY_DIRS}")
   message(STATUS "Boehm GC include dir: ${CMAKE_REQUIRED_INCLUDES}")
   check_c_source_runs(
@@ -78,34 +86,39 @@ return 0;
     # bdw-gc-threaded is the proper name for FreeBSD pkg-config
     pkg_check_modules(PC_BDW_GC_THREADED bdw-gc-threaded)
     find_library(
-      BOEHM_GC_THREADED_LIBRARIES
+      BoehmGC_THREADED_LIBRARIES
       NAMES gc-threaded
       HINTS ${PC_BDW_GC_THREADED_LIBDIR} ${PC_BDW_GC_THREADED_THREADED_DIRS})
 
-    message(STATUS "GC threaded library ${BOEHM_GC_THREADED_LIBRARIES}")
-    if(BOEHM_GC_THREADED_LIBRARIES)
+    message(STATUS "GC threaded library ${BoehmGC_THREADED_LIBRARIES}")
+    if(BoehmGC_THREADED_LIBRARIES)
       # OK just use it
-      set(BOEHM_GC_LIBRARIES "${BOEHM_GC_THREADED_LIBRARIES}")
+      set(BoehmGC_LIBRARIES "${BoehmGC_THREADED_LIBRARIES}")
     endif()
   endif()
 else()
   find_library(
-    BOEHM_GC_LIBRARIES
+    BoehmGC_LIBRARIES
     NAMES gc
     HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
   # OpenSolaris uses bgc as Boehm GC runtime in its package manager. so try it
-  if(NOT BOEHM_GC_LIBRARIES)
+  if(NOT BoehmGC_LIBRARIES)
     find_library(
-      BOEHM_GC_LIBRARIES
+      BoehmGC_LIBRARIES
       NAMES bgc
       HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
   endif()
 endif()
 
-message(STATUS "Found GC library: ${BOEHM_GC_LIBRARIES}")
+message(STATUS "Found GC library: ${BoehmGC_LIBRARIES}")
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Boehm_GC DEFAULT_MSG BOEHM_GC_LIBRARIES
-                                  BOEHM_GC_INCLUDE_DIR)
+find_package_handle_standard_args(BoehmGC DEFAULT_MSG BoehmGC_LIBRARIES
+                                  BoehmGC_INCLUDE_DIR)
 
-mark_as_advanced(BOEHM_GC_LIBRARIES BOEHM_GC_INCLUDE_DIR)
+mark_as_advanced(BoehmGC_LIBRARIES BoehmGC_INCLUDE_DIR)
+
+# for compatibility with older versions of this file
+if(DEFINED BoehmGC_FOUND)
+  set(BOEHM_GC_FOUND "${BoehmGC_FOUND}")
+endif()

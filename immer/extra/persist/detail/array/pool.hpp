@@ -164,8 +164,8 @@ public:
     }
 
 private:
-    const Pool pool_;
-    const TransformF transform_;
+    const Pool pool_{};
+    const TransformF transform_{};
     immer::map<container_id, immer::array<T, MemoryPolicy>> arrays_;
 };
 
@@ -179,7 +179,6 @@ loader<T, MemoryPolicy> make_loader_for(const immer::array<T, MemoryPolicy>&,
 } // namespace immer::persist::array
 
 namespace immer::persist::detail {
-
 template <typename T, typename MemoryPolicy>
 struct container_traits<immer::array<T, MemoryPolicy>>
 {

@@ -8,29 +8,30 @@
 
 #include <immer/box.hpp>
 
-#include <random>
-#include <vector>
+#include <algorithm>
 #include <cassert>
 #include <functional>
-#include <algorithm>
+#include <random>
+#include <vector>
 
-#define GENERATOR_T generate_unsigned
+#define GENERATOR_T generate_string_box
 
 namespace {
 
 struct GENERATOR_T
 {
-    static constexpr auto char_set   = "_-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static constexpr auto char_set =
+        "_-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static constexpr auto max_length = 64;
     static constexpr auto min_length = 8;
 
-    auto operator() (std::size_t runs) const
+    auto operator()(std::size_t runs) const
     {
         assert(runs > 0);
         auto engine = std::default_random_engine{42};
-        auto dist = std::uniform_int_distribution<unsigned>{};
-        auto gen = std::bind(dist, engine);
-        auto r = std::vector<immer::box<std::string>>(runs);
+        auto dist   = std::uniform_int_distribution<unsigned>{};
+        auto gen    = std::bind(dist, engine);
+        auto r      = std::vector<immer::box<std::string>>(runs);
         std::generate_n(r.begin(), runs, [&] {
             auto len = gen() % (max_length - min_length) + min_length;
             auto str = std::string(len, ' ');

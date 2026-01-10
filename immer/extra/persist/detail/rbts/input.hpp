@@ -513,8 +513,8 @@ private:
     }
 
 private:
-    const Pool pool_;
-    const TransformF transform_;
+    const Pool pool_{};
+    const TransformF transform_{};
     immer::map<node_id, node_ptr> leaves_;
     immer::map<node_id, node_ptr> inners_;
     immer::map<node_t*, node_id> loaded_leaves_;

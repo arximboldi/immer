@@ -18,7 +18,10 @@ using t__         = typename decltype(generator__{}(0))::value_type;
 // clang-format off
 NONIUS_BENCHMARK("std::set", benchmark_erase_mut_std<generator__, std::set<t__>>())
 NONIUS_BENCHMARK("std::unordered_set", benchmark_erase_mut_std<generator__, std::unordered_set<t__>>())
-NONIUS_BENCHMARK("boost::flat_set", benchmark_erase_mut_std<generator__, boost::container::flat_set<t__>>())
+
+// seems to fail to compile with recent boost/gcc combinations
+// NONIUS_BENCHMARK("boost::flat_set", benchmark_erase_mut_std<generator__, boost::container::flat_set<t__>>())
+
 // Phil Nash's hash_trie seems to not include an erase operation... at least at
 // the version that we have included in the nix-shell here...
 // NONIUS_BENCHMARK("hamt::hash_trie", benchmark_erase_mut_hash_trie<generator__, hamt::hash_trie<t__>>())

@@ -25,7 +25,8 @@
     void serialize(Archive& ar, name& m)                                       \
     {                                                                          \
         serialize_members(ar, m);                                              \
-    }
+    }                                                                          \
+    static_assert(true, "require semicolon")
 
 namespace {
 
@@ -219,11 +220,12 @@ TEST_CASE("Test exception while circular converting")
          .ones =
              {
                 model::value_one{
-                     .twos       = {two1},
-                     .twos_flex  = {two1, two1},
-                     .twos_table = {two1},
-                     .twos_map   = {{model::key{"x_one"}, two1}},
-                     .twos_set   = {two1},
+                     .twos         = {two1},
+                     .twos_flex    = {two1, two1},
+                     .twos_table   = {two1},
+                     .twos_table_2 = {},
+                     .twos_map     = {{model::key{"x_one"}, two1}},
+                     .twos_set     = {two1},
                 },
             },
          .key = model::key{"123"},
@@ -387,11 +389,12 @@ TEST_CASE("Test circular dependency pools", "[conversion]")
          .ones =
              {
                 model::value_one{
-                     .twos       = {two1},
-                     .twos_flex  = {two1, two1},
-                     .twos_table = {two1},
-                     .twos_map   = {{model::key{"x_one"}, two1}},
-                     .twos_set   = {two1},
+                     .twos         = {two1},
+                     .twos_flex    = {two1, two1},
+                     .twos_table   = {two1},
+                     .twos_table_2 = {},
+                     .twos_map     = {{model::key{"x_one"}, two1}},
+                     .twos_set     = {two1},
                 },
             },
          .key = model::key{"123"},

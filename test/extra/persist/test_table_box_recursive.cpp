@@ -63,7 +63,7 @@ struct value_one
 struct value_two
 {
     key key = {};
-    value_one one;
+    value_one one{};
 };
 
 const key& table_key_fn::operator()(const two_boxed& two) const

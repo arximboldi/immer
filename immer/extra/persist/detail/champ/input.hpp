@@ -241,8 +241,8 @@ private:
     }
 
 private:
-    const NodesLoad pool_;
-    const TransformF transform_;
+    const NodesLoad pool_{};
+    const TransformF transform_{};
     immer::map<node_id, std::pair<node_ptr, values_t>> collisions_;
     immer::map<node_id, std::pair<node_ptr, values_t>> inners_;
 };
