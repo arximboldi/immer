@@ -263,6 +263,55 @@ TEST_CASE("accumulate")
     }
 }
 
+TEST_CASE("all_of")
+{
+    static const auto n = 666u;
+    auto v              = make_test_map(n);
+
+    static const auto all_identity = [](const auto& keyval) {
+        return keyval.first == keyval.second;
+    };
+    static const auto all_less_n = [](const auto& keyval) {
+        return keyval.second < n;
+    };
+    static const auto all_less_n2 = [](const auto& keyval) {
+        return keyval.second < n / 2;
+    };
+
+    SECTION("All identity (true)")
+    {
+        bool result = immer::all_of(v, all_identity);
+        CHECK(result);
+    }
+
+    SECTION("Empty (true)")
+    {
+        bool result = immer::all_of(make_test_map(0), all_identity);
+        CHECK(result);
+    }
+
+    SECTION("All less n/2 (false)")
+    {
+        bool result = immer::all_of(v, all_less_n2);
+        CHECK(!result);
+    }
+
+    SECTION("All less n w/ collisions (true)")
+    {
+        auto vals   = make_values_with_collisions(n);
+        auto s      = make_test_map(vals);
+        bool result = immer::all_of(v, all_less_n);
+        CHECK(result);
+    }
+    SECTION("All less n/2 w/ collisions (false)")
+    {
+        auto vals   = make_values_with_collisions(n);
+        auto s      = make_test_map(vals);
+        bool result = immer::all_of(v, all_less_n2);
+        CHECK(!result);
+    }
+}
+
 TEST_CASE("update a lot")
 {
     auto v = make_test_map(666u);

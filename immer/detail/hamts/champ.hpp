@@ -12,6 +12,8 @@
 #include <immer/detail/hamts/node.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 
 namespace immer {
 namespace detail {
@@ -333,6 +335,61 @@ struct champ
             fn(node->collisions(),
                node->collisions() + node->collision_count());
         }
+    }
+
+    template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        struct State
+        {
+            const node_t* const* fst{};
+            const node_t* const* lst{};
+        };
+
+        std::array<State, max_depth<B> + 1> stack{};
+        stack[0]     = {&root, &root + 1};
+        size_t depth = 0;
+
+        while (true) {
+            auto fst = stack[depth].fst;
+            auto lst = stack[depth].lst;
+
+            if (fst == lst) {
+                if (!depth)
+                    return true;
+
+                depth--;
+                continue;
+            }
+
+            const node_t* node = *fst;
+
+            if (depth < max_depth<B>) {
+                auto datamap = node->datamap();
+                if (datamap &&
+                    !fn(node->values(), node->values() + node->data_count())) {
+                    return false;
+                }
+
+                auto nodemap = node->nodemap();
+                stack[depth].fst++;
+
+                if (nodemap) {
+                    auto childFst = node->children();
+                    depth++;
+                    stack[depth].fst = childFst;
+                    stack[depth].lst = childFst + node->children_count();
+                }
+                continue;
+            }
+
+            if (!fn(node->collisions(),
+                    node->collisions() + node->collision_count())) {
+                return false;
+            }
+            --depth;
+        }
+        return true;
     }
 
     template <typename EqualValue, typename Differ>
