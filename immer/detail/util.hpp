@@ -323,5 +323,15 @@ distance(Iterator first, Sentinel last)
     return last - first;
 }
 
+template <typename T>
+static constexpr bool can_efficiently_pass_by_value =
+    sizeof(T) <= 2 * sizeof(void*) && std::is_trivially_copyable<T>::value;
+
+template <typename T, typename OrElse = const T&>
+using byval_if_possible =
+    std::conditional_t<can_efficiently_pass_by_value<std::decay_t<T>>,
+                       std::decay_t<T>,
+                       OrElse>;
+
 } // namespace detail
 } // namespace immer

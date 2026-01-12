@@ -427,6 +427,37 @@ public:
     }
 
     /*!
+     * Returns a map replacing the association `(k, v)` by the
+     * association new association `(k, fn(v))`, where `v` is the
+     * currently associated value for `k` in the map or a default
+     * constructed value otherwise. It may allocate memory
+     * and its complexity is *effectively* @f$ O(1) @f$.
+     *
+     * If `fn(v) == v`, the map remains unchanged and no memory is allocated.
+     * You may customize the equality comparison for values by setting the
+     * ValueEquals callback
+     */
+    template <typename Fn, typename ValueEquals = std::equal_to<mapped_type>>
+    IMMER_NODISCARD map try_update(key_type k,
+                                   Fn&& fn,
+                                   ValueEquals valueEquals = {}) const&
+    {
+        return impl_
+            .template try_update<project_value, default_value, combine_value>(
+                std::move(k), std::forward<Fn>(fn), std::move(valueEquals));
+    }
+
+    template <typename Fn, typename ValueEquals = std::equal_to<mapped_type>>
+    IMMER_NODISCARD decltype(auto)
+    try_update(key_type k, Fn&& fn, ValueEquals valueEquals = {}) &&
+    {
+        return try_update_move(move_t{},
+                               std::move(k),
+                               std::forward<Fn>(fn),
+                               std::move(valueEquals));
+    }
+
+    /*!
      * Returns a map replacing the association `(k, v)` by the association new
      * association `(k, fn(v))`, where `v` is the currently associated value for
      * `k` in the map.  It does nothing if `k` is not present in the map. It
@@ -516,6 +547,29 @@ private:
         return impl_
             .template update<project_value, default_value, combine_value>(
                 std::move(k), std::forward<Fn>(fn));
+    }
+
+    template <typename Fn, typename ValueEquals>
+    map&& try_update_move(std::true_type,
+                          key_type k,
+                          Fn&& fn,
+                          ValueEquals valueEquals)
+    {
+        impl_.template try_update_mut<project_value,
+                                      default_value,
+                                      combine_value>(
+            {}, std::move(k), std::forward<Fn>(fn), std::move(valueEquals));
+        return std::move(*this);
+    }
+    template <typename Fn, typename ValueEquals>
+    map try_update_move(std::false_type,
+                        key_type k,
+                        Fn&& fn,
+                        ValueEquals valueEquals)
+    {
+        return impl_
+            .template try_update<project_value, default_value, combine_value>(
+                std::move(k), std::forward<Fn>(fn), std::move(valueEquals));
     }
 
     template <typename Fn>
