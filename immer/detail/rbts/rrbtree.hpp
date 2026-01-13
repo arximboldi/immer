@@ -479,7 +479,7 @@ struct rrbtree
         auto ts = tail_size();
         if (ts < branches<BL>) {
             ensure_mutable_tail(e, ts);
-            new (&tail->leaf()[ts]) T{std::move(value)};
+            new (&tail->leaf()[ts]) T(std::move(value));
         } else {
             using std::get;
             auto new_tail = node_t::make_leaf_e(e, std::move(value));

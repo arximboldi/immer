@@ -198,7 +198,7 @@ struct with_capacity
         auto cap = recommend_up(size + 1, capacity);
         auto p   = node_t::copy_n(cap, ptr, size);
         IMMER_TRY {
-            new (p->data() + size) T{std::move(value)};
+            new (p->data() + size) T(std::move(value));
             return {p, size + 1, cap};
         }
         IMMER_CATCH (...) {
@@ -210,13 +210,13 @@ struct with_capacity
     void push_back_mut(edit_t e, T value)
     {
         if (ptr->can_mutate(e) && capacity > size) {
-            new (data() + size) T{std::move(value)};
+            new (data() + size) T(std::move(value));
             ++size;
         } else {
             auto cap = recommend_up(size + 1, capacity);
             auto p   = node_t::copy_e(e, cap, ptr, size);
             IMMER_TRY {
-                new (p->data() + size) T{std::move(value)};
+                new (p->data() + size) T(std::move(value));
                 *this = {p, size + 1, cap};
             }
             IMMER_CATCH (...) {

@@ -44,7 +44,7 @@ class box
 
         template <typename... Args>
         holder(Args&&... args)
-            : value{std::forward<Args>(args)...}
+            : value(std::forward<Args>(args)...)
         {
         }
     };
@@ -77,7 +77,10 @@ public:
      */
     template <typename Arg,
               typename Enable = std::enable_if_t<
-                  !std::is_same<box, std::decay_t<Arg>>::value>>
+                  !std::is_same<box, std::decay_t<Arg>>::value>,
+              // this is similar to std::is_constructible but works around the
+              // fact that is_constructible is ill-formed for incomplete types
+              typename = decltype(T(std::declval<Arg>()))>
     box(Arg&& arg)
         : impl_{detail::make<heap, holder>(std::forward<Arg>(arg))}
     {
@@ -86,7 +89,14 @@ public:
     /*!
      * Constructs a box holding `T{arg1, arg2, args...}`
      */
-    template <typename Arg1, typename Arg2, typename... Args>
+    template <typename Arg1,
+              typename Arg2,
+              typename... Args,
+              // this is similar to std::is_constructible but works around the
+              // fact that is_constructible is ill-formed for incomplete types
+              typename = decltype(T(std::declval<Arg1>(),
+                                    std::declval<Arg2>(),
+                                    std::declval<Args>()...))>
     box(Arg1&& arg1, Arg2&& arg2, Args&&... args)
         : impl_{detail::make<heap, holder>(std::forward<Arg1>(arg1),
                                            std::forward<Arg2>(arg2),

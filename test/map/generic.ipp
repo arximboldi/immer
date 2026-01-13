@@ -265,6 +265,7 @@ TEST_CASE("accumulate")
 
 TEST_CASE("update a lot")
 {
+    IMMER_GC_TEST_GUARD;
     auto v = make_test_map(666u);
 
     SECTION("immutable")
@@ -293,6 +294,7 @@ TEST_CASE("update a lot")
 
 TEST_CASE("update_if_exists a lot")
 {
+    IMMER_GC_TEST_GUARD;
     auto v = make_test_map(666u);
 
     SECTION("immutable")
@@ -314,6 +316,7 @@ TEST_CASE("update_if_exists a lot")
 
 TEST_CASE("update boxed move string")
 {
+    IMMER_GC_TEST_GUARD;
     constexpr auto N = 666u;
     constexpr auto S = 7;
     auto s = MAP_T<std::string, immer::box<std::string, memory_policy_t>>{};

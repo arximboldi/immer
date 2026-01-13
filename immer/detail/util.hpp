@@ -174,7 +174,7 @@ T* make(Args&&... args)
 {
     auto ptr = Heap::allocate(sizeof(T));
     IMMER_TRY {
-        return new (ptr) T{std::forward<Args>(args)...};
+        return new (ptr) T(std::forward<Args>(args)...);
     }
     IMMER_CATCH (...) {
         Heap::deallocate(sizeof(T), ptr);
