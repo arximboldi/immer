@@ -7,6 +7,9 @@
 //
 
 #include <immer/box.hpp>
+
+#include <immer/array.hpp>
+#include <immer/array_transient.hpp>
 #include <immer/vector.hpp>
 #include <immer/vector_transient.hpp>
 
@@ -24,13 +27,43 @@ TEST_CASE("issue-33")
 
     // this one doesn't compile
     auto t = vect.transient();
-
     for (auto i = 0; i < 100; ++i) {
         t.push_back(Element("x"));
     }
-
     vect = t.persistent();
 
     CHECK(*vect[0] == "x");
     CHECK(*vect[99] == "x");
+}
+
+namespace {
+struct node_t
+{
+    using array_t = immer::array<immer::box<node_t>>;
+    node_t()      = default;
+    node_t(immer::box<int>) {}
+    node_t(immer::box<double>) {}
+    node_t(array_t) {}
+};
+} // namespace
+
+TEST_CASE("pr-316")
+{
+    auto x = node_t::array_t{}.transient().persistent();
+    CHECK(x.size() == 0);
+}
+
+namespace {
+struct step_t
+{};
+using history_t = immer::vector<immer::box<step_t>>;
+using summary_t = immer::vector<history_t>;
+} // namespace
+
+TEST_CASE("lager tree_debugger issue")
+{
+    auto step    = step_t{};
+    auto hist    = history_t{}.push_back(step);
+    auto summary = summary_t{}.push_back(hist);
+    CHECK(true);
 }

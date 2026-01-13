@@ -713,7 +713,7 @@ struct node
                 detail::uninitialized_copy(
                     src->values(), src->values() + voffset, dst->values());
             IMMER_TRY {
-                new (dst->values() + voffset) T{std::move(value)};
+                new (dst->values() + voffset) T(std::move(value));
                 IMMER_TRY {
                     if (nv)
                         detail::uninitialized_copy(src->values() + voffset,
@@ -768,7 +768,7 @@ struct node
                         src->values(), src->values() + voffset, dst->values());
             }
             IMMER_TRY {
-                new (dst->values() + voffset) T{std::move(value)};
+                new (dst->values() + voffset) T(std::move(value));
                 IMMER_TRY {
                     if (nv) {
                         if (mutate_values)

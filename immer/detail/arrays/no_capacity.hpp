@@ -163,7 +163,7 @@ struct no_capacity
     {
         auto p = node_t::copy_n(size + 1, ptr, size);
         IMMER_TRY {
-            new (p->data() + size) T{std::move(value)};
+            new (p->data() + size) T(std::move(value));
             return {p, size + 1};
         }
         IMMER_CATCH (...) {

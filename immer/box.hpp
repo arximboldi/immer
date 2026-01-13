@@ -44,7 +44,7 @@ class box
 
         template <typename... Args>
         holder(Args&&... args)
-            : value{std::forward<Args>(args)...}
+            : value(std::forward<Args>(args)...)
         {
         }
     };
