@@ -60,7 +60,7 @@ endif()
 # For FreeBSD we need to use gc-threaded
 if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   # checks if 'gc' supports 'GC_get_parallel' and if it does then use it
-  include(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
+  include(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
   # not sure if this links properly...
   find_library(
     BoehmGC_LIBRARIES
