@@ -21,10 +21,14 @@
 
 // Disable some warnings for this file as it seems to be causing various
 // false positives when compiling with various versions of GCC.
+#if !defined(_MSC_VER)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #pragma GCC diagnostic ignored "-Wnonnull"
+#endif
+#endif
 
 namespace immer {
 namespace detail {
@@ -1039,4 +1043,8 @@ constexpr bits_t derive_bits_leaf = derive_bits_leaf_aux<T, MP, B>();
 } // namespace detail
 } // namespace immer
 
+#if !defined(_MSC_VER)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
+#endif
