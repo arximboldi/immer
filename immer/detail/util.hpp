@@ -357,13 +357,13 @@ distance(Iterator first, Sentinel last)
  * forward range @f$ [first, last) @f$
  */
 template <typename Iterator,
-    typename Sentinel,
+          typename Sentinel,
           std::enable_if_t<
               (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
                       is_forward_iterator_v<Iterator> &&
-                         detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                         (!detail::is_subtractable_v<Sentinel, Iterator>),
-                     bool> = true>
+                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
+                  (!detail::is_subtractable_v<Sentinel, Iterator>),
+              bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
@@ -380,13 +380,13 @@ distance(Iterator first, Sentinel last)
  * random access range @f$ [first, last) @f$
  */
 template <typename Iterator,
-    typename Sentinel,
+          typename Sentinel,
           std::enable_if_t<
               (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
                       is_forward_iterator_v<Iterator> &&
-                         detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                         detail::is_subtractable_v<Sentinel, Iterator>,
-                     bool> = true>
+                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
+                  detail::is_subtractable_v<Sentinel, Iterator>,
+              bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
