@@ -52,6 +52,76 @@ template <typename T>
 using aligned_storage_for =
     typename aligned_storage<sizeof(T), alignof(T)>::type;
 
+template <typename Base, typename T, bool EmptyBase = false>
+struct has_trailing_storage;
+
+template <typename Base, typename T>
+struct alignas(alignof(T)) has_trailing_storage<Base, T, true>
+{
+    using storage_type = T;
+
+    T* get_storage_ptr()
+    {
+        check_base();
+        return reinterpret_cast<T*>(this);
+    }
+
+    const T* get_storage_ptr() const
+    {
+        check_base();
+        return reinterpret_cast<const T*>(this);
+    }
+
+    static constexpr size_t get_storage_offset()
+    {
+        check_base();
+        return 0;
+    }
+
+private:
+    static constexpr void check_base()
+    {
+        static_assert(std::is_standard_layout<Base>::value,
+                      "Please remove 'true' if the base class is non emtpy");
+    }
+
+    // Dummy field to make the base class non-empty.
+    char _;
+};
+
+template <typename Base, typename T>
+struct alignas(alignof(T)) has_trailing_storage<Base, T, false>
+{
+    using storage_type = T;
+
+    T* get_storage_ptr()
+    {
+        check_base();
+        auto* base = static_cast<Base*>(this);
+        return reinterpret_cast<T*>(base + 1);
+    }
+
+    const T* get_storage_ptr() const
+    {
+        check_base();
+        auto* base = static_cast<const Base*>(this);
+        return reinterpret_cast<const T*>(base + 1);
+    }
+
+    static constexpr size_t get_storage_offset()
+    {
+        check_base();
+        return sizeof(Base);
+    }
+
+private:
+    static constexpr void check_base()
+    {
+        static_assert(std::is_standard_layout<Base>::value && !std::is_empty<Base>::value,
+                      "Please add 'true' if the base class is emtpy");
+    }
+};
+
 template <typename T>
 T& auto_const_cast(const T& x)
 {
@@ -287,13 +357,13 @@ distance(Iterator first, Sentinel last)
  * forward range @f$ [first, last) @f$
  */
 template <typename Iterator,
-          typename Sentinel,
+    typename Sentinel,
           std::enable_if_t<
               (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
                       is_forward_iterator_v<Iterator> &&
-                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                  (!detail::is_subtractable_v<Sentinel, Iterator>),
-              bool> = true>
+                         detail::compatible_sentinel_v<Iterator, Sentinel> &&
+                         (!detail::is_subtractable_v<Sentinel, Iterator>),
+                     bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
@@ -310,13 +380,13 @@ distance(Iterator first, Sentinel last)
  * random access range @f$ [first, last) @f$
  */
 template <typename Iterator,
-          typename Sentinel,
+    typename Sentinel,
           std::enable_if_t<
               (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
                       is_forward_iterator_v<Iterator> &&
-                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                  detail::is_subtractable_v<Sentinel, Iterator>,
-              bool> = true>
+                         detail::compatible_sentinel_v<Iterator, Sentinel> &&
+                         detail::is_subtractable_v<Sentinel, Iterator>,
+                     bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
