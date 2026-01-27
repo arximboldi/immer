@@ -65,17 +65,17 @@ struct node
         inner
     };
 
-    struct collision_t : public has_trailing_storage<collision_t, T>
+    struct collision_t : public with_trailing_storage<collision_t, T>
     {
         count_t count;
     };
 
-    struct values_data_t : public has_trailing_storage<values_data_t, T, true>
+    struct values_data_t : public with_trailing_storage<values_data_t, T, true>
     {};
 
     using values_t = combine_standard_layout_t<values_data_t, refs_t, ownee_t>;
 
-    struct inner_t : public has_trailing_storage<inner_t, node_t*>
+    struct inner_t : public with_trailing_storage<inner_t, node_t*>
     {
         bitmap_t nodemap;
         bitmap_t datamap;

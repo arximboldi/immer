@@ -72,10 +72,10 @@ struct node
                                          relaxed_data_no_meta_t,
                                          relaxed_data_with_meta_t>;
 
-    struct leaf_t : public has_trailing_storage<leaf_t, T, true>
+    struct leaf_t : public with_trailing_storage<leaf_t, T, true>
     {};
 
-    struct inner_t : public has_trailing_storage<inner_t, node_t*>
+    struct inner_t : public with_trailing_storage<inner_t, node_t*>
     {
         relaxed_t* relaxed;
     };

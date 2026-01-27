@@ -31,7 +31,7 @@ struct node
     using node_t     = node;
     using edit_t     = typename transience::edit;
 
-    struct data_t : public has_trailing_storage<data_t, T, true>
+    struct data_t : public with_trailing_storage<data_t, T, true>
     {};
 
     using impl_t = combine_standard_layout_t<data_t, refs_t, ownee_t>;
