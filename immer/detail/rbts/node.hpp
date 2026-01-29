@@ -72,15 +72,12 @@ struct node
                                          relaxed_data_no_meta_t,
                                          relaxed_data_with_meta_t>;
 
-    struct leaf_t
-    {
-        aligned_storage_for<T> buffer;
-    };
+    struct leaf_t : public with_trailing_storage<leaf_t, T, true>
+    {};
 
-    struct inner_t
+    struct inner_t : public with_trailing_storage<inner_t, node_t*>
     {
         relaxed_t* relaxed;
-        aligned_storage_for<node_t*> buffer;
     };
 
     union data_t
@@ -108,14 +105,16 @@ struct node
 
     constexpr static std::size_t sizeof_packed_leaf_n(count_t count)
     {
-        return immer_offsetof(impl_t, d.data.leaf.buffer) +
-               sizeof(leaf_t::buffer) * count;
+        return immer_offsetof(impl_t, d.data.leaf) +
+               leaf_t::get_storage_offset() +
+               sizeof(typename leaf_t::storage_type) * count;
     }
 
     constexpr static std::size_t sizeof_packed_inner_n(count_t count)
     {
-        return immer_offsetof(impl_t, d.data.inner.buffer) +
-               sizeof(inner_t::buffer) * count;
+        return immer_offsetof(impl_t, d.data.inner) +
+               inner_t::get_storage_offset() +
+               sizeof(typename inner_t::storage_type) * count;
     }
 
     constexpr static std::size_t sizeof_packed_relaxed_n(count_t count)
@@ -184,13 +183,13 @@ struct node
     node_t** inner()
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
-        return reinterpret_cast<node_t**>(&impl.d.data.inner.buffer);
+        return impl.d.data.inner.get_storage_ptr();
     }
 
     T* leaf()
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::leaf);
-        return reinterpret_cast<T*>(&impl.d.data.leaf.buffer);
+        return impl.d.data.leaf.get_storage_ptr();
     }
 
     static refs_t& refs(const relaxed_t* x)

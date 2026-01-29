@@ -65,25 +65,21 @@ struct node
         inner
     };
 
-    struct collision_t
+    struct collision_t : public with_trailing_storage<collision_t, T>
     {
         count_t count;
-        aligned_storage_for<T> buffer;
     };
 
-    struct values_data_t
-    {
-        aligned_storage_for<T> buffer;
-    };
+    struct values_data_t : public with_trailing_storage<values_data_t, T, true>
+    {};
 
     using values_t = combine_standard_layout_t<values_data_t, refs_t, ownee_t>;
 
-    struct inner_t
+    struct inner_t : public with_trailing_storage<inner_t, node_t*>
     {
         bitmap_t nodemap;
         bitmap_t datamap;
         values_t* values;
-        aligned_storage_for<node_t*> buffer;
     };
 
     union data_t
@@ -107,20 +103,24 @@ struct node
     constexpr static std::size_t sizeof_values_n(count_t count)
     {
         return std::max(sizeof(values_t),
-                        immer_offsetof(values_t, d.buffer) +
-                            sizeof(values_data_t::buffer) * count);
+                        immer_offsetof(values_t, d) +
+                            values_data_t::get_storage_offset() +
+                            sizeof(typename values_data_t::storage_type) *
+                                count);
     }
 
     constexpr static std::size_t sizeof_collision_n(count_t count)
     {
-        return immer_offsetof(impl_t, d.data.collision.buffer) +
-               sizeof(collision_t::buffer) * count;
+        return immer_offsetof(impl_t, d.data.collision) +
+               collision_t::get_storage_offset() +
+               sizeof(typename collision_t::storage_type) * count;
     }
 
     constexpr static std::size_t sizeof_inner_n(count_t count)
     {
-        return immer_offsetof(impl_t, d.data.inner.buffer) +
-               sizeof(inner_t::buffer) * count;
+        return immer_offsetof(impl_t, d.data.inner) +
+               inner_t::get_storage_offset() +
+               sizeof(typename inner_t::storage_type) * count;
     }
 
 #if IMMER_TAGGED_NODE
@@ -131,26 +131,26 @@ struct node
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         assert(impl.d.data.inner.values);
-        return (T*) &impl.d.data.inner.values->d.buffer;
+        return impl.d.data.inner.values->d.get_storage_ptr();
     }
 
     auto values() const
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
         assert(impl.d.data.inner.values);
-        return (const T*) &impl.d.data.inner.values->d.buffer;
+        return (const T*) impl.d.data.inner.values->d.get_storage_ptr();
     }
 
     auto children()
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
-        return (node_t**) &impl.d.data.inner.buffer;
+        return impl.d.data.inner.get_storage_ptr();
     }
 
     auto children() const
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::inner);
-        return (const node_t* const*) &impl.d.data.inner.buffer;
+        return (const node_t* const*) impl.d.data.inner.get_storage_ptr();
     }
 
     auto datamap() const
@@ -198,13 +198,13 @@ struct node
     T* collisions()
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::collision);
-        return (T*) &impl.d.data.collision.buffer;
+        return impl.d.data.collision.get_storage_ptr();
     }
 
     const T* collisions() const
     {
         IMMER_ASSERT_TAGGED(kind() == kind_t::collision);
-        return (const T*) &impl.d.data.collision.buffer;
+        return impl.d.data.collision.get_storage_ptr();
     }
 
     static refs_t& refs(const values_t* x)
@@ -386,7 +386,7 @@ struct node
         else {
             auto nv    = data_count();
             auto nxt   = new (heap::allocate(sizeof_values_n(nv))) values_t{};
-            auto dst   = (T*) &nxt->d.buffer;
+            auto dst   = nxt->d.get_storage_ptr();
             auto src   = values();
             ownee(nxt) = e;
             IMMER_TRY {
@@ -1084,7 +1084,7 @@ struct node
     static void delete_values(values_t* p, count_t n)
     {
         assert(p);
-        detail::destroy_n((T*) &p->d.buffer, n);
+        detail::destroy_n(p->d.get_storage_ptr(), n);
         deallocate_values(p, n);
     }
 
