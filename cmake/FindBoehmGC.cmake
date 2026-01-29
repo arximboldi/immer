@@ -97,10 +97,14 @@ return 0;
     endif()
   endif()
 else()
-  find_library(
-    BoehmGC_LIBRARIES
-    NAMES gc
-    HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
+  # if not found yet, or file it doesn't exist, try find one
+  if(NOT BoehmGC_LIBRARIES)
+    find_library(
+      BoehmGC_LIBRARIES
+      NAMES gc
+      HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
+  endif()
+
   # OpenSolaris uses bgc as Boehm GC runtime in its package manager. so try it
   if(NOT BoehmGC_LIBRARIES)
     find_library(
@@ -121,4 +125,7 @@ mark_as_advanced(BoehmGC_LIBRARIES BoehmGC_INCLUDE_DIR)
 # for compatibility with older versions of this file
 if(DEFINED BoehmGC_FOUND)
   set(BOEHM_GC_FOUND "${BoehmGC_FOUND}")
+  set(BOEHM_GC_INCLUDE_DIR "${BoehmGC_INCLUDE_DIR}")
+  set(BOEHM_GC_LIBRARIES "${BoehmGC_LIBRARIES}")
+  mark_as_advanced(BOEHM_GC_LIBRARIES BOEHM_GC_INCLUDE_DIR)
 endif()
