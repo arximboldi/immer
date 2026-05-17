@@ -422,6 +422,8 @@ struct iterator
         , i_{0}
         , base_{0}
     {
+        if (v.size == 0)
+            return;
         if (v.dirty)
             p_.stabilize(v.focus);
         p_.goto_pos(0, 0 ^ v.focus);
@@ -431,8 +433,10 @@ struct iterator
     iterator(const impl<T, B, MP>& v, end_t)
         : p_{v.p}
         , i_{v.size}
-        , base_{(v.size - 1) & ~mask<B>}
+        , base_{v.size == 0 ? 0 : (v.size - 1) & ~mask<B>}
     {
+        if (v.size == 0)
+            return;
         if (v.dirty)
             p_.stabilize(v.focus);
         p_.goto_pos(base_, base_ ^ v.focus);
