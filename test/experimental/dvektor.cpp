@@ -141,6 +141,20 @@ TEST_CASE("big")
 
 TEST_CASE("iterator")
 {
+    SECTION("empty begin and end")
+    {
+        auto v = dvektor<unsigned>{};
+        CHECK(v.begin() == v.end());
+        CHECK(v.rbegin() == v.rend());
+
+        auto count = 0u;
+        for (const auto& x : v) {
+            (void) x;
+            ++count;
+        }
+        CHECK(count == 0u);
+    }
+
     const auto n = 666u;
     auto v       = dvektor<unsigned>{};
     for (auto i = 0u; i < n; ++i)
