@@ -498,19 +498,24 @@ struct node
             delete_inner(left);
             IMMER_RETHROW;
         }
-        auto fill = [](node_t* dst, node_t** c, local_size_t* s, count_t m) {
-            auto acc = local_size_t{0};
-            for (auto j = count_t{0}; j < m; ++j) {
-                dst->children()[j] = c[j];
-                acc += s[j];
-                dst->sizes()[j] = acc;
-            }
-        };
-        fill(left, cp, sz, lc);
-        fill(right, cp + lc, sz + lc, rc);
+        fill_inner(left, cp, sz, lc);
+        fill_inner(right, cp + lc, sz + lc, rc);
         inc_nodes(srcc, idx);
         inc_nodes(srcc + idx + 1u, n - idx - 1u);
         return {left, right};
+    }
+
+    // fills the children of `dst` from `c[0 .. m)` and its cumulative
+    // sizes from the per-child sizes in `s[0 .. m)`
+    static void
+    fill_inner(node_t* dst, node_t* const* c, const local_size_t* s, count_t m)
+    {
+        auto acc = local_size_t{0};
+        for (auto j = count_t{0}; j < m; ++j) {
+            dst->children()[j] = c[j];
+            acc += s[j];
+            dst->sizes()[j] = acc;
+        }
     }
 
     // makes an inner node of `n` children whose keys are copied from
@@ -555,6 +560,266 @@ struct node
         dst->children()[1] = r;
         dst->sizes()[0]    = size_l;
         dst->sizes()[1]    = size_l + size_r;
+        return dst;
+    }
+
+    static node_t* copy_leaf_erase(node_t* src, count_t idx)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::leaf);
+        auto n = src->count();
+        assert(idx < n);
+        auto dst  = make_leaf_n(n - 1u);
+        auto srcp = src->values();
+        auto dstp = dst->values();
+        IMMER_TRY {
+            dstp = detail::uninitialized_copy(srcp, srcp + idx, dstp);
+            detail::uninitialized_copy(srcp + idx + 1u, srcp + n, dstp);
+        }
+        IMMER_CATCH (...) {
+            detail::destroy(dst->values(), dstp);
+            deallocate_leaf(dst);
+            IMMER_RETHROW;
+        }
+        return dst;
+    }
+
+    static node_t* merge_leaves(node_t* l, node_t* r)
+    {
+        IMMER_ASSERT_TAGGED(l->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(r->kind() == kind_t::leaf);
+        auto nl = l->count();
+        auto nr = r->count();
+        assert(nl + nr <= branches<BL>);
+        auto dst  = make_leaf_n(nl + nr);
+        auto dstp = dst->values();
+        IMMER_TRY {
+            dstp =
+                detail::uninitialized_copy(l->values(), l->values() + nl, dstp);
+            detail::uninitialized_copy(r->values(), r->values() + nr, dstp);
+        }
+        IMMER_CATCH (...) {
+            detail::destroy(dst->values(), dstp);
+            deallocate_leaf(dst);
+            IMMER_RETHROW;
+        }
+        return dst;
+    }
+
+    // redistributes the values of two sibling leaves evenly over two
+    // new leaves
+    static std::pair<node_t*, node_t*> balance_leaves(node_t* l, node_t* r)
+    {
+        IMMER_ASSERT_TAGGED(l->kind() == kind_t::leaf);
+        IMMER_ASSERT_TAGGED(r->kind() == kind_t::leaf);
+        auto nl    = l->count();
+        auto nr    = r->count();
+        auto total = nl + nr;
+        assert(total > branches<BL>);
+        auto lc   = total - total / 2u;
+        auto rc   = total / 2u;
+        auto left = make_leaf_n(lc);
+        {
+            auto dstp = left->values();
+            IMMER_TRY {
+                auto m = lc < nl ? lc : nl;
+                dstp   = detail::uninitialized_copy(
+                    l->values(), l->values() + m, dstp);
+                if (lc > nl)
+                    detail::uninitialized_copy(
+                        r->values(), r->values() + (lc - nl), dstp);
+            }
+            IMMER_CATCH (...) {
+                detail::destroy(left->values(), dstp);
+                deallocate_leaf(left);
+                IMMER_RETHROW;
+            }
+        }
+        auto right = static_cast<node_t*>(nullptr);
+        IMMER_TRY {
+            right     = make_leaf_n(rc);
+            auto dstp = right->values();
+            IMMER_TRY {
+                if (lc < nl)
+                    dstp = detail::uninitialized_copy(
+                        l->values() + lc, l->values() + nl, dstp);
+                auto rfrom = lc > nl ? lc - nl : 0u;
+                detail::uninitialized_copy(
+                    r->values() + rfrom, r->values() + nr, dstp);
+            }
+            IMMER_CATCH (...) {
+                detail::destroy(right->values(), dstp);
+                deallocate_leaf(right);
+                IMMER_RETHROW;
+            }
+        }
+        IMMER_CATCH (...) {
+            delete_leaf(left);
+            IMMER_RETHROW;
+        }
+        return {left, right};
+    }
+
+    // concatenates two sibling inner nodes; `boundary` must separate
+    // the children of `l` from those of `r`
+    static node_t* merge_inners(node_t* l, node_t* r, const key_t& boundary)
+    {
+        IMMER_ASSERT_TAGGED(l->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(r->kind() == kind_t::inner);
+        auto cl = l->count();
+        auto cr = r->count();
+        assert(cl + cr <= branches<B>);
+        auto dst  = make_inner_n(cl + cr);
+        auto dstk = dst->keys();
+        IMMER_TRY {
+            dstk = detail::uninitialized_copy(
+                l->keys(), l->keys() + (cl - 1u), dstk);
+            new (dstk) key_t{boundary};
+            ++dstk;
+            detail::uninitialized_copy(r->keys(), r->keys() + (cr - 1u), dstk);
+        }
+        IMMER_CATCH (...) {
+            detail::destroy(dst->keys(), dstk);
+            deallocate_inner(dst);
+            IMMER_RETHROW;
+        }
+        std::copy(l->children(), l->children() + cl, dst->children());
+        std::copy(r->children(), r->children() + cr, dst->children() + cl);
+        auto ltotal = l->sizes()[cl - 1u];
+        std::copy(l->sizes(), l->sizes() + cl, dst->sizes());
+        for (auto j = count_t{0}; j < cr; ++j)
+            dst->sizes()[cl + j] = ltotal + r->sizes()[j];
+        inc_nodes(l->children(), cl);
+        inc_nodes(r->children(), cr);
+        return dst;
+    }
+
+    // redistributes the children of two sibling inner nodes evenly
+    // over two new nodes; `boundary` must separate the children of
+    // `l` from those of `r`; as in copy_inner_split_insert, the
+    // separator between the two results is derived by the caller
+    static std::pair<node_t*, node_t*>
+    balance_inners(node_t* l, node_t* r, const key_t& boundary)
+    {
+        IMMER_ASSERT_TAGGED(l->kind() == kind_t::inner);
+        IMMER_ASSERT_TAGGED(r->kind() == kind_t::inner);
+        auto cl    = l->count();
+        auto cr    = r->count();
+        auto total = cl + cr;
+        assert(total > branches<B>);
+        assert(total <= 2u * branches<B>);
+
+        const key_t* kp[2u * branches<B>];
+        node_t* cp[2u * branches<B>];
+        local_size_t sz[2u * branches<B>];
+        for (auto j = count_t{0}; j < cl; ++j) {
+            cp[j] = l->children()[j];
+            sz[j] = l->sizes()[j] - (j > 0u ? l->sizes()[j - 1u] : 0u);
+        }
+        for (auto j = count_t{0}; j < cr; ++j) {
+            cp[cl + j] = r->children()[j];
+            sz[cl + j] = r->sizes()[j] - (j > 0u ? r->sizes()[j - 1u] : 0u);
+        }
+        for (auto j = count_t{0}; j + 1u < cl; ++j)
+            kp[j] = l->keys() + j;
+        kp[cl - 1u] = &boundary;
+        for (auto j = count_t{0}; j + 1u < cr; ++j)
+            kp[cl + j] = r->keys() + j;
+
+        auto lc    = total - total / 2u;
+        auto rc    = total / 2u;
+        auto left  = make_inner_keys_from(kp, 0u, lc - 1u, lc);
+        auto right = static_cast<node_t*>(nullptr);
+        IMMER_TRY {
+            right = make_inner_keys_from(kp, lc, total - 1u, rc);
+        }
+        IMMER_CATCH (...) {
+            delete_inner(left);
+            IMMER_RETHROW;
+        }
+        fill_inner(left, cp, sz, lc);
+        fill_inner(right, cp + lc, sz + lc, rc);
+        inc_nodes(l->children(), cl);
+        inc_nodes(r->children(), cr);
+        return {left, right};
+    }
+
+    // replaces the children at `left_idx` and `left_idx + 1` with the
+    // single node `merged`, after the erasure of one element below
+    static node_t*
+    copy_inner_merge(node_t* src, count_t left_idx, node_t* merged)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        auto n = src->count();
+        assert(n >= 2u && left_idx + 1u < n);
+        auto dst  = make_inner_n(n - 1u);
+        auto srck = src->keys();
+        auto dstk = dst->keys();
+        IMMER_TRY {
+            dstk = detail::uninitialized_copy(srck, srck + left_idx, dstk);
+            detail::uninitialized_copy(
+                srck + left_idx + 1u, srck + (n - 1u), dstk);
+        }
+        IMMER_CATCH (...) {
+            detail::destroy(dst->keys(), dstk);
+            deallocate_inner(dst);
+            IMMER_RETHROW;
+        }
+        auto srcc = src->children();
+        auto dstc = dst->children();
+        std::copy(srcc, srcc + left_idx, dstc);
+        dstc[left_idx] = merged;
+        std::copy(srcc + left_idx + 2u, srcc + n, dstc + left_idx + 1u);
+        auto srcs = src->sizes();
+        auto dsts = dst->sizes();
+        std::copy(srcs, srcs + left_idx, dsts);
+        for (auto j = left_idx; j + 1u < n; ++j)
+            dsts[j] = srcs[j + 1u] - 1u;
+        inc_nodes(srcc, left_idx);
+        inc_nodes(srcc + left_idx + 2u, n - left_idx - 2u);
+        return dst;
+    }
+
+    // replaces the children at `left_idx` and `left_idx + 1` with the
+    // two nodes `l2` and `r2` separated by `sep`, after the erasure
+    // of one element below
+    static node_t* copy_inner_replace_2(node_t* src,
+                                        count_t left_idx,
+                                        node_t* l2,
+                                        node_t* r2,
+                                        const key_t& sep,
+                                        local_size_t size_l)
+    {
+        IMMER_ASSERT_TAGGED(src->kind() == kind_t::inner);
+        auto n = src->count();
+        assert(left_idx + 1u < n);
+        auto dst  = make_inner_n(n);
+        auto srck = src->keys();
+        auto dstk = dst->keys();
+        IMMER_TRY {
+            dstk = detail::uninitialized_copy(srck, srck + left_idx, dstk);
+            new (dstk) key_t{sep};
+            ++dstk;
+            detail::uninitialized_copy(
+                srck + left_idx + 1u, srck + (n - 1u), dstk);
+        }
+        IMMER_CATCH (...) {
+            detail::destroy(dst->keys(), dstk);
+            deallocate_inner(dst);
+            IMMER_RETHROW;
+        }
+        auto srcc = src->children();
+        auto dstc = dst->children();
+        std::copy(srcc, srcc + n, dstc);
+        dstc[left_idx]      = l2;
+        dstc[left_idx + 1u] = r2;
+        auto srcs           = src->sizes();
+        auto dsts           = dst->sizes();
+        std::copy(srcs, srcs + left_idx, dsts);
+        dsts[left_idx] = (left_idx > 0u ? srcs[left_idx - 1u] : 0u) + size_l;
+        for (auto j = left_idx + 1u; j < n; ++j)
+            dsts[j] = srcs[j] - 1u;
+        inc_nodes(srcc, left_idx);
+        inc_nodes(srcc + left_idx + 2u, n - left_idx - 2u);
         return dst;
     }
 

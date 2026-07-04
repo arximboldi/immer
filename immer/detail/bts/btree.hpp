@@ -284,6 +284,124 @@ struct btree
         }
     }
 
+    struct sub_result
+    {
+        node_t* node;   // nullptr when the key was not there
+        bool underflow; // node fell under the minimum fill
+    };
+
+    template <typename Key>
+    btree sub(const Key& k) const
+    {
+        auto r = do_sub(root, depth, k);
+        if (!r.node)
+            return *this;
+        auto new_size = size - 1u;
+        if (new_size == 0u) {
+            if (r.node->dec())
+                node_t::delete_deep(r.node, depth);
+            return empty();
+        }
+        if (depth > 0u && r.node->count() == 1u) {
+            auto child = r.node->children()[0]->inc();
+            if (r.node->dec())
+                node_t::delete_deep(r.node, depth);
+            return {child, new_size, depth - 1u};
+        }
+        return {r.node, new_size, depth};
+    }
+
+    template <typename Key>
+    sub_result do_sub(node_t* p, count_t level, const Key& k) const
+    {
+        if (level == 0u) {
+            auto n   = p->count();
+            auto idx = leaf_index(p, k);
+            if (idx >= n || Compare{}(k, KeyFn{}(p->values()[idx])))
+                return {nullptr, false};
+            return {node_t::copy_leaf_erase(p, idx), n - 1u < min_branches<BL>};
+        }
+        auto idx = inner_index(p, k);
+        auto r   = do_sub(p->children()[idx], level - 1u, k);
+        if (!r.node)
+            return {nullptr, false};
+        auto child_level = level - 1u;
+        auto dispose     = [&](node_t* q) {
+            if (q->dec())
+                node_t::delete_deep(q, child_level);
+        };
+        if (!r.underflow) {
+            IMMER_TRY {
+                return {node_t::copy_inner_replace(
+                            p, idx, r.node, static_cast<local_size_t>(-1)),
+                        false};
+            }
+            IMMER_CATCH (...) {
+                dispose(r.node);
+                IMMER_RETHROW;
+            }
+        }
+        // restore the minimum fill of the fresh child at `idx` by
+        // merging it with a neighbor or redistributing between them
+        auto left_idx = idx > 0u ? idx - 1u : idx;
+        auto lhs      = idx > 0u ? p->children()[idx - 1u] : r.node;
+        auto rhs      = idx > 0u ? r.node : p->children()[1u];
+        auto combined = lhs->count() + rhs->count();
+        auto cap      = child_level == 0u ? branches<BL> : branches<B>;
+        if (combined <= cap) {
+            auto merged = static_cast<node_t*>(nullptr);
+            IMMER_TRY {
+                merged = child_level == 0u
+                             ? node_t::merge_leaves(lhs, rhs)
+                             : node_t::merge_inners(
+                                   lhs, rhs, first_key(rhs, child_level));
+            }
+            IMMER_CATCH (...) {
+                dispose(r.node);
+                IMMER_RETHROW;
+            }
+            IMMER_TRY {
+                auto dst = node_t::copy_inner_merge(p, left_idx, merged);
+                dispose(r.node);
+                return {dst, p->count() - 1u < min_branches<B>};
+            }
+            IMMER_CATCH (...) {
+                dispose(merged);
+                dispose(r.node);
+                IMMER_RETHROW;
+            }
+        } else {
+            auto lr = std::pair<node_t*, node_t*>{nullptr, nullptr};
+            IMMER_TRY {
+                lr = child_level == 0u
+                         ? node_t::balance_leaves(lhs, rhs)
+                         : node_t::balance_inners(
+                               lhs, rhs, first_key(rhs, child_level));
+            }
+            IMMER_CATCH (...) {
+                dispose(r.node);
+                IMMER_RETHROW;
+            }
+            IMMER_TRY {
+                auto dst = node_t::copy_inner_replace_2(
+                    p,
+                    left_idx,
+                    lr.first,
+                    lr.second,
+                    first_key(lr.second, child_level),
+                    subtree_size(lr.first, child_level));
+                dispose(r.node);
+                return {dst, false};
+            }
+            IMMER_CATCH (...) {
+                dispose(lr.first);
+                dispose(lr.second);
+                dispose(r.node);
+                IMMER_RETHROW;
+            }
+        }
+    }
+
     bool check_tree() const
     {
         auto ok = true;
