@@ -790,28 +790,46 @@ surface, so it is explicitly deferred.
 
 1. **Naming**: `sorted_map`/`sorted_set` (proposed) vs `ordered_*`;
    bikeshed window closes at phase-1 merge.
+   ANSWER: I was initially thinking of `ordered_` for symmetry with `unordered_` in the standard library, but you convinced me of `sorted_`
+
 2. **Defaults for B/BL**: 2^5 to match the library's house style, but
    benchmarks may argue for asymmetric defaults (e.g. B=4, BL=5–6);
    also whether `sizeof(T)` should influence a recommended BL the way
    `map`'s docs steer big values toward `box`.
+   ANSWER: Let's go for 2^5 for now and benchmark later.
+
+
 3. **Stateful comparators**: require stateless (consistent with
    `Hash`/`Equal` today, proposed) or store the comparator in the
    container handle?  Storing it is cheap (EBO) but must be threaded
    into every algorithm and transients; nodes never store it either
    way.
+   ANSWER: let's go for stateless for consistency with the rest of the library.
+
 4. **Set-algebra spelling**: members (`merge`, `intersect`, ...) vs
    free functions (`immer::set_union` — `union` is a keyword) vs
    operators (`|`, `&`, `-`).
+   ANSWER: members is good, merge / intersect is good. we could add
+   operators later (we would have to think also about unordered
+   collections).
+
 5. **`erase(iterator)` / erase-by-range**: worth exposing once
    iterators carry a full descent stack (can avoid the re-search)?
+   ANSWER: let's prioritize symmetrice. make a note for later if it could be a sigificant performance improvement, in which case we should implement everywhere.
+
 6. **`equal_range`**: redundant for unique keys
    (`{lower_bound, lower_bound+0/1}`); include for std-compat or omit?
+   Omit if redundant, write note.
+
 7. **Top-down preemptive vs bottom-up rebalancing** (§4.2):
    implementation-time benchmark; affects average fill (~5–10%) and
    code shape, not the API.
+   ANSWER: make whatever choice is best and write not to benchmark later.
+
 8. **32-bit size counters** in the augmentation arrays (halves their
    footprint, caps subtrees at 2³² — the container `size_t` is
    already configurable per `detail::bts::size_t`)?
+   ANSWER: sounds good.
 
 ## 10. References
 
