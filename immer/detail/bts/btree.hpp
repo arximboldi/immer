@@ -1,0 +1,371 @@
+//
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
+//
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
+//
+
+#pragma once
+
+#include <immer/config.hpp>
+#include <immer/detail/bts/bits.hpp>
+#include <immer/detail/bts/node.hpp>
+
+#include <cassert>
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
+namespace immer {
+namespace detail {
+namespace bts {
+
+#if IMMER_DEBUG_STATS
+struct btree_debug_stats
+{
+    std::size_t bits{};
+    std::size_t bits_leaf{};
+    std::size_t value_size{};
+    std::size_t key_size{};
+
+    std::size_t leaf_count{};
+    std::size_t inner_count{};
+    std::size_t value_count{};
+    std::size_t child_count{};
+};
+#endif
+
+// A persistent (a,b)-tree with values in the leaves.
+//
+// Every leaf lives at distance `depth` from the root, so the kind of
+// a node is always known from the context of the traversal.  Inner
+// nodes hold `count() - 1` separator keys: `sep[i]` partitions the
+// children such that `keys(child[i]) < sep[i] <= keys(child[i+1])` --
+// a separator does not need to be present in the tree, which spares
+// erasure from ever rewriting inner keys.
+template <typename T,
+          typename KeyFn,
+          typename Compare,
+          typename MemoryPolicy,
+          bits_t B,
+          bits_t BL>
+struct btree
+{
+    static constexpr auto bits      = B;
+    static constexpr auto bits_leaf = BL;
+
+    using value_t   = T;
+    using key_fn_t  = KeyFn;
+    using compare_t = Compare;
+    using key_t     = std::decay_t<decltype(KeyFn{}(std::declval<const T&>()))>;
+    using node_t    = node<T, key_t, MemoryPolicy, B, BL>;
+    using edit_t    = typename MemoryPolicy::transience_t::edit;
+    using owner_t   = typename MemoryPolicy::transience_t::owner;
+
+    node_t* root;
+    size_t size;
+    count_t depth; // number of inner levels; 0 means the root is a leaf
+
+    static node_t* empty_root()
+    {
+        static const auto empty_ = [] {
+            constexpr auto size = node_t::sizeof_leaf_n(0u);
+            static std::aligned_storage_t<size, alignof(node_t)> storage;
+            return node_t::make_leaf_into(&storage, 0u);
+        }();
+        return empty_->inc();
+    }
+
+    static btree empty() { return {empty_root(), 0u, 0u}; }
+
+    btree(node_t* r, size_t sz, count_t d) noexcept
+        : root{r}
+        , size{sz}
+        , depth{d}
+    {
+    }
+
+    btree(const btree& other) noexcept
+        : btree{other.root, other.size, other.depth}
+    {
+        inc();
+    }
+
+    btree(btree&& other) noexcept
+        : btree{empty_root(), 0u, 0u}
+    {
+        swap(*this, other);
+    }
+
+    btree& operator=(const btree& other)
+    {
+        auto next = other;
+        swap(*this, next);
+        return *this;
+    }
+
+    btree& operator=(btree&& other) noexcept
+    {
+        swap(*this, other);
+        return *this;
+    }
+
+    friend void swap(btree& x, btree& y) noexcept
+    {
+        using std::swap;
+        swap(x.root, y.root);
+        swap(x.size, y.size);
+        swap(x.depth, y.depth);
+    }
+
+    ~btree() { dec(); }
+
+    void inc() const { root->inc(); }
+
+    void dec() const
+    {
+        if (root->dec())
+            node_t::delete_deep(root, depth);
+    }
+
+    // index of the child of `p` whose subtree may contain key `k`,
+    // this is, the number of separators s such that `s <= k`
+    template <typename Key>
+    static count_t inner_index(const node_t* p, const Key& k)
+    {
+        auto keys = p->keys();
+        auto lo   = count_t{0};
+        auto hi   = p->count() - 1u;
+        while (lo < hi) {
+            auto mid = (lo + hi) / 2u;
+            if (Compare{}(k, keys[mid]))
+                hi = mid;
+            else
+                lo = mid + 1u;
+        }
+        return lo;
+    }
+
+    // index of the first value of leaf `p` whose key is not less
+    // than `k`, which is `p->count()` when there is none
+    template <typename Key>
+    static count_t leaf_index(const node_t* p, const Key& k)
+    {
+        auto values = p->values();
+        auto lo     = count_t{0};
+        auto hi     = p->count();
+        while (lo < hi) {
+            auto mid = (lo + hi) / 2u;
+            if (Compare{}(KeyFn{}(values[mid]), k))
+                lo = mid + 1u;
+            else
+                hi = mid;
+        }
+        return lo;
+    }
+
+    template <typename Key>
+    const node_t* leaf_for(const Key& k) const
+    {
+        auto p = root;
+        for (auto level = depth; level > 0u; --level)
+            p = p->children()[inner_index(p, k)];
+        return p;
+    }
+
+    template <typename Project, typename Default, typename Key>
+    decltype(auto) get(const Key& k) const
+    {
+        auto p   = leaf_for(k);
+        auto idx = leaf_index(p, k);
+        if (idx < p->count() && !Compare{}(k, KeyFn{}(p->values()[idx])))
+            return Project{}(p->values()[idx]);
+        else
+            return Default{}();
+    }
+
+    // smallest key of the subtree rooted at `p`; used to derive the
+    // separator for a freshly split node, which spares threading key
+    // copies through the recursion
+    static decltype(auto) first_key(const node_t* p, count_t level)
+    {
+        for (; level > 0u; --level)
+            p = p->children()[0];
+        return KeyFn{}(p->values()[0]);
+    }
+
+    static local_size_t subtree_size(const node_t* p, count_t level)
+    {
+        return level == 0u ? p->count() : p->sizes()[p->count() - 1u];
+    }
+
+    struct add_result
+    {
+        node_t* node;
+        node_t* split; // when non-null, new right sibling of `node`
+    };
+
+    btree add(T v) const
+    {
+        auto added    = false;
+        auto r        = do_add(root, depth, std::move(v), added);
+        auto new_size = size + (added ? 1u : 0u);
+        if (!r.split)
+            return {r.node, new_size, depth};
+        IMMER_TRY {
+            auto new_root = node_t::make_inner_2(r.node,
+                                                 r.split,
+                                                 first_key(r.split, depth),
+                                                 subtree_size(r.node, depth),
+                                                 subtree_size(r.split, depth));
+            return {new_root, new_size, depth + 1u};
+        }
+        IMMER_CATCH (...) {
+            if (r.node->dec())
+                node_t::delete_deep(r.node, depth);
+            if (r.split->dec())
+                node_t::delete_deep(r.split, depth);
+            IMMER_RETHROW;
+        }
+    }
+
+    add_result do_add(node_t* p, count_t level, T v, bool& added) const
+    {
+        if (level == 0u) {
+            auto n   = p->count();
+            auto idx = leaf_index(p, KeyFn{}(v));
+            auto found =
+                idx < n && !Compare{}(KeyFn{}(v), KeyFn{}(p->values()[idx]));
+            if (found) {
+                added = false;
+                return {node_t::copy_leaf_replace(p, idx, std::move(v)),
+                        nullptr};
+            }
+            added = true;
+            if (n < branches<BL>)
+                return {node_t::copy_leaf_insert(p, idx, std::move(v)),
+                        nullptr};
+            auto lr = node_t::copy_leaf_split_insert(p, idx, std::move(v));
+            return {lr.first, lr.second};
+        }
+        auto idx = inner_index(p, KeyFn{}(v));
+        auto r   = do_add(p->children()[idx], level - 1u, std::move(v), added);
+        auto delta = static_cast<local_size_t>(added ? 1u : 0u);
+        if (!r.split) {
+            IMMER_TRY {
+                return {node_t::copy_inner_replace(p, idx, r.node, delta),
+                        nullptr};
+            }
+            IMMER_CATCH (...) {
+                if (r.node->dec())
+                    node_t::delete_deep(r.node, level - 1u);
+                IMMER_RETHROW;
+            }
+        }
+        IMMER_TRY {
+            decltype(auto) sep = first_key(r.split, level - 1u);
+            auto size_l        = subtree_size(r.node, level - 1u);
+            if (p->count() < branches<B>)
+                return {node_t::copy_inner_insert_split(
+                            p, idx, r.node, r.split, sep, size_l, delta),
+                        nullptr};
+            auto size_r = subtree_size(r.split, level - 1u);
+            auto lr     = node_t::copy_inner_split_insert(
+                p, idx, r.node, r.split, sep, size_l, size_r);
+            return {lr.first, lr.second};
+        }
+        IMMER_CATCH (...) {
+            if (r.node->dec())
+                node_t::delete_deep(r.node, level - 1u);
+            if (r.split->dec())
+                node_t::delete_deep(r.split, level - 1u);
+            IMMER_RETHROW;
+        }
+    }
+
+    bool check_tree() const
+    {
+        auto ok = true;
+        auto n  = do_check(root, depth, nullptr, nullptr, ok);
+        return ok && n == size;
+    }
+
+    size_t do_check(const node_t* p,
+                    count_t level,
+                    const key_t* lo,
+                    const key_t* hi,
+                    bool& ok) const
+    {
+        auto in_bounds = [&](const key_t& k) {
+            return (!lo || !Compare{}(k, *lo)) && (!hi || Compare{}(k, *hi));
+        };
+        if (level == 0u) {
+            IMMER_ASSERT_TAGGED(p->kind() == node_t::kind_t::leaf);
+            auto n = p->count();
+            ok     = ok && n <= branches<BL>;
+            ok     = ok && (p == root || n >= min_branches<BL>);
+            auto v = p->values();
+            for (auto i = count_t{0}; i < n; ++i) {
+                ok = ok && in_bounds(KeyFn{}(v[i]));
+                ok = ok && (i + 1u == n ||
+                            Compare{}(KeyFn{}(v[i]), KeyFn{}(v[i + 1u])));
+            }
+            return n;
+        } else {
+            IMMER_ASSERT_TAGGED(p->kind() == node_t::kind_t::inner);
+            auto n        = p->count();
+            ok            = ok && n <= branches<B>;
+            ok            = ok && (p == root ? n >= 2u : n >= min_branches<B>);
+            auto keys     = p->keys();
+            auto children = p->children();
+            auto sizes    = p->sizes();
+            for (auto i = count_t{0}; i + 1u < n; ++i) {
+                ok = ok && in_bounds(keys[i]);
+                ok = ok && (i + 2u == n || Compare{}(keys[i], keys[i + 1u]));
+            }
+            auto total = size_t{0};
+            for (auto i = count_t{0}; i < n; ++i) {
+                auto sub_lo = i == 0u ? lo : &keys[i - 1u];
+                auto sub_hi = i + 1u == n ? hi : &keys[i];
+                total += do_check(children[i], level - 1u, sub_lo, sub_hi, ok);
+                ok = ok && sizes[i] == total;
+            }
+            return total;
+        }
+    }
+
+#if IMMER_DEBUG_STATS
+    void do_get_debug_stats(btree_debug_stats& stats,
+                            const node_t* p,
+                            count_t level) const
+    {
+        if (level == 0u) {
+            ++stats.leaf_count;
+            stats.value_count += p->count();
+        } else {
+            ++stats.inner_count;
+            stats.child_count += p->count();
+            auto fst = p->children();
+            auto lst = fst + p->count();
+            for (; fst != lst; ++fst)
+                do_get_debug_stats(stats, *fst, level - 1u);
+        }
+    }
+
+    btree_debug_stats get_debug_stats() const
+    {
+        auto stats       = btree_debug_stats{};
+        stats.bits       = B;
+        stats.bits_leaf  = BL;
+        stats.value_size = sizeof(T);
+        stats.key_size   = sizeof(key_t);
+        do_get_debug_stats(stats, root, depth);
+        return stats;
+    }
+#endif
+};
+
+} // namespace bts
+} // namespace detail
+} // namespace immer
