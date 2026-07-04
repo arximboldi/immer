@@ -165,6 +165,24 @@ struct btree
         return lo;
     }
 
+    // index of the first value of leaf `p` whose key is greater than
+    // `k`, which is `p->count()` when there is none
+    template <typename Key>
+    static count_t leaf_index_upper(const node_t* p, const Key& k)
+    {
+        auto values = p->values();
+        auto lo     = count_t{0};
+        auto hi     = p->count();
+        while (lo < hi) {
+            auto mid = (lo + hi) / 2u;
+            if (Compare{}(k, KeyFn{}(values[mid])))
+                hi = mid;
+            else
+                lo = mid + 1u;
+        }
+        return lo;
+    }
+
     template <typename Key>
     const node_t* leaf_for(const Key& k) const
     {
@@ -400,6 +418,60 @@ struct btree
                 IMMER_RETHROW;
             }
         }
+    }
+
+    // copy of the tree with the value under `k` replaced by the
+    // combination of the key with `fn` applied to the projection of
+    // the current value, or nullptr when the key is not there
+    template <typename Project, typename Combine, typename Key, typename Fn>
+    node_t*
+    do_update_if_exists(node_t* p, count_t level, const Key& k, Fn&& fn) const
+    {
+        if (level == 0u) {
+            auto n   = p->count();
+            auto idx = leaf_index(p, k);
+            if (idx >= n || Compare{}(k, KeyFn{}(p->values()[idx])))
+                return nullptr;
+            return node_t::copy_leaf_replace(
+                p,
+                idx,
+                Combine{}(k,
+                          std::forward<Fn>(fn)(Project{}(p->values()[idx]))));
+        }
+        auto idx = inner_index(p, k);
+        auto res = do_update_if_exists<Project, Combine>(
+            p->children()[idx], level - 1u, k, std::forward<Fn>(fn));
+        if (!res)
+            return nullptr;
+        IMMER_TRY {
+            return node_t::copy_inner_replace(p, idx, res, 0u);
+        }
+        IMMER_CATCH (...) {
+            if (res->dec())
+                node_t::delete_deep(res, level - 1u);
+            IMMER_RETHROW;
+        }
+    }
+
+    template <typename Project,
+              typename Default,
+              typename Combine,
+              typename Key,
+              typename Fn>
+    btree update(const Key& k, Fn&& fn) const
+    {
+        auto res = do_update_if_exists<Project, Combine>(root, depth, k, fn);
+        if (res)
+            return {res, size, depth};
+        return add(Combine{}(k, std::forward<Fn>(fn)(Default{}())));
+    }
+
+    template <typename Project, typename Combine, typename Key, typename Fn>
+    btree update_if_exists(const Key& k, Fn&& fn) const
+    {
+        auto res = do_update_if_exists<Project, Combine>(
+            root, depth, k, std::forward<Fn>(fn));
+        return res ? btree{res, size, depth} : *this;
     }
 
     bool check_tree() const
