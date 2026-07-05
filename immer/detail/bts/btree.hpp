@@ -11,6 +11,7 @@
 #include <immer/config.hpp>
 #include <immer/detail/bts/bits.hpp>
 #include <immer/detail/bts/node.hpp>
+#include <immer/detail/type_traits.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -78,6 +79,26 @@ struct btree
     }
 
     static btree empty() { return {empty_root(), 0u, 0u}; }
+
+    template <typename U>
+    static auto from_initializer_list(std::initializer_list<U> values)
+    {
+        auto result = btree{empty()};
+        for (auto&& v : values)
+            result = result.add(v);
+        return result;
+    }
+
+    template <typename Iter,
+              typename Sent,
+              std::enable_if_t<compatible_sentinel_v<Iter, Sent>, bool> = true>
+    static auto from_range(Iter first, Sent last)
+    {
+        auto result = btree{empty()};
+        for (; first != last; ++first)
+            result = result.add(*first);
+        return result;
+    }
 
     btree(node_t* r, size_t sz, count_t d) noexcept
         : root{r}
