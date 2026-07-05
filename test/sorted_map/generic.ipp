@@ -12,6 +12,8 @@
 #define SORTED_MAP_T ::immer::sorted_map
 #endif
 
+#include <immer/sorted_map_transient.hpp>
+
 #include "test/util.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -266,6 +268,73 @@ TEST_CASE("sorted_map: transparent comparator lookups")
     CHECK(v["key42"] == 42);
     CHECK(v.lower_bound("key42")->second == 42);
     CHECK(v.upper_bound("key99") == v.end());
+}
+
+TEST_CASE("sorted_map: transient round trip")
+{
+    auto v = SORTED_MAP_T<int, int>{};
+    auto t = v.transient();
+    for (auto i = 0; i < 500; ++i)
+        t.set(i, i * 2);
+    CHECK(t.size() == 500u);
+    CHECK(t.at(300) == 600);
+    CHECK(t.find(501) == nullptr);
+    CHECK(t.count(499) == 1u);
+
+    auto frozen = t.persistent();
+    for (auto i = 500; i < 600; ++i)
+        t.set(i, i * 2);
+    t.erase(0);
+    t.update(1, [](int x) { return x + 1; });
+    t.update_if_exists(2, [](int x) { return x + 1; });
+    t.update_if_exists(9999, [](int x) { return x + 1; });
+    auto v2 = std::move(t).persistent();
+
+    REQUIRE(frozen.impl().check_tree());
+    REQUIRE(v2.impl().check_tree());
+    CHECK(frozen.size() == 500u);
+    CHECK(v2.size() == 599u);
+    CHECK(frozen.find(599) == nullptr);
+    CHECK(*v2.find(599) == 1198);
+    CHECK(frozen.at(0) == 0);
+    CHECK(v2.find(0) == nullptr);
+    CHECK(frozen.at(1) == 2);
+    CHECK(v2.at(1) == 3);
+    CHECK(v2.at(2) == 5);
+    for (auto i = 0; i < 500; ++i)
+        REQUIRE(frozen.at(i) == i * 2);
+
+    auto seen = 0;
+    auto last = -1;
+    for (auto&& kv : v2) {
+        REQUIRE(kv.first > last);
+        last = kv.first;
+        ++seen;
+    }
+    CHECK(seen == 599);
+}
+
+TEST_CASE("sorted_map: move optimized operations")
+{
+    auto v = SORTED_MAP_T<int, int>{};
+    for (auto i = 0; i < 100; ++i)
+        v = std::move(v).set(i, i);
+    CHECK(v.size() == 100u);
+    REQUIRE(v.impl().check_tree());
+
+    v = std::move(v).erase(50);
+    CHECK(v.size() == 99u);
+    CHECK(v.find(50) == nullptr);
+
+    v = std::move(v).update(51, [](int x) { return x * 2; });
+    CHECK(v.at(51) == 102);
+
+    v = std::move(v).update_if_exists(52, [](int x) { return x * 2; });
+    CHECK(v.at(52) == 104);
+
+    v = std::move(v).insert({50, 1});
+    CHECK(v.at(50) == 1);
+    REQUIRE(v.impl().check_tree());
 }
 
 TEST_CASE("sorted_map: bigger map")

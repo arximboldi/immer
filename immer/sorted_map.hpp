@@ -22,6 +22,14 @@
 
 namespace immer {
 
+template <typename K,
+          typename T,
+          typename Compare,
+          typename MemoryPolicy,
+          detail::bts::bits_t B,
+          detail::bts::bits_t BL>
+class sorted_map_transient;
+
 /*!
  * Immutable mapping of values from type `K` to type `T`, sorted by
  * keys according to `Compare`.
@@ -68,6 +76,9 @@ template <typename K,
 class sorted_map
 {
     using value_t = std::pair<K, T>;
+
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
 
     struct key_fn
     {
@@ -138,6 +149,9 @@ public:
         btree_iterator<value_t, key_fn, Compare, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
+
+    using transient_type =
+        sorted_map_transient<K, T, Compare, MemoryPolicy, B, BL>;
 
     using memory_policy_type = MemoryPolicy;
 
@@ -437,9 +451,13 @@ public:
      * already in the map, it replaces its association in the map.
      * It may allocate memory and its complexity is @f$ O(\log{}n) @f$.
      */
-    IMMER_NODISCARD sorted_map insert(value_type value) const
+    IMMER_NODISCARD sorted_map insert(value_type value) const&
     {
         return impl_.add(std::move(value));
+    }
+    IMMER_NODISCARD decltype(auto) insert(value_type value) &&
+    {
+        return insert_move(move_t{}, std::move(value));
     }
 
     /*!
@@ -447,9 +465,13 @@ public:
      * is already in the map, it replaces its association in the map.
      * It may allocate memory and its complexity is @f$ O(\log{}n) @f$.
      */
-    IMMER_NODISCARD sorted_map set(key_type k, mapped_type v) const
+    IMMER_NODISCARD sorted_map set(key_type k, mapped_type v) const&
     {
         return impl_.add({std::move(k), std::move(v)});
+    }
+    IMMER_NODISCARD decltype(auto) set(key_type k, mapped_type v) &&
+    {
+        return set_move(move_t{}, std::move(k), std::move(v));
     }
 
     /*!
@@ -460,11 +482,16 @@ public:
      * and its complexity is @f$ O(\log{}n) @f$.
      */
     template <typename Fn>
-    IMMER_NODISCARD sorted_map update(key_type k, Fn&& fn) const
+    IMMER_NODISCARD sorted_map update(key_type k, Fn&& fn) const&
     {
         return impl_
             .template update<project_value, default_value, combine_value>(
                 k, std::forward<Fn>(fn));
+    }
+    template <typename Fn>
+    IMMER_NODISCARD decltype(auto) update(key_type k, Fn&& fn) &&
+    {
+        return update_move(move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
@@ -475,10 +502,16 @@ public:
      * its complexity is @f$ O(\log{}n) @f$.
      */
     template <typename Fn>
-    IMMER_NODISCARD sorted_map update_if_exists(key_type k, Fn&& fn) const
+    IMMER_NODISCARD sorted_map update_if_exists(key_type k, Fn&& fn) const&
     {
         return impl_.template update_if_exists<project_value, combine_value>(
             k, std::forward<Fn>(fn));
+    }
+    template <typename Fn>
+    IMMER_NODISCARD decltype(auto) update_if_exists(key_type k, Fn&& fn) &&
+    {
+        return update_if_exists_move(
+            move_t{}, std::move(k), std::forward<Fn>(fn));
     }
 
     /*!
@@ -486,7 +519,24 @@ public:
      * associated in the map it returns the same map.  It may allocate
      * memory and its complexity is @f$ O(\log{}n) @f$.
      */
-    IMMER_NODISCARD sorted_map erase(const K& k) const { return impl_.sub(k); }
+    IMMER_NODISCARD sorted_map erase(const K& k) const& { return impl_.sub(k); }
+    IMMER_NODISCARD decltype(auto) erase(const K& k) &&
+    {
+        return erase_move(move_t{}, k);
+    }
+
+    /*!
+     * Returns a @a transient form of this container, an
+     * `immer::sorted_map_transient`.
+     */
+    IMMER_NODISCARD transient_type transient() const&
+    {
+        return transient_type{impl_};
+    }
+    IMMER_NODISCARD transient_type transient() &&
+    {
+        return transient_type{std::move(impl_)};
+    }
 
     /*!
      * Returns a value that can be used as identity for the container.  If two
@@ -498,6 +548,68 @@ public:
 
     // Semi-private
     const impl_t& impl() const { return impl_; }
+
+private:
+    friend transient_type;
+
+    sorted_map&& insert_move(std::true_type, value_type value)
+    {
+        impl_.add_mut({}, std::move(value));
+        return std::move(*this);
+    }
+    sorted_map insert_move(std::false_type, value_type value)
+    {
+        return impl_.add(std::move(value));
+    }
+
+    sorted_map&& set_move(std::true_type, key_type k, mapped_type v)
+    {
+        impl_.add_mut({}, {std::move(k), std::move(v)});
+        return std::move(*this);
+    }
+    sorted_map set_move(std::false_type, key_type k, mapped_type v)
+    {
+        return impl_.add({std::move(k), std::move(v)});
+    }
+
+    template <typename Fn>
+    sorted_map&& update_move(std::true_type, key_type k, Fn&& fn)
+    {
+        impl_.template update_mut<project_value, default_value, combine_value>(
+            {}, k, std::forward<Fn>(fn));
+        return std::move(*this);
+    }
+    template <typename Fn>
+    sorted_map update_move(std::false_type, key_type k, Fn&& fn)
+    {
+        return impl_
+            .template update<project_value, default_value, combine_value>(
+                k, std::forward<Fn>(fn));
+    }
+
+    template <typename Fn>
+    sorted_map&& update_if_exists_move(std::true_type, key_type k, Fn&& fn)
+    {
+        impl_.template update_if_exists_mut<project_value, combine_value>(
+            {}, k, std::forward<Fn>(fn));
+        return std::move(*this);
+    }
+    template <typename Fn>
+    sorted_map update_if_exists_move(std::false_type, key_type k, Fn&& fn)
+    {
+        return impl_.template update_if_exists<project_value, combine_value>(
+            k, std::forward<Fn>(fn));
+    }
+
+    sorted_map&& erase_move(std::true_type, const key_type& k)
+    {
+        impl_.sub_mut({}, k);
+        return std::move(*this);
+    }
+    sorted_map erase_move(std::false_type, const key_type& k)
+    {
+        return impl_.sub(k);
+    }
 
     // for immer::persist
 public:

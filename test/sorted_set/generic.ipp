@@ -12,6 +12,8 @@
 #define SORTED_SET_T ::immer::sorted_set
 #endif
 
+#include <immer/sorted_set_transient.hpp>
+
 #include "test/util.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -164,6 +166,49 @@ TEST_CASE("sorted_set: transparent comparator lookups")
     REQUIRE(v.find("key42") != nullptr);
     CHECK(*v.find("key42") == "key42");
     CHECK(*v.lower_bound("key42") == "key42");
+}
+
+TEST_CASE("sorted_set: transient round trip")
+{
+    auto v = SORTED_SET_T<int>{};
+    auto t = v.transient();
+    for (auto i = 0; i < 500; ++i)
+        t.insert(i);
+    CHECK(t.size() == 500u);
+    CHECK(t.count(300) == 1u);
+    REQUIRE(t.find(499) != nullptr);
+    CHECK(*t.lower_bound(100) == 100);
+
+    auto frozen = t.persistent();
+    for (auto i = 500; i < 600; ++i)
+        t.insert(i);
+    t.erase(0);
+    auto v2 = std::move(t).persistent();
+
+    REQUIRE(frozen.impl().check_tree());
+    REQUIRE(v2.impl().check_tree());
+    CHECK(frozen.size() == 500u);
+    CHECK(v2.size() == 599u);
+    CHECK(frozen.count(599) == 0u);
+    CHECK(v2.count(599) == 1u);
+    CHECK(frozen.count(0) == 1u);
+    CHECK(v2.count(0) == 0u);
+    for (auto i = 0; i < 500; ++i)
+        REQUIRE(frozen.count(i) == 1u);
+}
+
+TEST_CASE("sorted_set: move optimized operations")
+{
+    auto v = SORTED_SET_T<int>{};
+    for (auto i = 0; i < 100; ++i)
+        v = std::move(v).insert(i);
+    CHECK(v.size() == 100u);
+    REQUIRE(v.impl().check_tree());
+
+    v = std::move(v).erase(50);
+    CHECK(v.size() == 99u);
+    CHECK(v.count(50) == 0u);
+    REQUIRE(v.impl().check_tree());
 }
 
 TEST_CASE("sorted_set: bigger set")

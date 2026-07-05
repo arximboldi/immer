@@ -823,6 +823,44 @@ struct node
         return dst;
     }
 
+    static node_t* owned(node_t* n, edit_t e)
+    {
+        ownee(n) = e;
+        return n;
+    }
+
+    // inserts `v` at `idx` in a mutable leaf with spare capacity;
+    // requires nothrow move construction and assignment of `T`
+    static void insert_value_mut(node_t* p, count_t idx, T v)
+    {
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::leaf);
+        auto n = p->count();
+        assert(n < branches<BL>);
+        assert(idx <= n);
+        auto values = p->values();
+        if (idx < n) {
+            new (values + n) T{std::move(values[n - 1u])};
+            std::move_backward(values + idx, values + (n - 1u), values + n);
+            values[idx] = std::move(v);
+        } else {
+            new (values + n) T{std::move(v)};
+        }
+        ++p->impl.d.count;
+    }
+
+    // erases the value at `idx` in a mutable leaf; requires nothrow
+    // move assignment of `T`
+    static void erase_value_mut(node_t* p, count_t idx)
+    {
+        IMMER_ASSERT_TAGGED(p->kind() == kind_t::leaf);
+        auto n = p->count();
+        assert(idx < n);
+        auto values = p->values();
+        std::move(values + idx + 1u, values + n, values + idx);
+        detail::destroy_at(values + (n - 1u));
+        --p->impl.d.count;
+    }
+
     node_t* inc()
     {
         refs(this).inc();

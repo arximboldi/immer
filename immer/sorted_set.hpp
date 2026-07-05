@@ -20,6 +20,13 @@
 
 namespace immer {
 
+template <typename T,
+          typename Compare,
+          typename MemoryPolicy,
+          detail::bts::bits_t B,
+          detail::bts::bits_t BL>
+class sorted_set_transient;
+
 /*!
  * Immutable set of values of type `T`, sorted according to `Compare`.
  *
@@ -62,6 +69,9 @@ template <typename T,
           detail::bts::bits_t BL = default_bits>
 class sorted_set
 {
+    using move_t =
+        std::integral_constant<bool, MemoryPolicy::use_transient_rvalues>;
+
     struct key_fn
     {
         const T& operator()(const T& v) const noexcept { return v; }
@@ -92,6 +102,9 @@ public:
         detail::bts::btree_iterator<T, key_fn, Compare, MemoryPolicy, B, BL>;
     using const_iterator   = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
+
+    using transient_type =
+        sorted_set_transient<T, Compare, MemoryPolicy, B, BL>;
 
     using memory_policy_type = MemoryPolicy;
 
@@ -316,9 +329,13 @@ public:
      * the set, it replaces the equivalent value in the set.  It may
      * allocate memory and its complexity is @f$ O(\log{}n) @f$.
      */
-    IMMER_NODISCARD sorted_set insert(T value) const
+    IMMER_NODISCARD sorted_set insert(T value) const&
     {
         return impl_.add(std::move(value));
+    }
+    IMMER_NODISCARD decltype(auto) insert(T value) &&
+    {
+        return insert_move(move_t{}, std::move(value));
     }
 
     /*!
@@ -326,9 +343,26 @@ public:
      * it returns the same set.  It may allocate memory and its
      * complexity is @f$ O(\log{}n) @f$.
      */
-    IMMER_NODISCARD sorted_set erase(const T& value) const
+    IMMER_NODISCARD sorted_set erase(const T& value) const&
     {
         return impl_.sub(value);
+    }
+    IMMER_NODISCARD decltype(auto) erase(const T& value) &&
+    {
+        return erase_move(move_t{}, value);
+    }
+
+    /*!
+     * Returns a @a transient form of this container, an
+     * `immer::sorted_set_transient`.
+     */
+    IMMER_NODISCARD transient_type transient() const&
+    {
+        return transient_type{impl_};
+    }
+    IMMER_NODISCARD transient_type transient() &&
+    {
+        return transient_type{std::move(impl_)};
     }
 
     /*!
@@ -341,6 +375,29 @@ public:
 
     // Semi-private
     const impl_t& impl() const { return impl_; }
+
+private:
+    friend transient_type;
+
+    sorted_set&& insert_move(std::true_type, T value)
+    {
+        impl_.add_mut({}, std::move(value));
+        return std::move(*this);
+    }
+    sorted_set insert_move(std::false_type, T value)
+    {
+        return impl_.add(std::move(value));
+    }
+
+    sorted_set&& erase_move(std::true_type, const T& value)
+    {
+        impl_.sub_mut({}, value);
+        return std::move(*this);
+    }
+    sorted_set erase_move(std::false_type, const T& value)
+    {
+        return impl_.sub(value);
+    }
 
     // for immer::persist
 public:
