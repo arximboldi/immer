@@ -49,6 +49,20 @@ map
     :members:
     :undoc-members:
 
+sorted_set
+----------
+
+.. doxygenclass:: immer::sorted_set
+    :members:
+    :undoc-members:
+
+sorted_map
+----------
+
+.. doxygenclass:: immer::sorted_map
+    :members:
+    :undoc-members:
+
 table
 -----
 

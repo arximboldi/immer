@@ -50,6 +50,20 @@ map_transient
     :members:
     :undoc-members:
 
+sorted_set_transient
+--------------------
+
+.. doxygenclass:: immer::sorted_set_transient
+    :members:
+    :undoc-members:
+
+sorted_map_transient
+--------------------
+
+.. doxygenclass:: immer::sorted_map_transient
+    :members:
+    :undoc-members:
+
 table_transient
 ---------------
 
