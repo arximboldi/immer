@@ -523,14 +523,14 @@ struct btree
                 IMMER_RETHROW;
             }
         }
-        return do_sub_fix(p, level, idx, r.node);
+        return do_sub_fix(p, level, idx, r.node, edit_t{});
     }
 
     // rebuilds `p` after an erasure left the fresh child meant for
     // position `idx` under the minimum fill, by merging it with a
     // neighbor or redistributing between them; consumes `fresh`
-    sub_result
-    do_sub_fix(node_t* p, count_t level, count_t idx, node_t* fresh) const
+    sub_result do_sub_fix(
+        node_t* p, count_t level, count_t idx, node_t* fresh, edit_t e) const
     {
         auto child_level = level - 1u;
         auto dispose     = [&](node_t* q) {
@@ -554,8 +554,10 @@ struct btree
                 dispose(fresh);
                 IMMER_RETHROW;
             }
+            node_t::owned(merged, e);
             IMMER_TRY {
-                auto dst = node_t::copy_inner_merge(p, left_idx, merged);
+                auto dst = node_t::owned(
+                    node_t::copy_inner_merge(p, left_idx, merged), e);
                 dispose(fresh);
                 return {dst, p->count() - 1u < min_branches<B>};
             }
@@ -576,6 +578,8 @@ struct btree
                 dispose(fresh);
                 IMMER_RETHROW;
             }
+            node_t::owned(lr.first, e);
+            node_t::owned(lr.second, e);
             IMMER_TRY {
                 auto dst = node_t::copy_inner_replace_2(
                     p,
@@ -584,6 +588,7 @@ struct btree
                     lr.second,
                     first_key(lr.second, child_level),
                     subtree_size(lr.first, child_level));
+                node_t::owned(dst, e);
                 dispose(fresh);
                 return {dst, false};
             }
@@ -678,8 +683,7 @@ struct btree
         // an underflowing child is never one that was edited in
         // place, so `p` can be rebuilt as in the persistent case
         assert(!r.mutated);
-        auto rr = do_sub_fix(p, level, idx, r.node);
-        node_t::owned(rr.node, e);
+        auto rr = do_sub_fix(p, level, idx, r.node, e);
         return {rr.node, rr.underflow, false};
     }
 
