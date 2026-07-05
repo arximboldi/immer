@@ -247,6 +247,45 @@ struct btree
         return level == 0u ? p->count() : p->sizes()[p->count() - 1u];
     }
 
+    template <typename Fn>
+    void for_each_chunk(Fn&& fn) const
+    {
+        for_each_chunk_traversal(root, depth, fn);
+    }
+
+    template <typename Fn>
+    static void for_each_chunk_traversal(const node_t* p, count_t level, Fn& fn)
+    {
+        if (level == 0u) {
+            fn(p->values(), p->values() + p->count());
+        } else {
+            auto fst = p->children();
+            auto lst = fst + p->count();
+            for (; fst != lst; ++fst)
+                for_each_chunk_traversal(*fst, level - 1u, fn);
+        }
+    }
+
+    template <typename Fn>
+    bool for_each_chunk_p(Fn&& fn) const
+    {
+        return for_each_chunk_p_traversal(root, depth, fn);
+    }
+
+    template <typename Fn>
+    static bool
+    for_each_chunk_p_traversal(const node_t* p, count_t level, Fn& fn)
+    {
+        if (level == 0u)
+            return fn(p->values(), p->values() + p->count());
+        auto fst = p->children();
+        auto lst = fst + p->count();
+        for (; fst != lst; ++fst)
+            if (!for_each_chunk_p_traversal(*fst, level - 1u, fn))
+                return false;
+        return true;
+    }
+
     struct add_result
     {
         node_t* node;

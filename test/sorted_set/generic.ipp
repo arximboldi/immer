@@ -12,6 +12,7 @@
 #define SORTED_SET_T ::immer::sorted_set
 #endif
 
+#include <immer/algorithm.hpp>
 #include <immer/sorted_set_transient.hpp>
 
 #include "test/util.hpp"
@@ -166,6 +167,16 @@ TEST_CASE("sorted_set: transparent comparator lookups")
     REQUIRE(v.find("key42") != nullptr);
     CHECK(*v.find("key42") == "key42");
     CHECK(*v.lower_bound("key42") == "key42");
+}
+
+TEST_CASE("sorted_set: chunked algorithms")
+{
+    auto v = SORTED_SET_T<int>{};
+    for (auto i = 0; i < 500; ++i)
+        v = v.insert(i);
+    CHECK(immer::accumulate(v, 0) == 499 * 500 / 2);
+    CHECK(immer::all_of(v, [](int x) { return x >= 0; }));
+    CHECK(!immer::all_of(v, [](int x) { return x < 499; }));
 }
 
 TEST_CASE("sorted_set: transient round trip")

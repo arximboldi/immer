@@ -12,6 +12,7 @@
 #define SORTED_MAP_T ::immer::sorted_map
 #endif
 
+#include <immer/algorithm.hpp>
 #include <immer/sorted_map_transient.hpp>
 
 #include "test/util.hpp"
@@ -268,6 +269,22 @@ TEST_CASE("sorted_map: transparent comparator lookups")
     CHECK(v["key42"] == 42);
     CHECK(v.lower_bound("key42")->second == 42);
     CHECK(v.upper_bound("key99") == v.end());
+}
+
+TEST_CASE("sorted_map: chunked algorithms")
+{
+    auto v = SORTED_MAP_T<int, int>{};
+    for (auto i = 0; i < 500; ++i)
+        v = v.set(i, 2);
+    auto total =
+        immer::accumulate(v, 0, [](int acc, const std::pair<int, int>& kv) {
+            return acc + kv.second;
+        });
+    CHECK(total == 1000);
+    CHECK(immer::all_of(
+        v, [](const std::pair<int, int>& kv) { return kv.second == 2; }));
+    CHECK(!immer::all_of(
+        v, [](const std::pair<int, int>& kv) { return kv.first < 499; }));
 }
 
 TEST_CASE("sorted_map: transient round trip")

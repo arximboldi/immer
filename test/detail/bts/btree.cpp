@@ -229,6 +229,29 @@ TEST_CASE("bts btree: alternative memory policy")
     CHECK(find_ptr(t, 1) == nullptr);
 }
 
+TEST_CASE("bts btree: chunked traversal")
+{
+    for (auto n : {0, 1, 5, 100, 1000}) {
+        auto keys = spread_keys(n, 3);
+        auto t    = build_packed<small_tree>(keys);
+        auto out  = std::vector<int>{};
+        t.for_each_chunk([&](const int* fst, const int* lst) {
+            out.insert(out.end(), fst, lst);
+        });
+        CHECK(out == keys);
+
+        auto count = 0;
+        auto more  = t.for_each_chunk_p([&](const int* fst, const int* lst) {
+            count += static_cast<int>(lst - fst);
+            return count < n / 2;
+        });
+        CHECK(!more); // the predicate stops the traversal half way
+        CHECK(count <= n);
+        if (n > 0)
+            CHECK(count >= n / 2);
+    }
+}
+
 TEST_CASE("bts btree: debug stats")
 {
     auto t     = build_packed<small_tree>(spread_keys(100, 1));
