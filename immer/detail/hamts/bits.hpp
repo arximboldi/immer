@@ -12,7 +12,7 @@
 #include <cstdint>
 
 #if defined(_MSC_VER)
-#include <intrin.h> // __popcnt
+#include <intrin.h> // __popcnt, __cpuid
 #endif
 
 namespace immer {
@@ -61,7 +61,30 @@ constexpr T max_depth = (sizeof(hash_t) * 8u + B - 1u) / B;
 template <typename hash_t, bits_t B, typename T = count_t>
 constexpr T max_shift = max_depth<hash_t, B, count_t> * B;
 
+// __popcnt/__popcnt64 compile directly to the x86 POPCNT instruction, which
+// only exists from Intel's Nehalem generation (2008) onward (and AMD
+// equivalents) and has no compiler-inserted CPUID check, unlike
+// __builtin_popcount on GCC/Clang. MSVC only exposes a POPCNT capability
+// query (via CPUID) on x86/x64; other MSVC targets (e.g. ARM64) have no
+// popcount intrinsic to speak of, so there's nothing to "have" there --
+// always use the portable fallback on such targets.
+#if defined(_MSC_VER) && !(defined(_M_IX86) || defined(_M_X64))
+#define IMMER_HAS_BUILTIN_POPCOUNT 0
+#else
 #define IMMER_HAS_BUILTIN_POPCOUNT 1
+#endif
+
+#if IMMER_HAS_BUILTIN_POPCOUNT && defined(_MSC_VER)
+inline bool has_popcnt_support()
+{
+    static const bool result = [] {
+        int info[4] = {0, 0, 0, 0};
+        __cpuid(info, 1);
+        return (info[2] & (1 << 23)) != 0; // ECX bit 23 == POPCNT
+    }();
+    return result;
+}
+#endif
 
 inline auto popcount_fallback(std::uint32_t x)
 {
@@ -84,33 +107,32 @@ inline auto popcount_fallback(std::uint64_t x)
 
 inline count_t popcount(std::uint32_t x)
 {
-#if IMMER_HAS_BUILTIN_POPCOUNT
-#if defined(_MSC_VER)
-    return __popcnt(x);
+#if !IMMER_HAS_BUILTIN_POPCOUNT
+    return popcount_fallback(x);
+#elif defined(_MSC_VER)
+    return has_popcnt_support() ? __popcnt(x) : popcount_fallback(x);
 #else
     return __builtin_popcount(x);
-#endif
-#else
-    return popcount_fallback(x);
 #endif
 }
 
 inline count_t popcount(std::uint64_t x)
 {
-#if IMMER_HAS_BUILTIN_POPCOUNT
-#if defined(_MSC_VER)
+#if !IMMER_HAS_BUILTIN_POPCOUNT
+    return popcount_fallback(x);
+#elif defined(_MSC_VER)
 #if defined(_WIN64)
-    return static_cast<count_t>(__popcnt64(x));
+    return has_popcnt_support() ? static_cast<count_t>(__popcnt64(x))
+                                 : popcount_fallback(x);
 #else
     // TODO: benchmark against popcount_fallback(std::uint64_t x)
+    // Safe on CPUs without POPCNT: popcount(std::uint32_t) already checks
+    // has_popcnt_support() before using the intrinsic.
     return popcount(static_cast<std::uint32_t>(x >> 32)) +
            popcount(static_cast<std::uint32_t>(x));
 #endif
 #else
     return __builtin_popcountll(x);
-#endif
-#else
-    return popcount_fallback(x);
 #endif
 }
 
