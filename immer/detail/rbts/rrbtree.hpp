@@ -57,23 +57,21 @@ struct rrbtree
                ipow((size_t{1} << B) - 2, (S - BL) / B);
     }
 
-    static node_t* empty_root()
+    static node_t* empty_root() noexcept
     {
         static const auto empty_ = [] {
             constexpr auto size = node_t::sizeof_inner_n(0);
-            static std::aligned_storage_t<size, alignof(std::max_align_t)>
-                storage;
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
             return node_t::make_inner_n_into(&storage, size, 0u);
         }();
         return empty_->inc();
     }
 
-    static node_t* empty_tail()
+    static node_t* empty_tail() noexcept
     {
         static const auto empty_ = [] {
             constexpr auto size = node_t::sizeof_leaf_n(0);
-            static std::aligned_storage_t<size, alignof(std::max_align_t)>
-                storage;
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
             return node_t::make_leaf_n_into(&storage, size, 0u);
         }();
         return empty_->inc();
@@ -159,7 +157,7 @@ struct rrbtree
         swap(*this, other);
     }
 
-    rrbtree& operator=(const rrbtree& other)
+    rrbtree& operator=(const rrbtree& other) noexcept
     {
         auto next{other};
         swap(*this, next);

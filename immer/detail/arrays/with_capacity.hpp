@@ -32,51 +32,58 @@ struct with_capacity
     size_t size;
     size_t capacity;
 
-    static const with_capacity& empty()
+    static const with_capacity& empty() noexcept
     {
-        static const with_capacity empty_{node_t::make_n(1), 0, 1};
+        static const auto node = [] {
+            constexpr auto size = node_t::sizeof_n(1);
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            auto p = new (&storage) node_t{};
+            p->refs().inc();
+            return p;
+        }();
+        static const with_capacity empty_{node, 0, 1};
         return empty_;
     }
 
-    with_capacity(node_t* p, size_t s, size_t c)
+    with_capacity(node_t* p, size_t s, size_t c) noexcept
         : ptr{p}
         , size{s}
         , capacity{c}
     {
     }
 
-    with_capacity(const with_capacity& other)
+    with_capacity(const with_capacity& other) noexcept
         : with_capacity{other.ptr, other.size, other.capacity}
     {
         inc();
     }
 
-    with_capacity(const no_capacity_t& other)
+    with_capacity(const no_capacity_t& other) noexcept
         : with_capacity{other.ptr, other.size, other.size}
     {
         inc();
     }
 
-    with_capacity(with_capacity&& other)
+    with_capacity(with_capacity&& other) noexcept
         : with_capacity{empty()}
     {
         swap(*this, other);
     }
 
-    with_capacity& operator=(const with_capacity& other)
+    with_capacity& operator=(const with_capacity& other) noexcept
     {
         auto next = other;
         swap(*this, next);
         return *this;
     }
 
-    with_capacity& operator=(with_capacity&& other)
+    with_capacity& operator=(with_capacity&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(with_capacity& x, with_capacity& y)
+    friend void swap(with_capacity& x, with_capacity& y) noexcept
     {
         using std::swap;
         swap(x.ptr, y.ptr);
