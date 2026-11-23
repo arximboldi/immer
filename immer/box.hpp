@@ -104,24 +104,24 @@ public:
     {
     }
 
-    friend void swap(box& a, box& b)
+    friend void swap(box& a, box& b) noexcept
     {
         using std::swap;
         swap(a.impl_, b.impl_);
     }
 
-    box(box&& other) { swap(*this, other); }
-    box(const box& other)
+    box(box&& other) noexcept { swap(*this, other); }
+    box(const box& other) noexcept
         : impl_(other.impl_)
     {
         impl_->inc();
     }
-    box& operator=(box&& other)
+    box& operator=(box&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
-    box& operator=(const box& other)
+    box& operator=(const box& other) noexcept
     {
         auto aux = other;
         swap(*this, aux);

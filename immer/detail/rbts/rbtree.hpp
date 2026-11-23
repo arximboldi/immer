@@ -41,15 +41,23 @@ struct rbtree
         return (size_t{1} << BL) * ipow(size_t{1} << B, (S - BL) / B);
     }
 
-    static node_t* empty_root()
+    static node_t* empty_root() noexcept
     {
-        static const auto empty_ = node_t::make_inner_n(0u);
+        static const auto empty_ = [] {
+            constexpr auto size = node_t::sizeof_inner_n(0);
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            return node_t::make_inner_n_into(&storage, size, 0u);
+        }();
         return empty_->inc();
     }
 
-    static node_t* empty_tail()
+    static node_t* empty_tail() noexcept
     {
-        static const auto empty_ = node_t::make_leaf_n(0u);
+        static const auto empty_ = [] {
+            constexpr auto size = node_t::sizeof_leaf_n(0);
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            return node_t::make_leaf_n_into(&storage, size, 0u);
+        }();
         return empty_->inc();
     }
 
@@ -84,7 +92,7 @@ struct rbtree
         return result;
     }
 
-    rbtree()
+    rbtree() noexcept
         : size{0}
         , shift{BL}
         , root{empty_root()}
@@ -93,7 +101,7 @@ struct rbtree
         assert(check_tree());
     }
 
-    rbtree(size_t sz, shift_t sh, node_t* r, node_t* t)
+    rbtree(size_t sz, shift_t sh, node_t* r, node_t* t) noexcept
         : size{sz}
         , shift{sh}
         , root{r}
@@ -102,32 +110,32 @@ struct rbtree
         assert(check_tree());
     }
 
-    rbtree(const rbtree& other)
+    rbtree(const rbtree& other) noexcept
         : rbtree{other.size, other.shift, other.root, other.tail}
     {
         inc();
     }
 
-    rbtree(rbtree&& other)
+    rbtree(rbtree&& other) noexcept
         : rbtree{}
     {
         swap(*this, other);
     }
 
-    rbtree& operator=(const rbtree& other)
+    rbtree& operator=(const rbtree& other) noexcept
     {
         auto next = other;
         swap(*this, next);
         return *this;
     }
 
-    rbtree& operator=(rbtree&& other)
+    rbtree& operator=(rbtree&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(rbtree& x, rbtree& y)
+    friend void swap(rbtree& x, rbtree& y) noexcept
     {
         using std::swap;
         swap(x.size, y.size);

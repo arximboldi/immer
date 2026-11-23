@@ -30,47 +30,51 @@ struct no_capacity
     node_t* ptr;
     size_t size;
 
-    static const no_capacity& empty()
+    static const no_capacity& empty() noexcept
     {
-        static const no_capacity empty_{
-            node_t::make_n(0),
-            0,
-        };
+        static const auto node = [] {
+            constexpr auto size = node_t::sizeof_n(0);
+            static aligned_storage_t<size, alignof(std::max_align_t)> storage;
+            auto p = new (&storage) node_t{};
+            p->refs().inc();
+            return p;
+        }();
+        static const no_capacity empty_{node, 0};
         return empty_;
     }
 
-    no_capacity(node_t* p, size_t s)
+    no_capacity(node_t* p, size_t s) noexcept
         : ptr{p}
         , size{s}
     {
     }
 
-    no_capacity(const no_capacity& other)
+    no_capacity(const no_capacity& other) noexcept
         : no_capacity{other.ptr, other.size}
     {
         inc();
     }
 
-    no_capacity(no_capacity&& other)
+    no_capacity(no_capacity&& other) noexcept
         : no_capacity{empty()}
     {
         swap(*this, other);
     }
 
-    no_capacity& operator=(const no_capacity& other)
+    no_capacity& operator=(const no_capacity& other) noexcept
     {
         auto next = other;
         swap(*this, next);
         return *this;
     }
 
-    no_capacity& operator=(no_capacity&& other)
+    no_capacity& operator=(no_capacity&& other) noexcept
     {
         swap(*this, other);
         return *this;
     }
 
-    friend void swap(no_capacity& x, no_capacity& y)
+    friend void swap(no_capacity& x, no_capacity& y) noexcept
     {
         using std::swap;
         swap(x.ptr, y.ptr);

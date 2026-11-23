@@ -11,13 +11,14 @@ struct ptr_with_deleter
     Node* ptr;
     std::function<void(Node* ptr)> deleter;
 
-    ptr_with_deleter()
+    ptr_with_deleter() noexcept
         : ptr{nullptr}
         , deleter{}
     {
     }
 
-    ptr_with_deleter(Node* ptr_, std::function<void(Node* ptr)> deleter_)
+    ptr_with_deleter(Node* ptr_,
+                     std::function<void(Node* ptr)> deleter_) noexcept
         : ptr{ptr_}
         , deleter{std::move(deleter_)}
     {
@@ -30,7 +31,7 @@ struct ptr_with_deleter
         }
     }
 
-    friend void swap(ptr_with_deleter& x, ptr_with_deleter& y)
+    friend void swap(ptr_with_deleter& x, ptr_with_deleter& y) noexcept
     {
         using std::swap;
         swap(x.ptr, y.ptr);
@@ -44,7 +45,7 @@ class node_ptr
 public:
     node_ptr() = default;
 
-    node_ptr(Node* ptr_, std::function<void(Node* ptr)> deleter_)
+    node_ptr(Node* ptr_, std::function<void(Node* ptr)> deleter_) noexcept
         : ptr{ptr_, std::move(deleter_)}
     {
         // Assuming the node has just been created and not calling inc() on
@@ -59,7 +60,7 @@ public:
         }
     }
 
-    node_ptr(node_ptr&& other)
+    node_ptr(node_ptr&& other) noexcept
         : node_ptr{}
     {
         swap(*this, other);
@@ -72,7 +73,7 @@ public:
         return *this;
     }
 
-    node_ptr& operator=(node_ptr&& other)
+    node_ptr& operator=(node_ptr&& other) noexcept
     {
         auto temp = node_ptr{std::move(other)};
         swap(*this, temp);
@@ -99,7 +100,7 @@ public:
 
     Node* get() { return ptr.ptr; }
 
-    friend void swap(node_ptr& x, node_ptr& y)
+    friend void swap(node_ptr& x, node_ptr& y) noexcept
     {
         using std::swap;
         swap(x.ptr, y.ptr);

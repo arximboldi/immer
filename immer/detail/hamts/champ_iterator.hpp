@@ -54,7 +54,7 @@ struct champ_iterator
         path_[0] = &v.root;
     }
 
-    champ_iterator(const champ_iterator& other)
+    champ_iterator(const champ_iterator& other) noexcept
         : cur_{other.cur_}
         , end_{other.end_}
         , depth_{other.depth_}
